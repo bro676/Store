@@ -410,7 +410,7 @@ async function serveStatic(req, res, pathname) {
 function defaultStoreSettings() {
   return {
     storeName:'Nexa Store', storeLogo:'assets/brand/logo.svg', announcement:'وجهتك للألعاب والبطاقات والاشتراكات الرقمية',
-    themePrimary:'#e23b57', themeSecondary:'#547ee8', themeDark:'#101a2e',
+    themePrimary:'#376f5f', themeSecondary:'#8ba995', themeDark:'#24433a',
     fxMode:'manual', fxRate:145, fxApiUrl:'', fxJsonPath:'', fxUnit:'new',
     fxAuthHeader:'Authorization', fxAuthPrefix:'Bearer', fxUpdatedAt:null, fxLastError:'',
     catalogApiMode:'manual', catalogApiUrl:'', catalogApiJsonPath:'catalog',
@@ -465,6 +465,12 @@ async function initializeStoreState() {
     const row = result.rows[0];
     if (row.catalog) catalog = validateCatalog(row.catalog);
     storeSettings = { ...defaultStoreSettings(), ...(row.settings || {}) };
+    if (storeSettings.themePrimary === '#e23b57' && storeSettings.themeSecondary === '#547ee8' && storeSettings.themeDark === '#101a2e') {
+      storeSettings.themePrimary = '#376f5f';
+      storeSettings.themeSecondary = '#8ba995';
+      storeSettings.themeDark = '#24433a';
+      await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(storeSettings)]);
+    }
   }
   applyStoreSettings();
 }
@@ -502,9 +508,9 @@ function publicSettings() {
     storeName:String(storeSettings?.storeName || 'Nexa Store'),
     storeLogo:String(storeSettings?.storeLogo || 'assets/brand/logo.svg'),
     announcement:String(storeSettings?.announcement || ''),
-    themePrimary:String(storeSettings?.themePrimary || '#e23b57'),
-    themeSecondary:String(storeSettings?.themeSecondary || '#547ee8'),
-    themeDark:String(storeSettings?.themeDark || '#101a2e'),
+    themePrimary:String(storeSettings?.themePrimary || '#376f5f'),
+    themeSecondary:String(storeSettings?.themeSecondary || '#8ba995'),
+    themeDark:String(storeSettings?.themeDark || '#24433a'),
     fxRate:Number(storeSettings?.fxRate || 145),
     fxMode:storeSettings?.fxMode || 'manual',
     fxReady:fxRateReady(),
