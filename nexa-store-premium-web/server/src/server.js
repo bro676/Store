@@ -533,7 +533,7 @@ function publicSettings() {
     storeName:String(storeSettings?.storeName || 'Nexa Store'),
     storeLogo:String(storeSettings?.storeLogo || 'assets/brand/logo.svg'),
     announcement:String(storeSettings?.announcement || ''),
-    themePrimary:String(storeSettings?.themePrimary || '#4d92eb'),
+    themePrimary:String(storeSettings?.themePrimary || '#397fda'),
     themeSecondary:String(storeSettings?.themeSecondary || '#65b8d7'),
     themeAccent:String(storeSettings?.themeAccent || '#8076d6'),
     themeDark:String(storeSettings?.themeDark || '#193957'),
