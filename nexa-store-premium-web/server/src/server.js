@@ -434,4 +434,18 @@ const server = http.createServer(async (req,res) => {
     return send(res,error.status || 500,{error:error.message === 'BODY_TOO_LARGE' ? 'BODY_TOO_LARGE' : 'INTERNAL_ERROR',message:error.status ? 'تعذر قراءة الطلب.' : 'حدث خطأ داخلي. لم يتم تأكيد الدفع.'});
   }
 });
-server.listen(cfg.port,()=>console.log(`Nexa server listening on ${cfg.port}; paymentsReady=${paymentsReady}`));
+server.listen(cfg.port,()=>{
+  console.log(`Nexa server listening on ${cfg.port}; paymentsReady=${paymentsReady}`);
+  console.log('Nexa payment config flags:', JSON.stringify({
+    paymentsEnabled:cfg.paymentsEnabled,
+    databaseConfigured:Boolean(cfg.databaseUrl),
+    apiTokenConfigured:Boolean(cfg.apiToken),
+    apiTokenLengthValid:Boolean(cfg.apiToken && Buffer.byteLength(cfg.apiToken) <= 256),
+    walletIdConfigured:Boolean(cfg.walletId),
+    fxRateConfigured:Number.isFinite(cfg.sypPerUsd) && cfg.sypPerUsd > 0,
+    fxTimestampValid:Number.isFinite(new Date(cfg.fxUpdatedAt).getTime()),
+    fxSourceConfigured:Boolean(cfg.fxSource),
+    ttlValid:Number.isInteger(cfg.orderTtlMinutes) && cfg.orderTtlMinutes >= 5 && cfg.orderTtlMinutes <= 1440,
+    timezoneValid:Number.isInteger(cfg.timezoneOffsetMinutes) && Math.abs(cfg.timezoneOffsetMinutes) <= 840
+  }));
+});
