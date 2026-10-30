@@ -16,6 +16,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
 let catalog = JSON.parse(await fs.readFile(path.join(__dirname, '..', 'catalog.json'), 'utf8'));
 let storeSettings = null;
+let fxApiTokenRuntime = '';
 const { Pool } = pg;
 const cfg = {
   port: Number(process.env.PORT || 3000),
@@ -427,8 +428,8 @@ function applyStoreSettings() {
     else if (storeSettings.shamApiTokenEncrypted) cfg.apiToken = decryptSecret(storeSettings.shamApiTokenEncrypted, cfg.adminApiKey);
   } catch { cfg.apiToken = ''; }
   try {
-    storeSettings._fxApiToken = storeSettings.fxApiTokenCleared ? '' : (storeSettings.fxApiTokenEncrypted ? decryptSecret(storeSettings.fxApiTokenEncrypted, cfg.adminApiKey) : '');
-  } catch { storeSettings._fxApiToken = ''; }
+    fxApiTokenRuntime = storeSettings.fxApiTokenCleared ? '' : (storeSettings.fxApiTokenEncrypted ? decryptSecret(storeSettings.fxApiTokenEncrypted, cfg.adminApiKey) : '');
+  } catch { fxApiTokenRuntime = ''; }
   cachedShamWallet = null;
   cachedShamWalletAt = 0;
   refreshPaymentsReady();
@@ -506,7 +507,7 @@ async function refreshAutomaticFx() {
     try {
       const headerName = ['Authorization','x-api-key'].includes(storeSettings.fxAuthHeader) ? storeSettings.fxAuthHeader : 'Authorization';
       const headers = { Accept:'application/json' };
-      if (storeSettings._fxApiToken) headers[headerName] = headerName === 'Authorization' ? `${storeSettings.fxAuthPrefix || 'Bearer'} ${storeSettings._fxApiToken}` : storeSettings._fxApiToken;
+      if (fxApiTokenRuntime) headers[headerName] = headerName === 'Authorization' ? `${storeSettings.fxAuthPrefix || 'Bearer'} ${fxApiTokenRuntime}` : fxApiTokenRuntime;
       response = await fetch(url, { headers, signal:controller.signal, redirect:'error' });
     } finally { clearTimeout(timeout); }
     if (!response.ok) throw new Error(`SP Today API أعاد HTTP ${response.status}`);
@@ -523,8 +524,8 @@ async function refreshAutomaticFx() {
   }
 }
 function safeSettingsForAdmin() {
-  const { shamApiTokenEncrypted, fxApiTokenEncrypted, _fxApiToken, ...settings } = storeSettings || {};
-  return { ...settings, shamApiTokenConfigured:Boolean(cfg.apiToken), fxApiTokenConfigured:Boolean(_fxApiToken) };
+  const { shamApiTokenEncrypted, fxApiTokenEncrypted, ...settings } = storeSettings || {};
+  return { ...settings, shamApiTokenConfigured:Boolean(cfg.apiToken), fxApiTokenConfigured:Boolean(fxApiTokenRuntime) };
 }
 function validateAndApplySettings(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('INVALID_SETTINGS');
