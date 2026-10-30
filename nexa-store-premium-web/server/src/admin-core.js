@@ -99,6 +99,21 @@ export function validateCatalog(input) {
 }
 
 
+
+export function validateCatalogApiUrl(raw) {
+  let url;
+  try { url = new URL(String(raw || '')); } catch { throw new Error('INVALID_CATALOG_API_URL'); }
+  const host = url.hostname.toLowerCase().replace(/^\\[|\\]$/g,'');
+  if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') ||
+      !host || net.isIP(host) || host === 'localhost' || host.endsWith('.localhost') ||
+      host.endsWith('.local') || host.endsWith('.lan') || host.endsWith('.home') ||
+      host.endsWith('.internal') || host.endsWith('.test') || host.endsWith('.invalid') ||
+      host.endsWith('.example') || host === 'metadata.google.internal') {
+    throw new Error('CATALOG_API_HTTPS_PUBLIC_HOST_REQUIRED');
+  }
+  return url;
+}
+
 export function mergeCatalog(existing, incoming, mode = 'merge') {
   const current = validateCatalog(existing);
   const next = validateCatalog(incoming);
