@@ -98,6 +98,34 @@ export function validateCatalog(input) {
   return JSON.parse(JSON.stringify(input));
 }
 
+
+export function mergeCatalog(existing, incoming, mode = 'merge') {
+  const current = validateCatalog(existing);
+  const next = validateCatalog(incoming);
+  if (mode === 'replace') return next;
+  if (mode !== 'merge') throw new Error('INVALID_CATALOG_SYNC_MODE');
+  const merged = current.map(category => JSON.parse(JSON.stringify(category)));
+  for (const incomingCategory of next) {
+    const categoryIndex = merged.findIndex(category => category.id === incomingCategory.id);
+    if (categoryIndex < 0) {
+      merged.push(JSON.parse(JSON.stringify(incomingCategory)));
+      continue;
+    }
+    const oldCategory = merged[categoryIndex];
+    const oldProducts = new Map(oldCategory.items.map(product => [product.id, product]));
+    const incomingIds = new Set(incomingCategory.items.map(product => product.id));
+    const items = incomingCategory.items.map(product => ({
+      ...(oldProducts.get(product.id) || {}),
+      ...JSON.parse(JSON.stringify(product)),
+    }));
+    for (const oldProduct of oldCategory.items) {
+      if (!incomingIds.has(oldProduct.id)) items.push(oldProduct);
+    }
+    merged[categoryIndex] = { ...oldCategory, ...JSON.parse(JSON.stringify(incomingCategory)), items };
+  }
+  return validateCatalog(merged);
+}
+
 export function getJsonPath(root, path) {
   if (typeof path !== 'string' || path.length > 160 || !/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/.test(path)) {
     throw new Error('INVALID_FX_JSON_PATH');
