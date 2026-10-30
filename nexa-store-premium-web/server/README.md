@@ -128,15 +128,15 @@ curl https://YOUR-STORE.example/api/admin/shamcash/wallets \
 
 ## Dual currency checkout
 
-The checkout supports SYP and USD. Product catalog amounts remain the store's existing SYP price units; USD is calculated on the server from SYP_PER_USD, then the selected currency and exact amount are written into the Sham Cash invoice and PostgreSQL order. The browser never supplies a price. The reference FX rate must be reviewed and refreshed by the store operator; the source timestamp and source URL are returned by /api/payments/config. Sham Cash invoice/transaction verification must match the exact selected currency and amount.
+The checkout supports SYP and USD. Product catalogue prices are stored in new Syrian pounds. USD is calculated on the server using a fixed store rate of 145 new SYP per 1 USD; the browser never supplies or controls the final price. The selected currency and exact amount are written into the Sham Cash invoice and PostgreSQL order, and verification must match both.
 
 
 ## العملة الجديدة وFX
 
 كتالوج الأسعار في هذا الإصدار صار بالليرة السورية الجديدة. تم تحويل كل القيم القديمة بنسبة 100 قديمة = 1 جديدة، مع الاحتفاظ بالقيمة الاقتصادية نفسها. السعر الأساسي يُرسل إلى Sham Cash بالعملة SYP الجديدة.
 
-سعر USD لا يُقرأ من قيمة قديمة مخزنة. الواجهة لا تتيح إنشاء فاتورة USD إلا عندما يعيد الخادم سعر صرف حديثاً (أقل من 15 دقيقة) ومصدراً من نطاق api-v2.sp-today.com. لا تزال قراءة endpoint SP Today V2 بحاجة إلى مخطط الطلب والاستجابة الذي لم يكن متاحاً عند إعداد هذا الإصدار؛ لا تُدخل قيمة ثابتة أو تدّعِ أنها مباشرة.
+سعر الصرف ثابت يدوياً على 145 ليرة سورية جديدة لكل دولار واحد. يحسب الخادم قيمة USD من السعر الأساسي، ولا يعتمد على API خارجي أو وقت تحديث. لا يرسل المتصفح السعر النهائي، ويطابق الخادم المبلغ والعملة مع فاتورة شام كاش قبل تسجيل الدفع.
 
 ## Regression tests
 
-npm test يشغّل اختبارات حماية حالة HTTP في مساري إنشاء الطلب والتحقق من الدفع، ويجب أن تمر قبل بناء Render.
+npm test يشغّل اختبارات HTTP وتحويل العملة على سعر ثابت 145 مع التحقق من التقريب.
