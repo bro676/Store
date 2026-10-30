@@ -5,6 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
+import { httpStatusForResult, safeHttpStatus } from './http-status.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -31,7 +32,15 @@ const cfg = {
   fxSource: process.env.SYP_PER_USD_SOURCE || '',
 };
 
-const providerConfigReady = Boolean(cfg.apiToken && Buffer.byteLength(cfg.apiToken) <= 256 && cfg.walletId && Number.isInteger(cfg.orderTtlMinutes) && cfg.orderTtlMinutes >= 5 && cfg.orderTtlMinutes <= 1440 && cfg.maxAgeMs > 0 && cfg.futureSkewMs >= 0 && Number.isInteger(cfg.timezoneOffsetMinutes) && Math.abs(cfg.timezoneOffsetMinutes) <= 840 && Number.isFinite(cfg.sypPerUsd) && cfg.sypPerUsd > 0 && Number.isFinite(new Date(cfg.fxUpdatedAt).getTime()) && cfg.fxSource);
+const fxTimestamp = new Date(cfg.fxUpdatedAt).getTime();
+const fxReady = Number.isFinite(cfg.sypPerUsd) && cfg.sypPerUsd > 0 &&
+  Number.isFinite(fxTimestamp) && Date.now() - fxTimestamp >= -90_000 &&
+  Date.now() - fxTimestamp <= 15 * 60_000 &&
+  String(cfg.fxSource).includes('api-v2.sp-today.com');
+const providerConfigReady = Boolean(cfg.apiToken && Buffer.byteLength(cfg.apiToken) <= 256 && cfg.walletId &&
+  Number.isInteger(cfg.orderTtlMinutes) && cfg.orderTtlMinutes >= 5 && cfg.orderTtlMinutes <= 1440 &&
+  cfg.maxAgeMs > 0 && cfg.futureSkewMs >= 0 && Number.isInteger(cfg.timezoneOffsetMinutes) &&
+  Math.abs(cfg.timezoneOffsetMinutes) <= 840);
 const paymentsReady = cfg.paymentsEnabled && Boolean(cfg.databaseUrl) && providerConfigReady;
 let pool;
 if (cfg.databaseUrl) {
@@ -51,12 +60,8 @@ const MAX_BODY = 16 * 1024;
 class ProviderError extends Error {
   constructor(status, payload) { super(payload?.message || payload?.error || 'SHAM_PROVIDER_ERROR'); this.name = 'ProviderError'; this.status = status; this.code = payload?.error || payload?.code || 'PROVIDER_ERROR'; }
 }
-function isHttpErrorResult(result) {
-  return Boolean(result && typeof result.error === 'string' &&
-    Number.isInteger(result.status) && result.status >= 400 && result.status <= 599);
-}
 function send(res, status, data, extraHeaders = {}) {
-  const safeStatus = Number.isInteger(status) && status >= 100 && status <= 599 ? status : 500;
+  const safeStatus = safeHttpStatus(status);
   const body = JSON.stringify(data);
   res.writeHead(safeStatus, {
     'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(body),
@@ -124,7 +129,7 @@ function findPack(categoryId, productId, optionId, packIndex) {
 }
 function pricePack(pack, currency) {
   if (currency === 'SYP') return { ...pack, currency, amountMinor:pack.amountMinor };
-  if (currency !== 'USD') return null;
+  if (currency !== 'USD' || !fxReady) return null;
   const rateScaled = BigInt(Math.round(cfg.sypPerUsd * 10_000));
   if (rateScaled <= 0n) return null;
   const amountMinor = (pack.amountMinor * 10_000n + rateScaled / 2n) / rateScaled;
@@ -410,7 +415,7 @@ const server = http.createServer(async (req,res) => {
         try { const wallet = await getWallet(); receiverLabel = String(wallet.label || receiverLabel); receiverAddress = String(wallet.walletAddress || receiverAddress); message = 'تم التحقق من وجود محفظة شام كاش نشطة. كل طلب ينشئ فاتورة رسمية ويُتحقق من العملية عبر API.'; }
         catch (error) { enabled = false; message = error instanceof ProviderError ? providerMessage(error) : 'تعذر التحقق من محفظة الاستلام حالياً.'; }
       }
-      return send(res,200,{enabled,provider:'Sham Cash',currency:'SYP',currencies:['SYP','USD'],sypPerUsd:cfg.sypPerUsd,fxUpdatedAt:cfg.fxUpdatedAt,fxSource:cfg.fxSource,receiverLabel,receiverAddress,orderTtlMinutes:cfg.orderTtlMinutes,maxTransactionAgeMinutes:Math.round(cfg.maxAgeMs/60_000),message});
+      return send(res,200,{enabled,provider:'Sham Cash',currency:'SYP',currencies:['SYP','USD'],sypPerUsd:fxReady?cfg.sypPerUsd:0,fxReady,fxUpdatedAt:fxReady?cfg.fxUpdatedAt:null,fxSource:fxReady?cfg.fxSource:null,receiverLabel,receiverAddress,orderTtlMinutes:cfg.orderTtlMinutes,maxTransactionAgeMinutes:Math.round(cfg.maxAgeMs/60_000),message});
     }
     const orderLookup = url.pathname.match(/^\/api\/orders\/(NX-[A-F0-9]{20})$/);
     if (req.method === 'GET' && orderLookup) {
@@ -434,7 +439,7 @@ const server = http.createServer(async (req,res) => {
       const result = await verifyPayment(input);
       const headers = result.retryAfter ? {'Retry-After':String(result.retryAfter)} : {};
       // "paid" is business data; a successful verification uses HTTP 200.
-      return send(res, isHttpErrorResult(result) ? result.status : 200, result, headers);
+      return send(res, httpStatusForResult(result, 200), result, headers);
     }
     if (req.method === 'GET' && url.pathname.startsWith('/api/')) return send(res,404,{error:'NOT_FOUND'});
     if (req.method === 'GET' && !url.pathname.startsWith('/api/')) return serveStatic(req,res,url.pathname);
