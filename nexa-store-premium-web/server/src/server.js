@@ -9,7 +9,7 @@ import { httpStatusForResult, isHttpErrorResult, safeHttpStatus } from './http-s
 import { convertSypMinorToUsdMinor } from './exchange-rate.js';
 import {
   createAdminSession, verifyAdminSession, encryptSecret, decryptSecret,
-  validateCatalog, mergeCatalog, isSafeCatalogImage, getJsonPath, normalizeFxRate, validateCatalogApiUrl,
+  validateCatalog, mergeCatalog, upsertCatalogProduct, isSafeCatalogImage, getJsonPath, normalizeFxRate, validateCatalogApiUrl,
 } from './admin-core.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -754,19 +754,6 @@ async function syncCatalogFromApi({ preview = false } = {}) {
     throw error;
   } finally { catalogApiSyncInProgress = false; }
 }
-function upsertCatalogProduct(input) {
-  if (!input || typeof input.categoryId !== 'string' || !input.product || typeof input.product !== 'object') throw new Error('INVALID_CATALOG_PRODUCT_REQUEST');
-  const categoryIndex = catalog.findIndex(category=>category.id===input.categoryId);
-  if (categoryIndex < 0) throw Object.assign(new Error('CATEGORY_NOT_FOUND'),{status:404});
-  const validated = validateCatalog([{id:'api-products',name:'API Products',desc:'API validation',image:'assets/brand/logo.svg',items:[input.product]}])[0].items[0];
-  const next = JSON.parse(JSON.stringify(catalog));
-  const items = next[categoryIndex].items;
-  const productIndex = items.findIndex(product=>product.id===validated.id);
-  if (productIndex < 0) items.push(validated);
-  else items[productIndex] = validated;
-  return { catalog:validateCatalog(next),created:productIndex<0,productId:validated.id };
-}
-
 async function cancelPendingOrder(orderId) {
   if (!pool) throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
   const found = await pool.query("SELECT id,invoice_number FROM nexa_orders WHERE id=$1 AND status='pending_payment' AND expires_at>NOW()",[orderId]);
@@ -864,7 +851,7 @@ const server = http.createServer(async (req,res) => {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const input = await bodyJson(req,2_800_000);
       let result;
-      try { result = upsertCatalogProduct(input); }
+      try { result = upsertCatalogProduct(catalog,input.categoryId,input.product); }
       catch (error) { return send(res,400,{ok:false,error:'INVALID_CATALOG_PRODUCT',message:String(error?.message || 'بيانات المنتج غير صالحة.')}); }
       await persistCatalog(result.catalog);
       return send(res,result.created?201:200,{ok:true,created:result.created,productId:result.productId,message:result.created?'تمت إضافة المنتج عبر API.':'تم تحديث المنتج عبر API.'});
