@@ -5,7 +5,7 @@ services:
     plan: free
     region: frankfurt
     branch: main
-    buildCommand: "cat nexa-store-source.part* | base64 -d | tar -xJ -C . && npm --prefix nexa-store-premium-web/server install --omit=dev"
+    buildCommand: "npm --prefix nexa-store-premium-web/server install --omit=dev"
     startCommand: "npm --prefix nexa-store-premium-web/server start"
     healthCheckPath: /api/health
     autoDeployTrigger: commit
@@ -21,7 +21,7 @@ services:
       - key: DATABASE_SSL
         value: "false"
       - key: PAYMENTS_ENABLED
-        value: "false"
+        value: "true"
       - key: PAYMENT_CURRENCY
         value: SYP
       - key: PAYMENT_ORDER_TTL_MINUTES
@@ -30,6 +30,12 @@ services:
         value: "15"
       - key: PAYMENT_FUTURE_SKEW_SECONDS
         value: "90"
+      - key: SYP_PER_USD
+        value: "14287.5"
+      - key: SYP_PER_USD_UPDATED_AT
+        value: "2026-10-30T12:20:00+03:00"
+      - key: SYP_PER_USD_SOURCE
+        value: https://sypnow.com/en/rates
       - key: SHAM_API_BASE_URL
         value: https://apis-shamcash.com/api
       - key: SHAM_API_TOKEN
