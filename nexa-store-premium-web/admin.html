@@ -45,6 +45,7 @@
     <nav class="nav">
       <button class="active" data-page="overview"><span class="ico">◫</span><span>نظرة عامة</span></button>
       <button data-page="catalog"><span class="ico">▦</span><span>المنتجات والأسعار</span></button>
+      <button data-page="catalog-api"><span class="ico">↗</span><span>ربط المنتجات عبر API</span></button>
       <button data-page="orders"><span class="ico">▤</span><span>الطلبات والإيصالات</span></button>
       <button data-page="payments"><span class="ico">◈</span><span>شام كاش والمحفظة</span></button>
       <button data-page="exchange"><span class="ico">⇄</span><span>سعر الصرف</span></button>
@@ -87,6 +88,39 @@
           <section class="panel"><div class="panel-head"><div><h3>الأقسام</h3><p>اختر القسم لتعديل محتواه.</p></div><button class="icon-btn" id="addCategoryBtn" title="إضافة قسم">＋</button></div><div class="category-list" id="categoryList"></div></section>
           <section class="panel"><div class="toolbar"><div><h3 style="margin:0">محرر القسم</h3><small class="muted">اسم القسم ووصفه وصورته والمنتجات الموجودة تحته.</small></div><button class="btn soft" id="addProductBtn">＋ إضافة منتج</button></div><div id="catalogEditor" class="loading">جارٍ تحميل الكتالوج…</div></section>
         </div>
+      </section>
+      <section class="page hidden" id="page-catalog-api">
+        <div class="page-head"><div><div class="eyebrow">PRODUCT API CONNECTOR</div><h2>ربط المنتجات عبر API</h2><p>استيراد المنتجات من واجهة خارجية، معاينتها أولاً، ثم مزامنتها مع كتالوج Nexa.</p></div><span class="status-pill" id="catalogApiStatus">غير مرتبط</span></div>
+        <div class="settings-grid">
+          <section class="panel">
+            <div class="panel-head"><div><div class="section-caption">API CONNECTION</div><h3>إعدادات مصدر المنتجات</h3><p>أدخل رابط المنتجات وطريقة المصادقة ومسار بيانات الكتالوج.</p></div></div>
+            <div class="field"><label>طريقة المزامنة</label><select id="catalogApiMode"><option value="manual">يدوية — عند الطلب فقط</option><option value="auto">تلقائية — مزامنة مجدولة</option></select></div>
+            <div class="field"><label>رابط API الكامل (HTTPS)</label><input id="catalogApiUrl" type="url" dir="ltr" placeholder="https://api.example.com/v1/catalog"></div>
+            <div class="field"><label>مسار الكتالوج داخل JSON</label><input id="catalogApiJsonPath" dir="ltr" placeholder="catalog"><small>اكتب catalog أو data.products. اتركه فارغاً إذا كانت الاستجابة نفسها مصفوفة الأقسام.</small></div>
+            <div class="field"><label>نوع المصادقة</label><select id="catalogApiAuthHeader"><option value="Authorization">Authorization: Bearer</option><option value="x-api-key">x-api-key</option><option value="none">بدون مفتاح</option></select></div>
+            <div class="field" id="catalogApiAuthPrefixField"><label>بادئة Authorization</label><input id="catalogApiAuthPrefix" value="Bearer" dir="ltr"></div>
+            <div class="field" id="catalogApiTokenField"><label>مفتاح API</label><input id="catalogApiToken" type="password" autocomplete="new-password" placeholder="اتركه فارغاً للاحتفاظ بالمفتاح الحالي"><small id="catalogApiTokenState">المفتاح يُحفظ مشفّراً ولا يظهر للمتصفح أو للعملاء.</small></div>
+            <label class="inline-check"><input id="clearCatalogApiToken" type="checkbox"> حذف مفتاح API المخزّن</label>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><div><div class="section-caption">SYNC POLICY</div><h3>سياسة المزامنة</h3><p>اختر كيف نتعامل مع المنتجات الموجودة مسبقاً.</p></div></div>
+            <div class="field"><label>طريقة تحديث الكتالوج</label><select id="catalogApiSyncMode"><option value="merge">دمج وتحديث — يحافظ على المنتجات المحلية</option><option value="replace">استبدال كامل — يجعل API المصدر الوحيد</option></select></div>
+            <div class="field"><label>الفاصل بين المزامنات التلقائية بالدقائق</label><input id="catalogApiIntervalMinutes" type="number" min="5" max="1440" value="15"><small>من 5 دقائق إلى 24 ساعة.</small></div>
+            <div class="notice info">الدمج هو الخيار الآمن: يضيف المنتجات الجديدة ويحدّث المنتجات ذات المعرّفات المتطابقة دون حذف منتجاتك اليدوية. وضع الاستبدال يحذف ما ليس موجوداً في مصدر API.</div>
+            <div class="fx-preview"><small>آخر عملية مزامنة</small><strong id="catalogApiLastSync">لم تتم المزامنة بعد</strong><small id="catalogApiLastError"></small></div>
+            <div class="toolbar" style="margin-top:16px">
+              <button class="btn soft" id="catalogApiPreviewBtn">معاينة البيانات</button>
+              <button class="btn primary" id="catalogApiSyncBtn">مزامنة الآن</button>
+            </div>
+            <div class="secret-box" id="catalogApiResult" aria-live="polite">ستظهر نتيجة الفحص والمزامنة هنا. المعاينة لا تغيّر المنتجات.</div>
+          </section>
+        </div>
+        <section class="panel" style="margin-top:15px">
+          <div class="panel-head"><div><div class="section-caption">EXPECTED JSON FORMAT</div><h3>شكل البيانات الذي يستقبله Nexa</h3><p>الأسعار بالليرة السورية الجديدة، والصور بروابط HTTPS أو مسارات أصول صالحة.</p></div><button class="btn primary" id="saveCatalogApiBtn">حفظ إعدادات API ✓</button></div>
+          <details><summary style="cursor:pointer;font-size:11px;font-weight:900;color:#49675c">عرض مثال استجابة API</summary><pre id="catalogApiSample" style="direction:ltr;text-align:left;white-space:pre;overflow:auto;max-height:360px;padding:14px;border-radius:13px;background:#f3f6f2;border:1px solid #dfe8e0;font-size:10px;line-height:1.7;color:#30443a"></pre></details>
+          <div class="notice info">يمكنك أيضاً إرسال منتج جديد أو تحديثه مباشرة إلى <bdi dir="ltr">POST /api/admin/catalog/products</bdi> مع ترويسة <bdi dir="ltr">X-Admin-Key</bdi> وبيانات JSON. احتفظ بمفتاح الإدارة في الخادم الذي يرسل الطلب، ولا تضعه في تطبيق عام أو صفحة ويب.</div>
+          <div class="save-row"><button class="btn soft" id="saveCatalogApiBtnBottom">حفظ إعدادات API ✓</button></div>
+        </section>
       </section>
       <section class="page hidden" id="page-orders">
         <div class="page-head"><div><div class="eyebrow">ORDERS & RECEIPTS</div><h2>الطلبات والفواتير</h2><p>عرض حالة كل طلب ومبلغه وبيانات الفاتورة. لا يمكن اعتماد الدفع يدوياً من لوحة الإدارة.</p></div><button class="btn soft" id="refreshOrdersBtn">تحديث القائمة ↻</button></div>
@@ -146,7 +180,7 @@
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const state={catalog:[],settings:{},orders:[],categoryIndex:0,page:'overview',busy:false};
-const pageTitles={overview:'نظرة عامة',catalog:'المنتجات والأسعار',orders:'الطلبات والإيصالات',payments:'شام كاش والمحفظة',exchange:'سعر الصرف'};
+const pageTitles={overview:'نظرة عامة',catalog:'المنتجات والأسعار','catalog-api':'ربط المنتجات عبر API',orders:'الطلبات والإيصالات',payments:'شام كاش والمحفظة',exchange:'سعر الصرف'};
 let toastTimer;
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2800)}
 async function api(path,options={}){const response=await fetch(path,{credentials:'same-origin',cache:'no-store',...options,headers:{...(options.headers||{}),...(options.body?{'Content-Type':'application/json'}:{})}});let data={};try{data=await response.json()}catch{}if(!response.ok){if(response.status===401&&path!=='/api/admin/session')showLogin();throw new Error(data.message||data.error||'تعذر تنفيذ العملية.')}return data}
@@ -154,10 +188,10 @@ function showLogin(){state.authed=false;$('app').classList.add('hidden');$('logi
 function showApp(){state.authed=true;$('loginScreen').classList.add('hidden');$('app').classList.remove('hidden')}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginError').textContent='';const key=$('adminKey').value;try{await api('/api/admin/session',{method:'POST',body:JSON.stringify({key})});$('adminKey').value='';showApp();await loadAll();toast('تم تسجيل الدخول بأمان.')}catch(err){$('loginError').textContent=err.message;$('adminKey').focus()}});
 $('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/session',{method:'DELETE'})}catch{}showLogin();toast('تم تسجيل الخروج.')});
-function setPage(name){state.page=name;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!=='page-'+name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('pageTitle').textContent=pageTitles[name]||'Nexa';if(name==='catalog')renderCatalog();if(name==='orders')loadOrders();if(name==='payments')loadSettings();if(name==='exchange')loadSettings()}
+function setPage(name){state.page=name;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!=='page-'+name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('pageTitle').textContent=pageTitles[name]||'Nexa';if(name==='catalog')renderCatalog();if(name==='catalog-api'){loadSettings();loadCatalogApiStatus()}if(name==='orders')loadOrders();if(name==='payments')loadSettings();if(name==='exchange')loadSettings()}
 document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.page)));
 document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.jump)));
-async function loadAll(){showApp();await Promise.all([loadOverview(),loadCatalog(),loadSettings(),loadOrders()]);}
+async function loadAll(){showApp();await Promise.all([loadOverview(),loadCatalog(),loadSettings(),loadOrders(),loadCatalogApiStatus()]);}
 async function loadOverview(){const d=await api('/api/admin/overview');const o=d.orders||{};const cards=[['إجمالي الطلبات',o.total||0,'▤','كل الطلبات المسجلة'],['مدفوع ومتحقق',o.paid||0,'✓','دفعات أكدها API'],['بانتظار الدفع',o.pending||0,'◷','فواتير فعالة أو قيد المتابعة'],['عدد المنتجات',d.products||0,'▦',`${d.categories||0} أقسام`]];$('stats').innerHTML=cards.map(([t,v,ico,sub])=>`<article class="stat"><div class="stat-top"><span>${t}</span><i class="stat-icon">${ico}</i></div><strong>${Number(v).toLocaleString('en-US')}</strong><small>${sub}</small></article>`).join('');const max=Math.max(1,o.total||0);$('orderBars').innerHTML=[['مدفوع',o.paid||0],['بانتظار الدفع',o.pending||0],['منتهي',o.expired||0],['ملغي',(o.total||0)-(o.paid||0)-(o.pending||0)-(o.expired||0)]].map(([label,v])=>`<div class="bar-row"><span>${label}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Number(v)/max*100)}%"></div></div><b>${v}</b></div>`).join('');$('topStatus').textContent=d.paymentsReady?'الدفع جاهز':'تحقق من الدفع';}
 async function loadCatalog(){const d=await api('/api/admin/catalog');state.catalog=d.catalog||[];state.categoryIndex=Math.min(state.categoryIndex,Math.max(0,state.catalog.length-1));renderCatalog()}
 function activeCategory(){return state.catalog[state.categoryIndex]||null}
@@ -216,7 +250,7 @@ $('addProductBtn').addEventListener('click',()=>{const c=activeCategory();if(!c)
 $('saveCatalogBtn').addEventListener('click',async()=>{const b=$('saveCatalogBtn');b.disabled=true;try{await api('/api/admin/catalog',{method:'PUT',body:JSON.stringify({catalog:state.catalog})});toast('تم حفظ الكتالوج والصور على قاعدة البيانات.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 async function loadSettings(){const d=await api('/api/admin/settings');state.settings=d.settings||{};renderSettings(d)}
 function renderSettings(d={}){const s=state.settings;$('storeName').value=s.storeName||'Nexa Store';$('announcement').value=s.announcement||'';$('storeLogo').value=s.storeLogo||'assets/brand/logo.svg';$('storeLogoPreview').src=s.storeLogo||'assets/brand/logo.svg';$('themePrimary').value=s.themePrimary||'#e23b57';$('themeSecondary').value=s.themeSecondary||'#547ee8';$('themeDark').value=s.themeDark||'#101a2e';$('paymentEnabled').checked=!!s.paymentEnabled;$('shamApiBase').value=s.shamApiBase||'https://apis-shamcash.com/api';$('shamApiToken').value='';$('clearShamApiToken').checked=false;$('shamTokenState').textContent=s.shamApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لم يتم ضبط مفتاح بعد.';$('receiverLabel').value=s.receiverLabel||'';$('walletId').value=s.walletId||'';$('orderTtlMinutes').value=s.orderTtlMinutes??15;$('maxAgeMinutes').value=s.maxAgeMinutes??15;$('futureSkewSeconds').value=s.futureSkewSeconds??90;$('timezoneOffsetMinutes').value=s.timezoneOffsetMinutes??180;$('paymentStatus').textContent=d.paymentsReady?'الدفع مفعّل وجاهز':'الدفع غير جاهز';
- $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';}
+ $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;$('catalogApiMode').value=s.catalogApiMode||'manual';$('catalogApiUrl').value=s.catalogApiUrl||'';$('catalogApiJsonPath').value=s.catalogApiJsonPath??'catalog';$('catalogApiAuthHeader').value=s.catalogApiAuthHeader||'Authorization';$('catalogApiAuthPrefix').value=s.catalogApiAuthPrefix||'Bearer';$('catalogApiSyncMode').value=s.catalogApiSyncMode||'merge';$('catalogApiIntervalMinutes').value=s.catalogApiIntervalMinutes??15;$('catalogApiToken').value='';$('clearCatalogApiToken').checked=false;$('catalogApiTokenState').textContent=s.catalogApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لم يتم ضبط مفتاح API بعد.';$('catalogApiAuthPrefixField').classList.toggle('hidden',$('catalogApiAuthHeader').value!=='Authorization');$('catalogApiTokenField').classList.toggle('hidden',$('catalogApiAuthHeader').value==='none');$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';}
 $('fxMode').addEventListener('change',()=>{$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api')});
 function paymentPayload(){return{paymentEnabled:$('paymentEnabled').checked,shamApiBase:$('shamApiBase').value.trim(),shamApiToken:$('shamApiToken').value,clearShamApiToken:$('clearShamApiToken').checked,walletId:$('walletId').value.trim(),receiverLabel:$('receiverLabel').value.trim(),orderTtlMinutes:Number($('orderTtlMinutes').value),maxAgeMinutes:Number($('maxAgeMinutes').value),futureSkewSeconds:Number($('futureSkewSeconds').value),timezoneOffsetMinutes:Number($('timezoneOffsetMinutes').value)}}
 $('savePaymentsBtn').addEventListener('click',async()=>{const b=$('savePaymentsBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(paymentPayload())});state.settings=d.settings;renderSettings(d);toast('تم حفظ إعدادات شام كاش والمحفظة.')}catch(e){toast(e.message)}finally{b.disabled=false}});
@@ -228,6 +262,55 @@ $('refreshFxBtn').addEventListener('click',async()=>{const b=$('refreshFxBtn');b
 $('saveBrandBtn').addEventListener('click',async()=>{const b=$('saveBrandBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify({storeName:$('storeName').value.trim(),announcement:$('announcement').value.trim(),storeLogo:$('storeLogo').value.trim(),themePrimary:$('themePrimary').value,themeSecondary:$('themeSecondary').value,themeDark:$('themeDark').value})});state.settings=d.settings;renderSettings(d);toast('تم حفظ اسم المتجر والشعار.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 $('storeLogo').addEventListener('input',()=>{$('storeLogoPreview').src=$('storeLogo').value});
 $('storeLogoFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=await compressImage(file);$('storeLogo').value=data;$('storeLogoPreview').src=data;toast('تم تجهيز الشعار، اضغط حفظ الهوية.')}catch{toast('تعذر قراءة الشعار.')}e.target.value=''});
+
+const catalogApiExample = {catalog:[{id:'games',name:'ألعاب وشحن',desc:'وصف القسم',image:'https://cdn.example.com/games.webp',icon:'🎮',items:[{id:'freefire',name:'Free Fire',desc:'باقات جواهر',image:'https://cdn.example.com/freefire.webp',options:[{id:'mena',name:'الشرق الأوسط',desc:'منطقة الحساب',flag:'🌍',packs:[['110 جوهرة',180],['341 جوهرة',490]]}]}]}]};
+$('catalogApiSample').textContent=JSON.stringify(catalogApiExample,null,2);
+async function loadCatalogApiStatus(){
+ try{
+  const d=await api('/api/admin/catalog/sync-status');
+  $('catalogApiStatus').textContent=d.mode==='auto'?'مزامنة تلقائية مفعلة':d.configured?'API محفوظ — يدوي':'غير مرتبط';
+  $('catalogApiLastSync').textContent=d.lastSyncAt?new Date(d.lastSyncAt).toLocaleString('ar-SY'):'لم تتم المزامنة بعد';
+  $('catalogApiLastError').textContent=d.lastError?'آخر خطأ: '+d.lastError:(d.syncInProgress?'المزامنة قيد التنفيذ…':'');
+ }catch(e){$('catalogApiStatus').textContent='تعذر قراءة الحالة'}
+}
+function catalogApiPayload(){
+ return {catalogApiMode:$('catalogApiMode').value,catalogApiUrl:$('catalogApiUrl').value.trim(),
+  catalogApiJsonPath:$('catalogApiJsonPath').value.trim(),catalogApiAuthHeader:$('catalogApiAuthHeader').value,
+  catalogApiAuthPrefix:$('catalogApiAuthPrefix').value.trim(),catalogApiToken:$('catalogApiToken').value,
+  clearCatalogApiToken:$('clearCatalogApiToken').checked,catalogApiSyncMode:$('catalogApiSyncMode').value,
+  catalogApiIntervalMinutes:Number($('catalogApiIntervalMinutes').value)};
+}
+async function saveCatalogApiSettings(){
+ const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(catalogApiPayload())});
+ state.settings=d.settings||{};renderSettings(d);await loadCatalogApiStatus();
+ toast('تم حفظ إعدادات API المنتجات.');return d;
+}
+async function catalogApiPreview(){
+ try{
+  await saveCatalogApiSettings();
+  const d=await api('/api/admin/catalog/sync-preview',{method:'POST',body:'{}'});
+  $('catalogApiResult').textContent='المعاينة نجحت: '+d.imported.categories+' أقسام و'+d.imported.products+' منتجات من '+d.source+'. سيصبح الإجمالي '+d.result.products+' منتجاً بعد '+(d.mode==='merge'?'الدمج':'الاستبدال')+'. لم يتم حفظ أي تغيير.';
+  toast('المعاينة جاهزة؛ لم يتم تعديل المتجر.');
+ }catch(e){$('catalogApiResult').textContent='فشل فحص API: '+e.message;toast(e.message)}
+ await loadCatalogApiStatus();
+}
+async function catalogApiSync(){
+ if($('catalogApiSyncMode').value==='replace'&&!confirm('الاستبدال الكامل سيحذف المنتجات والأقسام غير الموجودة في API. هل تريد المتابعة؟'))return;
+ try{
+  await saveCatalogApiSettings();
+  const d=await api('/api/admin/catalog/sync',{method:'POST',body:'{}'});
+  await Promise.all([loadCatalog(),loadOverview(),loadCatalogApiStatus()]);
+  $('catalogApiResult').textContent='تمت المزامنة: '+d.imported.categories+' أقسام و'+d.imported.products+' منتجات من المصدر. أصبح في المتجر '+d.result.products+' منتجاً.';
+  toast('تم تحديث كتالوج Nexa من API.');
+ }catch(e){$('catalogApiResult').textContent='تعذر إكمال المزامنة: '+e.message;toast(e.message)}
+ await loadCatalogApiStatus();
+}
+$('catalogApiAuthHeader').addEventListener('change',()=>{$('catalogApiAuthPrefixField').classList.toggle('hidden',$('catalogApiAuthHeader').value!=='Authorization');$('catalogApiTokenField').classList.toggle('hidden',$('catalogApiAuthHeader').value==='none')});
+$('catalogApiPreviewBtn').addEventListener('click',catalogApiPreview);
+$('catalogApiSyncBtn').addEventListener('click',catalogApiSync);
+$('saveCatalogApiBtn').addEventListener('click',saveCatalogApiSettings);
+$('saveCatalogApiBtnBottom').addEventListener('click',saveCatalogApiSettings);
+
 async function loadOrders(){const d=await api('/api/admin/orders?limit=200');state.orders=d.orders||[];renderOrders()}
 function formatAmount(minor,currency){const amount=Number(BigInt(minor||0))/100;return currency==='USD'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(amount):new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(amount)+' ل.س جديدة'}
 function statusTag(status){const m={paid:['مدفوع','green'],pending_payment:['بانتظار الدفع','orange'],expired:['منتهي','red'],cancelled:['ملغي','red']};const [t,c]=m[status]||[status,''];return `<span class="tag ${c}">${t}</span>`}
