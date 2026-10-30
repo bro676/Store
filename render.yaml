@@ -48,4 +48,4 @@ databases:
     databaseName: nexa_store
     user: nexa_store
     region: frankfurt
-    plan: 0.1c-256mb
+    plan: basic-256mb
