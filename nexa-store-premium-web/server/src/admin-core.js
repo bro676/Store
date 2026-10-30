@@ -90,7 +90,7 @@ export function validateCatalog(input) {
         for (const pack of option.packs) {
           if (!Array.isArray(pack) || pack.length !== 2) throw new Error('INVALID_PACK');
           requiredText(pack[0], 120, 'PACK_NAME');
-          if (!Number.isFinite(pack[1]) || pack[1] < 0 || pack[1] > 1_000_000_000 || !/^\\d+(?:\\.\\d{1,2})?$/.test(String(pack[1]))) throw new Error('INVALID_PACK_PRICE');
+          if (!Number.isFinite(pack[1]) || pack[1] < 0 || pack[1] > 1_000_000_000 || !/^\d+(?:\.\d{1,2})?$/.test(String(pack[1]))) throw new Error('INVALID_PACK_PRICE');
         }
       }
     }
