@@ -6,11 +6,16 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { httpStatusForResult, isHttpErrorResult, safeHttpStatus } from './http-status.js';
-import { convertSypMinorToUsdMinor, SYP_PER_USD } from './exchange-rate.js';
+import { convertSypMinorToUsdMinor } from './exchange-rate.js';
+import {
+  createAdminSession, verifyAdminSession, encryptSecret, decryptSecret,
+  validateCatalog, getJsonPath, normalizeFxRate,
+} from './admin-core.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
-const catalog = JSON.parse(await fs.readFile(path.join(__dirname, '..', 'catalog.json'), 'utf8'));
+let catalog = JSON.parse(await fs.readFile(path.join(__dirname, '..', 'catalog.json'), 'utf8'));
+let storeSettings = null;
 const { Pool } = pg;
 const cfg = {
   port: Number(process.env.PORT || 3000),
@@ -34,12 +39,18 @@ const providerConfigReady = Boolean(cfg.apiToken && Buffer.byteLength(cfg.apiTok
   Number.isInteger(cfg.orderTtlMinutes) && cfg.orderTtlMinutes >= 5 && cfg.orderTtlMinutes <= 1440 &&
   cfg.maxAgeMs > 0 && cfg.futureSkewMs >= 0 && Number.isInteger(cfg.timezoneOffsetMinutes) &&
   Math.abs(cfg.timezoneOffsetMinutes) <= 840);
-const paymentsReady = cfg.paymentsEnabled && Boolean(cfg.databaseUrl) && providerConfigReady;
+let paymentsReady = false;
+function refreshPaymentsReady() {
+  paymentsReady = Boolean(cfg.paymentsEnabled && cfg.databaseUrl && cfg.apiToken && Buffer.byteLength(cfg.apiToken) <= 256 && cfg.walletId &&
+    Number.isInteger(cfg.orderTtlMinutes) && cfg.orderTtlMinutes >= 5 && cfg.orderTtlMinutes <= 1440 &&
+    cfg.maxAgeMs > 0 && cfg.futureSkewMs >= 0 && Number.isInteger(cfg.timezoneOffsetMinutes) && Math.abs(cfg.timezoneOffsetMinutes) <= 840);
+  return paymentsReady;
+}
 let pool;
 if (cfg.databaseUrl) {
   pool = new Pool({ connectionString: cfg.databaseUrl, ssl: cfg.databaseSsl ? { rejectUnauthorized: true } : false,
     max: 10, idleTimeoutMillis: 30_000, connectionTimeoutMillis: 8_000 });
-  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql']) {
+  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
   }
 }
@@ -75,8 +86,8 @@ function rateLimit(req, res, key, max = 12, windowMs = 60_000) {
   }
   return false;
 }
-async function bodyJson(req) {
-  let data = ''; for await (const chunk of req) { data += chunk; if (data.length > MAX_BODY) throw Object.assign(new Error('BODY_TOO_LARGE'), { status: 413 }); }
+async function bodyJson(req, maxBytes = MAX_BODY) {
+  let data = ''; for await (const chunk of req) { data += chunk; if (Buffer.byteLength(data) > maxBytes) throw Object.assign(new Error('BODY_TOO_LARGE'), { status: 413 }); }
   try { return data ? JSON.parse(data) : {}; } catch { throw Object.assign(new Error('INVALID_JSON'), { status: 400 }); }
 }
 async function reserveProviderQuota(key, { maxRequests, windowMs, minIntervalMs = 0 }) {
@@ -123,7 +134,7 @@ function findPack(categoryId, productId, optionId, packIndex) {
 function pricePack(pack, currency) {
   if (currency === 'SYP') return { ...pack, currency, amountMinor:pack.amountMinor };
   if (currency !== 'USD') return null;
-  const amountMinor = convertSypMinorToUsdMinor(pack.amountMinor);
+  const amountMinor = convertSypMinorToUsdMinor(pack.amountMinor, Number(storeSettings?.fxRate || 145));
   if (amountMinor < 1n) return null;
   return { ...pack, currency, amountMinor };
 }
@@ -376,8 +387,8 @@ async function verifyPayment(input) {
   } finally { client.release(); }
 }
 async function serveStatic(req, res, pathname) {
-  if (!(pathname === '/' || pathname === '/index.html' || pathname.startsWith('/assets/'))) return send(res,404,{error:'NOT_FOUND'});
-  let target = pathname === '/' ? '/index.html' : decodeURIComponent(pathname);
+  if (!(pathname === '/' || pathname === '/index.html' || pathname === '/admin' || pathname === '/admin.html' || pathname.startsWith('/assets/'))) return send(res,404,{error:'NOT_FOUND'});
+  let target = pathname === '/' ? '/index.html' : pathname === '/admin' ? '/admin.html' : decodeURIComponent(pathname);
   const abs = path.resolve(ROOT, '.' + target);
   if (!abs.startsWith(ROOT + path.sep) && abs !== ROOT) return send(res,404,{error:'NOT_FOUND'});
   try {
@@ -386,14 +397,289 @@ async function serveStatic(req, res, pathname) {
     res.end(data);
   } catch { send(res,404,{error:'NOT_FOUND'}); }
 }
+
+function defaultStoreSettings() {
+  return {
+    storeName:'Nexa Store', announcement:'وجهتك للألعاب والبطاقات والاشتراكات الرقمية',
+    fxMode:'manual', fxRate:145, fxApiUrl:'', fxJsonPath:'', fxUnit:'new',
+    fxAuthHeader:'Authorization', fxAuthPrefix:'Bearer', fxUpdatedAt:null, fxLastError:'',
+    paymentEnabled:cfg.paymentsEnabled, shamApiBase:cfg.apiBase, walletId:cfg.walletId,
+    receiverLabel:cfg.receiverLabel, timezoneOffsetMinutes:cfg.timezoneOffsetMinutes,
+    orderTtlMinutes:cfg.orderTtlMinutes, maxAgeMinutes:Math.round(cfg.maxAgeMs/60_000),
+    futureSkewSeconds:Math.round(cfg.futureSkewMs/1000), shamApiTokenEncrypted:'',
+    fxApiTokenEncrypted:'',
+  };
+}
+function applyStoreSettings() {
+  if (!storeSettings) return;
+  cfg.paymentsEnabled = Boolean(storeSettings.paymentEnabled);
+  cfg.apiBase = String(storeSettings.shamApiBase || 'https://apis-shamcash.com/api').replace(/\/$/, '');
+  cfg.walletId = String(storeSettings.walletId || '');
+  cfg.receiverLabel = String(storeSettings.receiverLabel || 'Nexa Store');
+  cfg.orderTtlMinutes = Number(storeSettings.orderTtlMinutes || 15);
+  cfg.maxAgeMs = Number(storeSettings.maxAgeMinutes || 15) * 60_000;
+  cfg.futureSkewMs = Number(storeSettings.futureSkewSeconds ?? 90) * 1000;
+  cfg.timezoneOffsetMinutes = Number(storeSettings.timezoneOffsetMinutes ?? 180);
+  try {
+    if (storeSettings.shamApiTokenEncrypted) cfg.apiToken = decryptSecret(storeSettings.shamApiTokenEncrypted, cfg.adminApiKey);
+  } catch { cfg.apiToken = ''; }
+  try {
+    storeSettings._fxApiToken = storeSettings.fxApiTokenEncrypted ? decryptSecret(storeSettings.fxApiTokenEncrypted, cfg.adminApiKey) : '';
+  } catch { storeSettings._fxApiToken = ''; }
+  cachedShamWallet = null;
+  cachedShamWalletAt = 0;
+  refreshPaymentsReady();
+}
+async function persistStoreSettings() {
+  if (!pool) throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'), { status:503 });
+  await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(storeSettings)]);
+}
+async function initializeStoreState() {
+  storeSettings = defaultStoreSettings();
+  if (!pool) { refreshPaymentsReady(); return; }
+  const result = await pool.query('SELECT catalog,settings FROM nexa_store_state WHERE singleton=TRUE');
+  if (!result.rowCount) {
+    if (cfg.adminApiKey.length >= 24 && cfg.apiToken) storeSettings.shamApiTokenEncrypted = encryptSecret(cfg.apiToken, cfg.adminApiKey);
+    await pool.query('INSERT INTO nexa_store_state(singleton,catalog,settings) VALUES(TRUE,$1::jsonb,$2::jsonb) ON CONFLICT(singleton) DO NOTHING',
+      [JSON.stringify(catalog),JSON.stringify(storeSettings)]);
+  } else {
+    const row = result.rows[0];
+    if (row.catalog) catalog = validateCatalog(row.catalog);
+    storeSettings = { ...defaultStoreSettings(), ...(row.settings || {}) };
+  }
+  applyStoreSettings();
+}
+function adminCookie(req, token, maxAge = 8 * 60 * 60) {
+  const secure = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https' || process.env.NODE_ENV === 'production';
+  return `nexa_admin_session=${token}; HttpOnly; SameSite=Strict; Path=/api/admin; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
+}
+function readCookie(req, name) {
+  const raw = String(req.headers.cookie || '');
+  for (const part of raw.split(';')) {
+    const [key,...value] = part.trim().split('=');
+    if (key === name) return value.join('=');
+  }
+  return '';
+}
+function adminAuthorized(req) {
+  const supplied = Buffer.from(String(req.headers['x-admin-key'] || ''));
+  const expected = Buffer.from(cfg.adminApiKey);
+  if (cfg.adminApiKey && supplied.length === expected.length && crypto.timingSafeEqual(supplied, expected)) return true;
+  if (!verifyAdminSession(readCookie(req,'nexa_admin_session'), cfg.adminApiKey)) return false;
+  const origin = req.headers.origin;
+  if (origin) {
+    try { if (new URL(origin).host !== String(req.headers.host || '')) return false; } catch { return false; }
+  }
+  return true;
+}
+function fxRateReady() {
+  if (!storeSettings || !Number.isFinite(Number(storeSettings.fxRate)) || Number(storeSettings.fxRate) <= 0) return false;
+  if (storeSettings.fxMode !== 'api') return true;
+  const age = Date.now() - new Date(storeSettings.fxUpdatedAt || 0).getTime();
+  return Number.isFinite(age) && age >= -90_000 && age <= 30 * 60_000;
+}
+function publicSettings() {
+  return {
+    storeName:String(storeSettings?.storeName || 'Nexa Store'),
+    announcement:String(storeSettings?.announcement || ''),
+    fxRate:Number(storeSettings?.fxRate || 145),
+    fxMode:storeSettings?.fxMode || 'manual',
+    fxReady:fxRateReady(),
+    fxUpdatedAt:storeSettings?.fxUpdatedAt || null,
+  };
+}
+async function refreshAutomaticFx() {
+  if (!storeSettings || storeSettings.fxMode !== 'api') return { ok:false, message:'وضع سعر الصرف ليس تلقائياً.' };
+  try {
+    const url = new URL(String(storeSettings.fxApiUrl || ''));
+    if (url.protocol !== 'https:' || url.hostname !== 'api-v2.sp-today.com' || url.username || url.password) {
+      throw new Error('يجب أن يكون رابط الصرف HTTPS ومن نطاق api-v2.sp-today.com حصراً.');
+    }
+    if (!storeSettings.fxJsonPath) throw new Error('أدخل مسار حقل السعر في استجابة JSON.');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10_000);
+    let response;
+    try {
+      const headerName = ['Authorization','x-api-key'].includes(storeSettings.fxAuthHeader) ? storeSettings.fxAuthHeader : 'Authorization';
+      const headers = { Accept:'application/json' };
+      if (storeSettings._fxApiToken) headers[headerName] = headerName === 'Authorization' ? `${storeSettings.fxAuthPrefix || 'Bearer'} ${storeSettings._fxApiToken}` : storeSettings._fxApiToken;
+      response = await fetch(url, { headers, signal:controller.signal, redirect:'error' });
+    } finally { clearTimeout(timeout); }
+    if (!response.ok) throw new Error(`SP Today API أعاد HTTP ${response.status}`);
+    const payload = await response.json();
+    const rawRate = getJsonPath(payload, String(storeSettings.fxJsonPath));
+    const rate = normalizeFxRate(rawRate, storeSettings.fxUnit === 'old' ? 'old' : 'new');
+    storeSettings = { ...storeSettings, fxRate:rate, fxUpdatedAt:new Date().toISOString(), fxLastError:'' };
+    await persistStoreSettings();
+    return { ok:true, rate, updatedAt:storeSettings.fxUpdatedAt, message:'تم تحديث سعر الصرف من SP Today API V2.' };
+  } catch (error) {
+    storeSettings = { ...storeSettings, fxLastError:String(error?.message || 'FX_REFRESH_FAILED').slice(0,300) };
+    await persistStoreSettings().catch(()=>{});
+    return { ok:false, message:storeSettings.fxLastError };
+  }
+}
+function safeSettingsForAdmin() {
+  const { shamApiTokenEncrypted, fxApiTokenEncrypted, _fxApiToken, ...settings } = storeSettings || {};
+  return { ...settings, shamApiTokenConfigured:Boolean(cfg.apiToken), fxApiTokenConfigured:Boolean(_fxApiToken) };
+}
+function validateAndApplySettings(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('INVALID_SETTINGS');
+  const next = { ...storeSettings };
+  const setText = (key, max, fallback = '') => {
+    if (input[key] === undefined) return;
+    if (typeof input[key] !== 'string' || input[key].length > max) throw new Error(`INVALID_${key.toUpperCase()}`);
+    next[key] = input[key].trim() || fallback;
+  };
+  setText('storeName',80,'Nexa Store');
+  setText('announcement',240,'');
+  setText('receiverLabel',100,'Nexa Store');
+  setText('walletId',200,'');
+  setText('shamApiBase',200,'https://apis-shamcash.com/api');
+  setText('fxApiUrl',500,'');
+  setText('fxJsonPath',160,'');
+  setText('fxAuthPrefix',20,'Bearer');
+  if (input.fxAuthHeader !== undefined) {
+    if (!['Authorization','x-api-key'].includes(input.fxAuthHeader)) throw new Error('INVALID_FX_AUTH_HEADER');
+    next.fxAuthHeader = input.fxAuthHeader;
+  }
+  if (input.fxMode !== undefined) {
+    if (!['manual','api'].includes(input.fxMode)) throw new Error('INVALID_FX_MODE');
+    next.fxMode = input.fxMode;
+  }
+  if (input.fxUnit !== undefined) {
+    if (!['new','old'].includes(input.fxUnit)) throw new Error('INVALID_FX_UNIT');
+    next.fxUnit = input.fxUnit;
+  }
+  if (input.fxRate !== undefined) {
+    const n = Number(input.fxRate);
+    if (!Number.isFinite(n) || n <= 0 || n > 1_000_000) throw new Error('INVALID_FX_RATE');
+    next.fxRate = Math.round(n * 1_000_000) / 1_000_000;
+  }
+  const numeric = [
+    ['orderTtlMinutes',5,1440],['maxAgeMinutes',1,1440],['futureSkewSeconds',0,900],['timezoneOffsetMinutes',-840,840],
+  ];
+  for (const [key,min,max] of numeric) if (input[key] !== undefined) {
+    const n = Number(input[key]);
+    if (!Number.isInteger(n) || n < min || n > max) throw new Error(`INVALID_${key.toUpperCase()}`);
+    next[key] = n;
+  }
+  if (input.paymentEnabled !== undefined) {
+    if (typeof input.paymentEnabled !== 'boolean') throw new Error('INVALID_PAYMENT_ENABLED');
+    next.paymentEnabled = input.paymentEnabled;
+  }
+  if (input.shamApiToken !== undefined && input.shamApiToken !== '') {
+    if (typeof input.shamApiToken !== 'string' || input.shamApiToken.length > 256) throw new Error('INVALID_SHAM_API_TOKEN');
+    next.shamApiTokenEncrypted = encryptSecret(input.shamApiToken,cfg.adminApiKey);
+  }
+  if (input.clearShamApiToken === true) next.shamApiTokenEncrypted = '';
+  if (input.fxApiToken !== undefined && input.fxApiToken !== '') {
+    if (typeof input.fxApiToken !== 'string' || input.fxApiToken.length > 512) throw new Error('INVALID_FX_API_TOKEN');
+    next.fxApiTokenEncrypted = encryptSecret(input.fxApiToken,cfg.adminApiKey);
+  }
+  if (input.clearFxApiToken === true) next.fxApiTokenEncrypted = '';
+  return next;
+}
+async function cancelPendingOrder(orderId) {
+  if (!pool) throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
+  const result = await pool.query("UPDATE nexa_orders SET status='cancelled' WHERE id=$1 AND status='pending_payment' AND expires_at>NOW() RETURNING id",[orderId]);
+  if (!result.rowCount) return false;
+  return true;
+}
+
+await initializeStoreState();
+if (storeSettings?.fxMode === 'api') refreshAutomaticFx().catch(error=>console.error('initial FX refresh failed',error.message));
+const fxRefreshTimer = setInterval(()=>{ if (storeSettings?.fxMode === 'api') refreshAutomaticFx().catch(error=>console.error('scheduled FX refresh failed',error.message)); },5*60_000);
+fxRefreshTimer.unref?.();
+
 const server = http.createServer(async (req,res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const ip = String(process.env.TRUST_PROXY === 'true' ? (req.headers['x-forwarded-for'] || req.socket.remoteAddress) : req.socket.remoteAddress || 'unknown').split(',')[0].trim();
   try {
     if (req.method === 'GET' && url.pathname === '/api/health') return send(res,200,{ok:true,service:'nexa-shamcash-gateway',paymentsReady,dbReady:Boolean(pool)});
+
+    if (req.method === 'POST' && url.pathname === '/api/admin/session') {
+      if (rateLimit(req,res,`admin-login:${ip}`,6,10*60_000)) return;
+      const input = await bodyJson(req, 4096);
+      const supplied = Buffer.from(String(input.key || '')), expected = Buffer.from(cfg.adminApiKey);
+      if (!cfg.adminApiKey || supplied.length !== expected.length || !crypto.timingSafeEqual(supplied,expected)) return send(res,401,{ok:false,error:'UNAUTHORIZED',message:'رمز الإدارة غير صحيح.'});
+      const token = createAdminSession(cfg.adminApiKey);
+      return send(res,200,{ok:true,expiresIn:8*60*60}, {'Set-Cookie':adminCookie(req,token)});
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/session') {
+      return adminAuthorized(req) ? send(res,200,{ok:true}) : send(res,401,{ok:false});
+    }
+    if (req.method === 'DELETE' && url.pathname === '/api/admin/session') {
+      return send(res,200,{ok:true},{'Set-Cookie':adminCookie(req,'',0)});
+    }
+    if (url.pathname.startsWith('/api/admin/') && !adminAuthorized(req)) {
+      return send(res,401,{ok:false,error:'UNAUTHORIZED',message:'سجّل الدخول إلى لوحة الإدارة أولاً.'});
+    }
+    if (req.method === 'GET' && url.pathname === '/api/catalog') {
+      return send(res,200,{ok:true,catalog});
+    }
+    if (req.method === 'GET' && url.pathname === '/api/storefront-config') {
+      return send(res,200,{ok:true,...publicSettings()});
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/overview') {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const [orders,products] = await Promise.all([
+        pool.query(`SELECT COUNT(*)::int AS total,
+          COUNT(*) FILTER (WHERE status='paid')::int AS paid,
+          COUNT(*) FILTER (WHERE status='pending_payment')::int AS pending,
+          COUNT(*) FILTER (WHERE status='expired')::int AS expired,
+          COALESCE(SUM(amount_minor) FILTER (WHERE status='paid' AND currency='SYP'),0)::text AS paid_syp_minor,
+          COALESCE(SUM(amount_minor) FILTER (WHERE status='paid' AND currency='USD'),0)::text AS paid_usd_minor
+          FROM nexa_orders`),
+        Promise.resolve(catalog.reduce((sum,c)=>sum+(c.items||[]).length,0)),
+      ]);
+      return send(res,200,{ok:true,orders:orders.rows[0],categories:catalog.length,products:products,fxRate:Number(storeSettings.fxRate||145),fxMode:storeSettings.fxMode,paymentsReady});
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/catalog') {
+      return send(res,200,{ok:true,catalog});
+    }
+    if (req.method === 'PUT' && url.pathname === '/api/admin/catalog') {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const input = await bodyJson(req,4_000_000);
+      const nextCatalog = validateCatalog(input.catalog);
+      await pool.query('UPDATE nexa_store_state SET catalog=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE',[JSON.stringify(nextCatalog)]);
+      catalog = nextCatalog;
+      return send(res,200,{ok:true,message:'تم حفظ الكتالوج بنجاح.',catalog});
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/settings') {
+      return send(res,200,{ok:true,settings:safeSettingsForAdmin(),paymentsReady,fxReady:fxRateReady()});
+    }
+    if (req.method === 'PATCH' && url.pathname === '/api/admin/settings') {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const input = await bodyJson(req,64_000);
+      storeSettings = validateAndApplySettings(input);
+      applyStoreSettings();
+      await persistStoreSettings();
+      return send(res,200,{ok:true,settings:safeSettingsForAdmin(),paymentsReady,fxReady:fxRateReady()});
+    }
+    if (req.method === 'POST' && url.pathname === '/api/admin/fx/refresh') {
+      const result = await refreshAutomaticFx();
+      return send(res,result.ok?200:422,result);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/orders') {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const limit = Math.min(200,Math.max(1,Number(url.searchParams.get('limit')||100)));
+      const result = await pool.query(`SELECT id,product_label,amount_minor::text,currency,status,customer_name,customer_phone,game_account,notes,invoice_number,invoice_identifier,wallet_label,created_at,expires_at,paid_at FROM nexa_orders ORDER BY created_at DESC LIMIT $1`,[limit]);
+      return send(res,200,{ok:true,orders:result.rows.map(o=>({...o,amountMinor:o.amount_minor,createdAt:o.created_at,expiresAt:o.expires_at,paidAt:o.paid_at}))});
+    }
+    const adminOrderMatch = url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/cancel$/);
+    if (req.method === 'POST' && adminOrderMatch) {
+      const cancelled = await cancelPendingOrder(adminOrderMatch[1]);
+      return cancelled ? send(res,200,{ok:true,message:'تم إلغاء الطلب المعلّق.'}) : send(res,409,{ok:false,message:'لا يمكن إلغاء هذا الطلب؛ قد يكون مدفوعاً أو منتهياً.'});
+    }
     if (req.method === 'GET' && url.pathname === '/api/admin/shamcash/wallets') {
-      const supplied=Buffer.from(String(req.headers['x-admin-key'] || '')); const expected=Buffer.from(cfg.adminApiKey);
-      if (!cfg.adminApiKey || supplied.length !== expected.length || !crypto.timingSafeEqual(supplied,expected)) return send(res,401,{error:'UNAUTHORIZED'});
+      try {
+        const payload=await shamApi('GET','/v1/wallets'); const wallets=Array.isArray(payload)?payload:Array.isArray(payload?.data)?payload.data:[];
+        return send(res,200,{ok:true,data:wallets.map(w=>({id:w.id,provider:w.provider,providerDisplayName:w.providerDisplayName,label:w.label,walletAddress:w.walletAddress,accountNumber:w.accountNumber,status:w.status}))});
+      } catch (error) { if(error instanceof ProviderError)return send(res,502,{error:error.code,message:providerMessage(error)}); throw error; }
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/admin/shamcash/wallets') {
+      if (!adminAuthorized(req)) return send(res,401,{error:'UNAUTHORIZED',message:'انتهت جلسة الإدارة أو لم يتم تسجيل الدخول.'});
       try {
         const payload=await shamApi('GET','/v1/wallets'); const wallets=Array.isArray(payload)?payload:Array.isArray(payload?.data)?payload.data:[];
         return send(res,200,{ok:true,data:wallets.map(w=>({id:w.id,provider:w.provider,providerDisplayName:w.providerDisplayName,label:w.label,walletAddress:w.walletAddress,accountNumber:w.accountNumber,status:w.status}))});
@@ -406,7 +692,7 @@ const server = http.createServer(async (req,res) => {
         try { const wallet = await getWallet(); receiverLabel = String(wallet.label || receiverLabel); receiverAddress = String(wallet.walletAddress || receiverAddress); message = 'تم التحقق من وجود محفظة شام كاش نشطة. كل طلب ينشئ فاتورة رسمية ويُتحقق من العملية عبر API.'; }
         catch (error) { enabled = false; message = error instanceof ProviderError ? providerMessage(error) : 'تعذر التحقق من محفظة الاستلام حالياً.'; }
       }
-      return send(res,200,{enabled,provider:'Sham Cash',currency:'SYP',currencies:['SYP','USD'],sypPerUsd:SYP_PER_USD,fxReady:true,fxUpdatedAt:null,fxSource:'سعر ثابت في إعدادات Nexa Store',receiverLabel,receiverAddress,orderTtlMinutes:cfg.orderTtlMinutes,maxTransactionAgeMinutes:Math.round(cfg.maxAgeMs/60_000),message});
+      return send(res,200,{enabled,provider:'Sham Cash',currency:'SYP',currencies:['SYP','USD'],sypPerUsd:Number(storeSettings?.fxRate || 145),fxReady:fxRateReady(),fxMode:storeSettings?.fxMode || 'manual',fxUpdatedAt:storeSettings?.fxUpdatedAt || null,fxSource:storeSettings?.fxMode === 'api' ? 'SP Today API V2' : 'سعر يدوي في لوحة Nexa',receiverLabel,receiverAddress,orderTtlMinutes:cfg.orderTtlMinutes,maxTransactionAgeMinutes:Math.round(cfg.maxAgeMs/60_000),message});
     }
     const orderLookup = url.pathname.match(/^\/api\/orders\/(NX-[A-F0-9]{20})$/);
     if (req.method === 'GET' && orderLookup) {
