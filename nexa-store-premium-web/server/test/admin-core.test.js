@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createAdminSession, verifyAdminSession, encryptSecret, decryptSecret,
-  isSafeCatalogImage, validateCatalog, mergeCatalog, getJsonPath, normalizeFxRate,
+  isSafeCatalogImage, validateCatalog, mergeCatalog, getJsonPath, validateCatalogApiUrl, normalizeFxRate,
 } from '../src/admin-core.js';
 
 const secret = 'a-strong-admin-key-for-tests-only-2026';
@@ -32,6 +32,13 @@ test('catalogue accepts exact decimal prices up to two fractional digits', () =>
   assert.equal(validateCatalog(decimal)[0].items[0].options[0].packs[0][1], 1.5);
   const tooPrecise = [{...catalog[0],items:[{...catalog[0].items[0],options:[{...catalog[0].items[0].options[0],packs:[['غير صالح',1.234]]}]}]}];
   assert.throws(() => validateCatalog(tooPrecise), /INVALID_PACK_PRICE/);
+});
+test('catalogue API URLs require public HTTPS hosts without credentials or custom ports', () => {
+  assert.equal(validateCatalogApiUrl('https://catalog.vendor.net/v1/catalog').hostname,'catalog.vendor.net');
+  for (const url of ['http://catalog.vendor.net/items','https://127.0.0.1/catalog','https://localhost/catalog',
+    'https://service.local/catalog','https://catalog.vendor.net:8443/items','https://user:pass@catalog.vendor.net/items']) {
+    assert.throws(() => validateCatalogApiUrl(url));
+  }
 });
 test('reads configured FX response paths and converts legacy units', () => {
   assert.equal(getJsonPath({data:{usd:{buy:14500}}}, 'data.usd.buy'), 14500);
