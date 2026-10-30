@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import net from 'node:net';
 
 const ID_RE = /^[a-z0-9][a-z0-9_-]{0,49}$/i;
 const MAX_IMAGE_DATA_LENGTH = 2_400_000;
