@@ -102,7 +102,9 @@ export function getJsonPath(root, path) {
   if (typeof path !== 'string' || path.length > 160 || !/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/.test(path)) {
     throw new Error('INVALID_FX_JSON_PATH');
   }
-  return path.split('.').reduce((value, key) => value == null ? undefined : value[key], root);
+  const keys = path.split('.');
+  if (keys.some(key => ['__proto__','prototype','constructor'].includes(key))) throw new Error('INVALID_FX_JSON_PATH');
+  return keys.reduce((value, key) => value == null ? undefined : value[key], root);
 }
 
 export function normalizeFxRate(value, unit = 'new') {
