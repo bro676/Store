@@ -1,6 +1,6 @@
 {
   "name": "nexa-store-shamcash-gateway",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -9,7 +9,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --check src/server.js"
+    "test": "node --test"
   },
   "dependencies": {
     "pg": "^8.13.1",
