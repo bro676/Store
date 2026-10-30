@@ -407,6 +407,7 @@ async function serveStatic(req, res, pathname) {
 function defaultStoreSettings() {
   return {
     storeName:'Nexa Store', storeLogo:'assets/brand/logo.svg', announcement:'وجهتك للألعاب والبطاقات والاشتراكات الرقمية',
+    themePrimary:'#e23b57', themeSecondary:'#547ee8', themeDark:'#101a2e',
     fxMode:'manual', fxRate:145, fxApiUrl:'', fxJsonPath:'', fxUnit:'new',
     fxAuthHeader:'Authorization', fxAuthPrefix:'Bearer', fxUpdatedAt:null, fxLastError:'',
     paymentEnabled:cfg.paymentsEnabled, shamApiBase:cfg.apiBase, walletId:cfg.walletId,
@@ -491,6 +492,9 @@ function publicSettings() {
     storeName:String(storeSettings?.storeName || 'Nexa Store'),
     storeLogo:String(storeSettings?.storeLogo || 'assets/brand/logo.svg'),
     announcement:String(storeSettings?.announcement || ''),
+    themePrimary:String(storeSettings?.themePrimary || '#e23b57'),
+    themeSecondary:String(storeSettings?.themeSecondary || '#547ee8'),
+    themeDark:String(storeSettings?.themeDark || '#101a2e'),
     fxRate:Number(storeSettings?.fxRate || 145),
     fxMode:storeSettings?.fxMode || 'manual',
     fxReady:fxRateReady(),
@@ -543,6 +547,10 @@ function validateAndApplySettings(input) {
   };
   setText('storeName',80,'Nexa Store');
   setText('announcement',240,'');
+  for (const key of ['themePrimary','themeSecondary','themeDark']) if (input[key] !== undefined) {
+    if (typeof input[key] !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(input[key])) throw new Error(`INVALID_${key.toUpperCase()}`);
+    next[key] = input[key].toLowerCase();
+  }
   if (input.storeLogo !== undefined) {
     if (!isSafeCatalogImage(input.storeLogo)) throw new Error('INVALID_STORE_LOGO');
     next.storeLogo = input.storeLogo;
