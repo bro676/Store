@@ -176,6 +176,85 @@ th{background:linear-gradient(90deg,var(--nexa-primary-soft),var(--nexa-secondar
 .palette-hint{display:block;margin-top:9px;color:var(--muted);font-size:9px}
 @media(max-width:720px){.palette-controls{grid-template-columns:1fr}.palette-control{padding:9px 11px}.theme-preview{min-height:100px}}
 
+
+/* NEXA UNIVERSAL THREE-COLOUR THEME — admin surfaces, status and controls */
+:root{
+ --nexa-primary-line:#d7e6f7;--nexa-secondary-line:#d8edf3;--nexa-highlight-line:#e5e1f6;
+ --nexa-primary-ink:#24558a;--nexa-secondary-ink:#28677b;--nexa-highlight-ink:#504b8e;
+ --nexa-surface-tint:#f6fbfd;--nexa-surface-accent:#f8f7fd;
+ --nexa-status:#3989a2;--nexa-status-soft:#e8f6fa;
+}
+body{
+ background:radial-gradient(ellipse at 0 0,color-mix(in srgb,var(--nexa-secondary) 12%,transparent),transparent 40%),
+ radial-gradient(ellipse at 100% 90%,color-mix(in srgb,var(--nexa-highlight) 10%,transparent),transparent 38%),#f6f9fd!important;
+ color:var(--nexa-ink);
+}
+.login-screen{
+ background:radial-gradient(circle at 17% 14%,color-mix(in srgb,var(--nexa-primary) 24%,transparent),transparent 30%),
+ radial-gradient(circle at 86% 88%,color-mix(in srgb,var(--nexa-highlight) 25%,transparent),transparent 32%),
+ linear-gradient(135deg,var(--nexa-dark),color-mix(in srgb,var(--nexa-primary) 44%,var(--nexa-dark)) 58%,color-mix(in srgb,var(--nexa-highlight) 35%,var(--nexa-dark)));
+}
+.login-card{border-color:var(--nexa-secondary-line);box-shadow:0 20px 54px color-mix(in srgb,var(--nexa-dark) 13%,transparent)}
+.brand-mark{background:var(--nexa-gradient);box-shadow:0 9px 24px color-mix(in srgb,var(--nexa-primary) 22%,transparent)}
+.login-card .eyebrow,.eyebrow,.section-caption{color:var(--nexa-secondary-strong)}
+.login-card h1,.page-head h2,.panel-head h3,.stat strong,.palette-control b{color:var(--nexa-dark)}
+.field label{color:var(--nexa-primary-ink)}
+.field input,.field textarea,.field select,.toolbar input{border-color:var(--nexa-secondary-line);background:var(--nexa-surface-tint)}
+.field input:focus,.field textarea:focus,.field select:focus,.toolbar input:focus{
+ border-color:var(--nexa-secondary);box-shadow:0 0 0 3px color-mix(in srgb,var(--nexa-secondary) 17%,transparent)
+}
+.primary,.tabs button.active,.tabs button.active:hover,.dark{
+ background:var(--nexa-gradient);border-color:transparent;color:#fff;
+ box-shadow:0 9px 20px color-mix(in srgb,var(--nexa-primary) 20%,transparent)
+}
+.primary:hover{filter:saturate(1.1) brightness(1.04)}
+.soft:hover,.quick-actions button:hover{background:linear-gradient(115deg,var(--nexa-primary-soft),var(--nexa-secondary-soft));border-color:var(--nexa-secondary);color:var(--nexa-primary-strong)}
+.side{
+ background:linear-gradient(155deg,var(--nexa-dark),color-mix(in srgb,var(--nexa-primary) 28%,var(--nexa-dark)) 58%,color-mix(in srgb,var(--nexa-highlight) 30%,var(--nexa-dark)))!important;
+ border-color:rgba(255,255,255,.12);color:#f3f7ff;
+}
+.brand{border-color:rgba(255,255,255,.13)}.brand strong{color:#fff}.brand small{color:color-mix(in srgb,var(--nexa-secondary) 62%,#fff)}
+.side-label{color:color-mix(in srgb,var(--nexa-secondary) 48%,#fff)}
+.nav button{color:#cfdeed}
+.nav button.active{
+ color:#fff;background:linear-gradient(100deg,color-mix(in srgb,var(--nexa-primary) 36%,transparent),color-mix(in srgb,var(--nexa-highlight) 24%,transparent));
+ border-color:rgba(255,255,255,.12);box-shadow:inset -3px 0 var(--nexa-secondary)
+}
+.nav .ico,.quick-actions i,.stat-icon{
+ background:linear-gradient(135deg,var(--nexa-primary-soft),var(--nexa-secondary-soft),var(--nexa-highlight-soft));
+ color:var(--nexa-primary-strong)
+}
+.nav button.active .ico{background:var(--nexa-gradient);color:#fff}
+.avatar{background:var(--nexa-primary-soft);color:var(--nexa-primary-strong)}
+.status-pill,.tag.green{
+ background:var(--nexa-status-soft);color:var(--nexa-status-strong,var(--nexa-secondary-strong));border-color:var(--nexa-secondary-line)
+}
+.status-pill:before{background:currentColor}
+.bar-track{background:linear-gradient(90deg,var(--nexa-primary-soft),var(--nexa-secondary-soft),var(--nexa-highlight-soft))}
+.bar-fill{background:var(--nexa-gradient)}
+.category-choice.active,.product-editor[open] summary,.option-editor{
+ background:linear-gradient(115deg,var(--nexa-primary-soft),var(--nexa-secondary-soft),var(--nexa-highlight-soft));
+ border-color:var(--nexa-secondary);color:var(--nexa-primary-strong)
+}
+.add-row,.add-row:hover,.icon-btn:hover{border-color:var(--nexa-secondary);color:var(--nexa-secondary-strong)}
+th{background:linear-gradient(90deg,var(--nexa-primary-soft),var(--nexa-secondary-soft) 60%,var(--nexa-highlight-soft));color:var(--nexa-dark)}
+.secret-box,#catalogApiSample,.api-endpoint-row,.api-source-row,.api-key-reveal{
+ background:linear-gradient(115deg,#fff,var(--nexa-primary-soft),var(--nexa-secondary-soft))!important;
+ border-color:var(--nexa-secondary-line)!important;color:var(--nexa-dark)
+}
+.fx-preview{background:linear-gradient(115deg,var(--nexa-primary-soft),var(--nexa-secondary-soft) 58%,var(--nexa-highlight-soft));border-color:var(--nexa-secondary-line)}
+.fx-preview strong{color:var(--nexa-primary-strong)}
+.notice.info{background:linear-gradient(115deg,var(--nexa-primary-soft),var(--nexa-secondary-soft));border-color:var(--nexa-secondary-line);color:var(--nexa-dark)}
+.toast{background:linear-gradient(110deg,var(--nexa-dark),color-mix(in srgb,var(--nexa-primary) 38%,var(--nexa-dark)),color-mix(in srgb,var(--nexa-highlight) 28%,var(--nexa-dark)))}
+.palette-field{background:linear-gradient(120deg,#fff,var(--nexa-primary-soft),var(--nexa-secondary-soft));border-color:var(--nexa-secondary-line)}
+.palette-control,.theme-preset{border-color:var(--nexa-secondary-line)}
+.theme-preset:hover{background:var(--nexa-secondary-soft);border-color:var(--nexa-secondary)}
+.theme-preview{background:var(--nexa-gradient)}
+.theme-swatch{box-shadow:0 0 0 1px var(--nexa-secondary-line)}
+input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--nexa-primary)}
+.api-code{background:linear-gradient(125deg,var(--nexa-dark),color-mix(in srgb,var(--nexa-primary) 34%,var(--nexa-dark)),color-mix(in srgb,var(--nexa-highlight) 26%,var(--nexa-dark)))}
+.api-source-row strong,.api-endpoint-row code,.api-key-reveal strong{color:var(--nexa-primary-strong)}
+
 </style>
 </head>
 <body>
@@ -358,6 +437,23 @@ function applyAdminTheme(primary,secondary,accent){
  root.setProperty('--nexa-soft',adminMixHex(s,'#ffffff',.82));root.setProperty('--nexa-pale',adminMixHex(s,'#ffffff',.93));
  root.setProperty('--nexa-line',adminMixHex(s,'#ffffff',.76));
  root.setProperty('--nexa-gradient','linear-gradient(118deg,'+p+' 0%,'+s+' 56%,'+a+' 100%)');
+ root.setProperty('--nexa-primary-line',adminMixHex(p,'#ffffff',.72));
+ root.setProperty('--nexa-secondary-line',adminMixHex(s,'#ffffff',.72));
+ root.setProperty('--nexa-highlight-line',adminMixHex(a,'#ffffff',.70));
+ root.setProperty('--nexa-primary-ink',adminMixHex(p,'#10263f',.34));
+ root.setProperty('--nexa-secondary-ink',adminMixHex(s,'#10263f',.36));
+ root.setProperty('--nexa-highlight-ink',adminMixHex(a,'#10263f',.36));
+ root.setProperty('--nexa-surface-tint',adminMixHex(s,'#ffffff',.95));
+ root.setProperty('--nexa-surface-accent',adminMixHex(a,'#ffffff',.94));
+ root.setProperty('--nexa-status',adminMixHex(s,'#143c55',.20));
+ root.setProperty('--nexa-status-soft',adminMixHex(s,'#ffffff',.87));
+ root.setProperty('--green',adminMixHex(s,'#143c55',.20));
+ root.setProperty('--teal',adminMixHex(s,'#143c55',.20));
+ root.setProperty('--blue',p);
+ root.setProperty('--purple',a);
+ root.setProperty('--navy',adminMixHex(p,'#10263f',.58));
+ root.setProperty('--navy2',adminMixHex(s,'#10263f',.56));
+
  const preview=$('themePreview');if(preview)preview.style.background='linear-gradient(118deg,'+adminMixHex(p,'#10263f',.63)+' 0%,'+adminMixHex(s,'#193d58',.52)+' 56%,'+adminMixHex(a,'#25264e',.54)+' 100%)';
  const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=adminMixHex(p,'#10263f',.58);
 }
