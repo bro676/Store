@@ -31,11 +31,7 @@ services:
       - key: PAYMENT_FUTURE_SKEW_SECONDS
         value: "90"
       - key: SYP_PER_USD
-        value: "0"
-      - key: SYP_PER_USD_UPDATED_AT
-        value: ""
-      - key: SYP_PER_USD_SOURCE
-        value: ""
+        value: "145"
       - key: SHAM_API_BASE_URL
         value: https://apis-shamcash.com/api
       - key: SHAM_API_TOKEN
