@@ -182,17 +182,17 @@ ${field('اسم المنتج',base+'.name',p.name)}
 ${field('الوصف',base+'.desc',p.desc,{type:'textarea',full:true})}
 <div class="field full"><label>صورة المنتج</label><div class="image-row"><img class="image-preview" src="${esc(p.image)}" alt=""><div><input data-path="${base}.image" value="${esc(p.image)}" placeholder="رابط صورة HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${base}.image"></label></div></div></div>
 </div>
-<div class="option-list">${(p.options||[]).map((o,oi)=>renderOption(o,base,oi)).join('')}</div>
+<div class="option-list">${(p.options||[]).map((o,oi)=>renderOption(o,base,oi,p.image)).join('')}</div>
 <div class="toolbar" style="margin-top:12px"><button class="add-row" data-add-option="${ci}.${pi}">＋ إضافة منطقة / خطة</button><button class="btn danger" data-remove-product="${ci}.${pi}">حذف المنتج</button></div>
 </div></details>`;}
-function renderOption(o,base,oi){const path=base+`.options.${oi}`;return `
+function renderOption(o,base,oi,fallbackImage){const path=base+`.options.${oi}`;return `
 <div class="option-editor"><div class="option-head"><strong>الخيار ${oi+1}</strong><button class="icon-btn" data-remove-option="${path}" title="حذف الخيار">×</button></div>
 <div class="form-grid">
 ${field('معرّف الخيار',path+'.id',o.id)}
 ${field('اسم المنطقة / الخطة',path+'.name',o.name)}
 ${field('الوصف',path+'.desc',o.desc,{full:true})}
 ${field('العلم / الرمز',path+'.flag',o.flag||'✦')}
-<div class="field full"><label>صورة الخيار (اختياري)</label><div class="image-row"><img class="image-preview" src="${esc(o.image||'')}" alt=""><div><input data-path="${path}.image" value="${esc(o.image||'')}" placeholder="اتركه فارغاً لاستخدام صورة المنتج"><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${path}.image"></label></div></div></div>
+<div class="field full"><label>صورة الخيار (اختياري)</label><div class="image-row"><img class="image-preview" src="${esc(o.image||fallbackImage)}" alt=""><div><input data-path="${path}.image" value="${esc(o.image||'')}" placeholder="اتركه فارغاً لاستخدام صورة المنتج"><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${path}.image"></label></div></div></div>
 </div>
 <div class="pack-list">${(o.packs||[]).map((pack,pi)=>`<div class="pack-row"><input data-pack-label="${path}.packs.${pi}" value="${esc(pack[0])}" placeholder="اسم الباقة"><input type="number" min="0" step="0.01" data-pack-price="${path}.packs.${pi}" value="${esc(pack[1])}" placeholder="السعر بالليرة الجديدة"><button class="icon-btn" data-remove-pack="${path}.packs.${pi}">×</button></div>`).join('')}</div>
 <button class="add-row" data-add-pack="${path}">＋ إضافة باقة</button>
