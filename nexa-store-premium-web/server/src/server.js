@@ -841,7 +841,8 @@ const server = http.createServer(async (req,res) => {
       storeSettings = nextSettings;
       return send(res,201,{ok:true,key,source:{id:entry.id,name:entry.name,createdAt:entry.createdAt},message:'تم إنشاء مصدر API. انسخ المفتاح الآن؛ لن يظهر مرة ثانية.'});
     }
-    const catalogApiKeyDelete = new RegExp('^/api/admin/catalog/write-keys/([a-z0-9_-]{1,60})
+    const apiKeyIdToDelete = url.pathname.startsWith('/api/admin/catalog/write-keys/') ? url.pathname.slice('/api/admin/catalog/write-keys/'.length) : '';
+    const catalogApiKeyDelete = /^[a-z0-9_-]{1,60}$/i.test(apiKeyIdToDelete) ? [null,apiKeyIdToDelete] : null;
     if (req.method === 'DELETE' && catalogApiKeyDelete) {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const keys = Array.isArray(storeSettings.catalogWriteApiKeys) ? storeSettings.catalogWriteApiKeys : [];
@@ -898,7 +899,7 @@ const server = http.createServer(async (req,res) => {
         if (!productInput.image) productInput.image = 'assets/brand/logo.svg';
         if (!Array.isArray(productInput.options) && productInput.price !== undefined) {
           const price = Number(productInput.price);
-          if (!Number.isFinite(price) || price < 0 || price > 1_000_000_000 || !/^\\d+(?:\\.\\d{1,2})?$/.test(String(productInput.price))) {
+          if (!Number.isFinite(price) || price < 0 || price > 1_000_000_000 || !/^[0-9]+([.][0-9]{1,2})?$/.test(String(productInput.price))) {
             throw Object.assign(new Error('سعر المنتج يجب أن يكون رقماً بالليرة السورية الجديدة وبحد أقصى منزلتين عشريتين.'),{status:400});
           }
           productInput.options = [{id:'default',name:'الخيار الأساسي',desc:'',packs:[[String(productInput.priceLabel || 'السعر الأساسي'),price]]}];
