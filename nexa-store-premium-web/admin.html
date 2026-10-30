@@ -256,6 +256,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
 .api-source-row strong,.api-endpoint-row code,.api-key-reveal strong{color:var(--nexa-primary-strong)}
 
 </style>
+<link rel="stylesheet" href="/assets/brand/nexa-luxury.css">
 </head>
 <body>
 <section id="loginScreen" class="login-screen">
@@ -271,7 +272,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
   </form>
 </section>
 <div id="app" class="shell hidden">
-  <aside class="side">
+  <aside class="side" id="adminSidebar">
     <div class="brand"><div class="brand-mark">NX</div><span><strong>NEXA CONTROL</strong><small>STORE MANAGEMENT</small></span></div>
     <div class="side-label">إدارة المتجر</div>
     <nav class="nav">
@@ -284,8 +285,10 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
     </nav>
     <div class="side-foot"><b>تحكم مركزي</b>جميع التعديلات تُحفظ على قاعدة البيانات.</div>
   </aside>
+  <button class="admin-sidebar-backdrop" id="adminSidebarBackdrop" type="button" aria-label="إغلاق القائمة الجانبية" tabindex="-1"></button>
   <main class="main">
     <header class="topbar">
+      <button class="admin-menu-toggle" id="adminMenuToggle" type="button" aria-label="فتح القائمة الجانبية" aria-expanded="false" aria-controls="adminSidebar"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg></button>
       <div><h1 id="pageTitle">نظرة عامة</h1><p>إدارة وتشغيل Nexa Store</p></div>
       <div class="top-actions"><span class="status-pill" id="topStatus">متصل</span><div class="avatar">NX</div><button class="btn soft" id="logoutBtn">خروج</button></div>
     </header>
@@ -595,6 +598,24 @@ $('ordersBody').addEventListener('click',async e=>{const cancel=e.target.closest
 $('fxRate').addEventListener('input',()=>{$('fxPreview').textContent=(Number($('fxRate').value)||0).toLocaleString('en-US')+' ل.س'});
 async function boot(){try{await api('/api/admin/session');showApp();await loadAll()}catch{showLogin()}}
 boot();
+</script>
+<script>
+(() => {
+  const toggle = document.getElementById('adminMenuToggle');
+  const backdrop = document.getElementById('adminSidebarBackdrop');
+  const sidebar = document.getElementById('adminSidebar');
+  if (!toggle || !backdrop || !sidebar) return;
+  const setOpen = (open) => {
+    document.body.classList.toggle('admin-sidebar-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+  };
+  toggle.addEventListener('click', () => setOpen(!document.body.classList.contains('admin-sidebar-open')));
+  backdrop.addEventListener('click', () => setOpen(false));
+  sidebar.querySelectorAll('.nav button').forEach((item) => item.addEventListener('click', () => setOpen(false)));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') setOpen(false);
+  });
+})();
 </script>
 </body>
 </html>
