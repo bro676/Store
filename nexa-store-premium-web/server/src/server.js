@@ -3,13 +3,14 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { httpStatusForResult, isHttpErrorResult, safeHttpStatus } from './http-status.js';
 import { convertSypMinorToUsdMinor } from './exchange-rate.js';
 import {
   createAdminSession, verifyAdminSession, encryptSecret, decryptSecret,
-  validateCatalog, isSafeCatalogImage, getJsonPath, normalizeFxRate,
+  validateCatalog, mergeCatalog, isSafeCatalogImage, getJsonPath, normalizeFxRate,
 } from './admin-core.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,6 +18,8 @@ const ROOT = path.resolve(__dirname, '..', '..');
 let catalog = JSON.parse(await fs.readFile(path.join(__dirname, '..', 'catalog.json'), 'utf8'));
 let storeSettings = null;
 let fxApiTokenRuntime = '';
+let catalogApiTokenRuntime = '';
+let catalogApiSyncInProgress = false;
 const { Pool } = pg;
 const cfg = {
   port: Number(process.env.PORT || 3000),
@@ -410,6 +413,10 @@ function defaultStoreSettings() {
     themePrimary:'#e23b57', themeSecondary:'#547ee8', themeDark:'#101a2e',
     fxMode:'manual', fxRate:145, fxApiUrl:'', fxJsonPath:'', fxUnit:'new',
     fxAuthHeader:'Authorization', fxAuthPrefix:'Bearer', fxUpdatedAt:null, fxLastError:'',
+    catalogApiMode:'manual', catalogApiUrl:'', catalogApiJsonPath:'catalog',
+    catalogApiAuthHeader:'Authorization', catalogApiAuthPrefix:'Bearer', catalogApiSyncMode:'merge',
+    catalogApiIntervalMinutes:15, catalogApiLastSyncAt:null, catalogApiLastError:'',
+    catalogApiTokenEncrypted:'', catalogApiTokenCleared:false,
     paymentEnabled:cfg.paymentsEnabled, shamApiBase:cfg.apiBase, walletId:cfg.walletId,
     receiverLabel:cfg.receiverLabel, timezoneOffsetMinutes:cfg.timezoneOffsetMinutes,
     orderTtlMinutes:cfg.orderTtlMinutes, maxAgeMinutes:Math.round(cfg.maxAgeMs/60_000),
@@ -434,6 +441,9 @@ function applyStoreSettings() {
   try {
     fxApiTokenRuntime = storeSettings.fxApiTokenCleared ? '' : (storeSettings.fxApiTokenEncrypted ? decryptSecret(storeSettings.fxApiTokenEncrypted, cfg.settingsEncryptionKey) : '');
   } catch { fxApiTokenRuntime = ''; }
+  try {
+    catalogApiTokenRuntime = storeSettings.catalogApiTokenCleared ? '' : (storeSettings.catalogApiTokenEncrypted ? decryptSecret(storeSettings.catalogApiTokenEncrypted, cfg.settingsEncryptionKey) : '');
+  } catch { catalogApiTokenRuntime = ''; }
   cachedShamWallet = null;
   cachedShamWalletAt = 0;
   refreshPaymentsReady();
@@ -534,8 +544,8 @@ async function refreshAutomaticFx() {
   }
 }
 function safeSettingsForAdmin() {
-  const { shamApiTokenEncrypted, fxApiTokenEncrypted, ...settings } = storeSettings || {};
-  return { ...settings, shamApiTokenConfigured:Boolean(cfg.apiToken), fxApiTokenConfigured:Boolean(fxApiTokenRuntime) };
+  const { shamApiTokenEncrypted, fxApiTokenEncrypted, catalogApiTokenEncrypted, ...settings } = storeSettings || {};
+  return { ...settings, shamApiTokenConfigured:Boolean(cfg.apiToken), fxApiTokenConfigured:Boolean(fxApiTokenRuntime), catalogApiTokenConfigured:Boolean(catalogApiTokenRuntime) };
 }
 function validateAndApplySettings(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('INVALID_SETTINGS');
@@ -561,6 +571,27 @@ function validateAndApplySettings(input) {
   try { const apiUrl = new URL(next.shamApiBase); if (apiUrl.protocol !== 'https:' || apiUrl.hostname !== 'apis-shamcash.com' || apiUrl.pathname.replace(/\/$/,'') !== '/api') throw new Error(); } catch { throw new Error('INVALID_SHAM_API_BASE'); }
   setText('fxApiUrl',500,'');
   setText('fxJsonPath',160,'');
+  setText('catalogApiUrl',1000,'');
+  setText('catalogApiJsonPath',160,'catalog');
+  setText('catalogApiAuthPrefix',30,'Bearer');
+  if (next.catalogApiUrl) validateCatalogApiUrl(next.catalogApiUrl);
+  if (input.catalogApiMode !== undefined) {
+    if (!['manual','auto'].includes(input.catalogApiMode)) throw new Error('INVALID_CATALOG_API_MODE');
+    next.catalogApiMode = input.catalogApiMode;
+  }
+  if (input.catalogApiAuthHeader !== undefined) {
+    if (!['Authorization','x-api-key','none'].includes(input.catalogApiAuthHeader)) throw new Error('INVALID_CATALOG_API_AUTH_HEADER');
+    next.catalogApiAuthHeader = input.catalogApiAuthHeader;
+  }
+  if (input.catalogApiSyncMode !== undefined) {
+    if (!['merge','replace'].includes(input.catalogApiSyncMode)) throw new Error('INVALID_CATALOG_API_SYNC_MODE');
+    next.catalogApiSyncMode = input.catalogApiSyncMode;
+  }
+  if (input.catalogApiIntervalMinutes !== undefined) {
+    const interval = Number(input.catalogApiIntervalMinutes);
+    if (!Number.isInteger(interval) || interval < 5 || interval > 1440) throw new Error('INVALID_CATALOG_API_INTERVAL');
+    next.catalogApiIntervalMinutes = interval;
+  }
   setText('fxAuthPrefix',20,'Bearer');
   if (input.fxAuthHeader !== undefined) {
     if (!['Authorization','x-api-key'].includes(input.fxAuthHeader)) throw new Error('INVALID_FX_AUTH_HEADER');
@@ -603,8 +634,130 @@ function validateAndApplySettings(input) {
     next.fxApiTokenCleared = false;
   }
   if (input.clearFxApiToken === true) { next.fxApiTokenEncrypted = ''; next.fxApiTokenCleared = true; }
+  if (input.catalogApiToken !== undefined && input.catalogApiToken !== '') {
+    if (typeof input.catalogApiToken !== 'string' || input.catalogApiToken.length > 1024) throw new Error('INVALID_CATALOG_API_TOKEN');
+    next.catalogApiTokenEncrypted = encryptSecret(input.catalogApiToken,cfg.settingsEncryptionKey);
+    next.catalogApiTokenCleared = false;
+  }
+  if (input.clearCatalogApiToken === true) { next.catalogApiTokenEncrypted = ''; next.catalogApiTokenCleared = true; }
   return next;
 }
+
+function validateCatalogApiUrl(raw) {
+  let url;
+  try { url = new URL(String(raw || '')); } catch { throw new Error('INVALID_CATALOG_API_URL'); }
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g,'');
+  if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') ||
+      !host || net.isIP(host) || host === 'localhost' || host.endsWith('.localhost') ||
+      host.endsWith('.local') || host.endsWith('.internal') || host.endsWith('.test') ||
+      host.endsWith('.invalid') || host.endsWith('.example') || host === 'metadata.google.internal') {
+    throw new Error('CATALOG_API_HTTPS_PUBLIC_HOST_REQUIRED');
+  }
+  return url;
+}
+async function responseTextLimited(response, maxBytes = 4_000_000) {
+  const length = Number(response.headers.get('content-length') || 0);
+  if (length > maxBytes) throw new Error('CATALOG_API_RESPONSE_TOO_LARGE');
+  if (!response.body?.getReader) {
+    const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.length > maxBytes) throw new Error('CATALOG_API_RESPONSE_TOO_LARGE');
+    return buffer.toString('utf8');
+  }
+  const reader = response.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > maxBytes) { await reader.cancel(); throw new Error('CATALOG_API_RESPONSE_TOO_LARGE'); }
+      chunks.push(Buffer.from(value));
+    }
+  } finally { reader.releaseLock?.(); }
+  return Buffer.concat(chunks,total).toString('utf8');
+}
+async function fetchExternalCatalog() {
+  if (!storeSettings?.catalogApiUrl) throw new Error('أدخل رابط API المنتجات أولاً.');
+  const url = validateCatalogApiUrl(storeSettings.catalogApiUrl);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const headers = { Accept:'application/json' };
+    if (catalogApiTokenRuntime && storeSettings.catalogApiAuthHeader !== 'none') {
+      const header = storeSettings.catalogApiAuthHeader === 'x-api-key' ? 'x-api-key' : 'Authorization';
+      headers[header] = header === 'Authorization' ? `${storeSettings.catalogApiAuthPrefix || 'Bearer'} ${catalogApiTokenRuntime}` : catalogApiTokenRuntime;
+    }
+    const response = await fetch(url,{method:'GET',headers,signal:controller.signal,redirect:'error'});
+    if (!response.ok) throw new Error(`Catalog API HTTP ${response.status}`);
+    const raw = await responseTextLimited(response);
+    let payload;
+    try { payload = JSON.parse(raw); } catch { throw new Error('Catalog API did not return valid JSON.'); }
+    const source = storeSettings.catalogApiJsonPath ? getJsonPath(payload,storeSettings.catalogApiJsonPath) : payload;
+    const imported = validateCatalog(source);
+    return imported;
+  } finally { clearTimeout(timeout); }
+}
+async function persistCatalog(nextCatalog) {
+  if (!pool) throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
+  await pool.query('UPDATE nexa_store_state SET catalog=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE',[JSON.stringify(nextCatalog)]);
+  catalog = nextCatalog;
+}
+function catalogStats(items) {
+  return { categories:items.length, products:items.reduce((sum,category)=>sum+(category.items||[]).length,0) };
+}
+async function syncCatalogFromApi({ preview = false } = {}) {
+  if (catalogApiSyncInProgress) throw Object.assign(new Error('CATALOG_SYNC_IN_PROGRESS'),{status:409});
+  catalogApiSyncInProgress = true;
+  try {
+    const incoming = await fetchExternalCatalog();
+    const nextCatalog = storeSettings.catalogApiSyncMode === 'replace'
+      ? mergeCatalog(catalog,incoming,'replace')
+      : mergeCatalog(catalog,incoming,'merge');
+    const stats = catalogStats(incoming);
+    const currentStats = catalogStats(catalog);
+    const result = { ok:true,preview,source:validateCatalogApiUrl(storeSettings.catalogApiUrl).hostname,
+      imported:stats,current:currentStats,result:catalogStats(nextCatalog),mode:storeSettings.catalogApiSyncMode,
+      sample:incoming.slice(0,3).map(category=>({id:category.id,name:category.name,products:category.items.length})) };
+    if (preview) return result;
+    const updatedAt = new Date().toISOString();
+    const nextSettings = { ...storeSettings,catalogApiLastSyncAt:updatedAt,catalogApiLastError:'' };
+    if (!pool) throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('UPDATE nexa_store_state SET catalog=$1::jsonb,settings=$2::jsonb,updated_at=NOW() WHERE singleton=TRUE',
+        [JSON.stringify(nextCatalog),JSON.stringify(nextSettings)]);
+      await client.query('COMMIT');
+      catalog = nextCatalog;
+      storeSettings = nextSettings;
+    } catch (error) { await client.query('ROLLBACK'); throw error; }
+    finally { client.release(); }
+    return { ...result,updatedAt,message:'تمت مزامنة كتالوج المنتجات بنجاح.' };
+  } catch (error) {
+    if (!preview && pool) {
+      const nextSettings = { ...storeSettings,catalogApiLastError:String(error?.message || 'CATALOG_API_SYNC_FAILED').slice(0,300) };
+      try {
+        await pool.query('UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE',[JSON.stringify(nextSettings)]);
+        storeSettings = nextSettings;
+      } catch {}
+    }
+    throw error;
+  } finally { catalogApiSyncInProgress = false; }
+}
+function upsertCatalogProduct(input) {
+  if (!input || typeof input.categoryId !== 'string' || !input.product || typeof input.product !== 'object') throw new Error('INVALID_CATALOG_PRODUCT_REQUEST');
+  const categoryIndex = catalog.findIndex(category=>category.id===input.categoryId);
+  if (categoryIndex < 0) throw Object.assign(new Error('CATEGORY_NOT_FOUND'),{status:404});
+  const validated = validateCatalog([{id:'api-products',name:'API Products',desc:'API validation',image:'assets/brand/logo.svg',items:[input.product]}])[0].items[0];
+  const next = JSON.parse(JSON.stringify(catalog));
+  const items = next[categoryIndex].items;
+  const productIndex = items.findIndex(product=>product.id===validated.id);
+  if (productIndex < 0) items.push(validated);
+  else items[productIndex] = validated;
+  return { catalog:validateCatalog(next),created:productIndex<0,productId:validated.id };
+}
+
 async function cancelPendingOrder(orderId) {
   if (!pool) throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
   const found = await pool.query("SELECT id,invoice_number FROM nexa_orders WHERE id=$1 AND status='pending_payment' AND expires_at>NOW()",[orderId]);
@@ -616,8 +769,16 @@ async function cancelPendingOrder(orderId) {
 
 await initializeStoreState();
 if (storeSettings?.fxMode === 'api') refreshAutomaticFx().catch(error=>console.error('initial FX refresh failed',error.message));
+if (storeSettings?.catalogApiMode === 'auto') syncCatalogFromApi().catch(error=>console.error('initial catalogue API sync failed',error.message));
 const fxRefreshTimer = setInterval(()=>{ if (storeSettings?.fxMode === 'api') refreshAutomaticFx().catch(error=>console.error('scheduled FX refresh failed',error.message)); },5*60_000);
 fxRefreshTimer.unref?.();
+const catalogSyncTimer = setInterval(()=>{
+  if (storeSettings?.catalogApiMode !== 'auto' || catalogApiSyncInProgress) return;
+  const last = new Date(storeSettings.catalogApiLastSyncAt || 0).getTime();
+  const interval = Math.max(5,Number(storeSettings.catalogApiIntervalMinutes || 15))*60_000;
+  if (!Number.isFinite(last) || Date.now()-last >= interval) syncCatalogFromApi().catch(error=>console.error('scheduled catalogue API sync failed',error.message));
+},60_000);
+catalogSyncTimer.unref?.();
 
 const server = http.createServer(async (req,res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -669,9 +830,26 @@ const server = http.createServer(async (req,res) => {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const input = await bodyJson(req,4_000_000);
       const nextCatalog = validateCatalog(input.catalog);
-      await pool.query('UPDATE nexa_store_state SET catalog=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE',[JSON.stringify(nextCatalog)]);
-      catalog = nextCatalog;
+      await persistCatalog(nextCatalog);
       return send(res,200,{ok:true,message:'تم حفظ الكتالوج بنجاح.',catalog});
+    }
+    if (req.method === 'POST' && url.pathname === '/api/admin/catalog/products') {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const input = await bodyJson(req,2_800_000);
+      const result = upsertCatalogProduct(input);
+      await persistCatalog(result.catalog);
+      return send(res,result.created?201:200,{ok:true,created:result.created,productId:result.productId,message:result.created?'تمت إضافة المنتج عبر API.':'تم تحديث المنتج عبر API.'});
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/catalog/sync-status') {
+      return send(res,200,{ok:true,mode:storeSettings.catalogApiMode,lastSyncAt:storeSettings.catalogApiLastSyncAt||null,lastError:storeSettings.catalogApiLastError||'',syncInProgress:catalogApiSyncInProgress,configured:Boolean(storeSettings.catalogApiUrl),tokenConfigured:Boolean(catalogApiTokenRuntime)});
+    }
+    if (req.method === 'POST' && url.pathname === '/api/admin/catalog/sync-preview') {
+      const result = await syncCatalogFromApi({preview:true});
+      return send(res,200,result);
+    }
+    if (req.method === 'POST' && url.pathname === '/api/admin/catalog/sync') {
+      const result = await syncCatalogFromApi();
+      return send(res,200,result);
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/settings') {
       return send(res,200,{ok:true,settings:safeSettingsForAdmin(),paymentsReady,fxReady:fxRateReady()});
