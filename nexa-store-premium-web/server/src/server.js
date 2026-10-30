@@ -51,9 +51,14 @@ const MAX_BODY = 16 * 1024;
 class ProviderError extends Error {
   constructor(status, payload) { super(payload?.message || payload?.error || 'SHAM_PROVIDER_ERROR'); this.name = 'ProviderError'; this.status = status; this.code = payload?.error || payload?.code || 'PROVIDER_ERROR'; }
 }
+function isHttpErrorResult(result) {
+  return Boolean(result && typeof result.error === 'string' &&
+    Number.isInteger(result.status) && result.status >= 400 && result.status <= 599);
+}
 function send(res, status, data, extraHeaders = {}) {
+  const safeStatus = Number.isInteger(status) && status >= 100 && status <= 599 ? status : 500;
   const body = JSON.stringify(data);
-  res.writeHead(status, {
+  res.writeHead(safeStatus, {
     'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(body),
     'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'same-origin',
     'X-Frame-Options': 'DENY', 'Content-Security-Policy': "default-src 'self' data: blob: https:; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
@@ -417,21 +422,30 @@ const server = http.createServer(async (req,res) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/orders') {
       if (rateLimit(req,res,`order:${ip}`,8,60_000)) return;
-      const input = await bodyJson(req); const result = await createOrder(input);
-      return send(res,result.status || 201,result.status ? result : {ok:true,...result});
+      const input = await bodyJson(req);
+      const result = await createOrder(input);
+      if (isHttpErrorResult(result)) return send(res, result.status, { error:result.error, message:result.message });
+      // "pending_payment" is an order state, not an HTTP status code.
+      return send(res, 201, { ok:true, ...result });
     }
     if (req.method === 'POST' && url.pathname === '/api/shamcash/verify') {
       if (rateLimit(req,res,`verify:${ip}`,8,5*60_000)) return;
-      const input = await bodyJson(req); const result = await verifyPayment(input);
+      const input = await bodyJson(req);
+      const result = await verifyPayment(input);
       const headers = result.retryAfter ? {'Retry-After':String(result.retryAfter)} : {};
-      return send(res,result.status || 200,result,headers);
+      // "paid" is business data; a successful verification uses HTTP 200.
+      return send(res, isHttpErrorResult(result) ? result.status : 200, result, headers);
     }
     if (req.method === 'GET' && url.pathname.startsWith('/api/')) return send(res,404,{error:'NOT_FOUND'});
     if (req.method === 'GET' && !url.pathname.startsWith('/api/')) return serveStatic(req,res,url.pathname);
     return send(res,405,{error:'METHOD_NOT_ALLOWED'});
   } catch (error) {
-    console.error('request failed',error.code || error.message);
-    return send(res,error.status || 500,{error:error.message === 'BODY_TOO_LARGE' ? 'BODY_TOO_LARGE' : 'INTERNAL_ERROR',message:error.status ? 'تعذر قراءة الطلب.' : 'حدث خطأ داخلي. لم يتم تأكيد الدفع.'});
+    const statusCode = Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599 ? error.status : 500;
+    console.error(JSON.stringify({ event:'request_failed', method:req.method, path:url.pathname, code:error?.code || null, message:error?.message || 'unknown_error', status:statusCode }));
+    return send(res,statusCode,{
+      error:error?.message === 'BODY_TOO_LARGE' ? 'BODY_TOO_LARGE' : 'INTERNAL_ERROR',
+      message:statusCode === 500 ? 'حدث خطأ داخلي. لم يتم تأكيد الدفع.' : 'تعذر معالجة الطلب.',
+    });
   }
 });
 server.listen(cfg.port,()=>{
