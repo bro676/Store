@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createAdminSession, verifyAdminSession, encryptSecret, decryptSecret,
-  isSafeCatalogImage, validateCatalog, mergeCatalog, getJsonPath, validateCatalogApiUrl, normalizeFxRate,
+  isSafeCatalogImage, validateCatalog, mergeCatalog, upsertCatalogProduct, getJsonPath, validateCatalogApiUrl, normalizeFxRate,
 } from '../src/admin-core.js';
 
 const secret = 'a-strong-admin-key-for-tests-only-2026';
@@ -39,6 +39,17 @@ test('catalogue API URLs require public HTTPS hosts without credentials or custo
     'https://service.local/catalog','https://catalog.vendor.net:8443/items','https://user:pass@catalog.vendor.net/items']) {
     assert.throws(() => validateCatalogApiUrl(url));
   }
+});
+
+test('product write API adds a valid product and upserts matching product IDs', () => {
+  const product = {...catalog[0].items[0],id:'api-product',name:'API Product'};
+  const added = upsertCatalogProduct(catalog,'games',product);
+  assert.equal(added.created,true);
+  assert.equal(added.catalog[0].items.at(-1).id,'api-product');
+  const updated = upsertCatalogProduct(added.catalog,'games',{...product,name:'API Product Updated'});
+  assert.equal(updated.created,false);
+  assert.equal(updated.catalog[0].items.at(-1).name,'API Product Updated');
+  assert.throws(() => upsertCatalogProduct(catalog,'missing',product),/CATEGORY_NOT_FOUND/);
 });
 test('reads configured FX response paths and converts legacy units', () => {
   assert.equal(getJsonPath({data:{usd:{buy:14500}}}, 'data.usd.buy'), 14500);
