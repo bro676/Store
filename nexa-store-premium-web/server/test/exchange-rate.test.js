@@ -12,6 +12,14 @@ test('rounds converted USD to the nearest cent', () => {
   assert.equal(convertSypMinorToUsdMinor(7250n), 50n);
   assert.equal(convertSypMinorToUsdMinor(7175n), 49n);
 });
+test('uses a rate supplied by the store settings when selected', () => {
+  assert.equal(convertSypMinorToUsdMinor(10000n, 100), 100n);
+  assert.equal(convertSypMinorToUsdMinor(14500n, 290), 50n);
+});
+test('rejects invalid exchange rates', () => {
+  assert.throws(() => convertSypMinorToUsdMinor(100n, 0), RangeError);
+  assert.throws(() => convertSypMinorToUsdMinor(100n, Infinity), RangeError);
+});
 test('rejects negative SYP amounts', () => {
   assert.throws(() => convertSypMinorToUsdMinor(-1n), RangeError);
 });
