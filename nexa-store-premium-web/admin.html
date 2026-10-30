@@ -367,7 +367,7 @@ $('saveCatalogApiBtnBottom').addEventListener('click',saveCatalogApiSettings);
 $('catalogWriteKeyGenerateBtn').addEventListener('click',async()=>{
  if(!confirm('تدوير المفتاح سيُبطل المفتاح السابق فوراً. هل تريد إنشاء مفتاح جديد؟'))return;
  const b=$('catalogWriteKeyGenerateBtn');b.disabled=true;
- try{const d=await api('/api/admin/catalog/write-key/regenerate',{method:'POST',body:'{}'});$('catalogWriteKeyValue').type='text';$('catalogWriteKeyValue').value=d.key;$('catalogWriteKeyStatus').textContent='مفتاح جديد — انسخه الآن';toast('تم إنشاء مفتاح الكتابة. لن يظهر مرة أخرى.');await loadSettings()}
+ try{const d=await api('/api/admin/catalog/write-key/regenerate',{method:'POST',body:'{}'});$('catalogWriteKeyValue').type='text';$('catalogWriteKeyValue').value=d.key;$('catalogWriteKeyStatus').textContent='مفتاح جديد — انسخه الآن';state.settings.catalogWriteApiTokenConfigured=true;toast('تم إنشاء مفتاح الكتابة. لن يظهر مرة أخرى.');}
  catch(e){toast(e.message)}finally{b.disabled=false}
 });
 $('catalogWriteKeyRevokeBtn').addEventListener('click',async()=>{
