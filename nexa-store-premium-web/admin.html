@@ -23,6 +23,53 @@
 @media(max-width:1120px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.product-grid{grid-template-columns:1fr}.settings-grid{grid-template-columns:1fr}}
 @media(max-width:820px){.side{width:74px;padding:17px 9px}.brand{justify-content:center;padding:0 0 16px}.brand>span,.side-label,.nav button>span:last-child,.side-foot{display:none}.nav{margin-top:20px}.nav button{justify-content:center;padding:10px}.nav .ico{width:38px;height:38px}.main{margin-right:74px}.topbar{padding:0 17px}.container{padding:22px 17px 45px}.catalog-layout{grid-template-columns:1fr}.category-list{display:flex;overflow:auto;padding-bottom:4px}.category-choice{width:auto;min-width:max-content}.category-editor{grid-template-columns:1fr 1fr}.category-editor .field:first-child{grid-column:1/-1}}
 @media(max-width:560px){.topbar{height:66px}.topbar h1{font-size:13px}.topbar p{display:none}.top-actions .top-label{display:none}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.stat{padding:13px}.stat strong{font-size:21px}.page-head{align-items:flex-start;flex-direction:column}.panel{padding:14px}.product-grid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.full{grid-column:auto}.category-editor{grid-template-columns:1fr}.category-editor .field:first-child{grid-column:auto}.pack-row{grid-template-columns:minmax(0,1fr) 90px 30px}.login-card{padding:24px}.toast{left:12px;right:12px;bottom:12px;text-align:center}}
+
+/* NEXA CONTROL — same calm botanical identity as the storefront. */
+:root{color-scheme:light;--navy:#28463a;--navy2:#365b4a;--ink:#293a31;--muted:#74847a;--line:#e1e9e1;--paper:#f3f6f1;--white:#fff;--coral:#477b60;--coral2:#649275;--teal:#51836f;--blue:#779b94;--green:#4f8a69;--amber:#b58c54;--red:#a65e50;--shadow:0 8px 24px rgba(37,61,44,.055);--r:15px}
+body{background:#f3f6f2;color:#293a31;font-family:"Segoe UI",Tahoma,Arial,sans-serif}
+.login-screen{background:radial-gradient(circle at 17% 14%,rgba(191,213,189,.22),transparent 26%),radial-gradient(circle at 86% 88%,rgba(149,183,156,.18),transparent 30%),linear-gradient(135deg,#eaf0e9,#dfe9df 60%,#e7ede4)}
+.login-card{border:1px solid #e0e8dd;border-radius:20px;box-shadow:0 18px 48px rgba(43,68,49,.12)}
+.brand-mark{background:#376f5f;box-shadow:none;border-radius:13px}
+.login-card .eyebrow{color:#547e62}.login-card h1{color:#2b4034}
+.field label{color:#53685a}.field input,.field textarea,.field select{background:#fbfcfa;border-color:#dfe8de;border-radius:10px;color:#304238}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:#8eb49a;box-shadow:0 0 0 4px rgba(80,133,97,.12)}
+.primary{background:#376f5f;color:#fff;box-shadow:0 7px 15px rgba(55,111,95,.16)}.primary:hover{background:#285749}
+.soft{background:#fff;border-color:#e0e8df;color:#40574a}.soft:hover{background:#f0f5ef;border-color:#c5d8c5;color:#315d48}
+.danger{color:#a65e50;background:#fbf2ef;border-color:#eeddd7}
+.dark{background:#29473a}.icon-btn{border-color:#e1e9e0;color:#708077}.icon-btn:hover{border-color:#b9d0bb;color:#376f5f;background:#f3f8f2}
+.side{background:#fff;color:#30483a;box-shadow:-6px 0 26px rgba(38,62,44,.06);border-left:1px solid #e1e9e0}
+.brand{border-color:#e7ede5}.brand strong{color:#2b4135}.brand small{color:#7e9a85}
+.side-label{color:#94a197}.nav button{color:#65786a}.nav button:hover{background:#f3f7f2;color:#355b45}
+.nav button.active{color:#315f49;background:#edf4ed;border-color:#dfe9de;box-shadow:inset -3px 0 #5b8b6d}
+.nav .ico{background:#f1f5ef;color:#66806c}.nav button.active .ico{background:#dfece0;color:#3e7352}
+.side-foot{border-color:#e5ebe4;color:#89968b}.side-foot b{color:#3b5d48}
+.main{background:#f3f6f2}.topbar{background:rgba(255,255,255,.9);border-color:#e2e9e1;box-shadow:0 2px 10px rgba(38,62,44,.025)}
+.topbar h1{color:#2d4135}.topbar p{color:#829087}.avatar{background:#e9f1e8;color:#467653}
+.container{max-width:1560px}.eyebrow,.section-caption{color:#5b8768}
+.status-pill{background:#edf5ed;color:#467653}
+.stat,.panel{border-color:#e2e9e1;box-shadow:var(--shadow);border-radius:15px}
+.stat{background:#fff}.stat-icon{background:#edf4ec;color:#547f5f}
+.stat strong{color:#2f4437}.stat small{color:#8a988e}
+.panel-head h3,.page-head h2{color:#304438}.panel-head p,.page-head p{color:#809087}
+.quick-actions button{background:#f7faf6;border-color:#e3ebe2}.quick-actions button:hover{background:#f0f6ef;border-color:#c9dac7}
+.quick-actions i{background:#eaf3ea;color:#497954}
+.bar-track{background:#eaf0e9}.bar-fill{background:#6f9b78}
+.tabs button{border-color:#e1e9e0;color:#718078}.tabs button.active{background:#376f5f;border-color:#376f5f}
+.category-choice{border-color:#e2e9e1;color:#4e6655}.category-choice.active{border-color:#bcd1bd;background:#eef5ed;color:#376a50}
+.product-editor{border-color:#e2e9e0}.product-editor summary{background:#f7faf6}.product-editor[open] summary{background:#f0f6ef;border-color:#e2eae0}
+.option-editor{background:#f6f9f5;border-color:#e2eae1}.add-row{border-color:#d4e2d4;color:#587561}.add-row:hover{border-color:#a9c6ad;color:#376f5f}
+.toolbar input{border-color:#e1e9e0;background:#fff;color:#2d4135}.toolbar input:focus{border-color:#8eb49a;box-shadow:0 0 0 3px rgba(80,133,97,.1)}
+th{background:#f2f6f0;color:#728477}td{border-color:#e9eee8}
+.tag.green{background:#edf5ed;color:#427650}.tag.orange{background:#faf4e8;color:#9a7a45}.tag.red{background:#fbefed;color:#a65e50}
+.settings-grid .panel{background:#fff}
+.secret-box{background:#f5f8f4;border-color:#dce6dc;color:#718176}
+.notice{background:#faf5e9;border-color:#efe4c8;color:#8f7748}.notice.info{background:#f0f5ef;border-color:#dce8db;color:#58765f}
+.fx-preview{background:#f1f6ef;border-color:#e1eadf}.fx-preview strong{color:#3f7455}
+.toast{background:#29473a}
+#catalogApiSample{background:#f2f6ef!important;border-color:#e0e9de!important;color:#334d3a!important}
+@media(max-width:820px){.side{background:#fff}}
+@media(max-width:560px){.container{padding-top:17px}.panel{border-radius:13px}.page-head h2{font-size:19px}}
+
 </style>
 </head>
 <body>
