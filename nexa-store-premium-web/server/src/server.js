@@ -6,6 +6,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { httpStatusForResult, isHttpErrorResult, safeHttpStatus } from './http-status.js';
+import { convertSypMinorToUsdMinor, SYP_PER_USD } from './exchange-rate.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -27,16 +28,8 @@ const cfg = {
   receiverLabel: process.env.SHAM_RECEIVER_LABEL || 'محفظة Nexa Store',
   receiverAddress: process.env.SHAM_RECEIVER_ADDRESS || '',
   timezoneOffsetMinutes: Number(process.env.SHAM_TIMEZONE_OFFSET_MINUTES || 180),
-  sypPerUsd: Number(process.env.SYP_PER_USD || 0),
-  fxUpdatedAt: process.env.SYP_PER_USD_UPDATED_AT || '',
-  fxSource: process.env.SYP_PER_USD_SOURCE || '',
 };
 
-const fxTimestamp = new Date(cfg.fxUpdatedAt).getTime();
-const fxReady = Number.isFinite(cfg.sypPerUsd) && cfg.sypPerUsd > 0 &&
-  Number.isFinite(fxTimestamp) && Date.now() - fxTimestamp >= -90_000 &&
-  Date.now() - fxTimestamp <= 15 * 60_000 &&
-  String(cfg.fxSource).includes('api-v2.sp-today.com');
 const providerConfigReady = Boolean(cfg.apiToken && Buffer.byteLength(cfg.apiToken) <= 256 && cfg.walletId &&
   Number.isInteger(cfg.orderTtlMinutes) && cfg.orderTtlMinutes >= 5 && cfg.orderTtlMinutes <= 1440 &&
   cfg.maxAgeMs > 0 && cfg.futureSkewMs >= 0 && Number.isInteger(cfg.timezoneOffsetMinutes) &&
@@ -129,10 +122,8 @@ function findPack(categoryId, productId, optionId, packIndex) {
 }
 function pricePack(pack, currency) {
   if (currency === 'SYP') return { ...pack, currency, amountMinor:pack.amountMinor };
-  if (currency !== 'USD' || !fxReady) return null;
-  const rateScaled = BigInt(Math.round(cfg.sypPerUsd * 10_000));
-  if (rateScaled <= 0n) return null;
-  const amountMinor = (pack.amountMinor * 10_000n + rateScaled / 2n) / rateScaled;
+  if (currency !== 'USD') return null;
+  const amountMinor = convertSypMinorToUsdMinor(pack.amountMinor);
   if (amountMinor < 1n) return null;
   return { ...pack, currency, amountMinor };
 }
@@ -415,7 +406,7 @@ const server = http.createServer(async (req,res) => {
         try { const wallet = await getWallet(); receiverLabel = String(wallet.label || receiverLabel); receiverAddress = String(wallet.walletAddress || receiverAddress); message = 'تم التحقق من وجود محفظة شام كاش نشطة. كل طلب ينشئ فاتورة رسمية ويُتحقق من العملية عبر API.'; }
         catch (error) { enabled = false; message = error instanceof ProviderError ? providerMessage(error) : 'تعذر التحقق من محفظة الاستلام حالياً.'; }
       }
-      return send(res,200,{enabled,provider:'Sham Cash',currency:'SYP',currencies:['SYP','USD'],sypPerUsd:fxReady?cfg.sypPerUsd:0,fxReady,fxUpdatedAt:fxReady?cfg.fxUpdatedAt:null,fxSource:fxReady?cfg.fxSource:null,receiverLabel,receiverAddress,orderTtlMinutes:cfg.orderTtlMinutes,maxTransactionAgeMinutes:Math.round(cfg.maxAgeMs/60_000),message});
+      return send(res,200,{enabled,provider:'Sham Cash',currency:'SYP',currencies:['SYP','USD'],sypPerUsd:SYP_PER_USD,fxReady:true,fxUpdatedAt:null,fxSource:'سعر ثابت في إعدادات Nexa Store',receiverLabel,receiverAddress,orderTtlMinutes:cfg.orderTtlMinutes,maxTransactionAgeMinutes:Math.round(cfg.maxAgeMs/60_000),message});
     }
     const orderLookup = url.pathname.match(/^\/api\/orders\/(NX-[A-F0-9]{20})$/);
     if (req.method === 'GET' && orderLookup) {
