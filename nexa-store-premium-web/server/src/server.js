@@ -130,11 +130,13 @@ function findPack(categoryId, productId, optionId, packIndex) {
   const option = product?.options.find(o => o.id === optionId);
   const pack = Number.isInteger(packIndex) ? option?.packs[packIndex] : null;
   if (!category || !product || !option || !pack || !Number.isFinite(pack[1]) || pack[1] <= 0) return null;
-  return { label: `${product.name} — ${option.name} — ${pack[0]}`, amountMinor: BigInt(pack[1]) * 100n };
+  const amountMinor = decimalMinor(pack[1]);
+  if (amountMinor === null || amountMinor <= 0n) return null;
+  return { label: `${product.name} — ${option.name} — ${pack[0]}`, amountMinor };
 }
 function pricePack(pack, currency) {
   if (currency === 'SYP') return { ...pack, currency, amountMinor:pack.amountMinor };
-  if (currency !== 'USD') return null;
+  if (currency !== 'USD' || !fxRateReady()) return null;
   const amountMinor = convertSypMinorToUsdMinor(pack.amountMinor, Number(storeSettings?.fxRate || 145));
   if (amountMinor < 1n) return null;
   return { ...pack, currency, amountMinor };
@@ -664,7 +666,7 @@ const server = http.createServer(async (req,res) => {
     }
     if (req.method === 'PATCH' && url.pathname === '/api/admin/settings') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
-      const input = await bodyJson(req,64_000);
+      const input = await bodyJson(req,3_000_000);
       storeSettings = validateAndApplySettings(input);
       applyStoreSettings();
       await persistStoreSettings();
@@ -692,13 +694,6 @@ const server = http.createServer(async (req,res) => {
       } catch (error) { if(error instanceof ProviderError)return send(res,502,{error:error.code,message:providerMessage(error)}); throw error; }
     }
 
-    if (req.method === 'GET' && url.pathname === '/api/admin/shamcash/wallets') {
-      if (!adminAuthorized(req)) return send(res,401,{error:'UNAUTHORIZED',message:'انتهت جلسة الإدارة أو لم يتم تسجيل الدخول.'});
-      try {
-        const payload=await shamApi('GET','/v1/wallets'); const wallets=Array.isArray(payload)?payload:Array.isArray(payload?.data)?payload.data:[];
-        return send(res,200,{ok:true,data:wallets.map(w=>({id:w.id,provider:w.provider,providerDisplayName:w.providerDisplayName,label:w.label,walletAddress:w.walletAddress,accountNumber:w.accountNumber,status:w.status}))});
-      } catch (error) { if(error instanceof ProviderError)return send(res,502,{error:error.code,message:providerMessage(error)}); throw error; }
-    }
     if (req.method === 'GET' && url.pathname === '/api/payments/config') {
       let enabled = paymentsReady, receiverLabel = cfg.receiverLabel, receiverAddress = cfg.receiverAddress;
       let message = 'الدفع بانتظار ضبط مفاتيح API والمحفظة وقاعدة البيانات على الخادم.';
