@@ -5,7 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
-import { httpStatusForResult, safeHttpStatus } from './http-status.js';
+import { httpStatusForResult, isHttpErrorResult, safeHttpStatus } from './http-status.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
