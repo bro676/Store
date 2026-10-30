@@ -9,7 +9,7 @@ import { httpStatusForResult, isHttpErrorResult, safeHttpStatus } from './http-s
 import { convertSypMinorToUsdMinor } from './exchange-rate.js';
 import {
   createAdminSession, verifyAdminSession, encryptSecret, decryptSecret,
-  validateCatalog, getJsonPath, normalizeFxRate,
+  validateCatalog, isSafeCatalogImage, getJsonPath, normalizeFxRate,
 } from './admin-core.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -402,7 +402,7 @@ async function serveStatic(req, res, pathname) {
 
 function defaultStoreSettings() {
   return {
-    storeName:'Nexa Store', announcement:'وجهتك للألعاب والبطاقات والاشتراكات الرقمية',
+    storeName:'Nexa Store', storeLogo:'assets/brand/logo.svg', announcement:'وجهتك للألعاب والبطاقات والاشتراكات الرقمية',
     fxMode:'manual', fxRate:145, fxApiUrl:'', fxJsonPath:'', fxUnit:'new',
     fxAuthHeader:'Authorization', fxAuthPrefix:'Bearer', fxUpdatedAt:null, fxLastError:'',
     paymentEnabled:cfg.paymentsEnabled, shamApiBase:cfg.apiBase, walletId:cfg.walletId,
@@ -484,6 +484,7 @@ function fxRateReady() {
 function publicSettings() {
   return {
     storeName:String(storeSettings?.storeName || 'Nexa Store'),
+    storeLogo:String(storeSettings?.storeLogo || 'assets/brand/logo.svg'),
     announcement:String(storeSettings?.announcement || ''),
     fxRate:Number(storeSettings?.fxRate || 145),
     fxMode:storeSettings?.fxMode || 'manual',
@@ -535,6 +536,10 @@ function validateAndApplySettings(input) {
   };
   setText('storeName',80,'Nexa Store');
   setText('announcement',240,'');
+  if (input.storeLogo !== undefined) {
+    if (!isSafeCatalogImage(input.storeLogo)) throw new Error('INVALID_STORE_LOGO');
+    next.storeLogo = input.storeLogo;
+  }
   setText('receiverLabel',100,'Nexa Store');
   setText('walletId',200,'');
   setText('shamApiBase',200,'https://apis-shamcash.com/api');
