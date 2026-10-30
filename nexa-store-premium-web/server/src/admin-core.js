@@ -141,6 +141,22 @@ export function mergeCatalog(existing, incoming, mode = 'merge') {
   return validateCatalog(merged);
 }
 
+
+export function upsertCatalogProduct(existingCatalog, categoryId, productInput) {
+  const current = validateCatalog(existingCatalog);
+  if (typeof categoryId !== 'string' || !productInput || typeof productInput !== 'object' || Array.isArray(productInput)) {
+    throw new Error('INVALID_CATALOG_PRODUCT_REQUEST');
+  }
+  const categoryIndex = current.findIndex(category=>category.id===categoryId);
+  if (categoryIndex < 0) throw Object.assign(new Error('CATEGORY_NOT_FOUND'),{status:404});
+  const validated = validateCatalog([{id:'api-products',name:'API Products',desc:'API validation',image:'assets/brand/logo.svg',items:[productInput]}])[0].items[0];
+  const items = current[categoryIndex].items;
+  const productIndex = items.findIndex(product=>product.id===validated.id);
+  if (productIndex < 0) items.push(validated);
+  else items[productIndex] = validated;
+  return { catalog:validateCatalog(current),created:productIndex<0,productId:validated.id };
+}
+
 export function getJsonPath(root, path) {
   if (typeof path !== 'string' || path.length > 160 || !/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/.test(path)) {
     throw new Error('INVALID_FX_JSON_PATH');
