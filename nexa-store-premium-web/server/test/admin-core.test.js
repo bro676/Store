@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createAdminSession, verifyAdminSession, encryptSecret, decryptSecret,
-  isSafeCatalogImage, validateCatalog, getJsonPath, normalizeFxRate,
+  isSafeCatalogImage, validateCatalog, mergeCatalog, getJsonPath, normalizeFxRate,
 } from '../src/admin-core.js';
 
 const secret = 'a-strong-admin-key-for-tests-only-2026';
@@ -38,4 +38,24 @@ test('reads configured FX response paths and converts legacy units', () => {
   assert.equal(normalizeFxRate(14500, 'old'), 145);
   assert.equal(normalizeFxRate('145', 'new'), 145);
   assert.throws(() => normalizeFxRate(0, 'new'));
+});
+
+test('catalog merge upserts matching products without deleting local-only products', () => {
+  const original = validateCatalog(catalog);
+  const incoming = [{...catalog[0],name:'ألعاب محدثة',items:[{...catalog[0].items[0],name:'Free Fire API'}]}];
+  const merged = mergeCatalog(original,incoming);
+  assert.equal(merged[0].name,'ألعاب محدثة');
+  assert.equal(merged[0].items[0].name,'Free Fire API');
+  assert.equal(merged[0].items.length,1);
+});
+test('catalog merge preserves existing products and appends products from incoming categories', () => {
+  const original = [{...catalog[0],items:[catalog[0].items[0],{...catalog[0].items[0],id:'pubg',name:'PUBG'}]}];
+  const incoming = [{...catalog[0],items:[{...catalog[0].items[0],name:'Free Fire API'},{...catalog[0].items[0],id:'roblox',name:'Roblox'}]}];
+  const merged = mergeCatalog(original,incoming);
+  assert.deepEqual(merged[0].items.map(item=>item.id),['freefire','roblox','pubg']);
+});
+test('catalog replace mode is explicit', () => {
+  const replacement = [{...catalog[0],name:'Replaced'}];
+  assert.equal(mergeCatalog(catalog,replacement,'replace')[0].name,'Replaced');
+  assert.throws(() => mergeCatalog(catalog,replacement,'unknown'),/INVALID_CATALOG_SYNC_MODE/);
 });
