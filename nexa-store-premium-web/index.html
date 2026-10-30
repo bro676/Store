@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#1e4c7c">
+<meta name="theme-color" content="#0f0f0f">
 <meta name="description" content="Nexa Store — متجر رقمي للألعاب والبطاقات والاشتراكات والخدمات الرقمية.">
 <title>Nexa Store | متجرك الرقمي</title>
 <style>
@@ -632,18 +632,45 @@ body{
 <div class="app-main">
 
 <div class="promo"><div class="wrap promo-inner"><span class="promo-dot"></span><span>مرحباً بك في <strong>Nexa Store</strong> — تجربة متجر رقمي محلية ومنظمة.</span></div></div>
-<header class="header"><div class="wrap header-main">
-  <button class="icon-button menu-toggle" id="menuToggle" aria-label="فتح القائمة الجانبية" aria-expanded="false" aria-controls="sidebar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg></button>
-  <div class="topbar-context"><span>مساحة Nexa الرقمية</span><strong>كل خدماتك في مكان واحد</strong></div>
-  <label class="header-search" aria-label="بحث"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5" stroke-linecap="round"/></svg><input id="globalSearch" type="search" placeholder="ابحث عن لعبة، بطاقة أو خدمة..."></label>
-  <div class="header-actions"><button class="icon-button" data-page="favorites" title="المفضلة" aria-label="المفضلة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.5 8.8c0 5.2-8.5 10-8.5 10s-8.5-4.8-8.5-10A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8.5 2.8Z"/></svg></button><button class="icon-button" data-page="orders" title="طلباتي" aria-label="طلباتي"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12l2 4v13H4V7zM4 7h16M9 11v5m6-5v5"/></svg><span class="icon-badge" id="orderBadge">0</span></button></div>
-</div></header>
+<header class="header">
+  <div class="wrap header-main">
+    <a class="header-brand" href="#home" data-page="home" aria-label="Nexa Store الرئيسية">
+      <span class="header-brand-seal" aria-hidden="true">N</span>
+      <span class="header-brand-copy"><strong>NEXA</strong><small>STORE</small></span>
+    </a>
+    <nav class="main-nav" aria-label="التنقل الرئيسي">
+      <button type="button" class="nav-link active" data-page="home">الرئيسية</button>
+      <button type="button" class="nav-link" data-page="store">الأقسام</button>
+      <button type="button" class="nav-link" data-page="store">الكتالوج</button>
+      <button type="button" class="nav-link" data-page="orders">طلباتي</button>
+      <button type="button" class="nav-link" data-page="wallet">الدفع</button>
+      <button type="button" class="nav-link" data-page="support">الدعم</button>
+    </nav>
+    <div class="header-actions">
+      <button class="icon-button menu-toggle" id="menuToggle" type="button" aria-label="فتح القائمة الجانبية" aria-expanded="false" aria-controls="sidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-button" data-page="favorites" title="المفضلة" aria-label="المفضلة">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.5 8.8c0 5.2-8.5 10-8.5 10s-8.5-4.8-8.5-10A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8.5 2.8Z"/></svg>
+      </button>
+      <button class="icon-button" data-page="orders" title="طلباتي" aria-label="طلباتي">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12l2 4v13H4V7zM4 7h16M9 11v5m6-5v5"/></svg>
+        <span class="icon-badge" id="orderBadge">0</span>
+      </button>
+      <label class="header-search" aria-label="بحث">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5" stroke-linecap="round"/></svg>
+        <input id="globalSearch" type="search" placeholder="ابحث عن لعبة، بطاقة أو خدمة...">
+      </label>
+      <button class="btn btn-primary header-order-cta" type="button" data-page="store">ابدأ الطلب <span aria-hidden="true">←</span></button>
+    </div>
+  </div>
+</header>
 <main id="appMain">
 <section class="view" data-view="home" id="homeView">
   <div class="wrap">
     <section class="home-intro">
       <div class="home-intro-copy"><span class="home-intro-kicker"><i></i> أهلاً بك في Nexa Store</span><h1>مساحتك الرقمية، <span>بكل بساطة.</span></h1><p>تصفّح الألعاب والبطاقات والاشتراكات والخدمات الرقمية. اختر القسم ثم المنتج والمنطقة والباقة المناسبة بخطوات واضحة.</p><div class="home-intro-actions"><button class="btn btn-primary" data-page="store">ابدأ التسوق <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-6-6 6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="home-assistant-link" data-open-assistant>✦ اسأل مساعد Nexa</button><span class="home-intro-note"><b>8</b> أقسام رئيسية <em></em> خيارات متعددة</span></div></div>
-      <div class="home-intro-side"><span class="intro-orbit orbit-one"></span><span class="intro-orbit orbit-two"></span><div class="intro-mark"><img src="assets/brand/logo.svg" alt="Nexa"></div><span class="intro-side-label">YOUR DIGITAL SPACE</span></div>
+      <div class="home-intro-side"><span class="intro-orbit orbit-one"></span><span class="intro-orbit orbit-two"></span><div class="intro-mark"><img src="assets/brand/hero-art.svg" alt="Nexa digital services"></div><span class="intro-side-label">YOUR DIGITAL SPACE</span></div>
     </section>
     <div class="trust-row"><div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 7v5c0 5 3.4 8 8 9 4.6-1 8-4 8-9V7z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></span><span><strong>اختيار منظم</strong><small>كل خدمة ضمن مسار واضح</small></span></div><div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></span><span><strong>تفاصيل قبل الطلب</strong><small>راجع المنطقة والباقة أولاً</small></span></div><div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v12H7l-3 3z"/><path d="M8 9h8m-8 4h5"/></svg></span><span><strong>تواصل مباشر</strong><small>قنوات دعم واضحة</small></span></div><div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 8h8v8H8z"/></svg></span><span><strong>دفع موثّق</strong><small>اعتماد بعد تحقق API</small></span></div></div>
   </div>
