@@ -448,4 +448,9 @@ server.listen(cfg.port,()=>{
     ttlValid:Number.isInteger(cfg.orderTtlMinutes) && cfg.orderTtlMinutes >= 5 && cfg.orderTtlMinutes <= 1440,
     timezoneValid:Number.isInteger(cfg.timezoneOffsetMinutes) && Math.abs(cfg.timezoneOffsetMinutes) <= 840
   }));
+  if (paymentsReady) {
+    getWallet(true)
+      .then(() => console.log('Sham Cash wallet API check: active'))
+      .catch(error => console.error('Sham Cash wallet API check failed:', error.code || 'UNKNOWN'));
+  }
 });
