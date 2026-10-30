@@ -1,0 +1,31 @@
+name: Apply multi-currency checkout
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/apply-multi-currency.py
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Apply reviewed source patches
+        run: python scripts/apply-multi-currency.py
+      - name: Validate Node syntax and JSON
+        run: |
+          node --check nexa-store-premium-web/server/src/server.js
+          python -m json.tool nexa-store-premium-web/server/catalog.json >/dev/null
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nexa-store-premium-web
+          git commit -m "Add server-priced SYP and USD checkout"
+          git push
