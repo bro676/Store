@@ -1,6 +1,6 @@
 // Store default: 145 new Syrian pounds for 1 US dollar.
 export const SYP_PER_USD = 145;
-const RATE_SCALE = 10_000n;
+const RATE_SCALE = 1_000_000n;
 
 export function convertSypMinorToUsdMinor(sypMinor, sypPerUsd = SYP_PER_USD) {
   const amount = typeof sypMinor === 'bigint' ? sypMinor : BigInt(sypMinor);
