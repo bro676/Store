@@ -120,6 +120,62 @@ th{background:var(--nexa-pale);color:var(--nexa-dark)}
 .api-key-value-row input{flex:1;min-width:0;padding:10px;border:1px solid var(--nexa-line);border-radius:10px;background:#fff;color:var(--nexa-dark);font:11px ui-monospace,monospace}
 @media(max-width:620px){.api-add-row{grid-template-columns:1fr}.api-add-row .btn{width:100%}.api-source-row{align-items:flex-start}.api-key-value-row{flex-direction:column}.api-key-value-row .btn{width:100%}}
 
+
+/* THREE-TONE PREMIUM PALETTE + ELEVATED CONTROL CENTRE */
+:root{
+ --nexa-primary:#397fda;--nexa-secondary:#65b8d7;--nexa-highlight:#8076d6;
+ --nexa-primary-strong:#2868b4;--nexa-secondary-strong:#3989a2;--nexa-highlight-strong:#5f56ae;
+ --nexa-primary-soft:#e7f0fc;--nexa-secondary-soft:#e8f6fa;--nexa-highlight-soft:#f0eefb;
+ --nexa-accent:#397fda;--nexa-accent-strong:#2868b4;--nexa-accent-2:#65b8d7;--nexa-dark:#193957;
+ --nexa-soft:#e8f6fa;--nexa-pale:#f5fbfd;--nexa-line:#d9ebf1;--nexa-ink:#18334f;
+ --nexa-gradient:linear-gradient(118deg,#397fda 0%,#65b8d7 56%,#8076d6 100%);
+ --navy:var(--nexa-dark);--navy2:#244e78;--coral:var(--nexa-primary-strong);--coral2:var(--nexa-primary);--teal:var(--nexa-secondary-strong);--blue:var(--nexa-primary);--green:var(--nexa-secondary-strong);
+}
+body{background:radial-gradient(ellipse at 0 0,color-mix(in srgb,var(--nexa-secondary) 12%,transparent),transparent 42%),radial-gradient(ellipse at 100% 85%,color-mix(in srgb,var(--nexa-highlight) 8%,transparent),transparent 40%),#f6f9fd;color:var(--nexa-ink)}
+.side{background:linear-gradient(155deg,var(--nexa-dark) 0%,#1d496d 58%,color-mix(in srgb,var(--nexa-highlight) 34%,var(--nexa-dark)) 100%);color:#f4f8ff;box-shadow:-8px 0 34px rgba(22,54,84,.12);border-left:1px solid rgba(255,255,255,.09)}
+.brand{border-color:rgba(255,255,255,.13)}.brand strong{color:#fff}.brand small{color:color-mix(in srgb,var(--nexa-secondary) 72%,#fff)}
+.side-label{color:#a9c1d8}.nav button{color:#cfdeed;border-color:transparent}
+.nav button:hover{background:rgba(255,255,255,.075);color:#fff}
+.nav button.active{color:#fff;background:linear-gradient(100deg,color-mix(in srgb,var(--nexa-primary) 35%,transparent),color-mix(in srgb,var(--nexa-highlight) 21%,transparent));border-color:rgba(255,255,255,.12);box-shadow:inset -3px 0 var(--nexa-secondary)}
+.nav .ico{background:rgba(255,255,255,.1);color:var(--nexa-secondary)}
+.nav button.active .ico{background:var(--nexa-gradient);color:#fff}
+.side-foot{border-color:rgba(255,255,255,.14);color:#b6c8da}.side-foot b{color:#fff}
+.main{background:transparent}.topbar{background:rgba(255,255,255,.82);backdrop-filter:blur(18px);border-color:var(--nexa-line);box-shadow:0 5px 22px rgba(28,66,101,.035)}
+.topbar h1{color:var(--nexa-dark)}.avatar{background:var(--nexa-primary-soft);color:var(--nexa-primary-strong)}
+.eyebrow,.section-caption{color:var(--nexa-secondary-strong)}
+.primary{background:var(--nexa-gradient);color:#fff;box-shadow:0 9px 20px color-mix(in srgb,var(--nexa-primary) 18%,transparent)}
+.primary:hover{filter:saturate(1.12) brightness(1.03);transform:translateY(-1px)}
+.soft:hover{background:var(--nexa-secondary-soft);border-color:var(--nexa-secondary);color:var(--nexa-dark)}
+.panel,.stat{border-color:color-mix(in srgb,var(--nexa-secondary) 30%,#fff);border-radius:19px;box-shadow:0 10px 30px rgba(24,59,91,.055);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.panel:hover,.stat:hover{box-shadow:0 15px 38px rgba(24,59,91,.085);border-color:color-mix(in srgb,var(--nexa-primary) 24%,#fff)}
+.page-head h2,.panel-head h3,.stat strong{color:var(--nexa-dark)}
+.stat-icon,.quick-actions i{background:linear-gradient(135deg,var(--nexa-primary-soft),var(--nexa-secondary-soft) 58%,var(--nexa-highlight-soft));color:var(--nexa-primary-strong)}
+.quick-actions button{border-color:var(--nexa-line);background:linear-gradient(135deg,#fff,var(--nexa-secondary-soft))}
+.quick-actions button:hover{background:linear-gradient(135deg,var(--nexa-primary-soft),var(--nexa-secondary-soft));border-color:var(--nexa-secondary)}
+.bar-track{background:var(--nexa-secondary-soft)}.bar-fill{background:var(--nexa-gradient)}
+.tabs button.active{background:var(--nexa-gradient);border-color:transparent}
+.category-choice.active{background:linear-gradient(125deg,var(--nexa-primary-soft),var(--nexa-secondary-soft));border-color:var(--nexa-secondary);color:var(--nexa-dark)}
+.add-row{border-color:var(--nexa-secondary);color:var(--nexa-secondary-strong)}
+th{background:linear-gradient(90deg,var(--nexa-primary-soft),var(--nexa-secondary-soft) 65%,var(--nexa-highlight-soft));color:var(--nexa-dark)}
+.tag.green{background:var(--nexa-secondary-soft);color:var(--nexa-secondary-strong)}
+.notice.info{background:linear-gradient(115deg,var(--nexa-primary-soft),var(--nexa-secondary-soft));border-color:var(--nexa-line);color:var(--nexa-dark)}
+.fx-preview{background:linear-gradient(120deg,var(--nexa-primary-soft),var(--nexa-secondary-soft) 60%,var(--nexa-highlight-soft));border-color:var(--nexa-line)}.fx-preview strong{color:var(--nexa-dark)}
+.toast{background:var(--nexa-dark)}
+.palette-field{padding:15px;border:1px solid var(--nexa-line);border-radius:17px;background:linear-gradient(135deg,#fff,var(--nexa-secondary-soft))}
+.palette-controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:10px}
+.palette-control{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px;border:1px solid var(--nexa-line);border-radius:13px;background:#fff;min-width:0;cursor:pointer}
+.palette-control span{display:grid;gap:3px}.palette-control b{font-size:10px;color:var(--nexa-dark)}.palette-control small{font-size:8px;color:var(--muted)}
+.palette-control input[type=color]{width:48px;height:43px;border:1px solid var(--nexa-line);border-radius:11px;background:#fff;padding:3px;cursor:pointer;flex:none}
+.theme-preset-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0;font-size:9px;color:var(--muted)}
+.theme-preset{padding:7px 12px;border:1px solid var(--nexa-line);border-radius:999px;background:#fff;color:var(--nexa-dark);font-size:9px;font-weight:800;cursor:pointer}
+.theme-preset:hover{border-color:var(--nexa-secondary);background:var(--nexa-secondary-soft)}
+.theme-preview{min-height:112px;padding:18px 20px;border-radius:15px;color:#fff;display:grid;gap:8px;box-shadow:0 12px 26px rgba(21,49,79,.12);transition:background .18s ease}
+.preview-pill{font-size:8px;letter-spacing:1.8px;opacity:.76}.theme-preview strong{font-size:17px;letter-spacing:-.3px}
+.preview-swatches{display:flex;gap:6px}.preview-swatches i{width:32px;height:5px;border-radius:99px;background:var(--nexa-primary)}.preview-swatches i:nth-child(2){background:var(--nexa-secondary)}.preview-swatches i:nth-child(3){background:var(--nexa-highlight)}
+.preview-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:9px}.preview-actions span:first-child{font-weight:900}.preview-actions span:last-child{padding:6px 10px;border-radius:99px;background:rgba(255,255,255,.17);backdrop-filter:blur(8px)}
+.palette-hint{display:block;margin-top:9px;color:var(--muted);font-size:9px}
+@media(max-width:720px){.palette-controls{grid-template-columns:1fr}.palette-control{padding:9px 11px}.theme-preview{min-height:100px}}
+
 </style>
 </head>
 <body>
@@ -172,7 +228,26 @@ th{background:var(--nexa-pale);color:var(--nexa-dark)}
             <div class="field"><label>اسم المتجر</label><input id="storeName" maxlength="80" placeholder="Nexa Store"></div>
             <div class="field"><label>النص الظاهر في الشريط العلوي</label><input id="announcement" maxlength="240" placeholder="وجهتك للألعاب والبطاقات..."></div>
             <div class="field full"><label>شعار المتجر</label><div class="image-row"><img class="image-preview" id="storeLogoPreview" src="assets/brand/logo.svg" alt=""><div><input id="storeLogo" value="assets/brand/logo.svg" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع شعار<input type="file" id="storeLogoFile" accept="image/png,image/jpeg,image/webp,image/gif"></label></div></div></div>
-            <div class="field full"><label>لون المتجر</label><div class="theme-picker-wrap"><input id="themePrimary" type="color" value="#4d92eb" aria-label="اختيار لون المتجر"><div><strong style="font-size:11px">لون رئيسي واحد يكفي</strong><small style="display:block;color:var(--muted);font-size:9px">باقي الدرجات والخلفيات والأزرار تتناسق تلقائياً.</small></div></div><div class="theme-swatches"><button class="theme-swatch" type="button" data-theme-color="#4d92eb" title="أزرق سماوي"></button><button class="theme-swatch" type="button" data-theme-color="#5b7ce2" title="أزرق ملكي"></button><button class="theme-swatch" type="button" data-theme-color="#4f9cae" title="تركواز"></button><button class="theme-swatch" type="button" data-theme-color="#6e83b7" title="أزرق ضبابي"></button><button class="theme-swatch" type="button" data-theme-color="#7a78c8" title="بنفسجي هادئ"></button><button class="theme-swatch" type="button" data-theme-color="#3b9b91" title="أخضر بحري"></button></div></div>
+            <div class="field full palette-field">
+              <label>لوحة ألوان المتجر — 3 ألوان أساسية</label>
+              <div class="palette-controls">
+                <label class="palette-control"><span><b>01 · اللون الأساسي</b><small>الهوية والأزرار الرئيسية</small></span><input id="themePrimary" type="color" value="#397fda" aria-label="اللون الأساسي"></label>
+                <label class="palette-control"><span><b>02 · اللون الثانوي</b><small>التدرجات والمساحات الهادئة</small></span><input id="themeSecondary" type="color" value="#65b8d7" aria-label="اللون الثانوي"></label>
+                <label class="palette-control"><span><b>03 · لون الإبراز</b><small>التفاصيل واللمسات المميزة</small></span><input id="themeAccent" type="color" value="#8076d6" aria-label="لون الإبراز"></label>
+              </div>
+              <div class="theme-preset-row">
+                <span>تنسيقات جاهزة:</span>
+                <button type="button" class="theme-preset" data-theme-preset="sky">سماء ناعمة</button>
+                <button type="button" class="theme-preset" data-theme-preset="ocean">محيط فاخر</button>
+                <button type="button" class="theme-preset" data-theme-preset="indigo">نيلي راقٍ</button>
+              </div>
+              <div class="theme-preview" id="themePreview">
+                <span class="preview-pill">NEXA PREMIUM</span><strong>تناسق الألوان بثلاث درجات</strong>
+                <div class="preview-swatches"><i></i><i></i><i></i></div>
+                <div class="preview-actions"><span>استكشف المتجر</span><span>عرض المنتجات ←</span></div>
+              </div>
+              <small class="palette-hint">ننسّق تلقائياً الدرجات الفاتحة والغامقة والخلفيات والحدود والتدرجات، وتُطبّق على المتجر ولوحة الإدارة معاً.</small>
+            </div>
           </div>
           <div class="hint">الاسم والشعار والألوان تُطبّق على صفحات المتجر والدفع والعناصر الرئيسية بعد الحفظ.</div>
         </section>
@@ -262,23 +337,29 @@ th{background:var(--nexa-pale);color:var(--nexa-dark)}
 <div id="toast" class="toast"></div>
 <script>
 const $=id=>document.getElementById(id);
-function adminThemeShift(hex,delta,satScale=1){
- const raw=String(hex||'').replace('#','');if(!/^[0-9a-f]{6}$/i.test(raw))return '#4d92eb';
- const r=parseInt(raw.slice(0,2),16)/255,g=parseInt(raw.slice(2,4),16)/255,b=parseInt(raw.slice(4,6),16)/255;
- const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;let h=0,s=0,l=(max+min)/2;
- if(d){s=d/(1-Math.abs(2*l-1));if(max===r)h=((g-b)/d)%6;else if(max===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360;}
- s=Math.max(0,Math.min(1,s*satScale));l=Math.max(.12,Math.min(.94,l+delta));
- const chroma=(1-Math.abs(2*l-1))*s,x=chroma*(1-Math.abs((h/60)%2-1)),m=l-chroma/2;let rr=0,gg=0,bb=0;
- if(h<60){rr=chroma;gg=x}else if(h<120){rr=x;gg=chroma}else if(h<180){gg=chroma;bb=x}else if(h<240){gg=x;bb=chroma}else if(h<300){rr=x;bb=chroma}else{rr=chroma;bb=x}
- return '#'+[rr,gg,bb].map(v=>Math.round((v+m)*255).toString(16).padStart(2,'0')).join('');
+function adminMixHex(a,b,t){
+ const toRgb=h=>{const s=String(h||'').replace('#','');return [0,2,4].map(i=>parseInt(s.slice(i,i+2),16))};
+ const x=toRgb(a),y=toRgb(b);return '#'+x.map((v,i)=>Math.round(v*(1-t)+y[i]*t).toString(16).padStart(2,'0')).join('');
 }
-function applyAdminTheme(primary){
- const hex=/^#[0-9a-f]{6}$/i.test(String(primary||''))?primary:'#4d92eb',root=document.documentElement.style;
- root.setProperty('--nexa-accent',hex);root.setProperty('--nexa-accent-strong',adminThemeShift(hex,-.13,1.08));
- root.setProperty('--nexa-accent-2',adminThemeShift(hex,.20,.76));root.setProperty('--nexa-dark',adminThemeShift(hex,-.31,1.02));
- root.setProperty('--nexa-soft',adminThemeShift(hex,.34,.38));root.setProperty('--nexa-pale',adminThemeShift(hex,.40,.28));root.setProperty('--nexa-line',adminThemeShift(hex,.28,.24));
- const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=adminThemeShift(hex,-.31,1.02);
- document.querySelectorAll('[data-theme-color]').forEach(btn=>btn.style.background=btn.dataset.themeColor);
+function applyAdminTheme(primary,secondary,accent){
+ const p=/^#[0-9a-f]{6}$/i.test(String(primary||''))?primary:'#397fda';
+ const s=/^#[0-9a-f]{6}$/i.test(String(secondary||''))?secondary:'#65b8d7';
+ const a=/^#[0-9a-f]{6}$/i.test(String(accent||''))?accent:'#8076d6';
+ const root=document.documentElement.style;
+ root.setProperty('--nexa-primary',p);root.setProperty('--nexa-secondary',s);root.setProperty('--nexa-highlight',a);
+ root.setProperty('--nexa-primary-strong',adminMixHex(p,'#143454',.19));
+ root.setProperty('--nexa-secondary-strong',adminMixHex(s,'#143c55',.20));
+ root.setProperty('--nexa-highlight-strong',adminMixHex(a,'#332b68',.18));
+ root.setProperty('--nexa-primary-soft',adminMixHex(p,'#ffffff',.88));
+ root.setProperty('--nexa-secondary-soft',adminMixHex(s,'#ffffff',.87));
+ root.setProperty('--nexa-highlight-soft',adminMixHex(a,'#ffffff',.88));
+ root.setProperty('--nexa-accent',p);root.setProperty('--nexa-accent-strong',adminMixHex(p,'#143454',.19));
+ root.setProperty('--nexa-accent-2',s);root.setProperty('--nexa-dark',adminMixHex(p,'#10263f',.58));
+ root.setProperty('--nexa-soft',adminMixHex(s,'#ffffff',.82));root.setProperty('--nexa-pale',adminMixHex(s,'#ffffff',.93));
+ root.setProperty('--nexa-line',adminMixHex(s,'#ffffff',.76));
+ root.setProperty('--nexa-gradient','linear-gradient(118deg,'+p+' 0%,'+s+' 56%,'+a+' 100%)');
+ const preview=$('themePreview');if(preview)preview.style.background='linear-gradient(118deg,'+adminMixHex(p,'#10263f',.63)+' 0%,'+adminMixHex(s,'#193d58',.52)+' 56%,'+adminMixHex(a,'#25264e',.54)+' 100%)';
+ const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=adminMixHex(p,'#10263f',.58);
 }
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const state={catalog:[],settings:{},orders:[],categoryIndex:0,page:'overview',busy:false};
@@ -351,7 +432,7 @@ $('addCategoryBtn').addEventListener('click',()=>{state.catalog.push({id:'catego
 $('addProductBtn').addEventListener('click',()=>{const c=activeCategory();if(!c)return;c.items.push({id:'product-'+Date.now().toString(36),name:'منتج جديد',desc:'وصف المنتج',image:'assets/products/website.svg',options:[{id:'option-'+Date.now().toString(36),name:'الخيار الأساسي',desc:'',flag:'✦',packs:[['باقة جديدة',0]]}]});renderCatalog()});
 $('saveCatalogBtn').addEventListener('click',async()=>{const b=$('saveCatalogBtn');b.disabled=true;try{await api('/api/admin/catalog',{method:'PUT',body:JSON.stringify({catalog:state.catalog})});toast('تم حفظ الكتالوج والصور على قاعدة البيانات.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 async function loadSettings(){const d=await api('/api/admin/settings');state.settings=d.settings||{};renderSettings(d)}
-function renderSettings(d={}){const s=state.settings;$('storeName').value=s.storeName||'Nexa Store';$('announcement').value=s.announcement||'';$('storeLogo').value=s.storeLogo||'assets/brand/logo.svg';$('storeLogoPreview').src=s.storeLogo||'assets/brand/logo.svg';$('themePrimary').value=s.themePrimary||'#4d92eb';applyAdminTheme($('themePrimary').value);$('paymentEnabled').checked=!!s.paymentEnabled;$('shamApiBase').value=s.shamApiBase||'https://apis-shamcash.com/api';$('shamApiToken').value='';$('clearShamApiToken').checked=false;$('shamTokenState').textContent=s.shamApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لم يتم ضبط مفتاح بعد.';$('receiverLabel').value=s.receiverLabel||'';$('walletId').value=s.walletId||'';$('orderTtlMinutes').value=s.orderTtlMinutes??15;$('maxAgeMinutes').value=s.maxAgeMinutes??15;$('futureSkewSeconds').value=s.futureSkewSeconds??90;$('timezoneOffsetMinutes').value=s.timezoneOffsetMinutes??180;$('paymentStatus').textContent=d.paymentsReady?'الدفع مفعّل وجاهز':'الدفع غير جاهز';
+function renderSettings(d={}){const s=state.settings;$('storeName').value=s.storeName||'Nexa Store';$('announcement').value=s.announcement||'';$('storeLogo').value=s.storeLogo||'assets/brand/logo.svg';$('storeLogoPreview').src=s.storeLogo||'assets/brand/logo.svg';$('themePrimary').value=s.themePrimary||'#397fda';$('themeSecondary').value=s.themeSecondary||'#65b8d7';$('themeAccent').value=s.themeAccent||'#8076d6';applyAdminTheme($('themePrimary').value,$('themeSecondary').value,$('themeAccent').value);$('paymentEnabled').checked=!!s.paymentEnabled;$('shamApiBase').value=s.shamApiBase||'https://apis-shamcash.com/api';$('shamApiToken').value='';$('clearShamApiToken').checked=false;$('shamTokenState').textContent=s.shamApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لم يتم ضبط مفتاح بعد.';$('receiverLabel').value=s.receiverLabel||'';$('walletId').value=s.walletId||'';$('orderTtlMinutes').value=s.orderTtlMinutes??15;$('maxAgeMinutes').value=s.maxAgeMinutes??15;$('futureSkewSeconds').value=s.futureSkewSeconds??90;$('timezoneOffsetMinutes').value=s.timezoneOffsetMinutes??180;$('paymentStatus').textContent=d.paymentsReady?'الدفع مفعّل وجاهز':'الدفع غير جاهز';
  $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;renderCatalogApiKeys();$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';}
 $('fxMode').addEventListener('change',()=>{$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api')});
 function paymentPayload(){return{paymentEnabled:$('paymentEnabled').checked,shamApiBase:$('shamApiBase').value.trim(),shamApiToken:$('shamApiToken').value,clearShamApiToken:$('clearShamApiToken').checked,walletId:$('walletId').value.trim(),receiverLabel:$('receiverLabel').value.trim(),orderTtlMinutes:Number($('orderTtlMinutes').value),maxAgeMinutes:Number($('maxAgeMinutes').value),futureSkewSeconds:Number($('futureSkewSeconds').value),timezoneOffsetMinutes:Number($('timezoneOffsetMinutes').value)}}
@@ -361,7 +442,7 @@ $('walletSelect').addEventListener('change',()=>{if($('walletSelect').value)$('w
 function fxPayload(){return{fxMode:$('fxMode').value,fxRate:Number($('fxRate').value),fxApiUrl:$('fxApiUrl').value.trim(),fxJsonPath:$('fxJsonPath').value.trim(),fxUnit:$('fxUnit').value,fxAuthHeader:$('fxAuthHeader').value,fxAuthPrefix:$('fxAuthPrefix').value.trim(),fxApiToken:$('fxApiToken').value,clearFxApiToken:$('clearFxApiToken').checked}}
 $('saveFxBtn').addEventListener('click',async()=>{const b=$('saveFxBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(fxPayload())});state.settings=d.settings;renderSettings(d);toast('تم حفظ إعدادات سعر الصرف.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 $('refreshFxBtn').addEventListener('click',async()=>{const b=$('refreshFxBtn');b.disabled=true;try{await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(fxPayload())});const d=await api('/api/admin/fx/refresh',{method:'POST',body:'{}'});await loadSettings();toast(d.message||'تم تحديث سعر الصرف.')}catch(e){toast(e.message)}finally{b.disabled=false}});
-$('saveBrandBtn').addEventListener('click',async()=>{const b=$('saveBrandBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify({storeName:$('storeName').value.trim(),announcement:$('announcement').value.trim(),storeLogo:$('storeLogo').value.trim(),themePrimary:$('themePrimary').value})});state.settings=d.settings;renderSettings(d);toast('تم حفظ الهوية واللون وتطبيق درجاته المتناسقة على المتجر.')}catch(e){toast(e.message)}finally{b.disabled=false}});
+$('saveBrandBtn').addEventListener('click',async()=>{const b=$('saveBrandBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify({storeName:$('storeName').value.trim(),announcement:$('announcement').value.trim(),storeLogo:$('storeLogo').value.trim(),themePrimary:$('themePrimary').value,themeSecondary:$('themeSecondary').value,themeAccent:$('themeAccent').value})});state.settings=d.settings;renderSettings(d);toast('تم حفظ الهوية واللون وتطبيق درجاته المتناسقة على المتجر.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 $('storeLogo').addEventListener('input',()=>{$('storeLogoPreview').src=$('storeLogo').value});
 $('storeLogoFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=await compressImage(file);$('storeLogo').value=data;$('storeLogoPreview').src=data;toast('تم تجهيز الشعار، اضغط حفظ الهوية.')}catch{toast('تعذر قراءة الشعار.')}e.target.value=''});
 
@@ -372,8 +453,16 @@ function renderCatalogApiKeys(){
  const keys=Array.isArray(state.settings.catalogWriteApiKeys)?state.settings.catalogWriteApiKeys:[];
  $('apiSourcesList').innerHTML=keys.length?keys.map(k=>'<div class="api-source-row"><div><strong>'+esc(k.name)+'</strong><small>مفتاح مستقل · '+(k.createdAt?new Date(k.createdAt).toLocaleDateString('ar-SY'):'مضاف')+'</small></div><button class="btn danger" type="button" data-revoke-api-key="'+esc(k.id)+'">إلغاء المصدر</button></div>').join(''):'<div class="empty-api">لا توجد مصادر API مضافة بعد. أضف أول مصدر من الأعلى.</div>';
 }
-$('themePrimary').addEventListener('input',()=>applyAdminTheme($('themePrimary').value));
-document.querySelectorAll('[data-theme-color]').forEach(btn=>btn.addEventListener('click',()=>{$('themePrimary').value=btn.dataset.themeColor;applyAdminTheme(btn.dataset.themeColor)}));
+['themePrimary','themeSecondary','themeAccent'].forEach(id=>$(id).addEventListener('input',()=>applyAdminTheme($('themePrimary').value,$('themeSecondary').value,$('themeAccent').value)));
+const themePresets={
+ sky:['#397fda','#65b8d7','#8076d6'],
+ ocean:['#287ca8','#49b7aa','#d18ac2'],
+ indigo:['#465fbd','#7c83d8','#55a7c8']
+};
+document.querySelectorAll('[data-theme-preset]').forEach(btn=>btn.addEventListener('click',()=>{
+ const [p,s,a]=themePresets[btn.dataset.themePreset]||themePresets.sky;
+ $('themePrimary').value=p;$('themeSecondary').value=s;$('themeAccent').value=a;applyAdminTheme(p,s,a);
+}));
 $('apiSourcesList').addEventListener('click',async event=>{
  const button=event.target.closest('[data-revoke-api-key]');if(!button)return;
  const id=button.dataset.revokeApiKey;if(!confirm('سيتم إلغاء مفتاح هذا المصدر فوراً. هل تريد المتابعة؟'))return;
