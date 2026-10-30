@@ -18,6 +18,7 @@ let catalog = JSON.parse(await fs.readFile(path.join(__dirname, '..', 'catalog.j
 let storeSettings = null;
 let fxApiTokenRuntime = '';
 let catalogApiTokenRuntime = '';
+let catalogWriteApiTokenRuntime = '';
 let catalogApiSyncInProgress = false;
 const { Pool } = pg;
 const cfg = {
@@ -416,6 +417,7 @@ function defaultStoreSettings() {
     catalogApiAuthHeader:'Authorization', catalogApiAuthPrefix:'Bearer', catalogApiSyncMode:'merge',
     catalogApiIntervalMinutes:15, catalogApiLastSyncAt:null, catalogApiLastAttemptAt:null, catalogApiLastError:'',
     catalogApiTokenEncrypted:'', catalogApiTokenCleared:false,
+    catalogWriteApiTokenEncrypted:'', catalogWriteApiTokenCleared:false,
     paymentEnabled:cfg.paymentsEnabled, shamApiBase:cfg.apiBase, walletId:cfg.walletId,
     receiverLabel:cfg.receiverLabel, timezoneOffsetMinutes:cfg.timezoneOffsetMinutes,
     orderTtlMinutes:cfg.orderTtlMinutes, maxAgeMinutes:Math.round(cfg.maxAgeMs/60_000),
@@ -443,6 +445,9 @@ function applyStoreSettings() {
   try {
     catalogApiTokenRuntime = storeSettings.catalogApiTokenCleared ? '' : (storeSettings.catalogApiTokenEncrypted ? decryptSecret(storeSettings.catalogApiTokenEncrypted, cfg.settingsEncryptionKey) : '');
   } catch { catalogApiTokenRuntime = ''; }
+  try {
+    catalogWriteApiTokenRuntime = storeSettings.catalogWriteApiTokenCleared ? '' : (storeSettings.catalogWriteApiTokenEncrypted ? decryptSecret(storeSettings.catalogWriteApiTokenEncrypted, cfg.settingsEncryptionKey) : '');
+  } catch { catalogWriteApiTokenRuntime = ''; }
   cachedShamWallet = null;
   cachedShamWalletAt = 0;
   refreshPaymentsReady();
@@ -495,6 +500,11 @@ function adminAuthorized(req) {
     try { if (new URL(origin).host !== String(req.headers.host || '')) return false; } catch { return false; }
   }
   return true;
+}
+function catalogWriteAuthorized(req) {
+  const supplied = Buffer.from(String(req.headers['x-catalog-key'] || ''));
+  const expected = Buffer.from(catalogWriteApiTokenRuntime);
+  return Boolean(catalogWriteApiTokenRuntime && supplied.length === expected.length && crypto.timingSafeEqual(supplied,expected));
 }
 function fxRateReady() {
   if (!storeSettings || !Number.isFinite(Number(storeSettings.fxRate)) || Number(storeSettings.fxRate) <= 0) return false;
@@ -549,8 +559,8 @@ async function refreshAutomaticFx() {
   }
 }
 function safeSettingsForAdmin() {
-  const { shamApiTokenEncrypted, fxApiTokenEncrypted, catalogApiTokenEncrypted, ...settings } = storeSettings || {};
-  return { ...settings, shamApiTokenConfigured:Boolean(cfg.apiToken), fxApiTokenConfigured:Boolean(fxApiTokenRuntime), catalogApiTokenConfigured:Boolean(catalogApiTokenRuntime) };
+  const { shamApiTokenEncrypted, fxApiTokenEncrypted, catalogApiTokenEncrypted, catalogWriteApiTokenEncrypted, ...settings } = storeSettings || {};
+  return { ...settings, shamApiTokenConfigured:Boolean(cfg.apiToken), fxApiTokenConfigured:Boolean(fxApiTokenRuntime), catalogApiTokenConfigured:Boolean(catalogApiTokenRuntime), catalogWriteApiTokenConfigured:Boolean(catalogWriteApiTokenRuntime) };
 }
 function validateAndApplySettings(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('INVALID_SETTINGS');
@@ -799,7 +809,7 @@ const server = http.createServer(async (req,res) => {
     if (req.method === 'DELETE' && url.pathname === '/api/admin/session') {
       return send(res,200,{ok:true},{'Set-Cookie':adminCookie(req,'',0)});
     }
-    if (url.pathname.startsWith('/api/admin/') && !adminAuthorized(req)) {
+    if (url.pathname.startsWith('/api/admin/') && !adminAuthorized(req) && !(req.method === 'POST' && url.pathname === '/api/admin/catalog/products' && catalogWriteAuthorized(req))) {
       return send(res,401,{ok:false,error:'UNAUTHORIZED',message:'سجّل الدخول إلى لوحة الإدارة أولاً.'});
     }
     if (req.method === 'GET' && url.pathname === '/api/catalog') {
@@ -822,6 +832,23 @@ const server = http.createServer(async (req,res) => {
       ]);
       return send(res,200,{ok:true,orders:orders.rows[0],categories:catalog.length,products:products,fxRate:Number(storeSettings.fxRate||145),fxMode:storeSettings.fxMode,paymentsReady});
     }
+    if (req.method === 'POST' && url.pathname === '/api/admin/catalog/write-key/regenerate') {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const key = crypto.randomBytes(32).toString('base64url');
+      const nextSettings = { ...storeSettings,catalogWriteApiTokenEncrypted:encryptSecret(key,cfg.settingsEncryptionKey),catalogWriteApiTokenCleared:false };
+      await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+      storeSettings = nextSettings;
+      catalogWriteApiTokenRuntime = key;
+      return send(res,200,{ok:true,key,message:'احفظ المفتاح الآن؛ لن يظهر مرة ثانية.'});
+    }
+    if (req.method === 'DELETE' && url.pathname === '/api/admin/catalog/write-key') {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const nextSettings = { ...storeSettings,catalogWriteApiTokenEncrypted:'',catalogWriteApiTokenCleared:true };
+      await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+      storeSettings = nextSettings;
+      catalogWriteApiTokenRuntime = '';
+      return send(res,200,{ok:true,message:'تم إلغاء مفتاح كتابة المنتجات.'});
+    }
     if (req.method === 'GET' && url.pathname === '/api/admin/catalog') {
       return send(res,200,{ok:true,catalog});
     }
@@ -836,7 +863,9 @@ const server = http.createServer(async (req,res) => {
       if (rateLimit(req,res,`catalog-write:${ip}`,40,60_000)) return;
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const input = await bodyJson(req,2_800_000);
-      const result = upsertCatalogProduct(input);
+      let result;
+      try { result = upsertCatalogProduct(input); }
+      catch (error) { return send(res,400,{ok:false,error:'INVALID_CATALOG_PRODUCT',message:String(error?.message || 'بيانات المنتج غير صالحة.')}); }
       await persistCatalog(result.catalog);
       return send(res,result.created?201:200,{ok:true,created:result.created,productId:result.productId,message:result.created?'تمت إضافة المنتج عبر API.':'تم تحديث المنتج عبر API.'});
     }
@@ -845,13 +874,13 @@ const server = http.createServer(async (req,res) => {
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/catalog/sync-preview') {
       if (rateLimit(req,res,`catalog-sync:${ip}`,5,60_000)) return;
-      const result = await syncCatalogFromApi({preview:true});
-      return send(res,200,result);
+      try { const result = await syncCatalogFromApi({preview:true}); return send(res,200,result); }
+      catch (error) { return send(res,error?.status || 422,{ok:false,error:'CATALOG_API_PREVIEW_FAILED',message:String(error?.message || 'تعذر فحص API المنتجات.')}); }
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/catalog/sync') {
       if (rateLimit(req,res,`catalog-sync:${ip}`,5,60_000)) return;
-      const result = await syncCatalogFromApi();
-      return send(res,200,result);
+      try { const result = await syncCatalogFromApi(); return send(res,200,result); }
+      catch (error) { return send(res,error?.status || 422,{ok:false,error:'CATALOG_API_SYNC_FAILED',message:String(error?.message || 'تعذرت مزامنة API المنتجات.')}); }
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/settings') {
       return send(res,200,{ok:true,settings:safeSettingsForAdmin(),paymentsReady,fxReady:fxRateReady()});
