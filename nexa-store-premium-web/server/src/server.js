@@ -3,14 +3,13 @@ import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import net from 'node:net';
 import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 import { httpStatusForResult, isHttpErrorResult, safeHttpStatus } from './http-status.js';
 import { convertSypMinorToUsdMinor } from './exchange-rate.js';
 import {
   createAdminSession, verifyAdminSession, encryptSecret, decryptSecret,
-  validateCatalog, mergeCatalog, isSafeCatalogImage, getJsonPath, normalizeFxRate,
+  validateCatalog, mergeCatalog, isSafeCatalogImage, getJsonPath, normalizeFxRate, validateCatalogApiUrl,
 } from './admin-core.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -415,7 +414,7 @@ function defaultStoreSettings() {
     fxAuthHeader:'Authorization', fxAuthPrefix:'Bearer', fxUpdatedAt:null, fxLastError:'',
     catalogApiMode:'manual', catalogApiUrl:'', catalogApiJsonPath:'catalog',
     catalogApiAuthHeader:'Authorization', catalogApiAuthPrefix:'Bearer', catalogApiSyncMode:'merge',
-    catalogApiIntervalMinutes:15, catalogApiLastSyncAt:null, catalogApiLastError:'',
+    catalogApiIntervalMinutes:15, catalogApiLastSyncAt:null, catalogApiLastAttemptAt:null, catalogApiLastError:'',
     catalogApiTokenEncrypted:'', catalogApiTokenCleared:false,
     paymentEnabled:cfg.paymentsEnabled, shamApiBase:cfg.apiBase, walletId:cfg.walletId,
     receiverLabel:cfg.receiverLabel, timezoneOffsetMinutes:cfg.timezoneOffsetMinutes,
@@ -655,18 +654,6 @@ function validateAndApplySettings(input) {
   return next;
 }
 
-function validateCatalogApiUrl(raw) {
-  let url;
-  try { url = new URL(String(raw || '')); } catch { throw new Error('INVALID_CATALOG_API_URL'); }
-  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g,'');
-  if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443') ||
-      !host || net.isIP(host) || host === 'localhost' || host.endsWith('.localhost') ||
-      host.endsWith('.local') || host.endsWith('.internal') || host.endsWith('.test') ||
-      host.endsWith('.invalid') || host.endsWith('.example') || host === 'metadata.google.internal') {
-    throw new Error('CATALOG_API_HTTPS_PUBLIC_HOST_REQUIRED');
-  }
-  return url;
-}
 async function responseTextLimited(response, maxBytes = 4_000_000) {
   const length = Number(response.headers.get('content-length') || 0);
   if (length > maxBytes) throw new Error('CATALOG_API_RESPONSE_TOO_LARGE');
@@ -733,7 +720,7 @@ async function syncCatalogFromApi({ preview = false } = {}) {
       sample:incoming.slice(0,3).map(category=>({id:category.id,name:category.name,products:category.items.length})) };
     if (preview) return result;
     const updatedAt = new Date().toISOString();
-    const nextSettings = { ...storeSettings,catalogApiLastSyncAt:updatedAt,catalogApiLastError:'' };
+    const nextSettings = { ...storeSettings,catalogApiLastSyncAt:updatedAt,catalogApiLastAttemptAt:updatedAt,catalogApiLastError:'' };
     if (!pool) throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
     const client = await pool.connect();
     try {
@@ -748,7 +735,7 @@ async function syncCatalogFromApi({ preview = false } = {}) {
     return { ...result,updatedAt,message:'تمت مزامنة كتالوج المنتجات بنجاح.' };
   } catch (error) {
     if (!preview && pool) {
-      const nextSettings = { ...storeSettings,catalogApiLastError:String(error?.message || 'CATALOG_API_SYNC_FAILED').slice(0,300) };
+      const nextSettings = { ...storeSettings,catalogApiLastAttemptAt:new Date().toISOString(),catalogApiLastError:String(error?.message || 'CATALOG_API_SYNC_FAILED').slice(0,300) };
       try {
         await pool.query('UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE',[JSON.stringify(nextSettings)]);
         storeSettings = nextSettings;
@@ -786,7 +773,7 @@ const fxRefreshTimer = setInterval(()=>{ if (storeSettings?.fxMode === 'api') re
 fxRefreshTimer.unref?.();
 const catalogSyncTimer = setInterval(()=>{
   if (storeSettings?.catalogApiMode !== 'auto' || catalogApiSyncInProgress) return;
-  const last = new Date(storeSettings.catalogApiLastSyncAt || 0).getTime();
+  const last = new Date(storeSettings.catalogApiLastAttemptAt || storeSettings.catalogApiLastSyncAt || 0).getTime();
   const interval = Math.max(5,Number(storeSettings.catalogApiIntervalMinutes || 15))*60_000;
   if (!Number.isFinite(last) || Date.now()-last >= interval) syncCatalogFromApi().catch(error=>console.error('scheduled catalogue API sync failed',error.message));
 },60_000);
@@ -846,6 +833,7 @@ const server = http.createServer(async (req,res) => {
       return send(res,200,{ok:true,message:'تم حفظ الكتالوج بنجاح.',catalog});
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/catalog/products') {
+      if (rateLimit(req,res,`catalog-write:${ip}`,40,60_000)) return;
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const input = await bodyJson(req,2_800_000);
       const result = upsertCatalogProduct(input);
@@ -856,10 +844,12 @@ const server = http.createServer(async (req,res) => {
       return send(res,200,{ok:true,mode:storeSettings.catalogApiMode,lastSyncAt:storeSettings.catalogApiLastSyncAt||null,lastError:storeSettings.catalogApiLastError||'',syncInProgress:catalogApiSyncInProgress,configured:Boolean(storeSettings.catalogApiUrl),tokenConfigured:Boolean(catalogApiTokenRuntime)});
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/catalog/sync-preview') {
+      if (rateLimit(req,res,`catalog-sync:${ip}`,5,60_000)) return;
       const result = await syncCatalogFromApi({preview:true});
       return send(res,200,result);
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/catalog/sync') {
+      if (rateLimit(req,res,`catalog-sync:${ip}`,5,60_000)) return;
       const result = await syncCatalogFromApi();
       return send(res,200,result);
     }
