@@ -852,7 +852,7 @@ const server = http.createServer(async (req,res) => {
       const input = await bodyJson(req,2_800_000);
       let result;
       try { result = upsertCatalogProduct(catalog,input.categoryId,input.product); }
-      catch (error) { return send(res,400,{ok:false,error:'INVALID_CATALOG_PRODUCT',message:String(error?.message || 'بيانات المنتج غير صالحة.')}); }
+      catch (error) { return send(res,error?.status || 400,{ok:false,error:'INVALID_CATALOG_PRODUCT',message:String(error?.message || 'بيانات المنتج غير صالحة.')}); }
       await persistCatalog(result.catalog);
       return send(res,result.created?201:200,{ok:true,created:result.created,productId:result.productId,message:result.created?'تمت إضافة المنتج عبر API.':'تم تحديث المنتج عبر API.'});
     }
