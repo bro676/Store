@@ -1,16 +1,18 @@
-# Nexa Store — Render deployment
+# Nexa Store
 
-Arabic RTL storefront with the Sham Cash API v1 backend. See `render.yaml` for the Render Blueprint. The complete compressed source is stored in ordered parts `nexa-store-source.part00` onward; Render joins and extracts them during the build.
+Arabic RTL storefront with the Sham Cash API v1 backend. The source archive is stored as 11 ordered text parts (`nexa-store-source.part00` through `part10`) and is reconstructed automatically by the Render build.
 
-## Deploy
-1. Open https://dashboard.render.com/blueprint/new?repo=https://github.com/bro676/Store
-2. Review the service and PostgreSQL plan and charges in Render before applying. The Blueprint uses paid Starter web compute and a small paid PostgreSQL plan.
-3. Supply `SHAM_API_TOKEN` and `SHAM_WALLET_ID` as secrets. Never commit credentials.
-4. Keep `PAYMENTS_ENABLED=false` until the provider key has `read:wallets`, `read:transactions`, `write:invoices`, and `read:invoices`, the active Sham Cash wallet ID is verified, and every product price in `server/catalog.json` has been reviewed and approved.
-5. After configuration, change `PAYMENTS_ENABLED` to `true` in Render, save, and deploy. Then verify `/api/health` and `/api/payments/config` and perform a low-value live test.
+## Unpack locally
+```bash
+cat nexa-store-source.part* | base64 -d > nexa-store-source.tar.xz
+tar -xJf nexa-store-source.tar.xz
+```
 
-## Bundle contents
-The archive contains the complete Nexa Store source under `nexa-store-premium-web/`: Arabic RTL storefront, responsive UI, local SVG assets, Node.js API, PostgreSQL migrations, Sham Cash integration documentation, and environment template. It excludes previews and standalone demo HTML to keep the deployment source small. No API token, wallet PIN, or database credential is included.
+## Deploy to Render
+Open https://dashboard.render.com/blueprint/new?repo=https://github.com/bro676/Store. Review the paid Starter web service and `basic-256mb` PostgreSQL plan and charges before applying the Blueprint. The service and database are configured for Frankfurt and same-region private networking.
 
-## Important
-The project deliberately starts with payments disabled. Product prices in the catalog are sample/demo values until approved. Review the current Render pricing in the Blueprint confirmation screen before creating resources. Product delivery automation requires a separate supplier API integration.
+Set `SHAM_API_TOKEN` and `SHAM_WALLET_ID` as Render secrets. The API key needs `read:wallets`, `read:transactions`, `write:invoices`, and `read:invoices`. Never commit credentials or wallet PINs.
+
+Keep `PAYMENTS_ENABLED=false` during the initial deploy. Review all sample prices in `nexa-store-premium-web/server/catalog.json` after extracting the archive. Enable payments only after verifying the active receiving wallet, key permissions, database migrations, and a low-value live transaction.
+
+The archive includes the RTL storefront, local SVG assets, Node.js API, PostgreSQL migrations, Sham Cash integration docs, and `.env.example`. Preview images and the standalone demo HTML are excluded. Product prices remain sample values until approved. Automatic product delivery after payment requires a separate supplier API.
