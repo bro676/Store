@@ -323,7 +323,7 @@ async function verifyPayment(input) {
     if (order.status === 'paid') {
       const used = await client.query('SELECT transaction_id FROM nexa_payments WHERE order_id=$1',[orderId]);
       await client.query('COMMIT');
-      if (used.rowCount && used.rows[0].transaction_id === transactionRef) return {ok:true,alreadyPaid:true,orderId,transactionId:transactionRef,status:'paid'};
+      if (used.rowCount && used.rows[0].transaction_id === transactionRef) return {ok:true,alreadyPaid:true,orderId,transactionId:transactionRef,status:'paid',receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:order.paid_at ? new Date(order.paid_at).toISOString() : new Date().toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier}};
       return {error:'ORDER_ALREADY_PAID',status:409,message:'هذا الطلب مدفوع مسبقاً ولا يقبل رقم عملية آخر.'};
     }
     if (order.status !== 'pending_payment' || new Date(order.expires_at).getTime() <= Date.now()) {
@@ -379,7 +379,9 @@ async function verifyPayment(input) {
     if (!inserted.rowCount) { await client.query('ROLLBACK'); return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'}; }
     await client.query("UPDATE nexa_orders SET status='paid',paid_at=$2 WHERE id=$1",[orderId,paidAt]);
     await client.query('COMMIT');
-    return {ok:true,orderId,invoiceNumber:order.invoice_number,transactionId:transactionRef,status:'paid',verifiedAt:new Date().toISOString()};
+    return {ok:true,orderId,invoiceNumber:order.invoice_number,transactionId:transactionRef,status:'paid',verifiedAt:new Date().toISOString(),
+      receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,
+        invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:paidAt.toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier}};
   } catch (error) {
     await client.query('ROLLBACK').catch(()=>{});
     if (error.code === '23505') return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'};
@@ -421,10 +423,11 @@ function applyStoreSettings() {
   cfg.futureSkewMs = Number(storeSettings.futureSkewSeconds ?? 90) * 1000;
   cfg.timezoneOffsetMinutes = Number(storeSettings.timezoneOffsetMinutes ?? 180);
   try {
-    if (storeSettings.shamApiTokenEncrypted) cfg.apiToken = decryptSecret(storeSettings.shamApiTokenEncrypted, cfg.adminApiKey);
+    if (storeSettings.shamApiTokenCleared) cfg.apiToken = '';
+    else if (storeSettings.shamApiTokenEncrypted) cfg.apiToken = decryptSecret(storeSettings.shamApiTokenEncrypted, cfg.adminApiKey);
   } catch { cfg.apiToken = ''; }
   try {
-    storeSettings._fxApiToken = storeSettings.fxApiTokenEncrypted ? decryptSecret(storeSettings.fxApiTokenEncrypted, cfg.adminApiKey) : '';
+    storeSettings._fxApiToken = storeSettings.fxApiTokenCleared ? '' : (storeSettings.fxApiTokenEncrypted ? decryptSecret(storeSettings.fxApiTokenEncrypted, cfg.adminApiKey) : '');
   } catch { storeSettings._fxApiToken = ''; }
   cachedShamWallet = null;
   cachedShamWalletAt = 0;
@@ -535,6 +538,7 @@ function validateAndApplySettings(input) {
   setText('receiverLabel',100,'Nexa Store');
   setText('walletId',200,'');
   setText('shamApiBase',200,'https://apis-shamcash.com/api');
+  try { const apiUrl = new URL(next.shamApiBase); if (apiUrl.protocol !== 'https:' || apiUrl.hostname !== 'apis-shamcash.com' || apiUrl.pathname.replace(/\\/$/,'') !== '/api') throw new Error(); } catch { throw new Error('INVALID_SHAM_API_BASE'); }
   setText('fxApiUrl',500,'');
   setText('fxJsonPath',160,'');
   setText('fxAuthPrefix',20,'Bearer');
@@ -570,20 +574,24 @@ function validateAndApplySettings(input) {
   if (input.shamApiToken !== undefined && input.shamApiToken !== '') {
     if (typeof input.shamApiToken !== 'string' || input.shamApiToken.length > 256) throw new Error('INVALID_SHAM_API_TOKEN');
     next.shamApiTokenEncrypted = encryptSecret(input.shamApiToken,cfg.adminApiKey);
+    next.shamApiTokenCleared = false;
   }
-  if (input.clearShamApiToken === true) next.shamApiTokenEncrypted = '';
+  if (input.clearShamApiToken === true) { next.shamApiTokenEncrypted = ''; next.shamApiTokenCleared = true; }
   if (input.fxApiToken !== undefined && input.fxApiToken !== '') {
     if (typeof input.fxApiToken !== 'string' || input.fxApiToken.length > 512) throw new Error('INVALID_FX_API_TOKEN');
     next.fxApiTokenEncrypted = encryptSecret(input.fxApiToken,cfg.adminApiKey);
+    next.fxApiTokenCleared = false;
   }
-  if (input.clearFxApiToken === true) next.fxApiTokenEncrypted = '';
+  if (input.clearFxApiToken === true) { next.fxApiTokenEncrypted = ''; next.fxApiTokenCleared = true; }
   return next;
 }
 async function cancelPendingOrder(orderId) {
   if (!pool) throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
+  const found = await pool.query("SELECT id,invoice_number FROM nexa_orders WHERE id=$1 AND status='pending_payment' AND expires_at>NOW()",[orderId]);
+  if (!found.rowCount) return false;
+  if (found.rows[0].invoice_number) await shamApi('DELETE',`/v1/invoices/${encodeURIComponent(found.rows[0].invoice_number)}`);
   const result = await pool.query("UPDATE nexa_orders SET status='cancelled' WHERE id=$1 AND status='pending_payment' AND expires_at>NOW() RETURNING id",[orderId]);
-  if (!result.rowCount) return false;
-  return true;
+  return Boolean(result.rowCount);
 }
 
 await initializeStoreState();
@@ -697,10 +705,12 @@ const server = http.createServer(async (req,res) => {
     const orderLookup = url.pathname.match(/^\/api\/orders\/(NX-[A-F0-9]{20})$/);
     if (req.method === 'GET' && orderLookup) {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
-      const q = await pool.query('SELECT id,product_label,amount_minor,currency,status,expires_at,invoice_number,invoice_identifier,wallet_label,wallet_address FROM nexa_orders WHERE id=$1',[orderLookup[1]]);
+      const q = await pool.query(`SELECT o.id,o.product_label,o.amount_minor,o.currency,o.status,o.expires_at,o.invoice_number,o.invoice_identifier,o.wallet_label,o.wallet_address,o.customer_name,o.paid_at,p.transaction_id
+        FROM nexa_orders o LEFT JOIN nexa_payments p ON p.order_id=o.id WHERE o.id=$1`,[orderLookup[1]]);
       if (!q.rowCount) return send(res,404,{error:'ORDER_NOT_FOUND',message:'لم يتم العثور على الطلب.'});
       const o=q.rows[0];
-      return send(res,200,{ok:true,orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,status:o.status,expiresAt:new Date(o.expires_at).toISOString(),invoiceNumber:o.invoice_number,invoiceIdentifier:o.invoice_identifier,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier});
+      const receipt = o.status === 'paid' ? {orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,customerName:o.customer_name,invoiceNumber:o.invoice_number,transactionId:o.transaction_id,paidAt:o.paid_at ? new Date(o.paid_at).toISOString() : null,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier} : null;
+      return send(res,200,{ok:true,orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,status:o.status,expiresAt:new Date(o.expires_at).toISOString(),invoiceNumber:o.invoice_number,invoiceIdentifier:o.invoice_identifier,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier,receipt});
     }
     if (req.method === 'POST' && url.pathname === '/api/orders') {
       if (rateLimit(req,res,`order:${ip}`,8,60_000)) return;
