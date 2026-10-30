@@ -26,10 +26,13 @@ const cfg = {
   receiverLabel: process.env.SHAM_RECEIVER_LABEL || 'محفظة Nexa Store',
   receiverAddress: process.env.SHAM_RECEIVER_ADDRESS || '',
   timezoneOffsetMinutes: Number(process.env.SHAM_TIMEZONE_OFFSET_MINUTES || 180),
+  sypPerUsd: Number(process.env.SYP_PER_USD || 0),
+  fxUpdatedAt: process.env.SYP_PER_USD_UPDATED_AT || '',
+  fxSource: process.env.SYP_PER_USD_SOURCE || '',
 };
 
-const providerConfigReady = Boolean(cfg.apiToken && Buffer.byteLength(cfg.apiToken) <= 256 && cfg.walletId && Number.isInteger(cfg.orderTtlMinutes) && cfg.orderTtlMinutes >= 5 && cfg.orderTtlMinutes <= 1440 && cfg.maxAgeMs > 0 && cfg.futureSkewMs >= 0 && Number.isInteger(cfg.timezoneOffsetMinutes) && Math.abs(cfg.timezoneOffsetMinutes) <= 840);
-const paymentsReady = cfg.paymentsEnabled && Boolean(cfg.databaseUrl) && providerConfigReady && cfg.currency === 'SYP';
+const providerConfigReady = Boolean(cfg.apiToken && Buffer.byteLength(cfg.apiToken) <= 256 && cfg.walletId && Number.isInteger(cfg.orderTtlMinutes) && cfg.orderTtlMinutes >= 5 && cfg.orderTtlMinutes <= 1440 && cfg.maxAgeMs > 0 && cfg.futureSkewMs >= 0 && Number.isInteger(cfg.timezoneOffsetMinutes) && Math.abs(cfg.timezoneOffsetMinutes) <= 840 && Number.isFinite(cfg.sypPerUsd) && cfg.sypPerUsd > 0 && Number.isFinite(new Date(cfg.fxUpdatedAt).getTime()) && cfg.fxSource);
+const paymentsReady = cfg.paymentsEnabled && Boolean(cfg.databaseUrl) && providerConfigReady;
 let pool;
 if (cfg.databaseUrl) {
   pool = new Pool({ connectionString: cfg.databaseUrl, ssl: cfg.databaseSsl ? { rejectUnauthorized: true } : false,
@@ -114,6 +117,15 @@ function findPack(categoryId, productId, optionId, packIndex) {
   if (!category || !product || !option || !pack || !Number.isFinite(pack[1]) || pack[1] <= 0) return null;
   return { label: `${product.name} — ${option.name} — ${pack[0]}`, amountMinor: BigInt(pack[1]) * 100n };
 }
+function pricePack(pack, currency) {
+  if (currency === 'SYP') return { ...pack, currency, amountMinor:pack.amountMinor };
+  if (currency !== 'USD') return null;
+  const rateScaled = BigInt(Math.round(cfg.sypPerUsd * 10_000));
+  if (rateScaled <= 0n) return null;
+  const amountMinor = (pack.amountMinor * 10_000n + rateScaled / 2n) / rateScaled;
+  if (amountMinor < 1n) return null;
+  return { ...pack, currency, amountMinor };
+}
 function parseProviderDate(value) {
   if (typeof value !== 'string' || !value.trim()) return new Date(NaN);
   const s = value.trim();
@@ -162,7 +174,7 @@ async function getWallet(forceRefresh = false) {
 }
 async function createShamInvoice(orderId, pack, wallet) {
   const payload = await shamApi('POST', '/v1/invoices', {
-    amount: asAmount(pack.amountMinor), currency:cfg.currency, walletAddress:String(wallet.id), provider:'shamcash',
+    amount: asAmount(pack.amountMinor), currency:pack.currency, walletAddress:String(wallet.id), provider:'shamcash',
     expiresInMinutes:cfg.orderTtlMinutes, note:`Nexa Store ${orderId}: ${pack.label}`,
     metadata:{ orderId, source:'nexa-store' },
   });
@@ -170,7 +182,7 @@ async function createShamInvoice(orderId, pack, wallet) {
   const identifier = String(payload.identifier || '');
   const expiry = new Date(payload.expiresAt || '');
   if (!/^[A-Za-z0-9_-]{1,100}$/.test(invoiceNumber) || payload.status !== 'pending' || String(payload.method).toLowerCase() !== 'shamcash' ||
-      String(payload.currency).toUpperCase() !== cfg.currency || decimalMinor(payload.amount) !== pack.amountMinor ||
+      String(payload.currency).toUpperCase() !== pack.currency || decimalMinor(payload.amount) !== pack.amountMinor ||
       !identifier || !Number.isFinite(expiry.getTime())) {
     throw new ProviderError(502, { error:'INVALID_INVOICE_RESPONSE', message:'لم تتطابق الفاتورة التي أنشأها المزوّد مع الطلب؛ أوقفنا إكماله للحماية.' });
   }
@@ -210,6 +222,10 @@ async function createOrder(input) {
   if (!paymentsReady) return { error:'PAYMENTS_NOT_READY', status:503, message:'الدفع غير متاح حتى تكتمل إعدادات API وقاعدة البيانات على الخادم.' };
   const pack = findPack(input.categoryId, input.productId, input.optionId, Number(input.packIndex));
   if (!pack) return { error:'INVALID_PRODUCT', status:400, message:'الباقة غير متاحة أو سعرها غير محدد.' };
+  const currency = String(input.currency || 'SYP').trim().toUpperCase();
+  if (!['SYP','USD'].includes(currency)) return { error:'INVALID_CURRENCY', status:400, message:'اختر الليرة السورية أو الدولار الأمريكي.' };
+  const pricedPack = pricePack(pack, currency);
+  if (!pricedPack) return { error:'INVALID_PRICE', status:400, message:'تعذر حساب السعر بالعملة المختارة.' };
   const name = String(input.customerName || '').trim().slice(0,70);
   const phone = String(input.customerPhone || '').trim().slice(0,25);
   const gameAccount = String(input.accountId || '').trim().slice(0,80);
@@ -219,13 +235,13 @@ async function createOrder(input) {
   try {
     wallet = await getWallet(true);
     id = `NX-${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
-    invoice = await createShamInvoice(id, pack, wallet);
+    invoice = await createShamInvoice(id, pricedPack, wallet);
     await pool.query(`INSERT INTO nexa_orders (id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,customer_name,customer_phone,game_account,notes,expires_at,invoice_number,invoice_identifier,wallet_label,wallet_address)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
-      [id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pack.label,pack.amountMinor.toString(),cfg.currency,name,phone,gameAccount,notes,invoice.expiresAt,invoice.invoiceNumber,invoice.identifier,invoice.walletLabel,invoice.walletAddress]);
+      [id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pricedPack.label,pricedPack.amountMinor.toString(),pricedPack.currency,name,phone,gameAccount,notes,invoice.expiresAt,invoice.invoiceNumber,invoice.identifier,invoice.walletLabel,invoice.walletAddress]);
     persisted = true;
     return {
-      orderId:id, product:pack.label, amountMinor:pack.amountMinor.toString(), currency:cfg.currency, expiresAt:invoice.expiresAt.toISOString(),
+      orderId:id, product:pricedPack.label, amountMinor:pricedPack.amountMinor.toString(), currency:pricedPack.currency, expiresAt:invoice.expiresAt.toISOString(),
       invoiceNumber:invoice.invoiceNumber, invoiceIdentifier:invoice.identifier, receiverLabel:invoice.walletLabel,
       receiverAddress:invoice.identifier, status:'pending_payment',
     };
@@ -389,7 +405,7 @@ const server = http.createServer(async (req,res) => {
         try { const wallet = await getWallet(); receiverLabel = String(wallet.label || receiverLabel); receiverAddress = String(wallet.walletAddress || receiverAddress); message = 'تم التحقق من وجود محفظة شام كاش نشطة. كل طلب ينشئ فاتورة رسمية ويُتحقق من العملية عبر API.'; }
         catch (error) { enabled = false; message = error instanceof ProviderError ? providerMessage(error) : 'تعذر التحقق من محفظة الاستلام حالياً.'; }
       }
-      return send(res,200,{enabled,provider:'Sham Cash',currency:cfg.currency,receiverLabel,receiverAddress,orderTtlMinutes:cfg.orderTtlMinutes,maxTransactionAgeMinutes:Math.round(cfg.maxAgeMs/60_000),message});
+      return send(res,200,{enabled,provider:'Sham Cash',currency:'SYP',currencies:['SYP','USD'],sypPerUsd:cfg.sypPerUsd,fxUpdatedAt:cfg.fxUpdatedAt,fxSource:cfg.fxSource,receiverLabel,receiverAddress,orderTtlMinutes:cfg.orderTtlMinutes,maxTransactionAgeMinutes:Math.round(cfg.maxAgeMs/60_000),message});
     }
     const orderLookup = url.pathname.match(/^\/api\/orders\/(NX-[A-F0-9]{20})$/);
     if (req.method === 'GET' && orderLookup) {

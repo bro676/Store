@@ -124,3 +124,8 @@ curl https://YOUR-STORE.example/api/admin/shamcash/wallets \
 - `PAYMENTS_ENABLED` افتراضياً false، ولا نملك بيانات اعتماد حساب التاجر في هذا المشروع؛ يجب إدخالها على الاستضافة بنفسك.
 - لم تُنفّذ خدمة تسليم المنتجات بعد الدفع. هذا التكامل يثبت حالة الدفع فقط؛ ربط مزود التسليم/إرسال الشحن يحتاج API منفصلاً.
 - لم تُنفّذ معاملة مالية فعلية من بيئة الاختبار؛ تحقق من حسابك الحقيقي بعد ضبط الأسرار والصلاحيات.
+
+
+## Dual currency checkout
+
+The checkout supports SYP and USD. Product catalog amounts remain the store's existing SYP price units; USD is calculated on the server from SYP_PER_USD, then the selected currency and exact amount are written into the Sham Cash invoice and PostgreSQL order. The browser never supplies a price. The reference FX rate must be reviewed and refreshed by the store operator; the source timestamp and source URL are returned by /api/payments/config. Sham Cash invoice/transaction verification must match the exact selected currency and amount.
