@@ -135,7 +135,7 @@ The checkout supports SYP and USD. Product catalogue prices are stored in new Sy
 
 كتالوج الأسعار في هذا الإصدار صار بالليرة السورية الجديدة. تم تحويل كل القيم القديمة بنسبة 100 قديمة = 1 جديدة، مع الاحتفاظ بالقيمة الاقتصادية نفسها. السعر الأساسي يُرسل إلى Sham Cash بالعملة SYP الجديدة.
 
-سعر الصرف ثابت يدوياً على 145 ليرة سورية جديدة لكل دولار واحد. يحسب الخادم قيمة USD من السعر الأساسي، ولا يعتمد على API خارجي أو وقت تحديث. لا يرسل المتصفح السعر النهائي، ويطابق الخادم المبلغ والعملة مع فاتورة شام كاش قبل تسجيل الدفع.
+سعر الصرف الافتراضي يدوي على 145 ليرة سورية جديدة لكل دولار واحد. يمكن اختيار وضع SP Today API V2 من لوحة الإدارة بتحديد رابط Endpoint ومسار حقل السعر وطريقة المصادقة والوحدة (قديمة أو جديدة). عند استخدام الوضع الآلي يمنع الخادم تسعير الدولار إذا تجاوز آخر تحديث 30 دقيقة. يحسب الخادم قيمة USD ولا يعتمد على السعر الذي يرسله المتصفح.
 
 ## Regression tests
 
@@ -150,3 +150,46 @@ The admin UI is served at `/admin.html`. Sign in with the Render `ADMIN_API_KEY`
 Manual FX defaults to 145 new SYP per USD. Automatic FX only fetches HTTPS URLs on `api-v2.sp-today.com`, reads the configured JSON path, supports legacy/new SYP units, and refreshes every five minutes. USD checkout is blocked if automatic data is older than 30 minutes. The exact endpoint, JSON path, and auth header must be taken from the merchant's SP Today V2 documentation; they are deliberately not hard-coded here.
 
 The admin order list can cancel an unpaid, unexpired invoice with the provider before changing its local state. Paid receipts are produced only from verified Sham Cash transactions and include the invoice and transaction references.
+
+
+
+## External product catalogue API
+
+The admin page has a catalogue connector with preview, manual sync, and an optional scheduled sync. Configure an HTTPS endpoint, JSON path (for example `catalog` or `data.catalog`), and optional `Authorization: Bearer` or `x-api-key` authentication. The JSON path may be empty when the response body itself is the categories array. Redirects are rejected and response bodies are capped at 4 MB. Private/local hosts, IP-literal URLs, non-HTTPS URLs, credentials in URLs, and non-standard ports are rejected.
+
+The source must return the same category/product/options/packs structure used by `server/catalog.json`. Price values are numeric new Syrian pounds (SYP). Images must be HTTPS URLs, local `assets/` paths, or supported raster data URLs. The default sync mode is merge: categories and products with matching IDs are updated; existing local-only products and categories are retained. Replace mode explicitly makes the remote catalogue authoritative. Automatic sync interval is 5–1440 minutes and failed attempts are backoff-limited by the configured interval.
+
+### Scoped product write API
+
+Generate a scoped API key in the admin page. It is shown once and can be rotated or revoked. Keep it only on a trusted server. This key has access only to `POST /api/admin/catalog/products`, not to payment or store settings.
+
+```http
+POST /api/admin/catalog/products
+Content-Type: application/json
+X-Catalog-Key: <scoped-key>
+```
+
+Body:
+
+```json
+{
+  "categoryId": "games",
+  "product": {
+    "id": "new-game",
+    "name": "New Game",
+    "desc": "Product description",
+    "image": "https://cdn.vendor.net/new-game.webp",
+    "options": [
+      {
+        "id": "global",
+        "name": "Global",
+        "desc": "Global account region",
+        "flag": "🌐",
+        "packs": [["100 Credits", 180], ["500 Credits", 750]]
+      }
+    ]
+  }
+}
+```
+
+A matching product ID is updated; a new product ID is inserted into the selected existing category. The response returns HTTP 201 for creation and HTTP 200 for update. Pack prices are in new SYP and are validated server-side.
