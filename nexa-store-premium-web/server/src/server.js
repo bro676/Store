@@ -30,6 +30,7 @@ const cfg = {
   apiBase: (process.env.SHAM_API_BASE_URL || 'https://apis-shamcash.com/api').replace(/\/$/, ''),
   apiToken: process.env.SHAM_API_TOKEN || '',
   adminApiKey: process.env.ADMIN_API_KEY || '',
+  settingsEncryptionKey: process.env.STORE_SETTINGS_ENCRYPTION_KEY || process.env.ADMIN_API_KEY || '',
   walletId: process.env.SHAM_WALLET_ID || '',
   receiverLabel: process.env.SHAM_RECEIVER_LABEL || 'محفظة Nexa Store',
   receiverAddress: process.env.SHAM_RECEIVER_ADDRESS || '',
@@ -427,10 +428,10 @@ function applyStoreSettings() {
   cfg.timezoneOffsetMinutes = Number(storeSettings.timezoneOffsetMinutes ?? 180);
   try {
     if (storeSettings.shamApiTokenCleared) cfg.apiToken = '';
-    else if (storeSettings.shamApiTokenEncrypted) cfg.apiToken = decryptSecret(storeSettings.shamApiTokenEncrypted, cfg.adminApiKey);
+    else if (storeSettings.shamApiTokenEncrypted) cfg.apiToken = decryptSecret(storeSettings.shamApiTokenEncrypted, cfg.settingsEncryptionKey);
   } catch { cfg.apiToken = ''; }
   try {
-    fxApiTokenRuntime = storeSettings.fxApiTokenCleared ? '' : (storeSettings.fxApiTokenEncrypted ? decryptSecret(storeSettings.fxApiTokenEncrypted, cfg.adminApiKey) : '');
+    fxApiTokenRuntime = storeSettings.fxApiTokenCleared ? '' : (storeSettings.fxApiTokenEncrypted ? decryptSecret(storeSettings.fxApiTokenEncrypted, cfg.settingsEncryptionKey) : '');
   } catch { fxApiTokenRuntime = ''; }
   cachedShamWallet = null;
   cachedShamWalletAt = 0;
@@ -441,11 +442,12 @@ async function persistStoreSettings() {
   await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(storeSettings)]);
 }
 async function initializeStoreState() {
+  if (cfg.settingsEncryptionKey.length < 24) throw new Error('STORE_SETTINGS_ENCRYPTION_KEY must be at least 24 characters.');
   storeSettings = defaultStoreSettings();
   if (!pool) { refreshPaymentsReady(); return; }
   const result = await pool.query('SELECT catalog,settings FROM nexa_store_state WHERE singleton=TRUE');
   if (!result.rowCount) {
-    if (cfg.adminApiKey.length >= 24 && cfg.apiToken) storeSettings.shamApiTokenEncrypted = encryptSecret(cfg.apiToken, cfg.adminApiKey);
+    if (cfg.adminApiKey.length >= 24 && cfg.apiToken) storeSettings.shamApiTokenEncrypted = encryptSecret(cfg.apiToken, cfg.settingsEncryptionKey);
     await pool.query('INSERT INTO nexa_store_state(singleton,catalog,settings) VALUES(TRUE,$1::jsonb,$2::jsonb) ON CONFLICT(singleton) DO NOTHING',
       [JSON.stringify(catalog),JSON.stringify(storeSettings)]);
   } else {
@@ -516,9 +518,11 @@ async function refreshAutomaticFx() {
     const payload = await response.json();
     const rawRate = getJsonPath(payload, String(storeSettings.fxJsonPath));
     const rate = normalizeFxRate(rawRate, storeSettings.fxUnit === 'old' ? 'old' : 'new');
-    storeSettings = { ...storeSettings, fxRate:rate, fxUpdatedAt:new Date().toISOString(), fxLastError:'' };
-    await persistStoreSettings();
-    return { ok:true, rate, updatedAt:storeSettings.fxUpdatedAt, message:'تم تحديث سعر الصرف من SP Today API V2.' };
+    const updatedAt = new Date().toISOString();
+    const nextSettings = { ...storeSettings, fxRate:rate, fxUpdatedAt:updatedAt, fxLastError:'' };
+    await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+    storeSettings = nextSettings;
+    return { ok:true, rate, updatedAt, message:'تم تحديث سعر الصرف من SP Today API V2.' };
   } catch (error) {
     storeSettings = { ...storeSettings, fxLastError:String(error?.message || 'FX_REFRESH_FAILED').slice(0,300) };
     await persistStoreSettings().catch(()=>{});
@@ -581,13 +585,13 @@ function validateAndApplySettings(input) {
   }
   if (input.shamApiToken !== undefined && input.shamApiToken !== '') {
     if (typeof input.shamApiToken !== 'string' || input.shamApiToken.length > 256) throw new Error('INVALID_SHAM_API_TOKEN');
-    next.shamApiTokenEncrypted = encryptSecret(input.shamApiToken,cfg.adminApiKey);
+    next.shamApiTokenEncrypted = encryptSecret(input.shamApiToken,cfg.settingsEncryptionKey);
     next.shamApiTokenCleared = false;
   }
   if (input.clearShamApiToken === true) { next.shamApiTokenEncrypted = ''; next.shamApiTokenCleared = true; }
   if (input.fxApiToken !== undefined && input.fxApiToken !== '') {
     if (typeof input.fxApiToken !== 'string' || input.fxApiToken.length > 512) throw new Error('INVALID_FX_API_TOKEN');
-    next.fxApiTokenEncrypted = encryptSecret(input.fxApiToken,cfg.adminApiKey);
+    next.fxApiTokenEncrypted = encryptSecret(input.fxApiToken,cfg.settingsEncryptionKey);
     next.fxApiTokenCleared = false;
   }
   if (input.clearFxApiToken === true) { next.fxApiTokenEncrypted = ''; next.fxApiTokenCleared = true; }
@@ -667,9 +671,10 @@ const server = http.createServer(async (req,res) => {
     if (req.method === 'PATCH' && url.pathname === '/api/admin/settings') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const input = await bodyJson(req,3_000_000);
-      storeSettings = validateAndApplySettings(input);
+      const nextSettings = validateAndApplySettings(input);
+      await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+      storeSettings = nextSettings;
       applyStoreSettings();
-      await persistStoreSettings();
       return send(res,200,{ok:true,settings:safeSettingsForAdmin(),paymentsReady,fxReady:fxRateReady()});
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/fx/refresh') {
