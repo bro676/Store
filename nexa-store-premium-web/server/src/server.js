@@ -410,14 +410,14 @@ async function serveStatic(req, res, pathname) {
 function defaultStoreSettings() {
   return {
     storeName:'Nexa Store', storeLogo:'assets/brand/logo.svg', announcement:'وجهتك للألعاب والبطاقات والاشتراكات الرقمية',
-    themePrimary:'#376f5f', themeSecondary:'#8ba995', themeDark:'#24433a',
+    themePrimary:'#4d92eb', themeSecondary:'#9ccaff', themeDark:'#1e4c7c',
     fxMode:'manual', fxRate:145, fxApiUrl:'', fxJsonPath:'', fxUnit:'new',
     fxAuthHeader:'Authorization', fxAuthPrefix:'Bearer', fxUpdatedAt:null, fxLastError:'',
     catalogApiMode:'manual', catalogApiUrl:'', catalogApiJsonPath:'catalog',
     catalogApiAuthHeader:'Authorization', catalogApiAuthPrefix:'Bearer', catalogApiSyncMode:'merge',
     catalogApiIntervalMinutes:15, catalogApiLastSyncAt:null, catalogApiLastAttemptAt:null, catalogApiLastError:'',
     catalogApiTokenEncrypted:'', catalogApiTokenCleared:false,
-    catalogWriteApiTokenEncrypted:'', catalogWriteApiTokenCleared:false,
+    catalogWriteApiTokenEncrypted:'', catalogWriteApiTokenCleared:false, catalogWriteApiKeys:[],
     paymentEnabled:cfg.paymentsEnabled, shamApiBase:cfg.apiBase, walletId:cfg.walletId,
     receiverLabel:cfg.receiverLabel, timezoneOffsetMinutes:cfg.timezoneOffsetMinutes,
     orderTtlMinutes:cfg.orderTtlMinutes, maxAgeMinutes:Math.round(cfg.maxAgeMs/60_000),
@@ -469,10 +469,10 @@ async function initializeStoreState() {
     const row = result.rows[0];
     if (row.catalog) catalog = validateCatalog(row.catalog);
     storeSettings = { ...defaultStoreSettings(), ...(row.settings || {}) };
-    if (storeSettings.themePrimary === '#e23b57' && storeSettings.themeSecondary === '#547ee8' && storeSettings.themeDark === '#101a2e') {
-      storeSettings.themePrimary = '#376f5f';
-      storeSettings.themeSecondary = '#8ba995';
-      storeSettings.themeDark = '#24433a';
+    if ((storeSettings.themePrimary === '#e23b57' && storeSettings.themeSecondary === '#547ee8' && storeSettings.themeDark === '#101a2e') || (storeSettings.themePrimary === '#376f5f' && storeSettings.themeSecondary === '#8ba995' && storeSettings.themeDark === '#24433a')) {
+      storeSettings.themePrimary = '#4d92eb';
+      storeSettings.themeSecondary = '#9ccaff';
+      storeSettings.themeDark = '#1e4c7c';
       await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(storeSettings)]);
     }
   }
@@ -502,9 +502,17 @@ function adminAuthorized(req) {
   return true;
 }
 function catalogWriteAuthorized(req) {
-  const supplied = Buffer.from(String(req.headers['x-catalog-key'] || ''));
-  const expected = Buffer.from(catalogWriteApiTokenRuntime);
-  return Boolean(catalogWriteApiTokenRuntime && supplied.length === expected.length && crypto.timingSafeEqual(supplied,expected));
+  const raw = String(req.headers['x-catalog-key'] || '');
+  if (!raw || raw.length > 256) return false;
+  const supplied = Buffer.from(raw);
+  const legacy = Buffer.from(catalogWriteApiTokenRuntime);
+  if (catalogWriteApiTokenRuntime && supplied.length === legacy.length && crypto.timingSafeEqual(supplied,legacy)) return true;
+  const hash = crypto.createHash('sha256').update(raw).digest();
+  return (storeSettings?.catalogWriteApiKeys || []).some(entry => {
+    let expected;
+    try { expected = Buffer.from(String(entry.hash || ''),'hex'); } catch { return false; }
+    return expected.length === hash.length && crypto.timingSafeEqual(hash,expected);
+  });
 }
 function fxRateReady() {
   if (!storeSettings || !Number.isFinite(Number(storeSettings.fxRate)) || Number(storeSettings.fxRate) <= 0) return false;
@@ -559,8 +567,8 @@ async function refreshAutomaticFx() {
   }
 }
 function safeSettingsForAdmin() {
-  const { shamApiTokenEncrypted, fxApiTokenEncrypted, catalogApiTokenEncrypted, catalogWriteApiTokenEncrypted, ...settings } = storeSettings || {};
-  return { ...settings, shamApiTokenConfigured:Boolean(cfg.apiToken), fxApiTokenConfigured:Boolean(fxApiTokenRuntime), catalogApiTokenConfigured:Boolean(catalogApiTokenRuntime), catalogWriteApiTokenConfigured:Boolean(catalogWriteApiTokenRuntime) };
+  const { shamApiTokenEncrypted, fxApiTokenEncrypted, catalogApiTokenEncrypted, catalogWriteApiTokenEncrypted, catalogWriteApiKeys = [], ...settings } = storeSettings || {};
+  return { ...settings, catalogWriteApiKeys:catalogWriteApiKeys.map(({id,name,createdAt})=>({id,name,createdAt})), shamApiTokenConfigured:Boolean(cfg.apiToken), fxApiTokenConfigured:Boolean(fxApiTokenRuntime), catalogApiTokenConfigured:Boolean(catalogApiTokenRuntime), catalogWriteApiTokenConfigured:Boolean(catalogWriteApiTokenRuntime || catalogWriteApiKeys.length) };
 }
 function validateAndApplySettings(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('INVALID_SETTINGS');
@@ -819,6 +827,31 @@ const server = http.createServer(async (req,res) => {
       ]);
       return send(res,200,{ok:true,orders:orders.rows[0],categories:catalog.length,products:products,fxRate:Number(storeSettings.fxRate||145),fxMode:storeSettings.fxMode,paymentsReady});
     }
+    if (req.method === 'POST' && url.pathname === '/api/admin/catalog/write-keys') {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const input = await bodyJson(req,4096);
+      const name = String(input.name || '').trim();
+      if (!name || name.length > 60) return send(res,400,{ok:false,error:'INVALID_API_NAME',message:'اكتب اسماً واضحاً لمصدر API (حتى 60 حرفاً).'});
+      const keys = Array.isArray(storeSettings.catalogWriteApiKeys) ? storeSettings.catalogWriteApiKeys : [];
+      if (keys.length >= 20) return send(res,409,{ok:false,error:'API_LIMIT_REACHED',message:'يمكن ربط 20 مصدر API كحد أقصى.'});
+      const key = crypto.randomBytes(32).toString('base64url');
+      const entry = { id:'api_'+crypto.randomBytes(8).toString('hex'), name, hash:crypto.createHash('sha256').update(key).digest('hex'), createdAt:new Date().toISOString() };
+      const nextSettings = { ...storeSettings,catalogWriteApiKeys:[...keys,entry] };
+      await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+      storeSettings = nextSettings;
+      return send(res,201,{ok:true,key,source:{id:entry.id,name:entry.name,createdAt:entry.createdAt},message:'تم إنشاء مصدر API. انسخ المفتاح الآن؛ لن يظهر مرة ثانية.'});
+    }
+    const catalogApiKeyDelete = url.pathname.match(/^\\/api\\/admin\\/catalog\\/write-keys\\/([a-z0-9_-]{1,60})$/i);
+    if (req.method === 'DELETE' && catalogApiKeyDelete) {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const keys = Array.isArray(storeSettings.catalogWriteApiKeys) ? storeSettings.catalogWriteApiKeys : [];
+      const nextKeys = keys.filter(entry=>entry.id!==catalogApiKeyDelete[1]);
+      if (nextKeys.length === keys.length) return send(res,404,{ok:false,error:'API_SOURCE_NOT_FOUND'});
+      const nextSettings = { ...storeSettings,catalogWriteApiKeys:nextKeys };
+      await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+      storeSettings = nextSettings;
+      return send(res,200,{ok:true,message:'تم حذف مصدر API وإلغاء مفتاحه.'});
+    }
     if (req.method === 'POST' && url.pathname === '/api/admin/catalog/write-key/regenerate') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const key = crypto.randomBytes(32).toString('base64url');
@@ -851,8 +884,28 @@ const server = http.createServer(async (req,res) => {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const input = await bodyJson(req,2_800_000);
       let result;
-      try { result = upsertCatalogProduct(catalog,input.categoryId,input.product); }
-      catch (error) { return send(res,error?.status || 400,{ok:false,error:'INVALID_CATALOG_PRODUCT',message:String(error?.message || 'بيانات المنتج غير صالحة.')}); }
+      try {
+        let workingCatalog = catalog;
+        const categoryInput = input.category && typeof input.category === 'object' ? input.category : null;
+        const categoryId = String(input.categoryId || categoryInput?.id || '');
+        if (categoryInput && !workingCatalog.some(category=>category.id===categoryId)) {
+          const category = { id:categoryId,name:String(categoryInput.name || ''),desc:String(categoryInput.desc || ''),image:categoryInput.image || 'assets/brand/logo.svg',items:[] };
+          if (categoryInput.icon !== undefined) category.icon = categoryInput.icon;
+          workingCatalog = validateCatalog([...workingCatalog,category]);
+        }
+        const productInput = { ...(input.product || {}) };
+        if (productInput.desc === undefined) productInput.desc = String(productInput.description || '');
+        if (!productInput.image) productInput.image = 'assets/brand/logo.svg';
+        if (!Array.isArray(productInput.options) && productInput.price !== undefined) {
+          const price = Number(productInput.price);
+          if (!Number.isFinite(price) || price < 0 || price > 1_000_000_000 || !/^\\d+(?:\\.\\d{1,2})?$/.test(String(productInput.price))) {
+            throw Object.assign(new Error('سعر المنتج يجب أن يكون رقماً بالليرة السورية الجديدة وبحد أقصى منزلتين عشريتين.'),{status:400});
+          }
+          productInput.options = [{id:'default',name:'الخيار الأساسي',desc:'',packs:[[String(productInput.priceLabel || 'السعر الأساسي'),price]]}];
+        }
+        delete productInput.description; delete productInput.price; delete productInput.priceLabel;
+        result = upsertCatalogProduct(workingCatalog,categoryId,productInput);
+      } catch (error) { return send(res,error?.status || 400,{ok:false,error:'INVALID_CATALOG_PRODUCT',message:String(error?.message || 'بيانات المنتج غير صالحة.')}); }
       await persistCatalog(result.catalog);
       return send(res,result.created?201:200,{ok:true,created:result.created,productId:result.productId,message:result.created?'تمت إضافة المنتج عبر API.':'تم تحديث المنتج عبر API.'});
     }
