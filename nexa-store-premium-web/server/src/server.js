@@ -410,7 +410,7 @@ async function serveStatic(req, res, pathname) {
 function defaultStoreSettings() {
   return {
     storeName:'Nexa Store', storeLogo:'assets/brand/logo.svg', announcement:'وجهتك للألعاب والبطاقات والاشتراكات الرقمية',
-    themePrimary:'#4d92eb', themeSecondary:'#9ccaff', themeDark:'#1e4c7c',
+    themePrimary:'#397fda', themeSecondary:'#65b8d7', themeAccent:'#8076d6', themeDark:'#193957',
     fxMode:'manual', fxRate:145, fxApiUrl:'', fxJsonPath:'', fxUnit:'new',
     fxAuthHeader:'Authorization', fxAuthPrefix:'Bearer', fxUpdatedAt:null, fxLastError:'',
     catalogApiMode:'manual', catalogApiUrl:'', catalogApiJsonPath:'catalog',
@@ -469,10 +469,18 @@ async function initializeStoreState() {
     const row = result.rows[0];
     if (row.catalog) catalog = validateCatalog(row.catalog);
     storeSettings = { ...defaultStoreSettings(), ...(row.settings || {}) };
-    if ((storeSettings.themePrimary === '#e23b57' && storeSettings.themeSecondary === '#547ee8' && storeSettings.themeDark === '#101a2e') || (storeSettings.themePrimary === '#376f5f' && storeSettings.themeSecondary === '#8ba995' && storeSettings.themeDark === '#24433a')) {
-      storeSettings.themePrimary = '#4d92eb';
-      storeSettings.themeSecondary = '#9ccaff';
-      storeSettings.themeDark = '#1e4c7c';
+    let themeMigrated = false;
+    if ((storeSettings.themePrimary === '#e23b57' && storeSettings.themeSecondary === '#547ee8' && storeSettings.themeDark === '#101a2e') ||
+        (storeSettings.themePrimary === '#376f5f' && storeSettings.themeSecondary === '#8ba995' && storeSettings.themeDark === '#24433a') ||
+        (storeSettings.themePrimary === '#4d92eb' && storeSettings.themeSecondary === '#9ccaff' && storeSettings.themeDark === '#1e4c7c')) {
+      storeSettings.themePrimary = '#397fda';
+      storeSettings.themeSecondary = '#65b8d7';
+      storeSettings.themeAccent = '#8076d6';
+      storeSettings.themeDark = '#193957';
+      themeMigrated = true;
+    }
+    if (!storeSettings.themeAccent) { storeSettings.themeAccent = '#8076d6'; themeMigrated = true; }
+    if (themeMigrated) {
       await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(storeSettings)]);
     }
   }
@@ -525,9 +533,10 @@ function publicSettings() {
     storeName:String(storeSettings?.storeName || 'Nexa Store'),
     storeLogo:String(storeSettings?.storeLogo || 'assets/brand/logo.svg'),
     announcement:String(storeSettings?.announcement || ''),
-    themePrimary:String(storeSettings?.themePrimary || '#4d92eb'),
-    themeSecondary:String(storeSettings?.themeSecondary || '#9ccaff'),
-    themeDark:String(storeSettings?.themeDark || '#1e4c7c'),
+    themePrimary:String(storeSettings?.themePrimary || '#397fda'),
+    themeSecondary:String(storeSettings?.themeSecondary || '#65b8d7'),
+    themeAccent:String(storeSettings?.themeAccent || '#8076d6'),
+    themeDark:String(storeSettings?.themeDark || '#193957'),
     fxRate:Number(storeSettings?.fxRate || 145),
     fxMode:storeSettings?.fxMode || 'manual',
     fxReady:fxRateReady(),
@@ -580,7 +589,7 @@ function validateAndApplySettings(input) {
   };
   setText('storeName',80,'Nexa Store');
   setText('announcement',240,'');
-  for (const key of ['themePrimary','themeSecondary','themeDark']) if (input[key] !== undefined) {
+  for (const key of ['themePrimary','themeSecondary','themeAccent','themeDark']) if (input[key] !== undefined) {
     if (typeof input[key] !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(input[key])) throw new Error(`INVALID_${key.toUpperCase()}`);
     next[key] = input[key].toLowerCase();
   }
