@@ -496,6 +496,7 @@ async function doOrder(e){
   renderInvoiceDetails(data);
   $('shamCashTransactionId').value='';
   $('shamCashPaymentResult').textContent='';
+  $('paymentReceipt').classList.add('hidden');$('paymentReceipt').innerHTML='';
   form.reset();
   closeModal();
   renderOrders();
@@ -509,8 +510,62 @@ async function doOrder(e){
  }
 }
 async function loadPaymentConfig(){try{const r=await fetch('/api/payments/config',{cache:'no-store'});const d=await r.json();const badge=$('shamCashStatusBadge'),status=$('shamCashServiceStatus');if(!r.ok)throw new Error('تعذر فحص بوابة الدفع.');paymentConfigEnabled=!!d.enabled;sypPerUsd=Number(d.sypPerUsd)||145;const usdOption=$('orderCurrency')?.querySelector('option[value="USD"]');if(usdOption)usdOption.disabled=!d.fxReady;if(!d.fxReady&&$('orderCurrency')?.value==='USD')$('orderCurrency').value='SYP';renderCurrencyPreview();badge.textContent=d.enabled?'بوابة API جاهزة':'بانتظار إعداد الخادم';status.textContent=d.message||'حالة بوابة الدفع غير معروفة.';status.classList.toggle('ready',!!d.enabled);status.classList.toggle('error',!d.enabled);if(d.enabled){$('shamCashReceiverInfo').innerHTML=`<span>محفظة الاستلام</span><strong>${esc(d.receiverLabel||'محفظة Nexa Store')}</strong><small>عنوان الاستلام الدقيق يظهر داخل كل فاتورة رسمية.</small>`;}else{$('shamCashReceiverInfo').innerHTML='<span>محفظة الاستلام</span><strong>لم يتم تفعيل بوابة الدفع بعد</strong><small>لا تحوّل أي مبلغ قبل ظهور تفاصيل الفاتورة الرسمية.</small>';}}catch(e){$('shamCashStatusBadge').textContent='الخادم غير متصل';$('shamCashServiceStatus').textContent='تعذر الوصول إلى خادم الدفع. شغّل الموقع عبر خادم Nexa وليس بفتح ملف HTML مباشرة.';$('shamCashServiceStatus').classList.add('error');}}
-async function loadShamCashOrderSummary(){const orderId=$('paymentOrderId').value.trim().toUpperCase(),summary=$('paymentOrderSummary');if(!/^NX-[A-F0-9]{20}$/.test(orderId))return;try{const r=await fetch('/api/orders/'+encodeURIComponent(orderId),{cache:'no-store'});const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.message||'لم يتم العثور على الطلب.');summary.innerHTML=`<span>المبلغ المطلوب · ${esc(d.status==='paid'?'مدفوع':d.status==='expired'?'منتهي':'بانتظار الدفع')} · ${esc(d.currency)}</span><strong>${formatMinor(d.amountMinor,d.currency)}</strong><small>تنتهي الفاتورة في ${esc(new Date(d.expiresAt).toLocaleString('ar-SY'))}</small>`;renderInvoiceDetails(d);}catch(e){summary.innerHTML='<span>ملخص الطلب</span><strong>تعذر تحميل تفاصيل الطلب</strong><small>تأكد من رقم الطلب أو أعد المحاولة.</small>';}}
-async function verifyShamCashPayment(e){e.preventDefault();const button=$('verifyShamCashButton'),result=$('shamCashPaymentResult');const orderId=$('paymentOrderId').value.trim().toUpperCase(),transactionId=$('shamCashTransactionId').value.trim();if(!/^NX-[A-F0-9]{20}$/.test(orderId)){result.className='wallet-payment-result error';result.textContent='رقم طلب Nexa غير صالح.';return;}if(!/^[A-Za-z0-9_-]{1,64}$/.test(transactionId)){result.className='wallet-payment-result error';result.textContent='أدخل رقم العملية كما يظهر في التطبيق (حتى 64 حرفاً أو رقماً).';return;}button.disabled=true;button.textContent='جارٍ التحقق عبر شام كاش…';result.className='wallet-payment-result';result.textContent='نطابق العملية الواردة مع عنوان المحفظة والوقت والمبلغ والفاتورة، ثم نثبت رقم التحويل لمرة واحدة فقط…';try{const r=await fetch('/api/shamcash/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId,transactionId})});const d=await r.json();if(!r.ok||!d.ok){const retry=r.headers.get('Retry-After');throw new Error(retry?`${d.message||'تعذر التحقق'} (انتظر ${retry} ثانية قبل إعادة المحاولة)`:d.message||'لم يتم قبول العملية.');}result.className='wallet-payment-result success';result.textContent='تم التحقق من رقم العملية والفاتورة ومحفظة الاستلام. طلبك مدفوع ومؤكد.';const saved=storageRead();const order=(saved.orders||[]).find(o=>o.id===orderId);if(order){order.status='paid';storageSave(saved);renderOrders();}showToast('تم اعتماد الدفع عبر شام كاش API.');}catch(err){result.className='wallet-payment-result error';result.textContent=err.message||'تعذر التحقق. لم يتم تأكيد الدفع.';}finally{button.disabled=false;button.textContent='تحقق واعتماد الدفع ←';}}
+async function loadShamCashOrderSummary(){
+ const orderId=$('paymentOrderId').value.trim().toUpperCase(),summary=$('paymentOrderSummary');
+ if(!/^NX-[A-F0-9]{20}$/.test(orderId))return;
+ try{
+  const r=await fetch('/api/orders/'+encodeURIComponent(orderId),{cache:'no-store'});
+  const d=await r.json();
+  if(!r.ok||!d.ok)throw new Error(d.message||'لم يتم العثور على الطلب.');
+  summary.innerHTML=`<span>المبلغ المطلوب · ${esc(d.status==='paid'?'مدفوع':d.status==='expired'?'منتهي':d.status==='cancelled'?'ملغي':'بانتظار الدفع')} · ${esc(d.currency)}</span><strong>${formatMinor(d.amountMinor,d.currency)}</strong><small>تنتهي الفاتورة في ${esc(new Date(d.expiresAt).toLocaleString('ar-SY'))}</small>`;
+  renderInvoiceDetails(d);
+  if(d.receipt)renderPaymentReceipt(d.receipt);
+ }catch(e){summary.innerHTML='<span>ملخص الطلب</span><strong>تعذر تحميل تفاصيل الطلب</strong><small>تأكد من رقم الطلب أو أعد المحاولة.</small>'}
+}
+
+async function verifyShamCashPayment(e){
+ e.preventDefault();
+ const button=$('verifyShamCashButton'),result=$('shamCashPaymentResult');
+ const orderId=$('paymentOrderId').value.trim().toUpperCase(),transactionId=$('shamCashTransactionId').value.trim();
+ if(!/^NX-[A-F0-9]{20}$/.test(orderId)){result.className='wallet-payment-result error';result.textContent='رقم طلب Nexa غير صالح.';return}
+ if(!/^[A-Za-z0-9_-]{1,64}$/.test(transactionId)){result.className='wallet-payment-result error';result.textContent='أدخل رقم العملية كما يظهر في التطبيق (حتى 64 حرفاً أو رقماً).';return}
+ button.disabled=true;button.textContent='جارٍ التحقق عبر شام كاش…';
+ result.className='wallet-payment-result';result.textContent='نطابق العملية الواردة مع عنوان المحفظة والوقت والمبلغ والفاتورة، ثم نثبتها مرة واحدة فقط…';
+ try{
+  const r=await fetch('/api/shamcash/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderId,transactionId})});
+  const d=await r.json();
+  if(!r.ok||!d.ok){const retry=r.headers.get('Retry-After');throw new Error(retry?`${d.message||'تعذر التحقق'} (انتظر ${retry} ثانية قبل إعادة المحاولة)`:d.message||'لم يتم قبول العملية.')}
+  result.className='wallet-payment-result success';
+  result.textContent='تم التحقق من الفاتورة ورقم العملية ومحفظة الاستلام. طلبك مدفوع ومؤكد.';
+  if(d.receipt)renderPaymentReceipt(d.receipt);
+  const saved=storageRead();const order=(saved.orders||[]).find(o=>o.id===orderId);
+  if(order){order.status='paid';storageSave(saved);renderOrders()}
+  showToast('تم اعتماد الدفع وإصدار وصل إلكتروني.');
+ }catch(err){result.className='wallet-payment-result error';result.textContent=err.message||'تعذر التحقق. لم يتم تأكيد الدفع.'}
+ finally{button.disabled=false;button.textContent='تحقق واعتماد الدفع ←'}
+}
+function renderPaymentReceipt(receipt){
+ const box=$('paymentReceipt');if(!box||!receipt)return;
+ const amount=formatMinor(receipt.amountMinor,receipt.currency);
+ const date=receipt.paidAt?new Date(receipt.paidAt).toLocaleString('ar-SY'):'—';
+ box.innerHTML=`<div class="receipt-top"><div class="receipt-brand"><img src="assets/brand/logo.svg" alt=""><span><strong>NEXA STORE</strong><small>DIGITAL PAYMENT RECEIPT</small></span></div><span class="receipt-stamp">✓ مدفوع ومتحقق</span></div>
+ <div class="receipt-title"><h3>وصل دفع إلكتروني</h3><p>تم التأكد من الدفع لدى مزوّد شام كاش عبر API.</p></div>
+ <div class="receipt-amount"><span>المبلغ المدفوع</span><strong>${esc(amount)}</strong></div>
+ <div class="receipt-grid">
+  <div class="receipt-field"><span>رقم الطلب</span><strong class="ltr">${esc(receipt.orderId)}</strong></div>
+  <div class="receipt-field"><span>رقم الفاتورة</span><strong class="ltr">${esc(receipt.invoiceNumber||'—')}</strong></div>
+  <div class="receipt-field"><span>رقم عملية شام كاش</span><strong class="ltr">${esc(receipt.transactionId||'—')}</strong></div>
+  <div class="receipt-field"><span>اسم العميل</span><strong>${esc(receipt.customerName||'—')}</strong></div>
+  <div class="receipt-field"><span>المنتج / الباقة</span><strong>${esc(receipt.product||'—')}</strong></div>
+  <div class="receipt-field"><span>تاريخ تأكيد الدفع</span><strong>${esc(date)}</strong></div>
+  <div class="receipt-field"><span>محفظة الاستلام</span><strong>${esc(receipt.receiverLabel||'Sham Cash')}</strong></div>
+  <div class="receipt-field"><span>عنوان الاستلام</span><strong class="ltr">${esc(receipt.receiverAddress||'—')}</strong></div>
+ </div>
+ <div class="receipt-note">هذا الوصل يثبت أن Nexa Store تحقّق من الفاتورة ورقم العملية والمبلغ والمستلم لدى واجهة شام كاش. احتفظ برقم الطلب والفاتورة للرجوع إليهما. لا يحتوي الوصل على كلمة مرور أو رمز تحقق.</div>
+ <div class="receipt-actions"><button class="btn btn-soft" type="button" data-print-receipt>طباعة / حفظ PDF ↓</button></div>`;
+ box.classList.remove('hidden');
+}
+
 
 function renderSupportState(){const d=storageRead();const tickets=d.supportTickets||[];const result=$('supportTicketResult');if(result&&tickets.length){const t=tickets[0];$('supportTicketText').textContent=`رقم المسودة ${t.id} · ${t.issue}`;result.classList.remove('hidden');const message=`مرحباً، أود التواصل مع الدعم الفني في Nexa Store.\nرقم البلاغ: ${t.id}\nالاسم: ${t.name}\nالتواصل: ${t.contact}\nنوع الطلب: ${t.issue}\nرقم الطلب: ${t.orderId||'غير محدد'}\nالتفاصيل: ${t.message}`;$('supportTicketWA').href=`https://wa.me/963936382101?text=${encodeURIComponent(message)}`;$('supportTicketEmail').href=`mailto:support.nsde@gmail.com?subject=${encodeURIComponent('بلاغ دعم '+t.id)}&body=${encodeURIComponent(message)}`}}
 function submitSupportTicket(e){e.preventDefault();const d=storageRead();d.supportTickets=d.supportTickets||[];const t={id:'NX-S-'+Date.now().toString().slice(-7),name:$('supportName').value.trim(),contact:$('supportContact').value.trim(),issue:$('supportIssue').value,orderId:$('supportOrderId').value.trim(),message:$('supportMessage').value.trim(),date:new Intl.DateTimeFormat('ar-SY',{dateStyle:'medium'}).format(new Date())};if(!t.name||!t.contact||!t.issue||!t.message)return;d.supportTickets.unshift(t);storageSave(d);renderSupportState();$('supportForm').reset();$('supportTicketResult').scrollIntoView({behavior:'smooth',block:'nearest'});showToast('تم حفظ مسودة البلاغ على هذا الجهاز');}
@@ -536,7 +591,8 @@ function assistantAnswer(raw){const q=assistantNormalize(raw);let answer='';let 
 }
 function sendAssistantPrompt(value){if(!value)return;assistantAnswer(value)}
 function navigateHome(){navigate('home')}
-function init(){renderHomeCategories();renderFeatured();renderOrders();loadPaymentConfig();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','favorites','wallet','support'].includes(hash))navigate(hash);$('sideYear').textContent=new Date().getFullYear();}
+async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;}const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
+async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog)&&d.catalog.length)categories=d.catalog;}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();loadPaymentConfig();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','favorites','wallet','support'].includes(hash))navigate(hash);$('sideYear').textContent=new Date().getFullYear();}
 // delegated interactions
  document.addEventListener('click',e=>{const el=e.target.closest('[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-open-item],[data-favorite],[data-reset-catalog],[data-scroll]');if(!el)return;
  if(el.dataset.openAssistant!==undefined){openAssistant();return}
@@ -554,7 +610,8 @@ function init(){renderHomeCategories();renderFeatured();renderOrders();loadPayme
  if(el.dataset.favorite){toggleFavorite(el.dataset.favorite);return}
  if(el.dataset.resetCatalog){resetCatalog();renderCatalog();return}
  });
-document.addEventListener('click',e=>{const copy=e.target.closest('[data-copy-value]');if(copy){const text=copy.dataset.copyValue||'';if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(()=>showToast('تم النسخ')).catch(()=>showToast('تعذر النسخ التلقائي'));else showToast('انسخ النص يدوياً من الحقل.');}});$('orderForm').addEventListener('submit',doOrder);$('orderCurrency').addEventListener('change',renderCurrencyPreview);$('shamCashPaymentForm').addEventListener('submit',verifyShamCashPayment);$('paymentOrderId').addEventListener('change',loadShamCashOrderSummary);$('paymentOrderId').addEventListener('blur',loadShamCashOrderSummary);$('supportForm').addEventListener('submit',submitSupportTicket);$('supportLookupForm').addEventListener('submit',lookupSupportOrder);$('assistantLauncher').addEventListener('click',openAssistant);$('assistantClose').addEventListener('click',closeAssistant);$('assistantForm').addEventListener('submit',e=>{e.preventDefault();const input=$('assistantInput');const value=input.value.trim();if(!value)return;input.value='';sendAssistantPrompt(value)});$('modalClose').addEventListener('click',closeModal);$('modalCancel').addEventListener('click',closeModal);$('orderModal').addEventListener('click',e=>{if(e.target===$('orderModal'))closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeMenu();closeAssistant()}});$('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){showSearchResults(e.currentTarget.value)}});$('globalSearch').addEventListener('search',e=>{if(!e.currentTarget.value){navigate('home')}});$('menuToggle').addEventListener('click',()=>{const opened=document.body.classList.toggle('sidebar-open');$('menuToggle').setAttribute('aria-expanded',String(opened))});$('sidebarBackdrop').addEventListener('click',closeMenu);
+document.addEventListener('click',e=>{const copy=e.target.closest('[data-copy-value]');if(copy){const text=copy.dataset.copyValue||'';if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(()=>showToast('تم النسخ')).catch(()=>showToast('تعذر النسخ التلقائي'));else showToast('انسخ النص يدوياً من الحقل.');}});
+document.addEventListener('click',e=>{if(e.target.closest('[data-print-receipt]')){document.body.classList.add('printing-receipt');window.print();}});window.addEventListener('afterprint',()=>document.body.classList.remove('printing-receipt'));$('orderForm').addEventListener('submit',doOrder);$('orderCurrency').addEventListener('change',renderCurrencyPreview);$('shamCashPaymentForm').addEventListener('submit',verifyShamCashPayment);$('paymentOrderId').addEventListener('change',loadShamCashOrderSummary);$('paymentOrderId').addEventListener('blur',loadShamCashOrderSummary);$('supportForm').addEventListener('submit',submitSupportTicket);$('supportLookupForm').addEventListener('submit',lookupSupportOrder);$('assistantLauncher').addEventListener('click',openAssistant);$('assistantClose').addEventListener('click',closeAssistant);$('assistantForm').addEventListener('submit',e=>{e.preventDefault();const input=$('assistantInput');const value=input.value.trim();if(!value)return;input.value='';sendAssistantPrompt(value)});$('modalClose').addEventListener('click',closeModal);$('modalCancel').addEventListener('click',closeModal);$('orderModal').addEventListener('click',e=>{if(e.target===$('orderModal'))closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeMenu();closeAssistant()}});$('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){showSearchResults(e.currentTarget.value)}});$('globalSearch').addEventListener('search',e=>{if(!e.currentTarget.value){navigate('home')}});$('menuToggle').addEventListener('click',()=>{const opened=document.body.classList.toggle('sidebar-open');$('menuToggle').setAttribute('aria-expanded',String(opened))});$('sidebarBackdrop').addEventListener('click',closeMenu);
 init();
 </script>
 </body>
