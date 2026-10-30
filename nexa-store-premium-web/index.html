@@ -279,6 +279,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(max-width:640px){.receipt-top{padding:15px}.receipt-grid{padding-inline:14px;gap:7px}.receipt-amount{margin-inline:14px}.receipt-title{padding-inline:14px}.receipt-amount strong{font-size:19px}}
 @media print{body.printing-receipt *{visibility:hidden!important}body.printing-receipt #paymentReceipt,body.printing-receipt #paymentReceipt *{visibility:visible!important}body.printing-receipt #paymentReceipt{display:block!important;position:absolute!important;inset:0!important;width:100%!important;margin:0!important;border:0!important;box-shadow:none!important;background:#fff!important}body.printing-receipt #paymentReceipt .receipt-actions{display:none!important}body.printing-receipt #paymentReceipt .receipt-top{background:#f2faf7!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}body.printing-receipt #paymentReceipt .receipt-amount{background:#12253a!important;color:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4;margin:14mm}}
 
+
+/* Live brand controls from Nexa admin. */
+:root{--nexa-accent:#e23b57;--nexa-accent-2:#547ee8;--nexa-dark:#101a2e}
+.btn-primary{background:linear-gradient(135deg,var(--nexa-accent),var(--nexa-accent-2));box-shadow:0 9px 22px color-mix(in srgb,var(--nexa-accent) 24%,transparent)}
+.btn-primary:hover{background:linear-gradient(135deg,var(--nexa-accent-2),var(--nexa-accent))}
+.hero{background:radial-gradient(circle at 18% 15%,color-mix(in srgb,var(--nexa-accent-2) 32%,transparent),transparent 30%),radial-gradient(circle at 88% 82%,color-mix(in srgb,var(--nexa-accent) 40%,transparent),transparent 35%),linear-gradient(118deg,var(--nexa-dark),#1a2238 57%,#321b35)}
+.sidebar{background:linear-gradient(160deg,var(--nexa-dark),#19243b 58%,#211d37)}
+.promo,.footer{background:var(--nexa-dark)}
+.section-kicker,.text-link,.tile-foot{color:var(--nexa-accent)}
 </style>
 </head>
 <body>
@@ -591,7 +600,7 @@ function assistantAnswer(raw){const q=assistantNormalize(raw);let answer='';let 
 }
 function sendAssistantPrompt(value){if(!value)return;assistantAnswer(value)}
 function navigateHome(){navigate('home')}
-async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;const footerName=document.querySelector('.footer-brand strong');if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
+async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;const footerName=document.querySelector('.footer-brand strong');if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}if(/^#[0-9a-f]{6}$/i.test(d.themePrimary||''))document.documentElement.style.setProperty('--nexa-accent',d.themePrimary);if(/^#[0-9a-f]{6}$/i.test(d.themeSecondary||''))document.documentElement.style.setProperty('--nexa-accent-2',d.themeSecondary);if(/^#[0-9a-f]{6}$/i.test(d.themeDark||''))document.documentElement.style.setProperty('--nexa-dark',d.themeDark);const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
 async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog)&&d.catalog.length)categories=d.catalog;}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();loadPaymentConfig();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','favorites','wallet','support'].includes(hash))navigate(hash);$('sideYear').textContent=new Date().getFullYear();}
 // delegated interactions
  document.addEventListener('click',e=>{const el=e.target.closest('[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-open-item],[data-favorite],[data-reset-catalog],[data-scroll]');if(!el)return;
