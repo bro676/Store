@@ -572,7 +572,13 @@ function validateAndApplySettings(input) {
   setText('fxApiUrl',500,'');
   setText('fxJsonPath',160,'');
   setText('catalogApiUrl',1000,'');
-  setText('catalogApiJsonPath',160,'catalog');
+  if (input.catalogApiJsonPath !== undefined) {
+    if (typeof input.catalogApiJsonPath !== 'string' || input.catalogApiJsonPath.length > 160) throw new Error('INVALID_CATALOG_API_JSON_PATH');
+    const jsonPath = input.catalogApiJsonPath.trim();
+    if (jsonPath && !/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/.test(jsonPath)) throw new Error('INVALID_CATALOG_API_JSON_PATH');
+    if (jsonPath.split('.').some(key=>['__proto__','prototype','constructor'].includes(key))) throw new Error('INVALID_CATALOG_API_JSON_PATH');
+    next.catalogApiJsonPath = jsonPath;
+  }
   setText('catalogApiAuthPrefix',30,'Bearer');
   if (next.catalogApiUrl) validateCatalogApiUrl(next.catalogApiUrl);
   if (input.catalogApiMode !== undefined) {
