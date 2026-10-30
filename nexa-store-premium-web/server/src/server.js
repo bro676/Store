@@ -841,7 +841,172 @@ const server = http.createServer(async (req,res) => {
       storeSettings = nextSettings;
       return send(res,201,{ok:true,key,source:{id:entry.id,name:entry.name,createdAt:entry.createdAt},message:'تم إنشاء مصدر API. انسخ المفتاح الآن؛ لن يظهر مرة ثانية.'});
     }
-    const catalogApiKeyDelete = url.pathname.match(/^\\/api\\/admin\\/catalog\\/write-keys\\/([a-z0-9_-]{1,60})$/i);
+    const catalogApiKeyDelete = new RegExp('^/api/admin/catalog/write-keys/([a-z0-9_-]{1,60})
+    if (req.method === 'DELETE' && catalogApiKeyDelete) {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const keys = Array.isArray(storeSettings.catalogWriteApiKeys) ? storeSettings.catalogWriteApiKeys : [];
+      const nextKeys = keys.filter(entry=>entry.id!==catalogApiKeyDelete[1]);
+      if (nextKeys.length === keys.length) return send(res,404,{ok:false,error:'API_SOURCE_NOT_FOUND'});
+      const nextSettings = { ...storeSettings,catalogWriteApiKeys:nextKeys };
+      await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+      storeSettings = nextSettings;
+      return send(res,200,{ok:true,message:'تم حذف مصدر API وإلغاء مفتاحه.'});
+    }
+    if (req.method === 'POST' && url.pathname === '/api/admin/catalog/write-key/regenerate') {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const key = crypto.randomBytes(32).toString('base64url');
+      const nextSettings = { ...storeSettings,catalogWriteApiTokenEncrypted:encryptSecret(key,cfg.settingsEncryptionKey),catalogWriteApiTokenCleared:false };
+      await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+      storeSettings = nextSettings;
+      catalogWriteApiTokenRuntime = key;
+      return send(res,200,{ok:true,key,message:'احفظ المفتاح الآن؛ لن يظهر مرة ثانية.'});
+    }
+    if (req.method === 'DELETE' && url.pathname === '/api/admin/catalog/write-key') {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const nextSettings = { ...storeSettings,catalogWriteApiTokenEncrypted:'',catalogWriteApiTokenCleared:true };
+      await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+      storeSettings = nextSettings;
+      catalogWriteApiTokenRuntime = '';
+      return send(res,200,{ok:true,message:'تم إلغاء مفتاح كتابة المنتجات.'});
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/catalog') {
+      return send(res,200,{ok:true,catalog});
+    }
+    if (req.method === 'PUT' && url.pathname === '/api/admin/catalog') {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const input = await bodyJson(req,4_000_000);
+      const nextCatalog = validateCatalog(input.catalog);
+      await persistCatalog(nextCatalog);
+      return send(res,200,{ok:true,message:'تم حفظ الكتالوج بنجاح.',catalog});
+    }
+    if (req.method === 'POST' && url.pathname === '/api/admin/catalog/products') {
+      if (rateLimit(req,res,`catalog-write:${ip}`,40,60_000)) return;
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const input = await bodyJson(req,2_800_000);
+      let result;
+      try {
+        let workingCatalog = catalog;
+        const categoryInput = input.category && typeof input.category === 'object' ? input.category : null;
+        const categoryId = String(input.categoryId || categoryInput?.id || '');
+        if (categoryInput && !workingCatalog.some(category=>category.id===categoryId)) {
+          const category = { id:categoryId,name:String(categoryInput.name || ''),desc:String(categoryInput.desc || ''),image:categoryInput.image || 'assets/brand/logo.svg',items:[] };
+          if (categoryInput.icon !== undefined) category.icon = categoryInput.icon;
+          workingCatalog = validateCatalog([...workingCatalog,category]);
+        }
+        const productInput = { ...(input.product || {}) };
+        if (productInput.desc === undefined) productInput.desc = String(productInput.description || '');
+        if (!productInput.image) productInput.image = 'assets/brand/logo.svg';
+        if (!Array.isArray(productInput.options) && productInput.price !== undefined) {
+          const price = Number(productInput.price);
+          if (!Number.isFinite(price) || price < 0 || price > 1_000_000_000 || !/^\\d+(?:\\.\\d{1,2})?$/.test(String(productInput.price))) {
+            throw Object.assign(new Error('سعر المنتج يجب أن يكون رقماً بالليرة السورية الجديدة وبحد أقصى منزلتين عشريتين.'),{status:400});
+          }
+          productInput.options = [{id:'default',name:'الخيار الأساسي',desc:'',packs:[[String(productInput.priceLabel || 'السعر الأساسي'),price]]}];
+        }
+        delete productInput.description; delete productInput.price; delete productInput.priceLabel;
+        result = upsertCatalogProduct(workingCatalog,categoryId,productInput);
+      } catch (error) { return send(res,error?.status || 400,{ok:false,error:'INVALID_CATALOG_PRODUCT',message:String(error?.message || 'بيانات المنتج غير صالحة.')}); }
+      await persistCatalog(result.catalog);
+      return send(res,result.created?201:200,{ok:true,created:result.created,productId:result.productId,message:result.created?'تمت إضافة المنتج عبر API.':'تم تحديث المنتج عبر API.'});
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/catalog/sync-status') {
+      return send(res,200,{ok:true,mode:storeSettings.catalogApiMode,lastSyncAt:storeSettings.catalogApiLastSyncAt||null,lastError:storeSettings.catalogApiLastError||'',syncInProgress:catalogApiSyncInProgress,configured:Boolean(storeSettings.catalogApiUrl),tokenConfigured:Boolean(catalogApiTokenRuntime)});
+    }
+    if (req.method === 'POST' && url.pathname === '/api/admin/catalog/sync-preview') {
+      if (rateLimit(req,res,`catalog-sync:${ip}`,5,60_000)) return;
+      try { const result = await syncCatalogFromApi({preview:true}); return send(res,200,result); }
+      catch (error) { return send(res,error?.status || 422,{ok:false,error:'CATALOG_API_PREVIEW_FAILED',message:String(error?.message || 'تعذر فحص API المنتجات.')}); }
+    }
+    if (req.method === 'POST' && url.pathname === '/api/admin/catalog/sync') {
+      if (rateLimit(req,res,`catalog-sync:${ip}`,5,60_000)) return;
+      try { const result = await syncCatalogFromApi(); return send(res,200,result); }
+      catch (error) { return send(res,error?.status || 422,{ok:false,error:'CATALOG_API_SYNC_FAILED',message:String(error?.message || 'تعذرت مزامنة API المنتجات.')}); }
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/settings') {
+      return send(res,200,{ok:true,settings:safeSettingsForAdmin(),paymentsReady,fxReady:fxRateReady()});
+    }
+    if (req.method === 'PATCH' && url.pathname === '/api/admin/settings') {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const input = await bodyJson(req,3_000_000);
+      const nextSettings = validateAndApplySettings(input);
+      await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+      storeSettings = nextSettings;
+      applyStoreSettings();
+      return send(res,200,{ok:true,settings:safeSettingsForAdmin(),paymentsReady,fxReady:fxRateReady()});
+    }
+    if (req.method === 'POST' && url.pathname === '/api/admin/fx/refresh') {
+      const result = await refreshAutomaticFx();
+      return send(res,result.ok?200:422,result);
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/orders') {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const limit = Math.min(200,Math.max(1,Number(url.searchParams.get('limit')||100)));
+      const result = await pool.query(`SELECT id,product_label,amount_minor::text,currency,status,customer_name,customer_phone,game_account,notes,invoice_number,invoice_identifier,wallet_label,created_at,expires_at,paid_at FROM nexa_orders ORDER BY created_at DESC LIMIT $1`,[limit]);
+      return send(res,200,{ok:true,orders:result.rows.map(o=>({...o,amountMinor:o.amount_minor,createdAt:o.created_at,expiresAt:o.expires_at,paidAt:o.paid_at}))});
+    }
+    const adminOrderMatch = url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/cancel$/);
+    if (req.method === 'POST' && adminOrderMatch) {
+      const cancelled = await cancelPendingOrder(adminOrderMatch[1]);
+      return cancelled ? send(res,200,{ok:true,message:'تم إلغاء الطلب المعلّق.'}) : send(res,409,{ok:false,message:'لا يمكن إلغاء هذا الطلب؛ قد يكون مدفوعاً أو منتهياً.'});
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/shamcash/wallets') {
+      try {
+        const payload=await shamApi('GET','/v1/wallets'); const wallets=Array.isArray(payload)?payload:Array.isArray(payload?.data)?payload.data:[];
+        return send(res,200,{ok:true,data:wallets.map(w=>({id:w.id,provider:w.provider,providerDisplayName:w.providerDisplayName,label:w.label,walletAddress:w.walletAddress,accountNumber:w.accountNumber,status:w.status}))});
+      } catch (error) { if(error instanceof ProviderError)return send(res,502,{error:error.code,message:providerMessage(error)}); throw error; }
+    }
+
+    if (req.method === 'GET' && url.pathname === '/api/payments/config') {
+      let enabled = paymentsReady, receiverLabel = cfg.receiverLabel, receiverAddress = cfg.receiverAddress;
+      let message = 'الدفع بانتظار ضبط مفاتيح API والمحفظة وقاعدة البيانات على الخادم.';
+      if (enabled) {
+        try { const wallet = await getWallet(); receiverLabel = String(wallet.label || receiverLabel); receiverAddress = String(wallet.walletAddress || receiverAddress); message = 'تم التحقق من وجود محفظة شام كاش نشطة. كل طلب ينشئ فاتورة رسمية ويُتحقق من العملية عبر API.'; }
+        catch (error) { enabled = false; message = error instanceof ProviderError ? providerMessage(error) : 'تعذر التحقق من محفظة الاستلام حالياً.'; }
+      }
+      return send(res,200,{enabled,provider:'Sham Cash',currency:'SYP',currencies:['SYP','USD'],sypPerUsd:Number(storeSettings?.fxRate || 145),fxReady:fxRateReady(),fxMode:storeSettings?.fxMode || 'manual',fxUpdatedAt:storeSettings?.fxUpdatedAt || null,fxSource:storeSettings?.fxMode === 'api' ? 'SP Today API V2' : 'سعر يدوي في لوحة Nexa',receiverLabel,receiverAddress,orderTtlMinutes:cfg.orderTtlMinutes,maxTransactionAgeMinutes:Math.round(cfg.maxAgeMs/60_000),message});
+    }
+    const orderLookup = url.pathname.match(/^\/api\/orders\/(NX-[A-F0-9]{20})$/);
+    if (req.method === 'GET' && orderLookup) {
+      if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const q = await pool.query(`SELECT o.id,o.product_label,o.amount_minor,o.currency,o.status,o.expires_at,o.invoice_number,o.invoice_identifier,o.wallet_label,o.wallet_address,o.customer_name,o.paid_at,p.transaction_id
+        FROM nexa_orders o LEFT JOIN nexa_payments p ON p.order_id=o.id WHERE o.id=$1`,[orderLookup[1]]);
+      if (!q.rowCount) return send(res,404,{error:'ORDER_NOT_FOUND',message:'لم يتم العثور على الطلب.'});
+      const o=q.rows[0];
+      const receipt = o.status === 'paid' ? {orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,customerName:o.customer_name,invoiceNumber:o.invoice_number,transactionId:o.transaction_id,paidAt:o.paid_at ? new Date(o.paid_at).toISOString() : null,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier} : null;
+      return send(res,200,{ok:true,orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,status:o.status,expiresAt:new Date(o.expires_at).toISOString(),invoiceNumber:o.invoice_number,invoiceIdentifier:o.invoice_identifier,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier,receipt});
+    }
+    if (req.method === 'POST' && url.pathname === '/api/orders') {
+      if (rateLimit(req,res,`order:${ip}`,8,60_000)) return;
+      const input = await bodyJson(req);
+      const result = await createOrder(input);
+      if (isHttpErrorResult(result)) return send(res, result.status, { error:result.error, message:result.message });
+      // "pending_payment" is an order state, not an HTTP status code.
+      return send(res, 201, { ok:true, ...result });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/shamcash/verify') {
+      if (rateLimit(req,res,`verify:${ip}`,8,5*60_000)) return;
+      const input = await bodyJson(req);
+      const result = await verifyPayment(input);
+      const headers = result.retryAfter ? {'Retry-After':String(result.retryAfter)} : {};
+      // "paid" is business data; a successful verification uses HTTP 200.
+      return send(res, httpStatusForResult(result, 200), result, headers);
+    }
+    if (req.method === 'GET' && url.pathname.startsWith('/api/')) return send(res,404,{error:'NOT_FOUND'});
+    if (req.method === 'GET' && !url.pathname.startsWith('/api/')) return serveStatic(req,res,url.pathname);
+    return send(res,405,{error:'METHOD_NOT_ALLOWED'});
+  } catch (error) {
+    const statusCode = Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599 ? error.status : 500;
+    console.error(JSON.stringify({ event:'request_failed', method:req.method, path:url.pathname, code:error?.code || null, message:error?.message || 'unknown_error', status:statusCode }));
+    return send(res,statusCode,{
+      error:error?.message === 'BODY_TOO_LARGE' ? 'BODY_TOO_LARGE' : 'INTERNAL_ERROR',
+      message:statusCode === 500 ? 'حدث خطأ داخلي. لم يتم تأكيد الدفع.' : 'تعذر معالجة الطلب.',
+    });
+  }
+});
+server.listen(cfg.port,()=>{
+  console.log(`Nexa server listening on ${cfg.port}; paymentsReady=${paymentsReady}`);
+});
+,'i').exec(url.pathname);
     if (req.method === 'DELETE' && catalogApiKeyDelete) {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const keys = Array.isArray(storeSettings.catalogWriteApiKeys) ? storeSettings.catalogWriteApiKeys : [];
