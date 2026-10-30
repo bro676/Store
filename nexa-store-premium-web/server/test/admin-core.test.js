@@ -27,6 +27,12 @@ test('validates nested catalogue and rejects active content images', () => {
   assert.throws(() => validateCatalog([{...catalog[0],id:'bad id'}]));
   assert.throws(() => validateCatalog([{...catalog[0],image:'javascript:alert(1)'}]));
 });
+test('catalogue accepts exact decimal prices up to two fractional digits', () => {
+  const decimal = [{...catalog[0],items:[{...catalog[0].items[0],options:[{...catalog[0].items[0].options[0],packs:[['نصف',1.5]]}]}]}];
+  assert.equal(validateCatalog(decimal)[0].items[0].options[0].packs[0][1], 1.5);
+  const tooPrecise = [{...catalog[0],items:[{...catalog[0].items[0],options:[{...catalog[0].items[0].options[0],packs:[['غير صالح',1.234]]}]}]}];
+  assert.throws(() => validateCatalog(tooPrecise), /INVALID_PACK_PRICE/);
+});
 test('reads configured FX response paths and converts legacy units', () => {
   assert.equal(getJsonPath({data:{usd:{buy:14500}}}, 'data.usd.buy'), 14500);
   assert.equal(normalizeFxRate(14500, 'old'), 145);
