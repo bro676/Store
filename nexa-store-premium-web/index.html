@@ -370,6 +370,54 @@ body{background:var(--bg);color:var(--ink);font-family:"Segoe UI",Tahoma,Arial,s
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
+
+/* NEXA SKY BLUE — unified theme tokens */
+:root{
+ --nexa-accent:#4d92eb;--nexa-accent-strong:#2875ce;--nexa-accent-2:#a4c9f5;--nexa-dark:#1e4c7c;
+ --nexa-soft:#e8f2ff;--nexa-pale:#f4f9ff;--nexa-line:#dceafa;--nexa-ink:#17324f;
+ --bg:#f5f9fe;--surface:#fff;--surface-2:#edf5ff;--ink:#17324f;--ink-2:#385878;--muted:#7388a0;--muted-2:#9aadc1;
+ --line:#e0eaf6;--line-2:#d5e3f2;--red:var(--nexa-accent-strong);--red-2:var(--nexa-accent);--red-dark:var(--nexa-dark);--red-soft:var(--nexa-soft);
+ --focus:0 0 0 4px color-mix(in srgb,var(--nexa-accent) 18%,transparent);
+ --shadow:0 9px 28px rgba(35,76,122,.055);--shadow-lg:0 22px 54px rgba(35,76,122,.12);
+}
+body{background:var(--bg);color:var(--ink)}
+::selection{background:var(--nexa-soft);color:var(--nexa-dark)}
+.promo{background:var(--nexa-dark);color:#eff7ff}.promo-dot{background:var(--nexa-accent-2);box-shadow:0 0 0 4px color-mix(in srgb,var(--nexa-accent-2) 20%,transparent)}.promo strong{color:#cde4ff}
+.header{border-bottom-color:var(--nexa-line)}
+.nav-link:hover,.nav-link.active,.section-kicker,.text-link,.tile-foot{color:var(--nexa-accent-strong)}
+.header-search:focus-within{border-color:var(--nexa-accent-2);box-shadow:var(--focus)}
+.icon-button:hover{color:var(--nexa-accent-strong);border-color:var(--nexa-accent-2);background:var(--nexa-pale)}
+.wallet-chip{background:var(--nexa-soft);border-color:var(--nexa-line);color:var(--nexa-dark)}
+.hero{background:radial-gradient(circle at 20% 18%,color-mix(in srgb,var(--nexa-accent) 45%,transparent),transparent 30%),radial-gradient(circle at 86% 80%,color-mix(in srgb,var(--nexa-accent-2) 25%,transparent),transparent 34%),linear-gradient(118deg,var(--nexa-dark),color-mix(in srgb,var(--nexa-dark) 74%,#10263e) 58%,#142a43)}
+.hero h1 span{color:var(--nexa-accent-2)}.eyebrow{color:var(--nexa-accent-2)}
+.btn-primary{background:linear-gradient(135deg,var(--nexa-accent-strong),var(--nexa-accent));box-shadow:0 9px 22px color-mix(in srgb,var(--nexa-accent) 24%,transparent)}
+.btn-primary:hover{background:linear-gradient(135deg,var(--nexa-accent),var(--nexa-accent-strong))}
+.btn-soft:hover{background:var(--nexa-pale);border-color:var(--nexa-accent-2);color:var(--nexa-dark)}
+.trust-icon,.process-num{background:var(--nexa-soft);color:var(--nexa-accent-strong)}
+.category-card:hover{border-color:var(--nexa-accent-2)}
+.category-mark,.product-badge,.catalog-tile-tag,.pack-label{color:var(--nexa-dark)}
+.product-label{color:var(--nexa-accent-strong)}
+.favorite.active{background:var(--nexa-soft);color:var(--nexa-dark);border-color:var(--nexa-line)}
+.mini-choose{background:var(--nexa-soft);color:var(--nexa-dark)}
+.mini-choose:hover{background:var(--nexa-accent-strong);color:#fff}
+.process-card,.pack-card{border-color:var(--nexa-line)}
+.step.active{color:var(--nexa-dark)}.step.active span{background:var(--nexa-accent-strong);color:#fff;box-shadow:0 4px 10px color-mix(in srgb,var(--nexa-accent) 25%,transparent)}
+.crumb.current{background:var(--nexa-soft);border-color:var(--nexa-line);color:var(--nexa-dark)}
+.crumb:not(.current):hover,.catalog-tile:hover,.option-card:hover,.pack-card:hover{border-color:var(--nexa-accent-2)}
+.option-card:hover{background:var(--nexa-pale)}
+.option-flag{background:var(--nexa-soft);color:var(--nexa-dark)}
+.step-summary{background:var(--nexa-pale);border-color:var(--nexa-line)}
+.pack-price{color:var(--nexa-dark)}
+.demo-pill{background:var(--nexa-soft);border-color:var(--nexa-line);color:var(--nexa-dark)}
+.catalog-steps,.catalog-shell{border-color:var(--nexa-line)}
+.catalog-note{background:var(--nexa-pale);border-color:var(--nexa-line);color:var(--nexa-dark)}
+.sidebar{background:linear-gradient(160deg,var(--nexa-dark),#17395f 70%,#244e78)}
+.sidebar-nav a.active,.sidebar-nav a:hover{background:color-mix(in srgb,var(--nexa-accent) 15%,transparent);color:#fff}
+.footer{background:var(--nexa-dark)}
+.footer-links a:hover{color:var(--nexa-accent-2)}
+.toast,.assistant-header,.modal-header{background:var(--nexa-dark)}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
 </style>
 </head>
 <body>
@@ -682,7 +730,29 @@ function assistantAnswer(raw){const q=assistantNormalize(raw);let answer='';let 
 }
 function sendAssistantPrompt(value){if(!value)return;assistantAnswer(value)}
 function navigateHome(){navigate('home')}
-async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;const footerName=document.querySelector('.footer-brand strong');if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}if(/^#[0-9a-f]{6}$/i.test(d.themePrimary||''))document.documentElement.style.setProperty('--nexa-accent',d.themePrimary);if(/^#[0-9a-f]{6}$/i.test(d.themeSecondary||''))document.documentElement.style.setProperty('--nexa-accent-2',d.themeSecondary);if(/^#[0-9a-f]{6}$/i.test(d.themeDark||''))document.documentElement.style.setProperty('--nexa-dark',d.themeDark);const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
+function nexaThemeShift(hex,delta,satScale=1){
+ const raw=String(hex||'').replace('#','');if(!/^[0-9a-f]{6}$/i.test(raw))return '#4d92eb';
+ const r=parseInt(raw.slice(0,2),16)/255,g=parseInt(raw.slice(2,4),16)/255,b=parseInt(raw.slice(4,6),16)/255;
+ const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;let h=0,s=0,l=(max+min)/2;
+ if(d){s=d/(1-Math.abs(2*l-1));if(max===r)h=((g-b)/d)%6;else if(max===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360;}
+ s=Math.max(0,Math.min(1,s*satScale));l=Math.max(.12,Math.min(.94,l+delta));
+ const chroma=(1-Math.abs(2*l-1))*s,x=chroma*(1-Math.abs((h/60)%2-1)),m=l-chroma/2;let rr=0,gg=0,bb=0;
+ if(h<60){rr=chroma;gg=x}else if(h<120){rr=x;gg=chroma}else if(h<180){gg=chroma;bb=x}else if(h<240){gg=x;bb=chroma}else if(h<300){rr=x;bb=chroma}else{rr=chroma;bb=x}
+ const out=[rr,gg,bb].map(v=>Math.round((v+m)*255).toString(16).padStart(2,'0'));return '#'+out.join('');
+}
+function applyStoreTheme(primary){
+ const hex=/^#[0-9a-f]{6}$/i.test(String(primary||''))?primary:'#4d92eb';
+ const root=document.documentElement.style;
+ root.setProperty('--nexa-accent',hex);
+ root.setProperty('--nexa-accent-strong',nexaThemeShift(hex,-.13,1.08));
+ root.setProperty('--nexa-accent-2',nexaThemeShift(hex,.20,.76));
+ root.setProperty('--nexa-dark',nexaThemeShift(hex,-.31,1.02));
+ root.setProperty('--nexa-soft',nexaThemeShift(hex,.34,.38));
+ root.setProperty('--nexa-pale',nexaThemeShift(hex,.40,.28));
+ root.setProperty('--nexa-line',nexaThemeShift(hex,.28,.24));
+ const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=nexaThemeShift(hex,-.31,1.02);
+}
+async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;const footerName=document.querySelector('.footer-brand strong');if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}applyStoreTheme(d.themePrimary||'#4d92eb');const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
 async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog)&&d.catalog.length)categories=d.catalog;}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();loadPaymentConfig();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','favorites','wallet','support'].includes(hash))navigate(hash);$('sideYear').textContent=new Date().getFullYear();}
 // delegated interactions
  document.addEventListener('click',e=>{const el=e.target.closest('[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-open-item],[data-favorite],[data-reset-catalog],[data-scroll]');if(!el)return;
