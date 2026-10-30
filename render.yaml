@@ -31,11 +31,11 @@ services:
       - key: PAYMENT_FUTURE_SKEW_SECONDS
         value: "90"
       - key: SYP_PER_USD
-        value: "14287.5"
+        value: "0"
       - key: SYP_PER_USD_UPDATED_AT
-        value: "2026-10-30T12:20:00+03:00"
+        value: ""
       - key: SYP_PER_USD_SOURCE
-        value: https://sypnow.com/en/rates
+        value: ""
       - key: SHAM_API_BASE_URL
         value: https://apis-shamcash.com/api
       - key: SHAM_API_TOKEN
