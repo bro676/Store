@@ -5,7 +5,7 @@ services:
     plan: free
     region: frankfurt
     branch: main
-    buildCommand: "npm --prefix nexa-store-premium-web/server install --omit=dev"
+    buildCommand: "npm --prefix nexa-store-premium-web/server install --omit=dev && npm --prefix nexa-store-premium-web/server test"
     startCommand: "npm --prefix nexa-store-premium-web/server start"
     healthCheckPath: /api/health
     autoDeployTrigger: commit
