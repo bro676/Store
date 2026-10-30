@@ -85,6 +85,7 @@ export function validateCatalog(input) {
         requiredText(option.name, 120, 'OPTION_NAME');
         if (typeof option.desc !== 'string' || option.desc.length > 500) throw new Error('INVALID_OPTION_DESC');
         if (option.flag !== undefined && (typeof option.flag !== 'string' || option.flag.length > 12)) throw new Error('INVALID_OPTION_FLAG');
+        if (option.image !== undefined && option.image !== '' && !isSafeCatalogImage(option.image)) throw new Error('INVALID_OPTION_IMAGE');
         if (!Array.isArray(option.packs) || option.packs.length > 200) throw new Error('INVALID_OPTION_PACKS');
         for (const pack of option.packs) {
           if (!Array.isArray(pack) || pack.length !== 2) throw new Error('INVALID_PACK');
