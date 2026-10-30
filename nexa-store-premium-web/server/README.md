@@ -140,3 +140,13 @@ The checkout supports SYP and USD. Product catalogue prices are stored in new Sy
 ## Regression tests
 
 npm test يشغّل اختبارات HTTP وتحويل العملة على سعر ثابت 145 مع التحقق من التقريب.
+
+
+
+## Admin control plane
+
+The admin UI is served at `/admin.html`. Sign in with the Render `ADMIN_API_KEY`; the server issues an eight-hour HttpOnly/SameSite=Strict session cookie. Store catalogue/settings live in the PostgreSQL `nexa_store_state` row, created by migration `003_store_admin.sql`. Catalogue writes are shape-validated and image values are restricted to local asset paths, HTTPS URLs, or supported raster data URIs. API credentials are encrypted using a separate `STORE_SETTINGS_ENCRYPTION_KEY`; keep this key stable or re-encrypt stored secrets before rotating it.
+
+Manual FX defaults to 145 new SYP per USD. Automatic FX only fetches HTTPS URLs on `api-v2.sp-today.com`, reads the configured JSON path, supports legacy/new SYP units, and refreshes every five minutes. USD checkout is blocked if automatic data is older than 30 minutes. The exact endpoint, JSON path, and auth header must be taken from the merchant's SP Today V2 documentation; they are deliberately not hard-coded here.
+
+The admin order list can cancel an unpaid, unexpired invoice with the provider before changing its local state. Paid receipts are produced only from verified Sham Cash transactions and include the invoice and transaction references.
