@@ -1,0 +1,27 @@
+name: Verify Sham Cash wallet connection
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/verify-shamcash-wallet.py
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - run: python scripts/verify-shamcash-wallet.py
+      - run: node --check nexa-store-premium-web/server/src/server.js
+      - name: Commit wallet startup verification
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nexa-store-premium-web/server/src/server.js
+          git commit -m "Verify Sham Cash wallet on startup"
+          git push
