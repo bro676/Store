@@ -558,7 +558,7 @@ function validateAndApplySettings(input) {
   setText('receiverLabel',100,'Nexa Store');
   setText('walletId',200,'');
   setText('shamApiBase',200,'https://apis-shamcash.com/api');
-  try { const apiUrl = new URL(next.shamApiBase); if (apiUrl.protocol !== 'https:' || apiUrl.hostname !== 'apis-shamcash.com' || apiUrl.pathname.replace(/\\/$/,'') !== '/api') throw new Error(); } catch { throw new Error('INVALID_SHAM_API_BASE'); }
+  try { const apiUrl = new URL(next.shamApiBase); if (apiUrl.protocol !== 'https:' || apiUrl.hostname !== 'apis-shamcash.com' || apiUrl.pathname.replace(/\/$/,'') !== '/api') throw new Error(); } catch { throw new Error('INVALID_SHAM_API_BASE'); }
   setText('fxApiUrl',500,'');
   setText('fxJsonPath',160,'');
   setText('fxAuthPrefix',20,'Bearer');
