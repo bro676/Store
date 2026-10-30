@@ -319,7 +319,7 @@ body:has(#app.shell) .shell{background:transparent!important;color:var(--lux-pea
   #app.shell .brand{justify-content:flex-start!important}
   #app.shell .nav{margin-top:0!important}
   #app.shell .nav button{justify-content:flex-start!important;padding:10px 11px!important}
-  #app.shell .admin-menu-toggle{display:grid}
+  #app.shell .admin-menu-toggle{display:none}
 }
 @media(max-width:560px){
   #app.shell .topbar{height:66px;padding-inline:12px!important}
