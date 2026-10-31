@@ -65,7 +65,7 @@ test('catalog sync enumerates card and direct top-up categories and their produc
       const parsed = new URL(url);
       calls.push(parsed.pathname);
       const payload = routes.get(parsed.pathname);
-      assert.ok(payload, \`Unexpected endpoint ${parsed.pathname}\`);
+      assert.ok(payload, `Unexpected endpoint ${parsed.pathname}`);
       return new Response(JSON.stringify(payload),{status:200});
     },
   });
