@@ -30,7 +30,7 @@ export function classifyWamdaError(error, previousFailureCount = 0) {
   const previous=Math.max(0,Math.trunc(Number(previousFailureCount)||0));
   const retryable=status===429||status>=500||['WAMDA_REQUEST_TIMEOUT','WAMDA_NETWORK_ERROR','WAMDA_INVALID_JSON_RESPONSE'].includes(code);
   if(!retryable||previous>=8){
-    return {action:'manual_review',failureCount:previous,errorCode:code||'WAMDA_API_ERROR',message:String(error?.message||'تعذر تنفيذ طلب ومضة.').slice(0,500)};
+    return {action:'manual_review',failureCount:previous,errorCode:code||'WAMDA_API_ERROR',errorText:code||'WAMDA_API_ERROR',message:String(error?.message||'تعذر تنفيذ طلب ومضة.').slice(0,500)};
   }
-  return {action:'retry',failureCount:previous+1,delaySeconds:Math.min(300,30*(2**Math.min(previous,3))),message:'تعذر الاتصال بومضة مؤقتاً؛ سيعيد النظام المحاولة بالمعرف نفسه لمنع تكرار الخصم.'};
+  return {action:'retry',failureCount:previous+1,errorText:code||'WAMDA_TEMPORARY_ERROR',delaySeconds:Math.min(300,30*(2**Math.min(previous,3))),message:'تعذر الاتصال بومضة مؤقتاً؛ سيعيد النظام المحاولة بالمعرف نفسه لمنع تكرار الخصم.'};
 }
