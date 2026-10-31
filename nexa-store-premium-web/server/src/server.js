@@ -403,8 +403,12 @@ function providerMessage(error) {
   if (error?.status >= 500) return 'مزوّد شام كاش غير متاح حالياً. لم يتم تأكيد الدفع.';
   return 'تعذر التحقق من العملية عبر شام كاش. لم يتم تأكيد الدفع.';
 }
-async function createOrder(input) {
-  if (!paymentsReady) return { error:'PAYMENTS_NOT_READY', status:503, message:'الدفع غير متاح حتى تكتمل إعدادات API وقاعدة البيانات على الخادم.' };
+async function createOrder(input, customerId = null) {
+  const paymentMethod=String(input.paymentMethod||'shamcash').trim().toLowerCase();
+  if(!['shamcash','wallet'].includes(paymentMethod))return {error:'INVALID_PAYMENT_METHOD',status:400,message:'اختر طريقة دفع صحيحة.'};
+  if(paymentMethod==='shamcash'&&!paymentsReady)return {error:'PAYMENTS_NOT_READY',status:503,message:'الدفع غير متاح حتى تكتمل إعدادات API وقاعدة البيانات على الخادم.'};
+  if(paymentMethod==='wallet'&&!pool)return {error:'DATABASE_NOT_CONFIGURED',status:503,message:'المحفظة غير متاحة حالياً.'};
+  if(paymentMethod==='wallet'&&!customerId)return {error:'CUSTOMER_LOGIN_REQUIRED',status:401,message:'سجّل الدخول أو أنشئ حساباً لاستخدام رصيدك.'};
   const pack = findPack(input.categoryId, input.productId, input.optionId, Number(input.packIndex));
   if (!pack) return { error:'INVALID_PRODUCT', status:400, message:'الباقة غير متاحة أو سعرها غير محدد.' };
   const sourceCategory = catalog.find(category => category.id === input.categoryId);
@@ -432,6 +436,7 @@ async function createOrder(input) {
   }
   const currency = String(input.currency || 'SYP').trim().toUpperCase();
   if (!['SYP','USD'].includes(currency)) return { error:'INVALID_CURRENCY', status:400, message:'اختر الليرة السورية أو الدولار الأمريكي.' };
+  if (paymentMethod==='wallet' && currency!=='SYP') return {error:'WALLET_CURRENCY_REQUIRED',status:400,message:'الدفع من الرصيد متاح بالليرة السورية فقط.'};
   const totalPack = { ...pack, label:supplier ? `${pack.label} × ${quantity}` : pack.label, amountMinor:pack.amountMinor * BigInt(quantity) };
   const pricedPack = pricePack(totalPack, currency);
   if (!pricedPack) return { error:'INVALID_PRICE', status:400, message:'تعذر حساب السعر بالعملة المختارة.' };
@@ -440,6 +445,7 @@ async function createOrder(input) {
   const gameAccount = String(input.accountId || '').trim().slice(0,80);
   const notes = String(input.notes || '').trim().slice(0,500);
   if (name.length < 2 || !/^\+?[0-9\s()-]{7,20}$/.test(phone)) return {error:'INVALID_CUSTOMER',status:400,message:'يرجى إدخال الاسم ورقم هاتف صحيح.'};
+  if(paymentMethod==='wallet')return createWalletPaidOrder({customerId,input,pricedPack,gameAccount,notes,supplierProvider,supplier,supplierFields,quantity});
   let wallet, invoice, id, persisted = false;
   try {
     wallet = await getWallet(true);
@@ -450,10 +456,10 @@ async function createOrder(input) {
       id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,
       customer_name,customer_phone,game_account,notes,expires_at,invoice_number,invoice_identifier,
       wallet_label,wallet_address,supplier_provider,supplier_kind,supplier_category_id,supplier_type_id,
-      supplier_quantity,supplier_fields,supplier_mch_order_id,supplier_status,supplier_message
+      supplier_quantity,supplier_fields,supplier_mch_order_id,supplier_status,supplier_message,customer_id,payment_method
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,
-      $18,$19,$20,$21,$22,$23::jsonb,$24,$25,$26
+      $18,$19,$20,$21,$22,$23::jsonb,$24,$25,$26,$27,'shamcash'
     )`,
     [
       id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pricedPack.label,
@@ -463,6 +469,7 @@ async function createOrder(input) {
       supplier ? Number(supplier.typeId || supplier.productId) : null,quantity,JSON.stringify(supplierFields),
       supplier ? supplierOrderUuid : null,supplier ? 'pending_payment' : 'not_applicable',
       supplierProvider==='wamda'?'بانتظار تأكيد الدفع من شام كاش؛ سيتم إرسال الطلب إلى ومضة بعد التحقق.':(supplier?'بانتظار تأكيد الدفع من شام كاش.':''),
+      customerId,
     ]);
     persisted = true;
     return {
@@ -480,6 +487,161 @@ async function createOrder(input) {
     throw error;
   }
 }
+async function createWalletPaidOrder({customerId,input,pricedPack,gameAccount,notes,supplierProvider,supplier,supplierFields,quantity}) {
+  if (!pool || !customerId) return {error:'CUSTOMER_LOGIN_REQUIRED',status:401,message:'سجّل الدخول أو أنشئ حساباً لاستخدام رصيدك.'};
+  if (pricedPack.currency !== 'SYP') return {error:'WALLET_CURRENCY_REQUIRED',status:400,message:'الدفع من الرصيد متاح بالليرة السورية فقط.'};
+  const id = 'NX-' + crypto.randomBytes(10).toString('hex').toUpperCase();
+  const supplierOrderUuid=supplierProvider==='wamda'?crypto.randomUUID():id;
+  const client=await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const locked=await client.query('SELECT w.balance_minor::text,c.customer_name,c.phone FROM nexa_customer_wallets w JOIN nexa_customers c ON c.id=w.customer_id WHERE w.customer_id=$1 FOR UPDATE OF w',[customerId]);
+    if(!locked.rowCount){await client.query('ROLLBACK');return {error:'CUSTOMER_WALLET_NOT_FOUND',status:404,message:'تعذر العثور على محفظة الحساب. سجّل الدخول مجدداً.'};}
+    const balance=BigInt(locked.rows[0].balance_minor);
+    if(balance<pricedPack.amountMinor){
+      await client.query('ROLLBACK');
+      return {error:'INSUFFICIENT_BALANCE',status:409,message:'رصيدك غير كافٍ لإكمال الطلب. اشحن المحفظة أو اختر الدفع المباشر عبر شام كاش.',balanceMinor:balance.toString(),requiredMinor:pricedPack.amountMinor.toString()};
+    }
+    const balanceAfter=balance-pricedPack.amountMinor;
+    const orderName=String(locked.rows[0].customer_name||'').slice(0,70);
+    const orderPhone=String(locked.rows[0].phone||'').slice(0,25);
+    const supplierStatus=supplier?'pending':'not_applicable';
+    const supplierMessage=supplierProvider==='wamda'?'تم الدفع من رصيد Nexa. سيتم إرسال الطلب إلى ومضة.':(supplier?'تم الدفع من رصيد Nexa. سيتم إرسال الطلب إلى المورد.':'');
+    const insertOrderSql = "INSERT INTO nexa_orders (\n"+
+      "id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,\n"+
+      "customer_name,customer_phone,game_account,notes,status,expires_at,paid_at,customer_id,payment_method,\n"+
+      "supplier_provider,supplier_kind,supplier_category_id,supplier_type_id,supplier_quantity,supplier_fields,\n"+
+      "supplier_mch_order_id,supplier_status,supplier_message\n"+
+      ") VALUES ($1,$2,$3,$4,$5,$6,$7,'SYP',$8,$9,$10,$11,'paid',NOW()+INTERVAL '1 day',NOW(),$12,'wallet',$13,$14,$15,$16,$17,$18::jsonb,$19,$20,$21)";
+    await client.query(insertOrderSql,[
+      id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pricedPack.label,
+      pricedPack.amountMinor.toString(),orderName,orderPhone,gameAccount,notes,customerId,
+      supplierProvider,supplier?.kind||'',supplier?Number(supplier.categoryId):null,
+      supplier?Number(supplier.typeId||supplier.productId):null,quantity,JSON.stringify(supplierFields),
+      supplier?supplierOrderUuid:null,supplierStatus,supplierMessage
+    ]);
+    const updated=await client.query('UPDATE nexa_customer_wallets SET balance_minor=$2,updated_at=NOW() WHERE customer_id=$1 RETURNING balance_minor::text',[customerId,balanceAfter.toString()]);
+    if(!updated.rowCount)throw new Error('WALLET_BALANCE_UPDATE_FAILED');
+    await client.query("INSERT INTO nexa_wallet_ledger (customer_id,entry_type,direction,amount_minor,currency,source_type,source_id,balance_after_minor,description) VALUES($1,'purchase','debit',$2,'SYP','order',$3,$4,$5)",
+      [customerId,pricedPack.amountMinor.toString(),id,balanceAfter.toString(),'شراء '+pricedPack.label]);
+    if(supplierProvider==='seagm'||supplierProvider==='wamda'){
+      await client.query("INSERT INTO nexa_fulfillment_jobs(order_id,status,next_attempt_at) VALUES($1,'pending',NOW()) ON CONFLICT(order_id) DO NOTHING",[id]);
+    }
+    await client.query('COMMIT');
+    if(supplierProvider==='seagm'||supplierProvider==='wamda')runSeagmFulfillmentWorker().catch(error=>console.error('wallet purchase fulfillment worker failed',String(error?.message||'unknown').slice(0,120)));
+    return {orderId:id,product:pricedPack.label,amountMinor:pricedPack.amountMinor.toString(),currency:'SYP',
+      status:'paid',paymentMethod:'wallet',paidAt:new Date().toISOString(),balanceMinor:updated.rows[0].balance_minor,
+      deliveryProvider:supplierProvider==='wamda'?'WAMDA':(supplier?'SEAGM':null),deliveryStatus:supplier?'queued_after_payment':null};
+  } catch(error) {
+    await client.query('ROLLBACK').catch(()=>{});
+    throw error;
+  } finally {client.release();}
+}
+
+async function createWalletTopup(input, customerId) {
+  if (!paymentsReady) return {error:'PAYMENTS_NOT_READY',status:503,message:'شحن الرصيد غير متاح حتى تكتمل إعدادات شام كاش على الخادم.'};
+  const amountMinor=decimalMinor(input.amount);
+  if (amountMinor===null || amountMinor<100n || amountMinor>10_000_000_000n) return {error:'INVALID_TOPUP_AMOUNT',status:400,message:'أدخل مبلغاً من 1 إلى 100,000,000 ليرة سورية جديدة، مع منزلتين عشريتين كحد أقصى.'};
+  let invoice=null,persisted=false;
+  const id='NW-'+crypto.randomBytes(10).toString('hex').toUpperCase();
+  try {
+    const wallet=await getWallet(true);
+    invoice=await createShamInvoice(id,{label:'شحن رصيد حساب Nexa',currency:'SYP',amountMinor},wallet);
+    await pool.query("INSERT INTO nexa_wallet_topups (id,customer_id,amount_minor,currency,invoice_number,invoice_identifier,wallet_label,wallet_address,expires_at) VALUES($1,$2,$3,'SYP',$4,$5,$6,$7,$8)",
+      [id,customerId,amountMinor.toString(),invoice.invoiceNumber,invoice.identifier,invoice.walletLabel,invoice.walletAddress,invoice.expiresAt]);
+    persisted=true;
+    return {topupId:id,amountMinor:amountMinor.toString(),currency:'SYP',invoiceNumber:invoice.invoiceNumber,
+      invoiceIdentifier:invoice.identifier,receiverLabel:invoice.walletLabel,receiverAddress:invoice.identifier,expiresAt:invoice.expiresAt.toISOString(),status:'pending'};
+  } catch(error) {
+    if(invoice?.invoiceNumber&&!persisted){
+      try{await shamApi('DELETE','/v1/invoices/'+encodeURIComponent(invoice.invoiceNumber));}
+      catch(cleanupError){console.error('could not cancel orphaned wallet topup invoice',cleanupError.code||cleanupError.message);}
+    }
+    if(error instanceof ProviderError)return {error:error.code,status:error.status>=500?502:error.status,message:providerMessage(error)};
+    throw error;
+  }
+}
+
+async function verifyWalletTopup(input, customerId) {
+  if(!paymentsReady)return {error:'PAYMENTS_NOT_READY',status:503,message:'التحقق من شحن الرصيد غير متاح حالياً.'};
+  const topupId=String(input.topupId||'').trim().toUpperCase();
+  const transactionRef=String(input.transactionId||'').trim();
+  if(!/^NW-[A-F0-9]{20}$/.test(topupId))return {error:'INVALID_TOPUP',status:400,message:'رقم شحن الرصيد غير صحيح.'};
+  if(!/^[A-Za-z0-9_-]{1,64}$/.test(transactionRef))return {error:'INVALID_TRANSACTION_ID',status:400,message:'أدخل رقم عملية شام كاش الصحيح.'};
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const locked=await client.query('SELECT * FROM nexa_wallet_topups WHERE id=$1 AND customer_id=$2 FOR UPDATE',[topupId,customerId]);
+    if(!locked.rowCount){await client.query('ROLLBACK');return {error:'TOPUP_NOT_FOUND',status:404,message:'لم يتم العثور على فاتورة الشحن ضمن حسابك.'};}
+    const topup=locked.rows[0];
+    if(topup.status==='paid'){
+      await client.query('COMMIT');
+      if(topup.transaction_id===transactionRef){
+        const snapshot=await customerAccountSnapshot(customerId);
+        return {ok:true,alreadyPaid:true,topupId,balanceMinor:snapshot?.balanceMinor||'0',currency:'SYP'};
+      }
+      return {error:'TOPUP_ALREADY_PAID',status:409,message:'تم شحن هذه الفاتورة مسبقاً ولا تقبل عملية أخرى.'};
+    }
+    if(topup.status!=='pending'||new Date(topup.expires_at).getTime()<=Date.now()){
+      await client.query("UPDATE nexa_wallet_topups SET status='expired' WHERE id=$1 AND status='pending'",[topupId]);
+      await client.query('COMMIT');
+      return {error:'TOPUP_EXPIRED',status:410,message:'انتهت صلاحية فاتورة الشحن. أنشئ فاتورة جديدة.'};
+    }
+    const prior=await client.query('SELECT transaction_id FROM nexa_payment_references WHERE transaction_id=$1',[transactionRef]);
+    if(prior.rowCount){await client.query('ROLLBACK');return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه للشحن مرة أخرى.'};}
+    let wallet,tx,invoice;
+    try{
+      wallet=await getWallet(true);
+      tx=await getShamcashTransaction(wallet,transactionRef);
+      if(!tx){await client.query('ROLLBACK');return {error:'TRANSACTION_NOT_FOUND',status:422,message:'لم يعثر شام كاش على العملية بهذا الرقم. انتظر ظهورها في السجل ثم أعد المحاولة.'};}
+    }catch(error){
+      await client.query('ROLLBACK');
+      if(error.code==='PROVIDER_LOOKUP_COOLDOWN')return {error:error.code,status:429,message:'يوجد حد من شام كاش لاستعلام تفاصيل عملية واحدة كل 12 ثانية. أعد المحاولة بعد '+error.retryAfter+' ثانية.',retryAfter:error.retryAfter};
+      if(error instanceof ProviderError)return {error:error.code,status:error.status>=500?502:error.status,message:providerMessage(error)};
+      throw error;
+    }
+    if(tx.transactionId!==transactionRef){await client.query('ROLLBACK');return {error:'TRANSACTION_ID_MISMATCH',status:422,message:'رقم العملية المسترجع لا يطابق الرقم المدخل.'};}
+    if(tx.type!=='credit'){await client.query('ROLLBACK');return {error:'NOT_INCOMING',status:422,message:'هذه ليست حوالة واردة إلى محفظة المتجر.'};}
+    if(!tx.receiverAddress||tx.receiverAddress.toLowerCase()!==String(wallet.walletAddress).toLowerCase()||tx.receiverAddress.toLowerCase()!==String(topup.invoice_identifier).toLowerCase()){
+      await client.query('ROLLBACK');return {error:'WRONG_RECEIVER',status:422,message:'التحويل لم يصل إلى محفظة الفاتورة نفسها.'};
+    }
+    if(tx.currency!=='SYP'||tx.amountMinor===null||tx.amountMinor!==BigInt(topup.amount_minor)){
+      await client.query('ROLLBACK');return {error:'AMOUNT_MISMATCH',status:422,message:'قيمة التحويل أو العملة لا تطابق فاتورة الشحن تماماً.'};
+    }
+    if(Number.isNaN(tx.occurredAt.getTime())){await client.query('ROLLBACK');return {error:'INVALID_TRANSACTION_DATE',status:422,message:'تاريخ العملية الذي أعاده المزوّد غير صالح.'};}
+    const now=Date.now(),txTime=tx.occurredAt.getTime(),age=now-txTime;
+    if(age>cfg.maxAgeMs||age < -cfg.futureSkewMs||txTime<new Date(topup.created_at).getTime()-60_000||txTime>new Date(topup.expires_at).getTime()+60_000){
+      await client.query('ROLLBACK');return {error:'TRANSACTION_OUTSIDE_TOPUP_WINDOW',status:422,message:'وقت التحويل خارج فترة فاتورة الشحن.'};
+    }
+    try{invoice=await verifyProviderInvoice(topup,transactionRef);}
+    catch(error){
+      await client.query('ROLLBACK');
+      if(error instanceof ProviderError)return {error:error.code,status:error.status>=500?502:error.status,message:providerMessage(error)};
+      if(error.code==='PROVIDER_VERIFY_COOLDOWN')return {error:error.code,status:429,message:'تم بلوغ حد التحقق لدى شام كاش. أعد المحاولة بعد '+error.retryAfter+' ثانية.',retryAfter:error.retryAfter};
+      throw error;
+    }
+    const paidAt=new Date(invoice.paidAt||'');
+    if(!Number.isFinite(paidAt.getTime())||paidAt.getTime() < new Date(topup.created_at).getTime()-60_000||paidAt.getTime()>new Date(topup.expires_at).getTime()+60_000){
+      await client.query('ROLLBACK');return {error:'INVALID_PAID_AT',status:422,message:'تاريخ تأكيد الفاتورة خارج فترة الشحن.'};
+    }
+    const claim=await client.query("INSERT INTO nexa_payment_references(transaction_id,source_type,source_id) VALUES($1,'wallet_topup',$2) ON CONFLICT DO NOTHING RETURNING transaction_id",[transactionRef,topupId]);
+    if(!claim.rowCount){await client.query('ROLLBACK');return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً.'};}
+    const walletRow=await client.query('SELECT balance_minor::text FROM nexa_customer_wallets WHERE customer_id=$1 FOR UPDATE',[customerId]);
+    if(!walletRow.rowCount)throw new Error('CUSTOMER_WALLET_NOT_FOUND');
+    const balanceAfter=BigInt(walletRow.rows[0].balance_minor)+BigInt(topup.amount_minor);
+    await client.query('UPDATE nexa_customer_wallets SET balance_minor=$2,updated_at=NOW() WHERE customer_id=$1',[customerId,balanceAfter.toString()]);
+    await client.query("UPDATE nexa_wallet_topups SET status='paid',transaction_id=$2,paid_at=$3 WHERE id=$1",[topupId,transactionRef,paidAt]);
+    await client.query("INSERT INTO nexa_wallet_ledger(customer_id,entry_type,direction,amount_minor,currency,source_type,source_id,balance_after_minor,description) VALUES($1,'topup','credit',$2,'SYP','wallet_topup',$3,$4,$5)",
+      [customerId,topup.amount_minor,topupId,balanceAfter.toString(),'شحن رصيد عبر شام كاش']);
+    await client.query('COMMIT');
+    return {ok:true,topupId,transactionId:transactionRef,balanceMinor:balanceAfter.toString(),currency:'SYP',paidAt:paidAt.toISOString()};
+  }catch(error){
+    await client.query('ROLLBACK').catch(()=>{});
+    if(error.code==='23505')return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً.'};
+    throw error;
+  }finally{client.release();}
+}
+
 async function getShamcashTransaction(wallet, transactionRef) {
   // Provider docs impose an additional 1 request / 12 seconds for transaction details per API key.
   const quota = await reserveProviderQuota('shamcash:transaction-detail', { maxRequests:10000, windowMs:24*60*60_000, minIntervalMs:12_000 });
@@ -560,7 +722,7 @@ async function verifyPayment(input) {
       await client.query('COMMIT');
       return {error:'ORDER_EXPIRED',status:410,message:'انتهت صلاحية الطلب أو فاتورة شام كاش. أنشئ طلباً جديداً.'};
     }
-    const prior = await client.query('SELECT order_id FROM nexa_payments WHERE transaction_id=$1',[transactionRef]);
+    const prior = await client.query('SELECT transaction_id FROM nexa_payment_references WHERE transaction_id=$1',[transactionRef]);
     if (prior.rowCount) { await client.query('ROLLBACK'); return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'}; }
 
     let wallet, tx, invoice;
@@ -602,6 +764,8 @@ async function verifyPayment(input) {
     if (paidAtAge < -cfg.futureSkewMs || paidAt.getTime() < new Date(order.created_at).getTime() - 60_000 || paidAt.getTime() > new Date(order.expires_at).getTime() + 60_000) {
       await client.query('ROLLBACK'); return {error:'PAID_AT_OUTSIDE_WINDOW',status:422,message:'وقت تأكيد الفاتورة خارج فترة صلاحية الطلب.'};
     }
+    const referenceClaim=await client.query("INSERT INTO nexa_payment_references(transaction_id,source_type,source_id) VALUES($1,'order',$2) ON CONFLICT DO NOTHING RETURNING transaction_id",[transactionRef,orderId]);
+    if(!referenceClaim.rowCount){await client.query('ROLLBACK');return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'};}
     const inserted = await client.query(`INSERT INTO nexa_payments (transaction_id,order_id,amount_minor,currency,receiver_wallet_id,occurred_at,provider_payload)
       VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING RETURNING id`,
       [transactionRef,orderId,tx.amountMinor.toString(),tx.currency,String(wallet.id),tx.occurredAt,JSON.stringify({invoiceNumber:order.invoice_number,transactionId:transactionRef,amountMinor:tx.amountMinor.toString(),currency:tx.currency,receiverAddress:tx.receiverAddress,type:tx.type,occurredAt:tx.occurredAt.toISOString(),paidAt:paidAt.toISOString()})]);
@@ -2373,7 +2537,8 @@ const server = http.createServer(async (req,res) => {
     if (req.method === 'POST' && url.pathname === '/api/orders') {
       if (rateLimit(req,res,`order:${ip}`,8,60_000)) return;
       const input = await bodyJson(req);
-      const result = await createOrder(input);
+      const customer = await customerFromRequest(req);
+      const result = await createOrder(input,customer?.id||null);
       if (isHttpErrorResult(result)) return send(res, result.status, { error:result.error, message:result.message });
       // "pending_payment" is an order state, not an HTTP status code.
       return send(res, 201, { ok:true, ...result });
