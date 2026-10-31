@@ -57,7 +57,7 @@ test('catalogue validator supports the full imported supplier catalogue with saf
     name:'Supplier category '+categoryIndex,
     desc:'Imported supplier category',
     image:'assets/brand/logo.svg',
-    items:Array.from({length:categoryIndex===0?211:6},(_,productIndex)=>({
+    items:Array.from({length:categoryIndex===0?211:categoryIndex<=532?6:5},(_,productIndex)=>({
       id:'wamda-'+categoryIndex+'-'+productIndex,
       name:'Supplier product '+categoryIndex+'-'+productIndex,
       desc:'Imported digital product',
@@ -68,7 +68,7 @@ test('catalogue validator supports the full imported supplier catalogue with saf
   const validated=validateCatalog(supplierCatalog);
   assert.equal(validated.length,661);
   assert.equal(validated[0].items.length,211);
-  assert.equal(validated.reduce((sum,category)=>sum+category.items.length,0),4171);
+  assert.equal(validated.reduce((sum,category)=>sum+category.items.length,0),4043);
   assert.throws(()=>validateCatalog([...supplierCatalog,...Array.from({length:340},(_,i)=>({
     id:'extra-category-'+i,name:'Extra '+i,desc:'',image:'assets/brand/logo.svg',items:[]
   }))]),/INVALID_CATALOG/);
@@ -76,6 +76,26 @@ test('catalogue validator supports the full imported supplier catalogue with saf
     id:'oversized-'+i,name:'Product '+i,desc:'Product',image:'assets/brand/logo.svg',options:[]
   }))}];
   assert.throws(()=>validateCatalog(oversized),/INVALID_CATEGORY_ITEMS/);
+});
+
+
+test('catalogue validator rejects aggregate product counts beyond the 10,000-product safety limit',()=>{
+  const makeCategory=(categoryIndex,count)=>({
+    id:'bulk-category-'+categoryIndex,
+    name:'Bulk category '+categoryIndex,
+    desc:'Bulk import',
+    image:'assets/brand/logo.svg',
+    items:Array.from({length:count},(_,productIndex)=>({
+      id:'bulk-product-'+categoryIndex+'-'+productIndex,
+      name:'Bulk product '+categoryIndex+'-'+productIndex,
+      desc:'Imported product',
+      image:'assets/brand/logo.svg',
+      options:[],
+    })),
+  });
+  const oversized=Array.from({length:20},(_,index)=>makeCategory(index,500));
+  oversized.push(makeCategory(20,1));
+  assert.throws(()=>validateCatalog(oversized),/CATALOG_PRODUCT_LIMIT_EXCEEDED/);
 });
 
 test('reads configured FX response paths and converts legacy units', () => {
