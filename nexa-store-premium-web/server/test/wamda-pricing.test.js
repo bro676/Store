@@ -77,3 +77,47 @@ test('products missing from the latest API snapshot are marked unavailable witho
   assert.equal(product.wamda.missingFromLatestSync,true);
   assert.equal(product.options[0].packs[0][1],777);
 });
+
+
+test('fixed sale price remains unchanged when supplier cost and FX rate change at any pricing scope',()=>{
+  const scopes=[
+    {name:'global',globalRule:{mode:'fixed_price',value:799},categoryRule:null,productRule:{mode:'inherit'}},
+    {name:'category',globalRule:{mode:'percent',value:25},categoryRule:{mode:'fixed_price',value:799},productRule:{mode:'inherit'}},
+    {name:'product',globalRule:{mode:'percent',value:25},categoryRule:{mode:'fixed_profit',value:300},productRule:{mode:'fixed_price',value:799}},
+  ];
+  for(const scope of scopes){
+    const resolved=resolveWamdaPricingRule(scope);
+    assert.deepEqual(resolved.rule,{mode:'fixed_price',value:799},scope.name);
+    const first=calculateWamdaSellPriceSyp({unitPriceUsd:1.5,fxRate:145,pricingRule:resolved.rule});
+    const second=calculateWamdaSellPriceSyp({unitPriceUsd:22,fxRate:220,pricingRule:resolved.rule});
+    assert.equal(first,799,scope.name);
+    assert.equal(second,799,scope.name);
+  }
+});
+
+test('a category fixed sale price overrides the global automatic rule for each inheriting product',()=>{
+  const categoryRule={mode:'fixed_price',value:650};
+  const products=[
+    {id:21,unitPrice:1.2},
+    {id:22,unitPrice:14.5},
+    {id:23,unitPrice:89},
+  ];
+  for(const source of products){
+    const existing={id:'wamda-'+source.id,name:'Product',options:[{id:'default',packs:[['Price',1]]}],wamda:{provider:'wamda'}};
+    const updated=updateWamdaPublishedProduct(existing,{...source,categoryId:7,name:'Product',available:true,fields:[]},{
+      fxRate:145,globalRule:{mode:'percent',value:30},categoryRule,
+    });
+    assert.equal(updated.options[0].packs[0][1],650);
+    assert.equal(updated.wamda.pricingSource,'category');
+    assert.equal(updated.wamda.priceMode,'auto');
+  }
+});
+
+test('fixed-profit pricing keeps a constant profit amount while supplier cost changes',()=>{
+  const rule={mode:'fixed_profit',value:275};
+  const first=calculateWamdaSellPriceSyp({unitPriceUsd:2,fxRate:145,pricingRule:rule});
+  const second=calculateWamdaSellPriceSyp({unitPriceUsd:8,fxRate:145,pricingRule:rule});
+  assert.equal(first-2*145,275);
+  assert.equal(second-8*145,275);
+  assert.notEqual(first,second);
+});
