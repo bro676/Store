@@ -1302,7 +1302,19 @@ async function saveSeagmFulfillmentState(job,{jobStatus,orderStatus,message,erro
   } finally {client.release();}
 }
 
+async function processWamdaFulfillmentJob(job){
+  if(!wamdaApiTokenRuntime){await saveSeagmFulfillmentState(job,{jobStatus:'manual_review',orderStatus:'manual_review',message:'مفتاح API الخاص بومضة غير مضبوط حالياً. أدخله من لوحة الإدارة لمتابعة الطلب.',errorText:'WAMDA_TOKEN_MISSING'});return;}
+  const client=wamdaClient(),orderUuid=String(job.supplier_mch_order_id||'');
+  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderUuid)){await saveSeagmFulfillmentState(job,{jobStatus:'manual_review',orderStatus:'manual_review',message:'معرّف طلب ومضة غير صالح؛ تم تحويل الطلب لمراجعة الإدارة.',errorText:'INVALID_WAMDA_ORDER_UUID'});return;}
+  let providerOrder=await client.checkOrder(orderUuid,{uuid:true});
+  if(!providerOrder)providerOrder=await client.createOrder(Number(job.supplier_type_id),{quantity:Number(job.supplier_quantity||1),fields:job.supplier_fields||{},orderUuid});
+  const decision=wamdaOrderDecision(providerOrder),metadata={...decision.metadata,id:decision.metadata?.orderId||decision.metadata?.orderCode||orderUuid};
+  if(decision.action==='completed'){await saveSeagmFulfillmentState(job,{jobStatus:'completed',orderStatus:'completed',message:decision.message,metadata,resultEncrypted:encryptSecret(JSON.stringify(decision.result),cfg.settingsEncryptionKey),failureCount:0});return;}
+  if(decision.action==='retry'){await saveSeagmFulfillmentState(job,{jobStatus:'retry',orderStatus:'waiting',message:decision.message,metadata,delaySeconds:decision.delaySeconds,failureCount:0});return;}
+  await saveSeagmFulfillmentState(job,{jobStatus:'manual_review',orderStatus:'manual_review',message:decision.message,errorText:decision.errorCode,metadata,failureCount:0});
+}
 async function processSeagmFulfillmentJob(job) {
+  if(job.supplier_provider==='wamda')return processWamdaFulfillmentJob(job);
   if(job.supplier_provider!=='seagm'||!['card','recharge'].includes(job.supplier_kind)||
       !Number.isSafeInteger(Number(job.supplier_type_id))||Number(job.supplier_type_id)<=0) {
     await saveSeagmFulfillmentState(job,{
