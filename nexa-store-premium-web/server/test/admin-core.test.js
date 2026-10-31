@@ -51,6 +51,33 @@ test('product write API adds a valid product and upserts matching product IDs', 
   assert.equal(updated.catalog[0].items.at(-1).name,'API Product Updated');
   assert.throws(() => upsertCatalogProduct(catalog,'missing',product),/CATEGORY_NOT_FOUND/);
 });
+test('catalogue validator supports the full imported supplier catalogue with safe aggregate limits',()=>{
+  const supplierCatalog=Array.from({length:661},(_,categoryIndex)=>({
+    id:'wamda-category-'+categoryIndex,
+    name:'Supplier category '+categoryIndex,
+    desc:'Imported supplier category',
+    image:'assets/brand/logo.svg',
+    items:Array.from({length:categoryIndex===0?211:6},(_,productIndex)=>({
+      id:'wamda-'+categoryIndex+'-'+productIndex,
+      name:'Supplier product '+categoryIndex+'-'+productIndex,
+      desc:'Imported digital product',
+      image:'assets/brand/logo.svg',
+      options:[],
+    })),
+  }));
+  const validated=validateCatalog(supplierCatalog);
+  assert.equal(validated.length,661);
+  assert.equal(validated[0].items.length,211);
+  assert.equal(validated.reduce((sum,category)=>sum+category.items.length,0),4171);
+  assert.throws(()=>validateCatalog([...supplierCatalog,...Array.from({length:340},(_,i)=>({
+    id:'extra-category-'+i,name:'Extra '+i,desc:'',image:'assets/brand/logo.svg',items:[]
+  }))]),/INVALID_CATALOG/);
+  const oversized=[{...catalog[0],items:Array.from({length:501},(_,i)=>({
+    id:'oversized-'+i,name:'Product '+i,desc:'Product',image:'assets/brand/logo.svg',options:[]
+  }))}];
+  assert.throws(()=>validateCatalog(oversized),/INVALID_CATEGORY_ITEMS/);
+});
+
 test('reads configured FX response paths and converts legacy units', () => {
   assert.equal(getJsonPath({data:{usd:{buy:14500}}}, 'data.usd.buy'), 14500);
   assert.equal(normalizeFxRate(14500, 'old'), 145);
