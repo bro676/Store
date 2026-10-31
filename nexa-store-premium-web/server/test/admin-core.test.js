@@ -124,3 +124,41 @@ test('catalog replace mode is explicit', () => {
   assert.equal(mergeCatalog(catalog,replacement,'replace')[0].name,'Replaced');
   assert.throws(() => mergeCatalog(catalog,replacement,'unknown'),/INVALID_CATALOG_SYNC_MODE/);
 });
+
+
+test('catalog merge preserves manually overridden product fields while refreshing API metadata',()=>{
+  const original=[{...catalog[0],items:[{
+    ...catalog[0].items[0],
+    name:'اسم يدوي',desc:'وصف كتبته الإدارة',image:'https://images.example/manual.webp',
+    options:[{id:'manual-option',name:'نسخة يدوية',desc:'وصف الخيار',packs:[['سعر يدوي',19.5]]}],
+    manualOverrides:{
+      name:'اسم يدوي',desc:'وصف كتبته الإدارة',image:'https://images.example/manual.webp',
+      options:[{id:'manual-option',name:'نسخة يدوية',desc:'وصف الخيار',packs:[['سعر يدوي',19.5]]}],
+    },
+  }]}];
+  const incoming=[{...catalog[0],items:[{
+    ...catalog[0].items[0],name:'اسم API',desc:'وصف API',image:'https://images.example/api.webp',
+    options:[{id:'api-option',name:'نسخة API',desc:'وصف من المصدر',packs:[['API Price',25]]}],
+    wamda:{provider:'wamda',productId:12345,available:true},
+  }]}];
+  const merged=mergeCatalog(original,incoming);
+  const product=merged[0].items[0];
+  assert.equal(product.name,'اسم يدوي');
+  assert.equal(product.desc,'وصف كتبته الإدارة');
+  assert.equal(product.image,'https://images.example/manual.webp');
+  assert.equal(product.options[0].id,'manual-option');
+  assert.equal(product.wamda.productId,12345);
+});
+
+
+test('catalog merge ignores manual override metadata supplied by an external product API',()=>{
+  const original=[{...catalog[0],items:[]}];
+  const incoming=[{...catalog[0],items:[{
+    ...catalog[0].items[0],
+    name:'اسم مصدر API',
+    manualOverrides:{name:'اسم مزيف من مصدر خارجي',desc:'محاولة تجاوز الإدارة'},
+  }]}];
+  const merged=mergeCatalog(original,incoming);
+  assert.equal(merged[0].items[0].name,'اسم مصدر API');
+  assert.equal(merged[0].items[0].manualOverrides,undefined);
+});
