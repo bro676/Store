@@ -31,6 +31,7 @@ let wamdaApiTokenRuntime = '';
 let wamdaWebhookSecretRuntime = '';
 let nexaAiApiKeyRuntime = '';
 let wamdaCatalogSyncInProgress = false;
+let wamdaBulkPublishInProgress = false;
 let seagmCatalogSyncInProgress = false;
 let seagmFulfillmentWorkerBusy = false;
 const { Pool } = pg;
@@ -1365,26 +1366,92 @@ async function setWamdaCategoryPricing(input){
   return {ok:true,categoryId,pricingPolicy:rule,message:mode==='inherit'?'القسم يستخدم تسعير المتجر العام الآن.':'تم حفظ سياسة التسعير التلقائي للقسم.'};
 }
 async function applyWamdaGlobalPricingToAll(){
-  const categories=(storeSettings?.wamdaCatalogCache||[]).map(category=>({...category,products:(category.products||[]).map(product=>({...product,pricingOverride:{mode:'inherit'}}))}));
-  const nextSettings={...storeSettings,wamdaCategoryPricingPolicies:{},wamdaCatalogCache:categories};
-  const context=getWamdaPricingContext(nextSettings);
-  const sources=new Map(categories.flatMap(category=>(category.products||[]).map(product=>[Number(product.id),product])));
-  const nextCatalog=catalog.map(category=>({...category,items:(category.items||[]).map(existing=>{
-    if(existing.wamda?.provider!=='wamda')return existing;
-    const source=sources.get(Number(existing.wamda.productId))||{
-      id:existing.wamda.productId,categoryId:existing.wamda.categoryId,unitPrice:existing.wamda.unitPrice,
-      available:existing.wamda.available,
+  if(wamdaBulkPublishInProgress||wamdaCatalogSyncInProgress)
+    throw Object.assign(new Error('توجد عملية مزامنة أو نشر جماعي قيد التنفيذ. حاول بعد انتهائها.'),{status:409});
+  if(!pool)throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
+  const cached=Array.isArray(storeSettings?.wamdaCatalogCache)?storeSettings.wamdaCatalogCache:[];
+  if(!cached.length)throw Object.assign(new Error('WAMDA_CATALOG_CACHE_EMPTY'),{status:409});
+  wamdaBulkPublishInProgress=true;
+  const syncedAt=storeSettings?.wamdaLastSyncAt||new Date().toISOString();
+  try{
+    const categories=cached.map(category=>({...category,products:(category.products||[]).map(product=>({...product,pricingOverride:{mode:'inherit'}}))}));
+    const nextSettings={...storeSettings,wamdaCategoryPricingPolicies:{},wamdaCatalogCache:categories};
+    const context=getWamdaPricingContext(nextSettings);
+    const nextCatalog=catalog.map(category=>({...category,items:[...(category.items||[])]}));
+    const categoryIndexes=new Map(nextCatalog.map((category,index)=>[category.id,index]));
+    const productLocations=new Map();
+    for(let categoryIndex=0;categoryIndex<nextCatalog.length;categoryIndex++){
+      const items=nextCatalog[categoryIndex].items||[];
+      for(let itemIndex=0;itemIndex<items.length;itemIndex++){
+        const item=items[itemIndex];
+        if(item.wamda?.provider==='wamda')productLocations.set(Number(item.wamda.productId),{categoryIndex,itemIndex});
+      }
+    }
+    let availableProducts=0,publishedNew=0,updatedExisting=0,skippedUnavailable=0,skippedInvalidPrice=0,skippedInvalidProduct=0;
+    for(const sourceCategory of categories){
+      const categoryId=Number(sourceCategory.id);
+      if(!Number.isSafeInteger(categoryId)||categoryId<0){skippedInvalidProduct+=(sourceCategory.products||[]).length;continue;}
+      const localCategoryId='wamda-category-'+categoryId;
+      for(const rawProduct of sourceCategory.products||[]){
+        if(rawProduct.available!==true){skippedUnavailable++;continue;}
+        availableProducts++;
+        const productId=Number(rawProduct.id);
+        if(!Number.isSafeInteger(productId)||productId<=0){skippedInvalidProduct++;continue;}
+        const source={...rawProduct,id:productId,categoryId:Number(rawProduct.categoryId??categoryId),pricingOverride:{mode:'inherit'}};
+        const localProductId='wamda-'+productId;
+        const location=productLocations.get(productId);
+        const existing=location?nextCatalog[location.categoryIndex].items[location.itemIndex]:null;
+        const base=existing||{
+          id:localProductId,
+          name:String(source.name||('Wamda product '+productId)).slice(0,120),
+          desc:String(source.description||'منتج رقمي متزامن مع مورد ومضة.').slice(0,700),
+          image:'assets/brand/logo.svg',
+          options:[{id:'wamda-default',name:'الخيار الأساسي',desc:'منتج مرتبط بمصدر ومضة',flag:'⚡',packs:[['سعر البيع',1]]}],
+        };
+        let updated;
+        try{
+          updated=updateWamdaPublishedProduct({...base,wamda:{...(base.wamda||{}),provider:'wamda',pricingOverride:{mode:'inherit'}}},source,{
+            fxRate:context.fxRate,globalRule:context.globalRule,categoryRule:null,
+            syncedAt,forceAutomatic:true,
+          });
+          const calculated=Number(updated?.wamda?.calculatedPriceSyp);
+          const actual=Number(updated?.options?.[0]?.packs?.[0]?.[1]);
+          if(!Number.isFinite(calculated)||calculated<=0||!Number.isFinite(actual)||actual<=0)throw new Error('INVALID_WAMDA_CALCULATED_PRICE');
+        }catch{
+          skippedInvalidPrice++;
+          continue;
+        }
+        if(location){
+          nextCatalog[location.categoryIndex].items[location.itemIndex]=updated;
+          updatedExisting++;
+        }else{
+          let categoryIndex=categoryIndexes.get(localCategoryId);
+          if(categoryIndex===undefined){
+            const displayName=String(sourceCategory.name||'منتجات ومضة').slice(0,100)||'منتجات ومضة';
+            nextCatalog.push({id:localCategoryId,name:displayName,desc:'منتجات رقمية متزامنة مع ومضة ستور.',image:'assets/brand/logo.svg',icon:'⚡',items:[]});
+            categoryIndex=nextCatalog.length-1;
+            categoryIndexes.set(localCategoryId,categoryIndex);
+          }
+          const itemIndex=nextCatalog[categoryIndex].items.push(updated)-1;
+          productLocations.set(productId,{categoryIndex,itemIndex});
+          publishedNew++;
+        }
+      }
+    }
+    const validatedCatalog=validateCatalog(nextCatalog);
+    const catalogBytes=Buffer.byteLength(JSON.stringify(validatedCatalog),'utf8');
+    if(catalogBytes>15_000_000)throw Object.assign(new Error('WAMDA_PUBLISHED_CATALOG_TOO_LARGE'),{status:413});
+    await persistWamdaSnapshot(validatedCatalog,nextSettings);
+    const publishedTotal=validatedCatalog.reduce((sum,category)=>sum+(category.items||[]).filter(item=>item.wamda?.provider==='wamda').length,0);
+    return {
+      ok:true,
+      stats:{categories:categories.length,cachedProducts:categories.reduce((sum,category)=>sum+(category.products||[]).length,0),
+        availableProducts,publishedNew,updatedExisting,publishedTotal,skippedUnavailable,skippedInvalidPrice,skippedInvalidProduct,
+        fxRate:context.fxRate,globalPricingRule:context.globalRule,catalogBytes},
+      syncedAt,
+      message:'تم تطبيق سياسة الربح العامة وإعادة حساب أسعار المنتجات المؤهلة ونشرها في المتجر.',
     };
-    return updateWamdaPublishedProduct({...existing,wamda:{...existing.wamda,pricingOverride:{mode:'inherit'}}},{
-      ...source,pricingOverride:{mode:'inherit'},
-    },{
-      fxRate:context.fxRate,globalRule:context.globalRule,
-      categoryRule:null,forceAutomatic:true,
-    });
-  })}));
-  await persistWamdaSnapshot(nextCatalog,nextSettings);
-  return {ok:true,categories:categories.length,products:categories.reduce((sum,category)=>sum+(category.products||[]).length,0),
-    message:'تمت إعادة جميع المنتجات المنشورة والأقسام إلى سياسة التسعير العامة.'};
+  }finally{wamdaBulkPublishInProgress=false;}
 }
 async function testSeagmConnection() {
   const account = await seagmClient().getAccount();
