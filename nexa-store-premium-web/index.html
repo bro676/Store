@@ -1059,6 +1059,46 @@ async function doOrder(e){
  e.preventDefault();
  const form=e.currentTarget;if(!form||!state.selectedPack)return;
  const button=form.querySelector('button[type="submit"]');if(!button||button.disabled)return;
+ const paymentMethod=selectedCheckoutPaymentMethod();
+ if(paymentMethod==='wallet'&&!customerAccount?.customer){setCustomerMessage('سجّل الدخول إلى حساب Nexa أولاً حتى تتمكن من الدفع من رصيدك.','error');navigate('wallet');return;}
+ const originalText=button.textContent;button.disabled=true;button.textContent=paymentMethod==='wallet'?'جارٍ خصم الرصيد وإنشاء الطلب…':'جارٍ إنشاء فاتورة شام كاش…';
+ try{
+  const pack=state.selectedPack,product=getItem(pack.item),supplier=product?.wamda||product?.seagm||null;
+  const quantity=supplier?Number($('orderQuantity').value||1):1,supplierFields={};
+  if(supplier){
+   for(const control of document.querySelectorAll('[data-seagm-field]'))supplierFields[control.dataset.seagmField]=control.value;
+   const min=Number(supplier.minimumQuantity||1),max=Number(supplier.maximumQuantity||1);
+   if(!Number.isInteger(quantity)||quantity<min||quantity>max)throw new Error('الكمية المختارة خارج الحدود المسموحة.');
+  }
+  const response=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({
+   categoryId:pack.category,productId:pack.item,optionId:pack.option,packIndex:pack.index,
+   currency:$('orderCurrency').value,paymentMethod,customerName:$('customerName').value.trim(),
+   customerPhone:$('customerPhone').value.trim(),accountId:$('accountId').value.trim(),
+   notes:$('orderNotes').value.trim(),quantity,supplierFields
+  })});
+  const data=await response.json();
+  if(!response.ok||!data.ok)throw new Error(data.message||'تعذر إنشاء الطلب.');
+  const d=storageRead();d.orders=d.orders||[];
+  const order={id:data.orderId,name:data.product||pack.name,price:pack.price,amountMinor:data.amountMinor,currency:data.currency,date:new Intl.DateTimeFormat('ar-SY',{dateStyle:'medium'}).format(new Date()),status:data.status||'pending_payment',paymentMethod:data.paymentMethod||paymentMethod,expiresAt:data.expiresAt,invoiceNumber:data.invoiceNumber,deliveryProvider:data.deliveryProvider||null};
+  d.orders.unshift(order);storageSave(d);
+  if(data.paymentMethod==='wallet'||paymentMethod==='wallet'){
+   form.reset();closeModal();await loadCustomerAccount();renderOrders();navigate('orders');
+   showToast('تم الدفع من رصيدك وإنشاء الطلب بنجاح.');
+   return;
+  }
+  state.pendingOrder=data.orderId;$('paymentOrderId').value=data.orderId;
+  $('paymentOrderSummary').innerHTML='<span>المبلغ المطلوب · '+esc(data.currency)+'</span><strong>'+formatMinor(data.amountMinor,data.currency)+'</strong><small>الفاتورة صالحة حتى '+esc(new Date(data.expiresAt).toLocaleString('ar-SY'))+'</small>';
+  renderInvoiceDetails(data);$('shamCashTransactionId').value='';$('shamCashPaymentResult').textContent='';
+  $('paymentReceipt').classList.add('hidden');$('paymentReceipt').innerHTML='';
+  form.reset();closeModal();renderOrders();navigate('wallet');
+  showToast('تم إنشاء فاتورة شام كاش الرسمية. حوّل المبلغ الظاهر ثم أدخل رقم العملية.');
+ }catch(err){showToast(err.message||'تعذر الاتصال بالخادم. لم يتم إنشاء الطلب.');}
+ finally{button.disabled=false;button.textContent=originalText;}
+}
+
+ e.preventDefault();
+ const form=e.currentTarget;if(!form||!state.selectedPack)return;
+ const button=form.querySelector('button[type="submit"]');if(!button||button.disabled)return;
  const originalText=button.textContent;button.disabled=true;button.textContent='جارٍ إنشاء فاتورة شام كاش…';
  try{
   const pack=state.selectedPack,product=getItem(pack.item),supplier=product?.wamda||product?.seagm||null;
@@ -1087,7 +1127,7 @@ async function doOrder(e){
  }catch(err){showToast(err.message||'تعذر الاتصال بالخادم. لم يتم إنشاء الفاتورة.')}
  finally{button.disabled=false;button.textContent=originalText}
 }
-async function loadPaymentConfig(){try{const r=await fetch('/api/payments/config',{cache:'no-store'});const d=await r.json();const badge=$('shamCashStatusBadge'),status=$('shamCashServiceStatus');if(!r.ok)throw new Error('تعذر فحص بوابة الدفع.');paymentConfigEnabled=!!d.enabled;sypPerUsd=Number(d.sypPerUsd)||145;const usdOption=$('orderCurrency')?.querySelector('option[value="USD"]');if(usdOption)usdOption.disabled=!d.fxReady;if(!d.fxReady&&$('orderCurrency')?.value==='USD')$('orderCurrency').value='SYP';renderCurrencyPreview();badge.textContent=d.enabled?'بوابة API جاهزة':'بانتظار إعداد الخادم';status.textContent=d.message||'حالة بوابة الدفع غير معروفة.';status.classList.toggle('ready',!!d.enabled);status.classList.toggle('error',!d.enabled);if(d.enabled){$('shamCashReceiverInfo').innerHTML=`<span>محفظة الاستلام</span><strong>${esc(d.receiverLabel||'محفظة Nexa Store')}</strong><small>عنوان الاستلام الدقيق يظهر داخل كل فاتورة رسمية.</small>`;}else{$('shamCashReceiverInfo').innerHTML='<span>محفظة الاستلام</span><strong>لم يتم تفعيل بوابة الدفع بعد</strong><small>لا تحوّل أي مبلغ قبل ظهور تفاصيل الفاتورة الرسمية.</small>';}}catch(e){$('shamCashStatusBadge').textContent='الخادم غير متصل';$('shamCashServiceStatus').textContent='تعذر الوصول إلى خادم الدفع. شغّل الموقع عبر خادم Nexa وليس بفتح ملف HTML مباشرة.';$('shamCashServiceStatus').classList.add('error');}}
+async function loadPaymentConfig(){try{const r=await fetch('/api/payments/config',{cache:'no-store'});const d=await r.json();const badge=$('shamCashStatusBadge'),status=$('shamCashServiceStatus');if(!r.ok)throw new Error('تعذر فحص بوابة الدفع.');paymentConfigEnabled=!!d.enabled;paymentFxReady=!!d.fxReady;sypPerUsd=Number(d.sypPerUsd)||145;const usdOption=$('orderCurrency')?.querySelector('option[value="USD"]');if(usdOption)usdOption.disabled=!d.fxReady;if(!d.fxReady&&$('orderCurrency')?.value==='USD')$('orderCurrency').value='SYP';renderCurrencyPreview();badge.textContent=d.enabled?'بوابة API جاهزة':'بانتظار إعداد الخادم';status.textContent=d.message||'حالة بوابة الدفع غير معروفة.';status.classList.toggle('ready',!!d.enabled);status.classList.toggle('error',!d.enabled);if(d.enabled){$('shamCashReceiverInfo').innerHTML=`<span>محفظة الاستلام</span><strong>${esc(d.receiverLabel||'محفظة Nexa Store')}</strong><small>عنوان الاستلام الدقيق يظهر داخل كل فاتورة رسمية.</small>`;}else{$('shamCashReceiverInfo').innerHTML='<span>محفظة الاستلام</span><strong>لم يتم تفعيل بوابة الدفع بعد</strong><small>لا تحوّل أي مبلغ قبل ظهور تفاصيل الفاتورة الرسمية.</small>';}}catch(e){$('shamCashStatusBadge').textContent='الخادم غير متصل';$('shamCashServiceStatus').textContent='تعذر الوصول إلى خادم الدفع. شغّل الموقع عبر خادم Nexa وليس بفتح ملف HTML مباشرة.';$('shamCashServiceStatus').classList.add('error');}}
 async function loadShamCashOrderSummary(){
  const orderId=$('paymentOrderId').value.trim().toUpperCase(),summary=$('paymentOrderSummary');
  if(!/^NX-[A-F0-9]{20}$/.test(orderId))return;
@@ -1224,7 +1264,7 @@ function initializeStoreColorMode(){
  $('storeThemeToggle')?.addEventListener('click',()=>setStoreColorMode(document.documentElement.dataset.theme==='dark'?'light':'dark'));
 }
 async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;const footerName=document.querySelector('.footer-brand strong');if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
-async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items)&&c.items.length);}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();loadPaymentConfig();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','favorites','wallet','support'].includes(hash))navigate(hash);$('sideYear').textContent=new Date().getFullYear();}
+async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items)&&c.items.length);}}catch{}await loadStorefrontConfig();await Promise.all([loadCustomerAccount(),loadPaymentConfig()]);setCustomerAuthMode('login');renderHomeCategories();renderFeatured();renderOrders();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','favorites','wallet','support'].includes(hash))navigate(hash);$('sideYear').textContent=new Date().getFullYear();}
 // delegated interactions
  document.addEventListener('click',e=>{const el=e.target.closest('[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-open-item],[data-favorite],[data-reset-catalog],[data-scroll],[data-catalog-page],[data-product-page],[data-search-page]');if(!el)return;
  if(el.dataset.openAssistant!==undefined){openAssistant();return}
@@ -1256,7 +1296,7 @@ document.addEventListener('input',event=>{
  const next=$(keepId);if(next){next.focus();try{next.setSelectionRange(caret,caret)}catch{}}
 });
 document.addEventListener('click',e=>{const copy=e.target.closest('[data-copy-value]');if(copy){const text=copy.dataset.copyValue||'';if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(()=>showToast('تم النسخ')).catch(()=>showToast('تعذر النسخ التلقائي'));else showToast('انسخ النص يدوياً من الحقل.');}});
-document.addEventListener('click',e=>{if(e.target.closest('[data-print-receipt]')){document.body.classList.add('printing-receipt');window.print();}});window.addEventListener('afterprint',()=>document.body.classList.remove('printing-receipt'));$('orderForm').addEventListener('submit',doOrder);$('orderCurrency').addEventListener('change',renderCurrencyPreview);
+document.addEventListener('click',e=>{if(e.target.closest('[data-print-receipt]')){document.body.classList.add('printing-receipt');window.print();}});window.addEventListener('afterprint',()=>document.body.classList.remove('printing-receipt'));$('orderForm').addEventListener('submit',doOrder);$('orderCurrency').addEventListener('change',()=>{if(selectedCheckoutPaymentMethod()==='wallet')$('orderCurrency').value='SYP';syncCheckoutPaymentMode()});document.querySelectorAll('input[name="paymentMethod"]').forEach(control=>control.addEventListener('change',syncCheckoutPaymentMode));$('customerAuthForm').addEventListener('submit',submitCustomerAuth);$('customerAuthModeToggle').addEventListener('click',()=>setCustomerAuthMode(customerAuthMode==='login'?'register':'login'));$('walletTopupForm').addEventListener('submit',createWalletTopup);$('walletTopupVerifyForm').addEventListener('submit',verifyWalletTopup);$('customerLogout').addEventListener('click',logoutCustomer);
 $('orderQuantity').addEventListener('input',renderCurrencyPreview);$('shamCashPaymentForm').addEventListener('submit',verifyShamCashPayment);$('paymentOrderId').addEventListener('change',loadShamCashOrderSummary);$('paymentOrderId').addEventListener('blur',loadShamCashOrderSummary);$('supportForm').addEventListener('submit',submitSupportTicket);$('supportLookupForm').addEventListener('submit',lookupSupportOrder);$('assistantLauncher').addEventListener('click',openAssistant);$('assistantClose').addEventListener('click',closeAssistant);$('assistantForm').addEventListener('submit',e=>{e.preventDefault();const input=$('assistantInput');const value=input.value.trim();if(!value)return;input.value='';sendAssistantPrompt(value)});$('modalClose').addEventListener('click',closeModal);$('modalCancel').addEventListener('click',closeModal);$('orderModal').addEventListener('click',e=>{if(e.target===$('orderModal'))closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeMenu();closeAssistant()}});$('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){showSearchResults(e.currentTarget.value)}});$('globalSearch').addEventListener('search',e=>{if(!e.currentTarget.value){navigate('home')}});$('menuToggle').addEventListener('click',()=>{const opened=document.body.classList.toggle('sidebar-open');$('menuToggle').setAttribute('aria-expanded',String(opened))});$('sidebarBackdrop').addEventListener('click',closeMenu);
 initializeStoreColorMode();
 init();
