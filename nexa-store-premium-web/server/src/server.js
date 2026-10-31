@@ -661,13 +661,24 @@ async function verifyPayment(input) {
       [transactionRef,orderId,tx.amountMinor.toString(),tx.currency,String(wallet.id),tx.occurredAt,JSON.stringify({invoiceNumber:order.invoice_number,transactionId:transactionRef,amountMinor:tx.amountMinor.toString(),currency:tx.currency,receiverAddress:tx.receiverAddress,type:tx.type,occurredAt:tx.occurredAt.toISOString(),paidAt:paidAt.toISOString()})]);
     if (!inserted.rowCount) { await client.query('ROLLBACK'); return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'}; }
     await client.query("UPDATE nexa_orders SET status='paid',paid_at=$2,supplier_status=CASE WHEN supplier_provider IN ('seagm','wamda') THEN 'pending' ELSE supplier_status END,supplier_message=CASE WHEN supplier_provider='wamda' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.' WHEN supplier_provider='seagm' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.' ELSE supplier_message END WHERE id=$1",[orderId,paidAt]);
+    let walletBalanceMinor=null;
+    if(order.wallet_topup_customer_id){
+      const credited=await client.query('UPDATE nexa_customers SET balance_minor=balance_minor+$2 WHERE id=$1 RETURNING balance_minor::text',[order.wallet_topup_customer_id,String(order.amount_minor)]);
+      if(!credited.rowCount){await client.query('ROLLBACK');return {error:'WALLET_ACCOUNT_NOT_FOUND',status:409,message:'تعذر ربط شحنة الرصيد بالحساب. تواصل مع الدعم مع رقم الطلب.'};}
+      walletBalanceMinor=String(credited.rows[0].balance_minor);
+      await client.query(`INSERT INTO nexa_wallet_ledger(customer_id,kind,amount_minor,balance_after_minor,reference_order_id,note)
+        VALUES($1,'topup',$2,$3,$4,'شحن رصيد عبر شام كاش')`,[order.wallet_topup_customer_id,String(order.amount_minor),walletBalanceMinor,orderId]);
+    }
     if (['seagm','wamda'].includes(order.supplier_provider)) {
       await client.query(`INSERT INTO nexa_fulfillment_jobs(order_id,status,next_attempt_at)
         VALUES($1,'pending',NOW()) ON CONFLICT(order_id) DO NOTHING`,[orderId]);
     }
     await client.query('COMMIT');
     return {ok:true,orderId,invoiceNumber:order.invoice_number,transactionId:transactionRef,status:'paid',verifiedAt:new Date().toISOString(),
+      ...(walletBalanceMinor!==null?{walletBalanceMinor}:{}),
       receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,
+        paymentMethod:order.wallet_topup_customer_id?'shamcash_topup':'shamcash',
+        ...(walletBalanceMinor!==null?{walletBalanceMinor}:{}),
         invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:paidAt.toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,
         ...(order.supplier_provider==='wamda'?{delivery:{provider:'WAMDA',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.'}}:(order.supplier_provider==='seagm'?{delivery:{provider:'SEAGM',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.'}}:{}))}};
   } catch (error) {
