@@ -14,7 +14,7 @@ import {
 import { createSeagmClient } from './seagm-api.js';
 import { createWamdaClient } from './wamda-api.js';
 import { wamdaOrderDecision, classifyWamdaError } from './wamda-fulfillment.js';
-import { normalizeWamdaMargin, calculateWamdaSellPriceSyp, updateWamdaPublishedProduct, markWamdaProductUnavailable } from './wamda-pricing.js';
+import { normalizeWamdaMargin, normalizeWamdaPricingRule, resolveWamdaPricingRule, calculateWamdaSellPriceSyp, updateWamdaPublishedProduct, markWamdaProductUnavailable } from './wamda-pricing.js';
 import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSignature } from './seagm-webhook.js';
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
 
@@ -645,7 +645,7 @@ function defaultStoreSettings() {
     seagmCatalogCache:[], seagmAccountInfo:null, seagmLastSyncAt:null, seagmLastTestAt:null, seagmLastError:'',
     wamdaApiTokenEncrypted:'',wamdaApiTokenCleared:false,wamdaWebhookSecretEncrypted:'',
     wamdaCatalogCache:[],wamdaAccountInfo:null,wamdaLastSyncAt:null,wamdaLastRefreshAttemptAt:null,wamdaLastTestAt:null,wamdaLastError:'',
-    wamdaProfitMarginPercent:0,wamdaAutoRefreshEnabled:true,wamdaRefreshIntervalMinutes:15,
+    wamdaProfitMarginPercent:0,wamdaPricingPolicy:{mode:'percent',value:0},wamdaCategoryPricingPolicies:{},wamdaAutoRefreshEnabled:true,wamdaRefreshIntervalMinutes:15,
     catalogWriteApiTokenEncrypted:'', catalogWriteApiTokenCleared:false, catalogWriteApiKeys:[],
     paymentEnabled:cfg.paymentsEnabled, shamApiBase:cfg.apiBase, walletId:cfg.walletId,
     receiverLabel:cfg.receiverLabel, timezoneOffsetMinutes:cfg.timezoneOffsetMinutes,
@@ -944,7 +944,16 @@ function validateAndApplySettings(input) {
     next.wamdaApiTokenEncrypted=encryptSecret(input.wamdaApiToken.trim(),cfg.settingsEncryptionKey);next.wamdaApiTokenCleared=false;
   }
   if(input.clearWamdaApiToken===true){next.wamdaApiTokenEncrypted='';next.wamdaApiTokenCleared=true;}
-  if(input.wamdaProfitMarginPercent!==undefined) next.wamdaProfitMarginPercent=normalizeWamdaMargin(input.wamdaProfitMarginPercent);
+  if(input.wamdaProfitMarginPercent!==undefined){
+    next.wamdaProfitMarginPercent=normalizeWamdaMargin(input.wamdaProfitMarginPercent);
+    if(input.wamdaPricingPolicy===undefined)next.wamdaPricingPolicy={mode:'percent',value:next.wamdaProfitMarginPercent};
+  }
+  if(input.wamdaPricingPolicy!==undefined){
+    const rule=normalizeWamdaPricingRule(input.wamdaPricingPolicy);
+    if(!['percent','fixed_profit'].includes(rule.mode))throw new Error('INVALID_WAMDA_GLOBAL_PRICING_MODE');
+    next.wamdaPricingPolicy=rule;
+    next.wamdaProfitMarginPercent=rule.mode==='percent'?rule.value:0;
+  }
   if(input.wamdaAutoRefreshEnabled!==undefined){
     if(typeof input.wamdaAutoRefreshEnabled!=='boolean')throw new Error('INVALID_WAMDA_AUTO_REFRESH_ENABLED');
     next.wamdaAutoRefreshEnabled=input.wamdaAutoRefreshEnabled;
@@ -1074,27 +1083,59 @@ async function persistWamdaSettings(nextSettings){
   storeSettings=nextSettings;applyStoreSettings();
 }
 function getWamdaPricingContext(settings=storeSettings){
-  return {fxRate:Number(settings?.fxRate||145),marginPercent:normalizeWamdaMargin(settings?.wamdaProfitMarginPercent??0)};
+  const stored=settings?.wamdaPricingPolicy;
+  const globalRule=stored&&['percent','fixed_profit'].includes(stored.mode)
+    ?normalizeWamdaPricingRule(stored)
+    :{mode:'percent',value:normalizeWamdaMargin(settings?.wamdaProfitMarginPercent??0)};
+  return {
+    fxRate:Number(settings?.fxRate||145),
+    globalRule,
+    categoryPolicies:settings?.wamdaCategoryPricingPolicies&&typeof settings.wamdaCategoryPricingPolicies==='object'?settings.wamdaCategoryPricingPolicies:{},
+  };
 }
-function buildWamdaAdminCategories(categories){
+function getWamdaProductOverride(source,existing){
+  if(source?.pricingOverride)return source.pricingOverride;
+  if(existing?.wamda?.pricingOverride)return existing.wamda.pricingOverride;
+  if(existing?.wamda?.priceMode==='manual'&&Number(existing.wamda.manualPriceSyp)>0){
+    return {mode:'fixed_price',value:Number(existing.wamda.manualPriceSyp)};
+  }
+  return {mode:'inherit'};
+}
+function resolveWamdaProductPricing(source,settings=storeSettings,existing=null){
+  const context=getWamdaPricingContext(settings);
+  const categoryRule=context.categoryPolicies[String(source?.categoryId??existing?.wamda?.categoryId??'')];
+  return resolveWamdaPricingRule({
+    globalRule:context.globalRule,
+    categoryRule:categoryRule||null,
+    productRule:getWamdaProductOverride(source,existing),
+  });
+}
+function buildWamdaAdminCategories(categories,publishedCatalog=catalog,settings=storeSettings){
   const published=new Map();
-  for(const category of catalog) for(const product of category.items||[]){
+  for(const category of publishedCatalog||[]) for(const product of category.items||[]){
     if(product.wamda?.provider==='wamda')published.set(Number(product.wamda.productId),product);
   }
-  const {fxRate,marginPercent}=getWamdaPricingContext();
-  return (Array.isArray(categories)?categories:[]).map(category=>({
-    ...category,
-    products:(category.products||[]).map(source=>{
-      const existing=published.get(Number(source.id));
-      let calculatedSellPriceSyp=Number(source.calculatedSellPriceSyp||0);
-      try{calculatedSellPriceSyp=calculateWamdaSellPriceSyp({unitPriceUsd:source.unitPrice,fxRate,marginPercent});}catch{}
-      return {...source,calculatedSellPriceSyp,published:Boolean(existing),
-        currentPriceSyp:existing?.options?.[0]?.packs?.[0]?.[1]??calculatedSellPriceSyp,
-        priceMode:existing?.wamda?.priceMode||'auto',
-        manualPriceSyp:existing?.wamda?.manualPriceSyp??null,
-        available:source.available!==false};
-    }),
-  }));
+  const context=getWamdaPricingContext(settings);
+  return (Array.isArray(categories)?categories:[]).map(category=>{
+    const categoryPricingPolicy=context.categoryPolicies[String(category.id)]||{mode:'inherit'};
+    return {
+      ...category,
+      pricingPolicy:categoryPricingPolicy,
+      products:(category.products||[]).map(source=>{
+        const existing=published.get(Number(source.id));
+        const resolved=resolveWamdaProductPricing(source,settings,existing);
+        let calculatedSellPriceSyp=Number(source.calculatedSellPriceSyp||0);
+        try{calculatedSellPriceSyp=calculateWamdaSellPriceSyp({unitPriceUsd:source.unitPrice,fxRate:context.fxRate,pricingRule:resolved.rule});}catch{}
+        const pricingOverride=getWamdaProductOverride(source,existing);
+        return {...source,pricingOverride,resolvedPricingRule:resolved.rule,pricingSource:resolved.source,
+          calculatedSellPriceSyp,published:Boolean(existing),
+          currentPriceSyp:existing?.options?.[0]?.packs?.[0]?.[1]??calculatedSellPriceSyp,
+          priceMode:resolved.rule.mode==='fixed_price'?'manual':'auto',
+          manualPriceSyp:pricingOverride.mode==='fixed_price'?pricingOverride.value:null,
+          available:source.available!==false};
+      }),
+    };
+  });
 }
 async function persistWamdaSnapshot(nextCatalog,nextSettings){
   if(!pool)throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
@@ -1102,25 +1143,31 @@ async function persistWamdaSnapshot(nextCatalog,nextSettings){
     [JSON.stringify(nextCatalog),JSON.stringify(nextSettings)]);
   catalog=nextCatalog;storeSettings=nextSettings;applyStoreSettings();
 }
-async function repricePublishedWamdaProducts(){
-  const {fxRate,marginPercent}=getWamdaPricingContext();
+async function repricePublishedWamdaProducts(nextSettings=storeSettings){
+  const context=getWamdaPricingContext(nextSettings);
   const sources=new Map();
-  for(const category of storeSettings?.wamdaCatalogCache||[])for(const product of category.products||[])sources.set(Number(product.id),product);
+  for(const category of nextSettings?.wamdaCatalogCache||[])for(const product of category.products||[])sources.set(Number(product.id),product);
   let changed=false;
   const nextCatalog=catalog.map(category=>({
     ...category,
     items:(category.items||[]).map(existing=>{
       if(existing.wamda?.provider!=='wamda')return existing;
-      const source=sources.get(Number(existing.wamda.productId));
-      if(!source)return existing;
+      const source=sources.get(Number(existing.wamda.productId))||{
+        id:existing.wamda.productId,categoryId:existing.wamda.categoryId,unitPrice:existing.wamda.unitPrice,
+        pricingOverride:existing.wamda.pricingOverride||{mode:'inherit'},available:existing.wamda.available,
+      };
       try{
-        const updated=updateWamdaPublishedProduct(existing,source,{fxRate,marginPercent,syncedAt:storeSettings?.wamdaLastSyncAt||new Date().toISOString()});
+        const updated=updateWamdaPublishedProduct(existing,source,{
+          fxRate:context.fxRate,globalRule:context.globalRule,
+          categoryRule:context.categoryPolicies[String(source.categoryId??existing.wamda.categoryId)]||null,
+          syncedAt:nextSettings?.wamdaLastSyncAt||new Date().toISOString(),
+        });
         if(JSON.stringify(updated)!==JSON.stringify(existing))changed=true;
         return updated;
       }catch(error){return {...existing,wamda:{...existing.wamda,pricingError:String(error?.code||error?.message||'WAMDA_PRICE_ERROR').slice(0,120)}};}
     }),
   }));
-  if(changed)await persistCatalog(nextCatalog);
+  if(changed||nextSettings!==storeSettings)await persistWamdaSnapshot(nextCatalog,nextSettings);
   return {updated:changed};
 }
 
@@ -1147,6 +1194,10 @@ async function refreshWamdaCatalog({source='manual'}={}){
     }
     const categories=Array.from(groups.values()).sort((a,b)=>a.name.localeCompare(b.name,'ar'));
     const previous=Array.isArray(storeSettings?.wamdaCatalogCache)?storeSettings.wamdaCatalogCache:[];
+    const previousProducts=new Map(previous.flatMap(category=>(category.products||[]).map(product=>[Number(product.id),product])));
+    for(const category of categories)category.products=category.products.map(product=>({
+      ...product,...(previousProducts.get(Number(product.id))?.pricingOverride?{pricingOverride:previousProducts.get(Number(product.id)).pricingOverride}:{ }),
+    }));
     const categoryById=new Map(categories.map(category=>[Number(category.id),category]));
     for(const oldCategory of previous){
       for(const oldProduct of oldCategory.products||[]){
@@ -1160,7 +1211,8 @@ async function refreshWamdaCatalog({source='manual'}={}){
       }
     }
     const syncedAt=new Date().toISOString();
-    const {fxRate,marginPercent}=getWamdaPricingContext();
+    const pricingContext=getWamdaPricingContext();
+    const {fxRate,globalRule,categoryPolicies}=pricingContext;
     const remoteById=new Map(snapshot.products.map(product=>[Number(product.id),product]));
     let updatedPublished=0,unavailablePublished=0,manualOverrides=0;
     const nextCatalog=catalog.map(category=>({
@@ -1175,7 +1227,9 @@ async function refreshWamdaCatalog({source='manual'}={}){
           return next;
         }
         try{
-          const next=updateWamdaPublishedProduct(existing,current,{fxRate,marginPercent,syncedAt});
+          const next=updateWamdaPublishedProduct(existing,current,{
+            fxRate,globalRule,categoryRule:categoryPolicies[String(current.categoryId)]||null,syncedAt,
+          });
           updatedPublished++;
           if(next.wamda.priceMode==='manual')manualOverrides++;
           if(!next.wamda.available)unavailablePublished++;
@@ -1186,21 +1240,7 @@ async function refreshWamdaCatalog({source='manual'}={}){
         }
       }),
     }));
-    const publishedById=new Map();
-    for(const category of nextCatalog)for(const product of category.items||[]){
-      if(product.wamda?.provider==='wamda')publishedById.set(Number(product.wamda.productId),product);
-    }
-    const enriched=categories.map(category=>({
-      ...category,
-      products:(category.products||[]).map(product=>{
-        const published=publishedById.get(Number(product.id));
-        let calculatedSellPriceSyp=null;
-        try{calculatedSellPriceSyp=calculateWamdaSellPriceSyp({unitPriceUsd:product.unitPrice,fxRate,marginPercent});}catch{}
-        return {...product,calculatedSellPriceSyp,published:Boolean(published),
-          currentPriceSyp:published?.options?.[0]?.packs?.[0]?.[1]??calculatedSellPriceSyp,
-          priceMode:published?.wamda?.priceMode||'auto',manualPriceSyp:published?.wamda?.manualPriceSyp??null};
-      }),
-    }));
+    const enriched=buildWamdaAdminCategories(categories,nextCatalog,storeSettings);
     if(Buffer.byteLength(JSON.stringify(enriched),'utf8')>4_000_000)throw new Error('WAMDA_CATALOG_TOO_LARGE');
     const nextSettings={...storeSettings,wamdaAccountInfo:account,wamdaCatalogCache:enriched,
       wamdaLastSyncAt:syncedAt,wamdaLastRefreshAttemptAt:attemptedAt,wamdaLastError:''};
@@ -1235,23 +1275,105 @@ async function publishWamdaProduct(input){
   let workingCatalog=catalog;
   if(!workingCatalog.some(row=>row.id===localCategoryId))workingCatalog=validateCatalog([...workingCatalog,{id:localCategoryId,name:String(sourceCategory.name||'منتجات ومضة').slice(0,100),desc:'منتجات رقمية متزامنة مع ومضة ستور.',image:'assets/brand/logo.svg',icon:'⚡',items:[]}]);
   const existing=workingCatalog.flatMap(category=>category.items||[]).find(product=>product.id===localProductId);
+  const previousOverride=getWamdaProductOverride(sourceProduct,existing);
+  const pricingOverride=hasManualPrice?{mode:'fixed_price',value:manualPriceSyp}
+    :(input.resetToAutomatic===true?{mode:'inherit'}:previousOverride);
+  const updatedSource={...sourceProduct,pricingOverride};
+  const nextSettings={
+    ...storeSettings,
+    wamdaCatalogCache:categories.map(category=>Number(category.id)!==categoryId?category:{
+      ...category,products:(category.products||[]).map(product=>Number(product.id)===productId?updatedSource:product),
+    }),
+  };
   const base=existing||{
     id:localProductId,name:String(sourceProduct.name||('Wamda product '+productId)).slice(0,120),
-    desc:String(sourceProduct.description||'منتج رقمي مرتبط بمورد ومضة.').slice(0,700),image:'assets/brand/logo.svg',
+    desc:String(sourceProduct.description||'منتج رقمي مرتبط بمصدر ومضة.').slice(0,700),image:'assets/brand/logo.svg',
     options:[{id:'wamda-default',name:'الخيار الأساسي',desc:'منتج مرتبط بمصدر ومضة',flag:'⚡',packs:[['سعر البيع',1]]}],
   };
-  const nextWamda={...(base.wamda||{}),provider:'wamda',
-    priceMode:hasManualPrice?'manual':(input.resetToAutomatic===true?'auto':(base.wamda?.priceMode||'auto')),
-    manualPriceSyp:hasManualPrice?manualPriceSyp:(input.resetToAutomatic===true?null:(base.wamda?.manualPriceSyp??null)),
-  };
-  const {fxRate,marginPercent}=getWamdaPricingContext();
-  const updated=updateWamdaPublishedProduct({...base,wamda:nextWamda},sourceProduct,{fxRate,marginPercent,forceAutomatic:input.resetToAutomatic===true});
+  const updated=updateWamdaPublishedProduct({...base,wamda:{...(base.wamda||{}),provider:'wamda',pricingOverride}},
+    updatedSource,{
+      fxRate:Number(nextSettings.fxRate||145),
+      globalRule:getWamdaPricingContext(nextSettings).globalRule,
+      categoryRule:getWamdaPricingContext(nextSettings).categoryPolicies[String(categoryId)]||null,
+      forceAutomatic:input.resetToAutomatic===true,
+    });
   const result=upsertCatalogProduct(workingCatalog,localCategoryId,updated);
-  await persistCatalog(result.catalog);
+  await persistWamdaSnapshot(result.catalog,nextSettings);
   const finalPrice=updated.options?.[0]?.packs?.[0]?.[1]??null;
   return {ok:true,created:result.created,categoryId:localCategoryId,productId:result.productId,sellPriceSyp:finalPrice,
     priceMode:updated.wamda.priceMode,calculatedPriceSyp:updated.wamda.calculatedPriceSyp,
-    message:result.created?'تم نشر المنتج بالسعر المحسوب من ومضة.':(updated.wamda.priceMode==='manual'?'تم تثبيت السعر اليدوي للمنتج.':'تم إرجاع المنتج إلى التسعير التلقائي.')};
+    message:result.created?'تم نشر المنتج وفق سياسة التسعير التلقائية الحالية.':(updated.wamda.priceMode==='manual'?'تم تثبيت سعر البيع لهذا المنتج.':'تم إرجاع المنتج إلى تسعير القسم أو المتجر التلقائي.')};
+}
+function parseWamdaPricingOverride(mode,value){
+  if(mode==='inherit')return {mode:'inherit'};
+  return normalizeWamdaPricingRule({mode,value});
+}
+async function setWamdaProductPricing(input){
+  if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('INVALID_WAMDA_PRODUCT_PRICING');
+  const categoryId=Number(input.categoryId),productId=Number(input.productId);
+  if(!Number.isSafeInteger(categoryId)||categoryId<0||!Number.isSafeInteger(productId)||productId<=0)throw new Error('INVALID_WAMDA_PRODUCT_ID');
+  const override=parseWamdaPricingOverride(String(input.mode||''),input.value);
+  const categories=Array.isArray(storeSettings?.wamdaCatalogCache)?storeSettings.wamdaCatalogCache:[];
+  const sourceCategory=categories.find(row=>Number(row.id)===categoryId);
+  const sourceProduct=sourceCategory?.products?.find(row=>Number(row.id)===productId);
+  if(!sourceProduct)throw Object.assign(new Error('المنتج غير موجود في الكتالوج المستورد.'),{status:404});
+  const updatedSource={...sourceProduct,pricingOverride:override};
+  const nextSettings={...storeSettings,wamdaCatalogCache:categories.map(category=>Number(category.id)!==categoryId?category:{
+    ...category,products:(category.products||[]).map(product=>Number(product.id)===productId?updatedSource:product),
+  })};
+  const productKey='wamda-'+productId;
+  let nextCatalog=catalog;
+  let sellPriceSyp=null;
+  let resolvedPricingRule=null;
+  nextCatalog=catalog.map(category=>({...category,items:(category.items||[]).map(existing=>{
+    if(existing.wamda?.provider!=='wamda'||Number(existing.wamda.productId)!==productId)return existing;
+    const updated=updateWamdaPublishedProduct({...existing,wamda:{...existing.wamda,pricingOverride:override}},updatedSource,{
+      fxRate:Number(nextSettings.fxRate||145),globalRule:getWamdaPricingContext(nextSettings).globalRule,
+      categoryRule:getWamdaPricingContext(nextSettings).categoryPolicies[String(categoryId)]||null,
+    });
+    sellPriceSyp=updated.options?.[0]?.packs?.[0]?.[1]??null;
+    resolvedPricingRule=updated.wamda.resolvedPricingRule;
+    return updated;
+  })}));
+  await persistWamdaSnapshot(nextCatalog,nextSettings);
+  return {ok:true,productId:productKey,pricingOverride:override,sellPriceSyp,resolvedPricingRule,
+    message:override.mode==='inherit'?'تم ربط المنتج بتسعير القسم أو المتجر.':override.mode==='fixed_price'?'تم تثبيت سعر البيع لهذا المنتج.':'تم حفظ قاعدة التسعير التلقائي الخاصة بالمنتج.'};
+}
+async function setWamdaCategoryPricing(input){
+  if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('INVALID_WAMDA_CATEGORY_PRICING');
+  const categoryId=Number(input.categoryId);
+  if(!Number.isSafeInteger(categoryId)||categoryId<0)throw new Error('INVALID_WAMDA_CATEGORY_ID');
+  const mode=String(input.mode||'');
+  if(!['inherit','percent','fixed_profit'].includes(mode))throw new Error('INVALID_WAMDA_CATEGORY_PRICING_MODE');
+  const rule=parseWamdaPricingOverride(mode,input.value);
+  const policies={...(storeSettings?.wamdaCategoryPricingPolicies||{})};
+  if(mode==='inherit')delete policies[String(categoryId)];
+  else policies[String(categoryId)]=rule;
+  const nextSettings={...storeSettings,wamdaCategoryPricingPolicies:policies};
+  await repricePublishedWamdaProducts(nextSettings);
+  return {ok:true,categoryId,pricingPolicy:rule,message:mode==='inherit'?'القسم يستخدم تسعير المتجر العام الآن.':'تم حفظ سياسة التسعير التلقائي للقسم.'};
+}
+async function applyWamdaGlobalPricingToAll(){
+  const categories=(storeSettings?.wamdaCatalogCache||[]).map(category=>({...category,products:(category.products||[]).map(product=>({...product,pricingOverride:{mode:'inherit'}}))}));
+  const nextSettings={...storeSettings,wamdaCategoryPricingPolicies:{},wamdaCatalogCache:categories};
+  const context=getWamdaPricingContext(nextSettings);
+  const sources=new Map(categories.flatMap(category=>(category.products||[]).map(product=>[Number(product.id),product])));
+  const nextCatalog=catalog.map(category=>({...category,items:(category.items||[]).map(existing=>{
+    if(existing.wamda?.provider!=='wamda')return existing;
+    const source=sources.get(Number(existing.wamda.productId))||{
+      id:existing.wamda.productId,categoryId:existing.wamda.categoryId,unitPrice:existing.wamda.unitPrice,
+      available:existing.wamda.available,
+    };
+    return updateWamdaPublishedProduct({...existing,wamda:{...existing.wamda,pricingOverride:{mode:'inherit'}}},{
+      ...source,pricingOverride:{mode:'inherit'},
+    },{
+      fxRate:context.fxRate,globalRule:context.globalRule,
+      categoryRule:null,forceAutomatic:true,
+    });
+  })}));
+  await persistWamdaSnapshot(nextCatalog,nextSettings);
+  return {ok:true,categories:categories.length,products:categories.reduce((sum,category)=>sum+(category.products||[]).length,0),
+    message:'تمت إعادة جميع المنتجات المنشورة والأقسام إلى سياسة التسعير العامة.'};
 }
 async function testSeagmConnection() {
   const account = await seagmClient().getAccount();
@@ -1797,8 +1919,10 @@ const server = http.createServer(async (req,res) => {
         lastSyncAt:storeSettings?.wamdaLastSyncAt||null,lastRefreshAttemptAt:storeSettings?.wamdaLastRefreshAttemptAt||null,
         lastTestAt:storeSettings?.wamdaLastTestAt||null,lastError:storeSettings?.wamdaLastError||'',
         syncInProgress:wamdaCatalogSyncInProgress,webhookUrl:safeSettingsForAdmin().wamdaWebhookUrl,stats,categories,
-        pricing:{profitMarginPercent:Number(storeSettings?.wamdaProfitMarginPercent??0),fxRate:Number(storeSettings?.fxRate||145),
-          autoRefreshEnabled:storeSettings?.wamdaAutoRefreshEnabled!==false,refreshIntervalMinutes:Number(storeSettings?.wamdaRefreshIntervalMinutes||15)}});
+        pricing:{profitMarginPercent:Number(storeSettings?.wamdaProfitMarginPercent??0),
+          globalPolicy:getWamdaPricingContext().globalRule,categoryPolicies:getWamdaPricingContext().categoryPolicies,
+          fxRate:Number(storeSettings?.fxRate||145),autoRefreshEnabled:storeSettings?.wamdaAutoRefreshEnabled!==false,
+          refreshIntervalMinutes:Number(storeSettings?.wamdaRefreshIntervalMinutes||15)}});
     }
     if(req.method==='POST'&&url.pathname==='/api/admin/wamda/test'){
       if(rateLimit(req,res,'wamda-test:'+ip,5,60_000))return;
@@ -1826,6 +1950,26 @@ const server = http.createServer(async (req,res) => {
       const input=await bodyJson(req,16_384);
       try{return send(res,200,await publishWamdaProduct({...input,resetToAutomatic:true}));}
       catch(error){return send(res,error?.status||400,{ok:false,error:'WAMDA_AUTO_PRICE_RESET_FAILED',message:String(error?.message||'تعذر إعادة التسعير التلقائي.').slice(0,300)});}
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/wamda/catalog/product-pricing'){
+      if(rateLimit(req,res,'wamda-product-pricing:'+ip,60,60_000))return;
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const input=await bodyJson(req,16_384);
+      try{return send(res,200,await setWamdaProductPricing(input));}
+      catch(error){return send(res,error?.status||400,{ok:false,error:'WAMDA_PRODUCT_PRICING_FAILED',message:String(error?.message||'تعذر حفظ تسعير المنتج.').slice(0,300)});}
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/wamda/catalog/category-pricing'){
+      if(rateLimit(req,res,'wamda-category-pricing:'+ip,30,60_000))return;
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const input=await bodyJson(req,16_384);
+      try{return send(res,200,await setWamdaCategoryPricing(input));}
+      catch(error){return send(res,error?.status||400,{ok:false,error:'WAMDA_CATEGORY_PRICING_FAILED',message:String(error?.message||'تعذر حفظ تسعير القسم.').slice(0,300)});}
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/wamda/catalog/pricing/apply-all'){
+      if(rateLimit(req,res,'wamda-apply-global-pricing:'+ip,5,60_000))return;
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      try{return send(res,200,await applyWamdaGlobalPricingToAll());}
+      catch(error){return send(res,error?.status||400,{ok:false,error:'WAMDA_APPLY_GLOBAL_PRICING_FAILED',message:String(error?.message||'تعذر تطبيق التسعير العام على كل المنتجات.').slice(0,300)});}
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/seagm/catalog') {
       const categories = Array.isArray(storeSettings?.seagmCatalogCache) ? storeSettings.seagmCatalogCache : [];
@@ -1893,11 +2037,14 @@ const server = http.createServer(async (req,res) => {
       const previousSettings=storeSettings;
       const input = await bodyJson(req,3_000_000);
       const nextSettings = validateAndApplySettings(input);
-      await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
-      storeSettings = nextSettings;
-      applyStoreSettings();
-      if(previousSettings?.wamdaProfitMarginPercent!==nextSettings.wamdaProfitMarginPercent||previousSettings?.fxRate!==nextSettings.fxRate){
-        await repricePublishedWamdaProducts();
+      const pricingChanged=
+        JSON.stringify(previousSettings?.wamdaPricingPolicy||{mode:'percent',value:Number(previousSettings?.wamdaProfitMarginPercent??0)})!==JSON.stringify(nextSettings.wamdaPricingPolicy||{mode:'percent',value:Number(nextSettings.wamdaProfitMarginPercent??0)})||
+        JSON.stringify(previousSettings?.wamdaCategoryPricingPolicies||{})!==JSON.stringify(nextSettings.wamdaCategoryPricingPolicies||{})||
+        previousSettings?.fxRate!==nextSettings.fxRate;
+      if(pricingChanged)await repricePublishedWamdaProducts(nextSettings);
+      else{
+        await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+        storeSettings=nextSettings;applyStoreSettings();
       }
       return send(res,200,{ok:true,settings:safeSettingsForAdmin(),paymentsReady,fxReady:fxRateReady()});
     }
