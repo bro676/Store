@@ -809,7 +809,7 @@ $('wamdaCatalogResults').addEventListener('click',async event=>{
   let endpoint='/api/admin/wamda/catalog/publish',payload={categoryId,productId};
   if(button.hasAttribute('data-manual-wamda')){
     if(!price||!Number.isFinite(Number(price))||Number(price)<=0){toast('أدخل السعر اليدوي بالليرة السورية الجديدة أولاً.');row.querySelector('[data-wamda-price]')?.focus();return;}
-    endpoint='/api/admin/wamda/catalog/price';payload.sellPriceSyp: price;
+    endpoint='/api/admin/wamda/catalog/price';payload.sellPriceSyp=price;
   }else if(button.hasAttribute('data-reset-wamda-price')){
     endpoint='/api/admin/wamda/catalog/price/reset';
   }
