@@ -122,7 +122,7 @@ curl https://YOUR-STORE.example/api/admin/shamcash/wallets \
 - الأسعار في `catalog.json` ما زالت أسعاراً توضيحية من النسخة السابقة؛ لا تشغّل الدفع قبل اعتمادها تجارياً.
 - مفتاح API لا يظهر في JavaScript ولا في الاستجابة العامة.
 - `PAYMENTS_ENABLED` افتراضياً false، ولا نملك بيانات اعتماد حساب التاجر في هذا المشروع؛ يجب إدخالها على الاستضافة بنفسك.
-- لم تُنفّذ خدمة تسليم المنتجات بعد الدفع. هذا التكامل يثبت حالة الدفع فقط؛ ربط مزود التسليم/إرسال الشحن يحتاج API منفصلاً.
+- تم تنفيذ دورة تسليم SEAGM بعد تأكيد الدفع كما هو موضح في قسم **SEAGM fulfillment** أدناه. لا يتم شراء أي منتج من المورد قبل نجاح التحقق من فاتورة Sham Cash وتسجيل الدفع في معاملة PostgreSQL.
 - لم تُنفّذ معاملة مالية فعلية من بيئة الاختبار؛ تحقق من حسابك الحقيقي بعد ضبط الأسرار والصلاحيات.
 
 
@@ -193,3 +193,48 @@ Body:
 ```
 
 A matching product ID is updated; a new product ID is inserted into the selected existing category. The response returns HTTP 201 for creation and HTTP 200 for update. Pack prices are in new SYP and are validated server-side.
+
+
+## SEAGM fulfillment — automatic supplier delivery
+
+SEAGM supplier orders are created **only after** Sham Cash verification succeeds. Creating a Nexa order or invoice never triggers a supplier purchase.
+
+### Credentials and setup
+
+1. Open Admin → SEAGM Supplier.
+2. Start with the **Sandbox** environment.
+3. Enter the SEAGM UID and Secret Key and save them. The secret is encrypted at rest and is never returned to the browser.
+4. Use **Test account** to call the signed `GET /v1/me` endpoint.
+5. Refresh the product catalogue, publish a low-cost test product, and confirm its local selling price in new SYP.
+6. Confirm the SEAGM test account can buy both the card and/or direct-recharge type you intend to test.
+7. After a successful Sandbox order and receipt, change to Production and repeat with a low-value product.
+
+The merchant account needs an available SEAGM Credits balance for the supplier's `pay_amount_credits`. The store's selling price is separate from SEAGM's supplier charge/currency; review your margin and supplier balance before enabling live catalogue products.
+
+### Purchase lifecycle
+
+1. The buyer places an order for a published SEAGM product. The server validates quantity, product type, and all provider-required customer fields.
+2. Nexa creates the Sham Cash invoice and stores the same Nexa order ID as the supplier `mch_order_id`. A unique database index prevents reuse of that merchant order ID.
+3. The buyer pays. The existing Sham Cash checks must all pass: incoming credit, correct receiver wallet, exact amount and currency, transaction time, invoice status, and one-time transaction reference.
+4. In the same PostgreSQL transaction that marks the Nexa order as paid, the server inserts one `nexa_fulfillment_jobs` row. An unpaid or unverified order cannot enter the supplier queue.
+5. The worker first queries SEAGM by the same `mch_order_id`. It only creates a new card/recharge order if no supplier order exists. If the create request times out or SEAGM reports a duplicate merchant ID, the worker reconciles by that same ID before considering another create request.
+6. Card orders are delivered only when the provider reports `status_code=10003`, `pay_status_code=2`, and `send_status_code=3`, with a complete card serial and PIN for every requested item. Card serials and PINs are encrypted before being stored; they are returned only with the matching Nexa order receipt.
+7. Direct top-up orders are marked completed only after the same documented completed/paid/done status tuple. The receipt reports the supplier's delivery amount/time where provided.
+
+### Status, retry, and support behavior
+
+- `pending_payment`: waiting for the buyer's Sham Cash payment; no supplier job exists yet.
+- `pending`: payment was verified and the supplier job is queued.
+- `waiting`: SEAGM accepted the supplier order; Nexa is checking the existing order ID for completion.
+- `completed`: SEAGM confirms paid + done, and the expected card data (if applicable) is present.
+- `manual_review`: the supplier returned a non-retryable condition, a refund/unknown status, mismatched order details, incomplete card data, or a blocked IP response.
+
+The worker polls pending supplier orders for up to 120 checks, with a capped interval of five minutes. Transport/server errors have a separate counter (maximum 12 attempts), so long-running supplier fulfilment does not consume the network retry allowance. HTTP 429 honours `Retry-After`; HTTP 418 (blocked IP) is stopped immediately and sent to manual review. Validation errors, insufficient Credits, and invalid player/account data are not blindly retried.
+
+Admin → Orders shows the supplier state and has a manual retry action for eligible paid orders. Manual retry reuses the original merchant order ID and performs a lookup before any create call. A completed supplier order cannot be purchased again.
+
+### What is and is not tested before credentials are added
+
+The CI suite uses mocked SEAGM responses; it tests request signing, card/recharge payloads, order lookup by `mch_order_id`, paid/done status evaluation, encrypted delivery-result storage, retry/backoff, and the no-duplicate enqueue/reconciliation rules. It does not spend SEAGM Credits or create a real supplier order.
+
+Once you add your own credentials, run the connection test in Sandbox and place one low-value end-to-end test order. Only then switch the environment to Production.
