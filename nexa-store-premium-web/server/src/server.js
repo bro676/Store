@@ -12,6 +12,7 @@ import {
   validateCatalog, mergeCatalog, upsertCatalogProduct, isSafeCatalogImage, getJsonPath, normalizeFxRate, validateCatalogApiUrl,
 } from './admin-core.js';
 import { createSeagmClient } from './seagm-api.js';
+import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSignature } from './seagm-webhook.js';
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -85,6 +86,29 @@ function send(res, status, data, extraHeaders = {}) {
   });
   res.end(body);
 }
+
+function sendText(res, status, value) {
+  const body = String(value);
+  res.writeHead(safeHttpStatus(status), {
+    'Content-Type':'text/plain; charset=utf-8',
+    'Content-Length':Buffer.byteLength(body),
+    'Cache-Control':'no-store',
+    'X-Content-Type-Options':'nosniff',
+  });
+  res.end(body);
+}
+async function bodyText(req, maxBytes = 32 * 1024) {
+  const chunks = [];
+  let total = 0;
+  for await (const chunk of req) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buffer.length;
+    if (total > maxBytes) throw Object.assign(new Error('BODY_TOO_LARGE'), { status:413 });
+    chunks.push(buffer);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
 function rateLimit(req, res, key, max = 12, windowMs = 60_000) {
   const now = Date.now(); const old = rate.get(key);
   if (!old || now >= old.until) { rate.set(key, { count: 1, until: now + windowMs }); return false; }
@@ -1309,6 +1333,65 @@ const server = http.createServer(async (req,res) => {
   const ip = String(process.env.TRUST_PROXY === 'true' ? (req.headers['x-forwarded-for'] || req.socket.remoteAddress) : req.socket.remoteAddress || 'unknown').split(',')[0].trim();
   try {
     if (req.method === 'GET' && url.pathname === '/api/health') return send(res,200,{ok:true,service:'nexa-shamcash-gateway',paymentsReady,dbReady:Boolean(pool)});
+
+    if (req.method === 'POST' && url.pathname === '/api/webhooks/seagm') {
+      if (!pool) return sendText(res,503,'store database is not ready');
+      if (!storeSettings?.seagmUid || !seagmSecretRuntime) return sendText(res,503,'SEAGM callback is not configured');
+
+      let callbackParams;
+      try {
+        const rawBody = await bodyText(req,32 * 1024);
+        const bodyParams = parseSeagmCallbackBody(rawBody,req.headers['content-type'] || '');
+        callbackParams = mergeSeagmCallbackParams(url.searchParams,bodyParams);
+      } catch (error) {
+        const status = Number(error?.status) === 413 ? 413 : 400;
+        return sendText(res,status,'invalid callback payload');
+      }
+
+      if (!verifySeagmCallbackSignature(callbackParams,seagmSecretRuntime,{
+        expectedUid:storeSettings.seagmUid,
+        nowMs:Date.now(),
+      })) {
+        return sendText(res,401,'invalid callback signature');
+      }
+
+      const merchantOrderId = String(callbackParams.mch_order_id || '');
+      if (!/^NX-[A-F0-9]{20}$/.test(merchantOrderId)) return sendText(res,400,'invalid merchant order id');
+
+      const found = await pool.query(`
+        SELECT o.id,o.status,o.supplier_provider,o.supplier_status,j.status AS job_status
+        FROM nexa_orders o
+        LEFT JOIN nexa_fulfillment_jobs j ON j.order_id=o.id
+        WHERE o.id=$1 AND o.supplier_mch_order_id=$1
+        LIMIT 1
+      `,[merchantOrderId]);
+      if (!found.rowCount || found.rows[0].supplier_provider !== 'seagm') {
+        return sendText(res,404,'order not found');
+      }
+
+      const order = found.rows[0];
+      if (order.status !== 'paid' || !order.job_status) {
+        return sendText(res,409,'order is not eligible for supplier reconciliation');
+      }
+
+      // A callback is only a signed wake-up signal. The worker fetches the current
+      // order from SEAGM and verifies merchant ID, product, quantity and final status.
+      // It never trusts callback status fields or card data as proof of delivery.
+      if (order.supplier_status !== 'completed' &&
+          !['completed','manual_review'].includes(order.job_status)) {
+        await pool.query(`
+          UPDATE nexa_fulfillment_jobs
+          SET next_attempt_at=NOW(),updated_at=NOW()
+          WHERE order_id=$1 AND status IN ('pending','retry','processing')
+        `,[merchantOrderId]);
+        runSeagmFulfillmentWorker().catch(error =>
+          console.error('SEAGM callback worker wake failed',String(error?.code || error?.message || 'unknown').slice(0,120))
+        );
+      }
+
+      return sendText(res,200,'success');
+    }
+
 
     if (req.method === 'POST' && url.pathname === '/api/admin/session') {
       if (rateLimit(req,res,`admin-login:${ip}`,6,10*60_000)) return;
