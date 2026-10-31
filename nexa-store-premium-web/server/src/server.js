@@ -12,6 +12,8 @@ import {
   validateCatalog, mergeCatalog, upsertCatalogProduct, isSafeCatalogImage, getJsonPath, normalizeFxRate, validateCatalogApiUrl,
 } from './admin-core.js';
 import { createSeagmClient } from './seagm-api.js';
+import { createWamdaClient } from './wamda-api.js';
+import { wamdaOrderDecision, classifyWamdaError } from './wamda-fulfillment.js';
 import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSignature } from './seagm-webhook.js';
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
 
@@ -24,6 +26,9 @@ let catalogApiTokenRuntime = '';
 let catalogWriteApiTokenRuntime = '';
 let catalogApiSyncInProgress = false;
 let seagmSecretRuntime = '';
+let wamdaApiTokenRuntime = '';
+let wamdaWebhookSecretRuntime = '';
+let wamdaCatalogSyncInProgress = false;
 let seagmCatalogSyncInProgress = false;
 let seagmFulfillmentWorkerBusy = false;
 const { Pool } = pg;
@@ -613,6 +618,8 @@ function defaultStoreSettings() {
     catalogApiTokenEncrypted:'', catalogApiTokenCleared:false,
     seagmEnvironment:'sandbox', seagmUid:'', seagmSecretEncrypted:'', seagmSecretCleared:false,
     seagmCatalogCache:[], seagmAccountInfo:null, seagmLastSyncAt:null, seagmLastTestAt:null, seagmLastError:'',
+    wamdaApiTokenEncrypted:'',wamdaApiTokenCleared:false,wamdaWebhookSecretEncrypted:'',
+    wamdaCatalogCache:[],wamdaAccountInfo:null,wamdaLastSyncAt:null,wamdaLastTestAt:null,wamdaLastError:'',
     catalogWriteApiTokenEncrypted:'', catalogWriteApiTokenCleared:false, catalogWriteApiKeys:[],
     paymentEnabled:cfg.paymentsEnabled, shamApiBase:cfg.apiBase, walletId:cfg.walletId,
     receiverLabel:cfg.receiverLabel, timezoneOffsetMinutes:cfg.timezoneOffsetMinutes,
@@ -647,6 +654,8 @@ function applyStoreSettings() {
   try {
     seagmSecretRuntime = storeSettings.seagmSecretCleared ? '' : (storeSettings.seagmSecretEncrypted ? decryptSecret(storeSettings.seagmSecretEncrypted, cfg.settingsEncryptionKey) : '');
   } catch { seagmSecretRuntime = ''; }
+  try { wamdaApiTokenRuntime=storeSettings.wamdaApiTokenCleared?'':(storeSettings.wamdaApiTokenEncrypted?decryptSecret(storeSettings.wamdaApiTokenEncrypted,cfg.settingsEncryptionKey):''); } catch { wamdaApiTokenRuntime=''; }
+  try { wamdaWebhookSecretRuntime=storeSettings.wamdaWebhookSecretEncrypted?decryptSecret(storeSettings.wamdaWebhookSecretEncrypted,cfg.settingsEncryptionKey):''; } catch { wamdaWebhookSecretRuntime=''; }
   cachedShamWallet = null;
   cachedShamWalletAt = 0;
   refreshPaymentsReady();
@@ -682,6 +691,10 @@ async function initializeStoreState() {
     if (themeMigrated) {
       await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(storeSettings)]);
     }
+  }
+  if(!storeSettings.wamdaWebhookSecretEncrypted){
+    storeSettings.wamdaWebhookSecretEncrypted=encryptSecret(crypto.randomBytes(36).toString('base64url'),cfg.settingsEncryptionKey);
+    await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(storeSettings)]);
   }
   applyStoreSettings();
 }
@@ -775,19 +788,15 @@ async function refreshAutomaticFx() {
   }
 }
 function safeSettingsForAdmin() {
-  const {
-    shamApiTokenEncrypted, fxApiTokenEncrypted, catalogApiTokenEncrypted, catalogWriteApiTokenEncrypted,
-    seagmSecretEncrypted, seagmCatalogCache = [], catalogWriteApiKeys = [], ...settings
-  } = storeSettings || {};
-  return {
-    ...settings,
-    catalogWriteApiKeys:catalogWriteApiKeys.map(({id,name,createdAt})=>({id,name,createdAt})),
-    shamApiTokenConfigured:Boolean(cfg.apiToken),
-    fxApiTokenConfigured:Boolean(fxApiTokenRuntime),
-    catalogApiTokenConfigured:Boolean(catalogApiTokenRuntime),
-    catalogWriteApiTokenConfigured:Boolean(catalogWriteApiTokenRuntime || catalogWriteApiKeys.length),
-    seagmSecretConfigured:Boolean(seagmSecretRuntime),
+  const {shamApiTokenEncrypted,fxApiTokenEncrypted,catalogApiTokenEncrypted,catalogWriteApiTokenEncrypted,seagmSecretEncrypted,seagmCatalogCache=[],catalogWriteApiKeys=[],wamdaApiTokenEncrypted,wamdaWebhookSecretEncrypted,wamdaCatalogCache=[],...settings}=storeSettings||{};
+  const publicBase=String(process.env.PUBLIC_BASE_URL||'https://nexa-store-9st4.onrender.com').replace(/\/+$/,'');
+  return {...settings,catalogWriteApiKeys:catalogWriteApiKeys.map(({id,name,createdAt})=>({id,name,createdAt})),
+    shamApiTokenConfigured:Boolean(cfg.apiToken),fxApiTokenConfigured:Boolean(fxApiTokenRuntime),catalogApiTokenConfigured:Boolean(catalogApiTokenRuntime),
+    catalogWriteApiTokenConfigured:Boolean(catalogWriteApiTokenRuntime||catalogWriteApiKeys.length),seagmSecretConfigured:Boolean(seagmSecretRuntime),
     seagmProductCount:seagmCatalogCache.reduce((sum,category)=>sum+(category.products||[]).length,0),
+    wamdaApiTokenConfigured:Boolean(wamdaApiTokenRuntime),wamdaWebhookConfigured:Boolean(wamdaWebhookSecretRuntime),
+    wamdaWebhookUrl:wamdaWebhookSecretRuntime?publicBase+'/api/webhooks/wamda/'+encodeURIComponent(wamdaWebhookSecretRuntime):'',
+    wamdaProductCount:wamdaCatalogCache.reduce((sum,category)=>sum+(category.products||[]).length,0),
   };
 }
 function validateAndApplySettings(input) {
@@ -904,6 +913,11 @@ function validateAndApplySettings(input) {
     next.catalogApiTokenCleared = false;
   }
   if (input.clearCatalogApiToken === true) { next.catalogApiTokenEncrypted = ''; next.catalogApiTokenCleared = true; }
+  if(input.wamdaApiToken!==undefined&&input.wamdaApiToken!==''){
+    if(typeof input.wamdaApiToken!=='string'||input.wamdaApiToken.length>1024||!input.wamdaApiToken.trim()) throw new Error('INVALID_WAMDA_API_TOKEN');
+    next.wamdaApiTokenEncrypted=encryptSecret(input.wamdaApiToken.trim(),cfg.settingsEncryptionKey);next.wamdaApiTokenCleared=false;
+  }
+  if(input.clearWamdaApiToken===true){next.wamdaApiTokenEncrypted='';next.wamdaApiTokenCleared=true;}
   return next;
 }
 
