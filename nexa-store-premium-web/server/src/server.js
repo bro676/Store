@@ -1956,7 +1956,6 @@ const server = http.createServer(async (req,res) => {
         .replace(/\bNX-[A-Z0-9-]{8,}\b/gi,'[رقم طلب محذوف]')
         .replace(/(?:\+?\d[\d\s().-]{7,}\d)/g,'[رقم هاتف محذوف]');
       const safeMessage=redactAssistantText(message);
-      const prior=Array.isArray(input.history)?input.history.slice(-8):[];
       const transcript=prior.map(item=>{
         const role=item?.role==='assistant'?'المساعد':'العميل';
         const content=redactAssistantText(item?.content).replace(/[\u0000-\u001f]/g,' ').slice(0,500);
