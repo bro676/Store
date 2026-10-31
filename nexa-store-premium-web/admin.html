@@ -832,7 +832,47 @@ $('catalogEditor').addEventListener('input',e=>{if(e.target.dataset.packLabel){c
 $('addCategoryBtn').addEventListener('click',()=>{state.catalog.push({id:'category-'+Date.now().toString(36),name:'قسم جديد',desc:'وصف القسم',image:'assets/categories/custom.svg',icon:'✦',items:[]});state.categoryIndex=state.catalog.length-1;renderCatalog()});
 $('addProductBtn').addEventListener('click',()=>{const c=activeCategory();if(!c)return;c.items.push({id:'product-'+Date.now().toString(36),name:'منتج جديد',desc:'وصف المنتج',image:'assets/products/website.svg',options:[{id:'option-'+Date.now().toString(36),name:'الخيار الأساسي',desc:'',flag:'✦',packs:[['باقة جديدة',0]]}]});renderCatalog()});
 $('saveCatalogBtn').addEventListener('click',async()=>{const b=$('saveCatalogBtn');b.disabled=true;try{await api('/api/admin/catalog',{method:'PUT',body:JSON.stringify({catalog:state.catalog})});toast('تم حفظ الكتالوج والصور على قاعدة البيانات.')}catch(e){toast(e.message)}finally{b.disabled=false}});
-async function loadSettings(){const d=await api('/api/admin/settings');state.settings=d.settings||{};renderSettings(d)}
+async function loadSettings(){const d=await api('/api/admin/settings');state.settings=d.settings||{};renderSettings(d);renderNexaAiSettings()}
+
+function renderNexaAiSettings(){
+ const configured=Boolean(state.settings.nexaAiConfigured);
+ if($('nexaAiApiKey'))$('nexaAiApiKey').value='';
+ if($('clearNexaAiApiKey'))$('clearNexaAiApiKey').checked=false;
+ if($('nexaAiModel'))$('nexaAiModel').value=state.settings.nexaAiModel||'gemini-3.8-flash';
+ if($('nexaAiKeyState'))$('nexaAiKeyState').textContent=configured?'يوجد مفتاح محفوظ ومشفّر على الخادم. اترك الحقل فارغاً للاحتفاظ به.':'لا يوجد مفتاح محفوظ. أنشئ مفتاحاً من Google AI Studio ثم أدخله هنا.';
+ if($('nexaAiBadge'))$('nexaAiBadge').textContent=configured?'المساعد مهيأ':'غير مفعّل';
+ if($('nexaAiStatus'))$('nexaAiStatus').textContent=configured?'مفتاح Gemini محفوظ. اختبر الاتصال للتأكد من صلاحيته.':'المساعد غير مفعّل حتى تحفظ مفتاح API صالحاً.';
+}
+async function saveNexaAiSettings(){
+ const payload={nexaAiModel:$('nexaAiModel').value,clearNexaAiApiKey:$('clearNexaAiApiKey').checked};
+ const token=$('nexaAiApiKey').value.trim();if(token)payload.nexaAiApiKey=token;
+ const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(payload)});
+ state.settings=d.settings||state.settings;
+ renderNexaAiSettings();
+ $('nexaAiStatus').textContent=state.settings.nexaAiConfigured?'تم حفظ مفتاح Gemini مشفّراً. اضغط اختبار الاتصال للتحقق منه.':'تم حذف مفتاح المساعد. المساعد غير مفعّل الآن.';
+ toast('تم حفظ إعدادات مساعد Nexa.');
+ return d;
+}
+$('saveNexaAiSettingsBtn').addEventListener('click',async()=>{
+ const button=$('saveNexaAiSettingsBtn');button.disabled=true;
+ try{await saveNexaAiSettings();}
+ catch(error){$('nexaAiStatus').textContent=error.message;toast(error.message);}
+ finally{button.disabled=false;}
+});
+$('testNexaAiBtn').addEventListener('click',async()=>{
+ const button=$('testNexaAiBtn');button.disabled=true;$('nexaAiStatus').textContent='جارٍ اختبار الاتصال بنموذج Gemini…';
+ try{
+  await saveNexaAiSettings();
+  const result=await api('/api/admin/ai/test',{method:'POST',body:'{}'});
+  $('nexaAiBadge').textContent='متصل';
+  $('nexaAiStatus').textContent='نجح الاتصال · '+result.model+' · '+result.reply;
+  toast('مساعد Nexa متصل بنجاح.');
+ }catch(error){
+  $('nexaAiBadge').textContent='فشل الاتصال';
+  $('nexaAiStatus').textContent=error.message;
+  toast(error.message);
+ }finally{button.disabled=false;}
+});
 function renderSettings(d={}){const s=state.settings;$('storeName').value=s.storeName||'Nexa Store';$('announcement').value=s.announcement||'';$('storeLogo').value=s.storeLogo||'assets/brand/logo.svg';$('storeLogoPreview').src=s.storeLogo||'assets/brand/logo.svg';$('themePrimary').value=s.themePrimary||'#397fda';$('themeSecondary').value=s.themeSecondary||'#65b8d7';$('themeAccent').value=s.themeAccent||'#8076d6';applyAdminTheme($('themePrimary').value,$('themeSecondary').value,$('themeAccent').value);$('paymentEnabled').checked=!!s.paymentEnabled;$('shamApiBase').value=s.shamApiBase||'https://apis-shamcash.com/api';$('shamApiToken').value='';$('clearShamApiToken').checked=false;$('shamTokenState').textContent=s.shamApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لم يتم ضبط مفتاح بعد.';$('receiverLabel').value=s.receiverLabel||'';$('walletId').value=s.walletId||'';$('orderTtlMinutes').value=s.orderTtlMinutes??15;$('maxAgeMinutes').value=s.maxAgeMinutes??15;$('futureSkewSeconds').value=s.futureSkewSeconds??90;$('timezoneOffsetMinutes').value=s.timezoneOffsetMinutes??180;$('paymentStatus').textContent=d.paymentsReady?'الدفع مفعّل وجاهز':'الدفع غير جاهز';
  $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;renderCatalogApiKeys();$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';$('seagmEnvironment').value=s.seagmEnvironment||'sandbox';$('seagmUid').value=s.seagmUid||'';$('seagmSecret').value='';$('clearSeagmSecret').checked=false;$('seagmSecretState').textContent=s.seagmSecretConfigured?'يوجد Secret Key محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لا يوجد Secret Key محفوظ.';$('wamdaApiToken').value='';$('clearWamdaApiToken').checked=false;$('wamdaTokenState').textContent=s.wamdaApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';$('wamdaWebhookUrl').value=s.wamdaWebhookUrl||'';$('copyWamdaWebhookBtn').disabled=!s.wamdaWebhookUrl;const globalWamdaPolicy=s.wamdaPricingPolicy||{mode:'percent',value:s.wamdaProfitMarginPercent??0};$('wamdaGlobalPricingMode').value=globalWamdaPolicy.mode==='fixed_profit'?'fixed_profit':'percent';$('wamdaGlobalPricingValue').value=globalWamdaPolicy.value??0;$('wamdaAutoRefreshEnabled').checked=s.wamdaAutoRefreshEnabled!==false;$('wamdaRefreshIntervalMinutes').value=s.wamdaRefreshIntervalMinutes??15;$('wamdaFxRateDisplay').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س لكل 1 USD';}
 $('fxMode').addEventListener('change',()=>{$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api')});
@@ -1202,6 +1242,7 @@ $('ordersBody').addEventListener('click',async e=>{
  }
 });
 $('fxRate').addEventListener('input',()=>{$('fxPreview').textContent=(Number($('fxRate').value)||0).toLocaleString('en-US')+' ل.س'});
+initializeAdminColorMode();
 async function boot(){try{await api('/api/admin/session');showApp();await loadAll()}catch{showLogin()}}
 boot();
 </script>
