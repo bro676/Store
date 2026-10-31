@@ -805,7 +805,7 @@ function renderCatalog(){const target=$('catalogContent');if(!target)return;cons
 function openItem(itemId){const it=getItem(itemId);if(!it)return;state.category=categories.find(c=>c.items.some(x=>x.id===itemId)).id;state.item=itemId;state.option=null;navigate('store');}
 function resetCatalog(){state.category=null;state.item=null;state.option=null;}
 function openOrder(packIndex){
- const it=getItem(state.item),op=getOption(state.option),p=op.packs[packIndex],supplier=it.seagm||null;
+ const it=getItem(state.item),op=getOption(state.option),p=op.packs[packIndex],supplier=it.wamda||it.seagm||null;
  state.selectedPack={category:state.category,item:state.item,option:state.option,index:packIndex,name:`${it.name} — ${op.name} — ${p[0]}`,price:p[1],image:it.image,supplier:!!supplier};
  $('modalProduct').textContent=it.name+' — '+p[0];$('modalOption').textContent=op.name+' · باقة مختارة';$('modalImage').src=it.image;$('modalPrice').textContent=money(p[1]);
  $('orderCurrency').value='SYP';
@@ -823,7 +823,10 @@ function openOrder(packIndex){
    return '<select data-seagm-field="'+esc(key)+'" '+(parentField?'data-seagm-parent-field="true" ':'')+(required?'required':'')+'><option value="">اختر '+esc(field.label||key)+'</option>'+choices.map(option=>'<option value="'+esc(option.value)+'">'+esc(option.label||option.value)+'</option>').join('')+'</select>';
   }
   if(field.multiline)return '<textarea data-seagm-field="'+esc(key)+'" maxlength="500" placeholder="'+esc(field.placeholder||field.prefix||'')+'" '+(required?'required':'')+'></textarea>';
-  return '<input type="text" data-seagm-field="'+esc(key)+'" maxlength="500" placeholder="'+esc(field.placeholder||field.prefix||'')+'" '+(required?'required':'')+'>';
+  const inputType=['number','email','url'].includes(String(field.type||'').toLowerCase())?String(field.type).toLowerCase():'text';
+  const minAttr=inputType==='number'&&Number.isFinite(Number(field.min))?' min="'+esc(field.min)+'"':'';
+  const maxAttr=inputType==='number'&&Number.isFinite(Number(field.max))?' max="'+esc(field.max)+'"':'';
+  return '<input type="'+inputType+'" data-seagm-field="'+esc(key)+'" maxlength="500"'+minAttr+maxAttr+' placeholder="'+esc(field.placeholder||field.prefix||'')+'" '+(required?'required':'')+'>';
  };
  fieldBox.innerHTML=definitions.map(field=>{
   const key=String(field.submitField||field.name||'');
@@ -882,7 +885,7 @@ async function doOrder(e){
  const button=form.querySelector('button[type="submit"]');if(!button||button.disabled)return;
  const originalText=button.textContent;button.disabled=true;button.textContent='جارٍ إنشاء فاتورة شام كاش…';
  try{
-  const pack=state.selectedPack,product=getItem(pack.item),supplier=product?.seagm||null;
+  const pack=state.selectedPack,product=getItem(pack.item),supplier=product?.wamda||product?.seagm||null;
   const quantity=supplier?Number($('orderQuantity').value||1):1,supplierFields={};
   if(supplier){
    for(const control of document.querySelectorAll('[data-seagm-field]'))supplierFields[control.dataset.seagmField]=control.value;
