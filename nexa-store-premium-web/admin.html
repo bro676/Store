@@ -770,7 +770,7 @@ ${field('الوصف',base+'.desc',p.desc,{type:'textarea',full:true})}
 <div class="field full"><label>صورة المنتج</label><div class="image-row"><img class="image-preview" src="${esc(p.image)}" alt=""><div><input data-path="${base}.image" value="${esc(p.image)}" placeholder="رابط صورة HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${base}.image"></label></div></div></div>
 </div>
 <div class="option-list">${(p.options||[]).map((o,oi)=>renderOption(o,base,oi,p.image)).join('')}</div>
-<div class="toolbar" style="margin-top:12px"><button class="add-row" data-add-option="${ci}.${pi}">＋ إضافة منطقة / خطة</button><button class="btn danger" data-remove-product="${ci}.${pi}">حذف المنتج</button></div>
+<div class="toolbar" style="margin-top:12px"><button class="add-row" data-add-option="${ci}.${pi}">＋ إضافة منطقة / خطة</button>${Object.keys(p.manualOverrides||{}).length?'<button class="btn soft" type="button" data-reset-manual="'+ci+'.'+pi+'">استعادة بيانات API</button>':''}<button class="btn danger" data-remove-product="${ci}.${pi}">حذف المنتج</button></div>
 </div></details>`;}
 function renderOption(o,base,oi,fallbackImage){const path=base+`.options.${oi}`;return `
 <div class="option-editor"><div class="option-head"><strong>الخيار ${oi+1}</strong><button class="icon-btn" data-remove-option="${path}" title="حذف الخيار">×</button></div>
@@ -785,6 +785,17 @@ ${field('العلم / الرمز',path+'.flag',o.flag||'✦')}
 <button class="add-row" data-add-pack="${path}">＋ إضافة باقة</button>
 </div>`;}
 $('categoryList').addEventListener('click',e=>{const b=e.target.closest('[data-category-index]');if(!b)return;state.categoryIndex=Number(b.dataset.categoryIndex);renderCatalog()});
+$('catalogEditor').addEventListener('click',async e=>{
+ const button=e.target.closest('[data-reset-manual]');if(!button)return;
+ const [ci,pi]=button.dataset.resetManual.split('.').map(Number);
+ const category=state.catalog[ci],product=category?.items?.[pi];if(!category||!product)return;
+ if(!confirm('استعادة الاسم والوصف والصورة والخيارات من آخر نسخة API؟ ستُحذف التعديلات اليدوية لهذا المنتج.'))return;
+ button.disabled=true;
+ try{
+  await api('/api/admin/catalog/'+encodeURIComponent(category.id)+'/'+encodeURIComponent(product.id)+'/restore-api',{method:'POST',body:'{}'});
+  await loadCatalog();toast('تمت استعادة بيانات المنتج من API.');
+ }catch(error){toast(error.message);button.disabled=false;}
+});
 $('catalogEditor').addEventListener('input',e=>{const el=e.target;if(el.dataset.path){let value=el.value;const parts=el.dataset.path.split('.');if(['image','id','name','desc','icon','flag'].includes(parts.at(-1))&&value.length>700)return;if(el.type==='number')value=Number(value);setPath(el.dataset.path,value)}});
 $('catalogEditor').addEventListener('change',e=>{const el=e.target;if(el.dataset.imagePath)handleImageUpload(el)});
 async function handleImageUpload(input){const file=input.files?.[0];if(!file)return;if(file.size>10*1024*1024){toast('الصورة أكبر من 10 ميغابايت.');input.value='';return}try{const data=await compressImage(file);setPath(input.dataset.imagePath,data);renderCatalog();toast('تم تجهيز الصورة. اضغط حفظ التعديلات لنشرها.')}catch{toast('تعذر قراءة الصورة.')}input.value=''}
