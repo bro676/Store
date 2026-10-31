@@ -1134,8 +1134,8 @@ async function refreshWamdaCatalog({source='manual'}={}){
   if(!wamdaApiTokenRuntime)throw Object.assign(new Error('أدخل Wamda API Token من لوحة الإدارة أولاً.'),{status:400,code:'WAMDA_TOKEN_MISSING'});
   wamdaCatalogSyncInProgress=true;
   const attemptedAt=new Date().toISOString();
-  await persistWamdaSettings({...storeSettings,wamdaLastRefreshAttemptAt:attemptedAt,wamdaLastError:''});
   try{
+    await persistWamdaSettings({...storeSettings,wamdaLastRefreshAttemptAt:attemptedAt,wamdaLastError:''});
     const client=wamdaClient();
     const [account,snapshot]=await Promise.all([client.getProfile(),client.getProducts({limit:1000})]);
     const groups=new Map(),remoteIds=new Set();
