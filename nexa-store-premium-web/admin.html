@@ -255,6 +255,33 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
 .api-code{background:linear-gradient(125deg,var(--nexa-dark),color-mix(in srgb,var(--nexa-primary) 34%,var(--nexa-dark)),color-mix(in srgb,var(--nexa-highlight) 26%,var(--nexa-dark)))}
 .api-source-row strong,.api-endpoint-row code,.api-key-reveal strong{color:var(--nexa-primary-strong)}
 
+
+.seagm-connect-panel,.seagm-products-panel{border-color:var(--nexa-line)!important}
+.seagm-credential-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;margin-top:10px}
+.seagm-credential-grid .field{margin:4px 0}
+.seagm-credential-grid .field small{display:block;margin-top:4px;color:var(--muted);font-size:9px}
+.seagm-credential-grid input,.seagm-credential-grid select{width:100%;min-height:42px;padding:10px 12px;border:1px solid var(--nexa-line);border-radius:11px;background:var(--nexa-pale,#fff);color:var(--ink)}
+.seagm-sync-summary{min-height:42px;padding:10px 12px;border:1px solid var(--nexa-line);border-radius:11px;background:var(--nexa-pale,#fff);font-size:11px;font-weight:800}
+.seagm-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:13px}
+.seagm-clear-secret{display:inline-flex;align-items:center;gap:7px;color:var(--muted);font-size:9px}
+.seagm-clear-secret input{accent-color:var(--nexa-accent)}
+.seagm-status-message{margin-top:13px;padding:11px 13px;border:1px solid var(--nexa-line);border-radius:11px;background:var(--nexa-surface-tint,#f6f8fa);color:var(--ink);font-size:10px}
+.seagm-catalog-results{display:grid;gap:13px}
+.seagm-category-group{border:1px solid var(--nexa-line);border-radius:14px;overflow:hidden;background:rgba(0,0,0,.015)}
+.seagm-category-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;background:var(--nexa-pale,#f7f9fb);border-bottom:1px solid var(--nexa-line)}
+.seagm-category-heading strong{font-size:11px}
+.seagm-category-heading small{font-size:9px;color:var(--muted)}
+.seagm-product-row{display:grid;grid-template-columns:minmax(0,1fr) 190px auto;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--nexa-line)}
+.seagm-product-row:last-child{border-bottom:0}
+.seagm-product-main{display:grid;gap:3px;min-width:0}
+.seagm-product-main strong{font-size:10px;overflow-wrap:anywhere}
+.seagm-product-main small{font-size:8px;color:var(--muted);line-height:1.65}
+.seagm-product-price{display:grid;gap:4px}
+.seagm-product-price label{font-size:8px;color:var(--muted)}
+.seagm-product-price input{width:100%;min-height:36px;padding:7px 9px;border:1px solid var(--nexa-line);border-radius:9px;background:var(--nexa-pale,#fff);color:var(--ink);font-size:10px}
+.seagm-unavailable{font-size:8px;color:var(--red);grid-column:1/-1}
+@media(max-width:760px){.seagm-credential-grid{grid-template-columns:1fr}.seagm-product-row{grid-template-columns:1fr 1fr}.seagm-product-main{grid-column:1/-1}.seagm-product-row>button{min-height:38px}}
+
 </style>
 <link rel="stylesheet" href="/assets/brand/nexa-luxury.css">
 </head>
@@ -343,6 +370,62 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
       </section>
       <section class="page hidden" id="page-catalog-api">
         <div class="page-head"><div><div class="eyebrow">PRODUCT API CONNECTIONS</div><h2>مصادر إضافة المنتجات</h2><p>اربط أكثر من نظام أو متجر خارجي، وكل مصدر يحصل على مفتاح مستقل لإضافة المنتجات وتحديثها فقط.</p></div><span class="status-pill">حتى 20 مصدر API</span></div>
+        <section class="panel seagm-connect-panel">
+          <div class="panel-head">
+            <div>
+              <div class="section-caption">SEAGM SUPPLIER · SIGNED OPEN API</div>
+              <h3>ربط مورد SEAGM بشكل مباشر</h3>
+              <p>أدخل UID وSecret Key من حساب التاجر، ثم اختبر الاتصال واسحب البطاقات الرقمية ومنتجات الشحن المباشر.</p>
+            </div>
+            <span class="status-pill" id="seagmConnectionBadge">غير متصل</span>
+          </div>
+          <div class="seagm-credential-grid">
+            <div class="field">
+              <label for="seagmEnvironment">بيئة الاتصال</label>
+              <select id="seagmEnvironment">
+                <option value="sandbox">Sandbox · للاختبار</option>
+                <option value="production">Production · الحساب الحقيقي</option>
+              </select>
+              <small>Sandbox: openapi.seagm.io · Production: openapi.seagm.com</small>
+            </div>
+            <div class="field">
+              <label for="seagmUid">SEAGM UID</label>
+              <input id="seagmUid" inputmode="numeric" maxlength="20" placeholder="مثلاً 10001" dir="ltr">
+            </div>
+            <div class="field">
+              <label for="seagmSecret">Secret Key</label>
+              <input id="seagmSecret" type="password" autocomplete="new-password" maxlength="512" placeholder="أدخل المفتاح السري من SEAGM" dir="ltr">
+              <small id="seagmSecretState">المفتاح غير محفوظ بعد.</small>
+            </div>
+            <div class="field">
+              <label>حالة مزامنة المنتجات</label>
+              <div class="seagm-sync-summary" id="seagmSyncSummary">لم تتم مزامنة المنتجات بعد.</div>
+              <small id="seagmLastSync">—</small>
+            </div>
+          </div>
+          <div class="seagm-actions">
+            <button class="btn primary" type="button" id="saveSeagmBtn">حفظ بيانات الاتصال</button>
+            <button class="btn soft" type="button" id="testSeagmBtn">اختبار الحساب والرصيد</button>
+            <button class="btn soft" type="button" id="refreshSeagmCatalogBtn">جلب المنتجات من SEAGM ↻</button>
+            <label class="seagm-clear-secret"><input id="clearSeagmSecret" type="checkbox"> حذف المفتاح المحفوظ</label>
+          </div>
+          <div class="seagm-status-message" id="seagmAccountStatus" role="status">أدخل بيانات SEAGM ثم احفظها لاختبار الاتصال.</div>
+          <div class="notice info">يُرسل الخادم توقيع HMAC-SHA256 ولا يرسل Secret Key إلى المتصفح أو إلى زوار المتجر. احتفظ بالمفتاح في مكان آمن، ولا تضعه في أي تطبيق عميل.</div>
+        </section>
+        <section class="panel seagm-products-panel">
+          <div class="panel-head">
+            <div>
+              <div class="section-caption">LIVE SUPPLIER CATALOG</div>
+              <h3>منتجات SEAGM المستوردة</h3>
+              <p>اختر المنتج، حدّد سعر البيع النهائي بالليرة السورية الجديدة، ثم انشره في كتالوج المتجر.</p>
+            </div>
+            <span class="status-pill" id="seagmProductCount">0 منتج</span>
+          </div>
+          <div id="seagmCatalogResults" class="seagm-catalog-results">
+            <div class="empty-api">احفظ بيانات الحساب ثم اضغط «جلب المنتجات من SEAGM».</div>
+          </div>
+          <div class="notice">سعر المورد يظهر بعملة حساب SEAGM (Credits). لا يتم تحويله تلقائياً إلى الليرة؛ أدخل سعر البيع المحلي بنفسك لتجنب تحويل غير دقيق أو خسارة في الهامش. نشر المنتج لا ينشئ طلب شراء من حساب المورد تلقائياً.</div>
+        </section>
         <section class="panel api-connect-panel">
           <div class="panel-head"><div><div class="section-caption">NEW CONNECTION</div><h3>إضافة مصدر API جديد</h3><p>اكتب اسماً للمصدر ثم أنشئ مفتاحه. لا تحتاج إعدادات تقنية إضافية.</p></div></div>
           <div class="api-add-row">
@@ -461,7 +544,7 @@ function applyAdminTheme(primary,secondary,accent){
  const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=adminMixHex(p,'#10263f',.58);
 }
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={catalog:[],settings:{},orders:[],categoryIndex:0,page:'overview',busy:false};
+const state={catalog:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},categoryIndex:0,page:'overview',busy:false};
 const pageTitles={overview:'نظرة عامة',catalog:'المنتجات والأسعار','catalog-api':'ربط المنتجات عبر API',orders:'الطلبات والإيصالات',payments:'شام كاش والمحفظة',exchange:'سعر الصرف'};
 let toastTimer;
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2800)}
@@ -470,10 +553,10 @@ function showLogin(){state.authed=false;$('app').classList.add('hidden');$('logi
 function showApp(){state.authed=true;$('loginScreen').classList.add('hidden');$('app').classList.remove('hidden')}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginError').textContent='';const key=$('adminKey').value;try{await api('/api/admin/session',{method:'POST',body:JSON.stringify({key})});$('adminKey').value='';showApp();await loadAll();toast('تم تسجيل الدخول بأمان.')}catch(err){$('loginError').textContent=err.message;$('adminKey').focus()}});
 $('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/session',{method:'DELETE'})}catch{}showLogin();toast('تم تسجيل الخروج.')});
-function setPage(name){state.page=name;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!=='page-'+name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('pageTitle').textContent=pageTitles[name]||'Nexa';if(name==='catalog')renderCatalog();if(name==='catalog-api'){loadSettings()}if(name==='orders')loadOrders();if(name==='payments')loadSettings();if(name==='exchange')loadSettings()}
+function setPage(name){state.page=name;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!=='page-'+name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('pageTitle').textContent=pageTitles[name]||'Nexa';if(name==='catalog')renderCatalog();if(name==='catalog-api'){loadSettings();loadSeagmCatalog()}if(name==='orders')loadOrders();if(name==='payments')loadSettings();if(name==='exchange')loadSettings()}
 document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.page)));
 document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.jump)));
-async function loadAll(){showApp();await Promise.all([loadOverview(),loadCatalog(),loadSettings(),loadOrders(),loadCatalogApiStatus()]);}
+async function loadAll(){showApp();await Promise.all([loadOverview(),loadCatalog(),loadSettings(),loadOrders(),loadSeagmCatalog()]);}
 async function loadOverview(){const d=await api('/api/admin/overview');const o=d.orders||{};const cards=[['إجمالي الطلبات',o.total||0,'▤','كل الطلبات المسجلة'],['مدفوع ومتحقق',o.paid||0,'✓','دفعات أكدها API'],['بانتظار الدفع',o.pending||0,'◷','فواتير فعالة أو قيد المتابعة'],['عدد المنتجات',d.products||0,'▦',`${d.categories||0} أقسام`]];$('stats').innerHTML=cards.map(([t,v,ico,sub])=>`<article class="stat"><div class="stat-top"><span>${t}</span><i class="stat-icon">${ico}</i></div><strong>${Number(v).toLocaleString('en-US')}</strong><small>${sub}</small></article>`).join('');const max=Math.max(1,o.total||0);$('orderBars').innerHTML=[['مدفوع',o.paid||0],['بانتظار الدفع',o.pending||0],['منتهي',o.expired||0],['ملغي',(o.total||0)-(o.paid||0)-(o.pending||0)-(o.expired||0)]].map(([label,v])=>`<div class="bar-row"><span>${label}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Number(v)/max*100)}%"></div></div><b>${v}</b></div>`).join('');$('topStatus').textContent=d.paymentsReady?'الدفع جاهز':'تحقق من الدفع';}
 async function loadCatalog(){const d=await api('/api/admin/catalog');state.catalog=d.catalog||[];state.categoryIndex=Math.min(state.categoryIndex,Math.max(0,state.catalog.length-1));renderCatalog()}
 function activeCategory(){return state.catalog[state.categoryIndex]||null}
@@ -532,7 +615,7 @@ $('addProductBtn').addEventListener('click',()=>{const c=activeCategory();if(!c)
 $('saveCatalogBtn').addEventListener('click',async()=>{const b=$('saveCatalogBtn');b.disabled=true;try{await api('/api/admin/catalog',{method:'PUT',body:JSON.stringify({catalog:state.catalog})});toast('تم حفظ الكتالوج والصور على قاعدة البيانات.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 async function loadSettings(){const d=await api('/api/admin/settings');state.settings=d.settings||{};renderSettings(d)}
 function renderSettings(d={}){const s=state.settings;$('storeName').value=s.storeName||'Nexa Store';$('announcement').value=s.announcement||'';$('storeLogo').value=s.storeLogo||'assets/brand/logo.svg';$('storeLogoPreview').src=s.storeLogo||'assets/brand/logo.svg';$('themePrimary').value=s.themePrimary||'#397fda';$('themeSecondary').value=s.themeSecondary||'#65b8d7';$('themeAccent').value=s.themeAccent||'#8076d6';applyAdminTheme($('themePrimary').value,$('themeSecondary').value,$('themeAccent').value);$('paymentEnabled').checked=!!s.paymentEnabled;$('shamApiBase').value=s.shamApiBase||'https://apis-shamcash.com/api';$('shamApiToken').value='';$('clearShamApiToken').checked=false;$('shamTokenState').textContent=s.shamApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لم يتم ضبط مفتاح بعد.';$('receiverLabel').value=s.receiverLabel||'';$('walletId').value=s.walletId||'';$('orderTtlMinutes').value=s.orderTtlMinutes??15;$('maxAgeMinutes').value=s.maxAgeMinutes??15;$('futureSkewSeconds').value=s.futureSkewSeconds??90;$('timezoneOffsetMinutes').value=s.timezoneOffsetMinutes??180;$('paymentStatus').textContent=d.paymentsReady?'الدفع مفعّل وجاهز':'الدفع غير جاهز';
- $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;renderCatalogApiKeys();$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';}
+ $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;renderCatalogApiKeys();$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';$('seagmEnvironment').value=s.seagmEnvironment||'sandbox';$('seagmUid').value=s.seagmUid||'';$('seagmSecret').value='';$('clearSeagmSecret').checked=false;$('seagmSecretState').textContent=s.seagmSecretConfigured?'يوجد Secret Key محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لا يوجد Secret Key محفوظ.';}
 $('fxMode').addEventListener('change',()=>{$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api')});
 function paymentPayload(){return{paymentEnabled:$('paymentEnabled').checked,shamApiBase:$('shamApiBase').value.trim(),shamApiToken:$('shamApiToken').value,clearShamApiToken:$('clearShamApiToken').checked,walletId:$('walletId').value.trim(),receiverLabel:$('receiverLabel').value.trim(),orderTtlMinutes:Number($('orderTtlMinutes').value),maxAgeMinutes:Number($('maxAgeMinutes').value),futureSkewSeconds:Number($('futureSkewSeconds').value),timezoneOffsetMinutes:Number($('timezoneOffsetMinutes').value)}}
 $('savePaymentsBtn').addEventListener('click',async()=>{const b=$('savePaymentsBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(paymentPayload())});state.settings=d.settings;renderSettings(d);toast('تم حفظ إعدادات شام كاش والمحفظة.')}catch(e){toast(e.message)}finally{b.disabled=false}});
@@ -544,6 +627,111 @@ $('refreshFxBtn').addEventListener('click',async()=>{const b=$('refreshFxBtn');b
 $('saveBrandBtn').addEventListener('click',async()=>{const b=$('saveBrandBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify({storeName:$('storeName').value.trim(),announcement:$('announcement').value.trim(),storeLogo:$('storeLogo').value.trim(),themePrimary:$('themePrimary').value,themeSecondary:$('themeSecondary').value,themeAccent:$('themeAccent').value})});state.settings=d.settings;renderSettings(d);toast('تم حفظ الهوية واللون وتطبيق درجاته المتناسقة على المتجر.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 $('storeLogo').addEventListener('input',()=>{$('storeLogoPreview').src=$('storeLogo').value});
 $('storeLogoFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=await compressImage(file);$('storeLogo').value=data;$('storeLogoPreview').src=data;toast('تم تجهيز الشعار، اضغط حفظ الهوية.')}catch{toast('تعذر قراءة الشعار.')}e.target.value=''});
+
+async function loadSeagmCatalog(){
+  try{
+    const d=await api('/api/admin/seagm/catalog');
+    state.seagmCatalog=Array.isArray(d.categories)?d.categories:[];
+    state.seagmMeta=d;
+    renderSeagmCatalog();
+    $('seagmConnectionBadge').textContent=d.configured?'بيانات الاتصال محفوظة':'غير متصل';
+    $('seagmSecretState').textContent=state.settings.seagmSecretConfigured?'يوجد Secret Key محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لا يوجد Secret Key محفوظ.';
+    $('seagmSyncSummary').textContent=d.stats?(d.stats.categories+' أقسام · '+d.stats.products+' منتج'):'لم تتم مزامنة المنتجات بعد.';
+    $('seagmLastSync').textContent=d.lastSyncAt?'آخر مزامنة: '+new Date(d.lastSyncAt).toLocaleString('ar-SY'):'—';
+    if(d.lastError)$('seagmAccountStatus').textContent='آخر خطأ: '+d.lastError;
+    else if(d.account)$('seagmAccountStatus').textContent='الحساب: '+(d.account.username||d.account.id||'SEAGM')+' · الرصيد '+(d.account.balance||'—')+' '+(d.account.currency||'');
+    else if(!d.configured)$('seagmAccountStatus').textContent='أدخل UID وSecret Key واحفظهما لاختبار الاتصال.';
+  }catch(error){$('seagmAccountStatus').textContent=error.message}
+}
+function renderSeagmCatalog(){
+  const list=$('seagmCatalogResults');
+  if(!list)return;
+  const products=state.seagmCatalog.reduce((sum,category)=>sum+(category.products||[]).length,0);
+  $('seagmProductCount').textContent=products.toLocaleString('en-US')+' منتج';
+  if(!state.seagmCatalog.length){list.innerHTML='<div class="empty-api">لا توجد بيانات مستوردة. اختبر الحساب ثم اجلب المنتجات من SEAGM.</div>';return}
+  list.innerHTML=state.seagmCatalog.map(category=>{
+    const rows=(category.products||[]).map(product=>{
+      const id='seagm-'+category.kind+'-'+product.id;
+      const existing=state.catalog.find(local=>local.id===id);
+      const retail=existing&&existing.options&&existing.options[0]&&existing.options[0].packs&&existing.options[0].packs[0]?existing.options[0].packs[0][1]:'';
+      const fields=(product.fields||[]).map(field=>field.label||field.name).join('، ');
+      const unavailable=product.inStock===false;
+      return '<article class="seagm-product-row" data-kind="'+esc(category.kind)+'" data-category-id="'+esc(category.id)+'" data-product-id="'+esc(product.id)+'">'+
+        '<div class="seagm-product-main"><strong>'+esc(product.name)+'</strong>'+
+        '<small>'+(category.kind==='card'?'بطاقة رقمية':'شحن مباشر')+' · ID '+esc(product.id)+' · تكلفة المورد '+esc(product.unitPrice)+' '+esc(product.currency||'')+'</small>'+
+        '<small>الكمية '+esc(product.minAmount)+'–'+esc(product.maxAmount)+(fields?' · الحقول: '+esc(fields):'')+'</small></div>'+
+        '<div class="seagm-product-price"><label>سعر البيع (ل.س جديدة)</label><input type="number" min="0.01" max="1000000000" step="0.01" data-seagm-price value="'+esc(retail)+'" placeholder="أدخل سعر البيع"></div>'+
+        '<button class="btn '+(existing?'soft':'primary')+'" type="button" data-publish-seagm '+(unavailable?'disabled':'')+'>'+(existing?'تحديث سعر ونشر':'نشر في المتجر')+'</button>'+
+        (unavailable?'<span class="seagm-unavailable">غير متوفر لدى المورد</span>':'')+'</article>';
+    }).join('');
+    return '<section class="seagm-category-group"><div class="seagm-category-heading"><strong>'+esc(category.name)+'</strong><small>'+(category.kind==='card'?'بطاقات رقمية':'شحن مباشر')+' · '+(category.products||[]).length+' منتج</small></div>'+
+      (rows||'<div class="empty-api">لا توجد منتجات في هذا القسم.</div>')+'</section>';
+  }).join('');
+}
+async function saveSeagmCredentials(silent=false){
+  const payload={
+    seagmUid:$('seagmUid').value.trim(),
+    seagmEnvironment:$('seagmEnvironment').value,
+    seagmSecret:$('seagmSecret').value,
+    clearSeagmSecret:$('clearSeagmSecret').checked,
+  };
+  const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(payload)});
+  state.settings=d.settings||state.settings;
+  $('seagmSecret').value='';$('clearSeagmSecret').checked=false;
+  $('seagmSecretState').textContent=state.settings.seagmSecretConfigured?'يوجد Secret Key محفوظ ومشفّر.':'لا يوجد Secret Key محفوظ.';
+  if(!silent)toast('تم حفظ بيانات SEAGM بأمان.');
+  return d;
+}
+async function testSeagm(){
+  const button=$('testSeagmBtn');button.disabled=true;
+  $('seagmAccountStatus').textContent='جارٍ اختبار توقيع الحساب والاتصال بـ SEAGM…';
+  try{
+    await saveSeagmCredentials(true);
+    const d=await api('/api/admin/seagm/test',{method:'POST',body:'{}'});
+    $('seagmConnectionBadge').textContent='متصل · '+(d.account.currency||'');
+    $('seagmAccountStatus').textContent='تم الاتصال بنجاح · '+(d.account.username||d.account.id)+' · الرصيد '+d.account.balance+' '+d.account.currency;
+    toast('نجح اختبار حساب SEAGM والتوقيع.');
+  }catch(error){$('seagmConnectionBadge').textContent='فشل الاتصال';$('seagmAccountStatus').textContent=error.message;toast(error.message)}
+  finally{button.disabled=false}
+}
+async function refreshSeagmProducts(){
+  const button=$('refreshSeagmCatalogBtn');button.disabled=true;
+  $('seagmAccountStatus').textContent='جارٍ جلب تصنيفات البطاقات ومنتجات الشحن المباشر…';
+  try{
+    await saveSeagmCredentials(true);
+    const d=await api('/api/admin/seagm/catalog/refresh',{method:'POST',body:'{}'});
+    state.seagmCatalog=d.categories||[];state.seagmMeta=d;renderSeagmCatalog();
+    $('seagmConnectionBadge').textContent='متصل · '+(d.account&&d.account.currency||'');
+    $('seagmSyncSummary').textContent=d.stats.categories+' أقسام · '+d.stats.products+' منتج';
+    $('seagmLastSync').textContent='آخر مزامنة: '+new Date(d.syncedAt).toLocaleString('ar-SY');
+    $('seagmAccountStatus').textContent='تم الجلب بنجاح · رصيد الحساب '+(d.account&&d.account.balance||'—')+' '+(d.account&&d.account.currency||'');
+    toast('تم جلب '+d.stats.products+' منتج من SEAGM.');
+  }catch(error){$('seagmAccountStatus').textContent=error.message;toast(error.message)}
+  finally{button.disabled=false}
+}
+$('saveSeagmBtn').addEventListener('click',async()=>{
+  const button=$('saveSeagmBtn');button.disabled=true;
+  try{await saveSeagmCredentials();await loadSeagmCatalog()}
+  catch(error){toast(error.message)}
+  finally{button.disabled=false}
+});
+$('testSeagmBtn').addEventListener('click',testSeagm);
+$('refreshSeagmCatalogBtn').addEventListener('click',refreshSeagmProducts);
+$('seagmCatalogResults').addEventListener('click',async event=>{
+  const button=event.target.closest('[data-publish-seagm]');if(!button)return;
+  const row=button.closest('.seagm-product-row');if(!row)return;
+  const price=row.querySelector('[data-seagm-price]')&&row.querySelector('[data-seagm-price]').value;
+  if(!price||!Number.isFinite(Number(price))||Number(price)<=0){toast('أدخل سعر البيع بالليرة السورية الجديدة أولاً.');row.querySelector('[data-seagm-price]')?.focus();return}
+  button.disabled=true;
+  try{
+    const d=await api('/api/admin/seagm/catalog/publish',{method:'POST',body:JSON.stringify({
+      kind:row.dataset.kind,categoryId:Number(row.dataset.categoryId),productId:Number(row.dataset.productId),sellPriceSyp:price,
+    })});
+    await loadCatalog();
+    renderSeagmCatalog();
+    toast(d.message||'تم نشر المنتج.');
+  }catch(error){toast(error.message);button.disabled=false}
+});
 
 const apiProductExample = {category:{id:"games",name:"ألعاب رقمية"},product:{id:"pubg-uc",name:"PUBG UC",description:"وصف اختياري",image:"https://example.com/product.webp",price:125}};
 $('apiProductSample').textContent=JSON.stringify(apiProductExample,null,2);
