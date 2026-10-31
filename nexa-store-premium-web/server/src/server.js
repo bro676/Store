@@ -405,26 +405,25 @@ async function createOrder(input) {
   if (!pack) return { error:'INVALID_PRODUCT', status:400, message:'الباقة غير متاحة أو سعرها غير محدد.' };
   const sourceCategory = catalog.find(category => category.id === input.categoryId);
   const sourceProduct = sourceCategory?.items?.find(product => product.id === input.productId);
-  const supplier = sourceProduct?.seagm?.provider === 'seagm' ? sourceProduct.seagm : null;
-  let quantity = 1;
-  let supplierFields = {};
-  if (supplier) {
-    if (!['card','recharge'].includes(supplier.kind) ||
-        !Number.isSafeInteger(Number(supplier.typeId)) || Number(supplier.typeId) <= 0 ||
-        !Number.isSafeInteger(Number(supplier.categoryId)) || Number(supplier.categoryId) <= 0) {
-      return { error:'INVALID_SEAGM_PRODUCT', status:409, message:'بيانات ربط المنتج مع SEAGM غير مكتملة. أعد مزامنته ونشره من لوحة الإدارة.' };
-    }
-    if (!storeSettings?.seagmUid || !seagmSecretRuntime) {
-      return { error:'SEAGM_NOT_CONFIGURED', status:503, message:'منتج المورد غير متاح حالياً حتى يتم ضبط UID وSecret Key من لوحة الإدارة.' };
-    }
-    const min = Math.max(1, Number(supplier.minimumQuantity || 1));
-    const max = Math.min(1000, Math.max(min, Number(supplier.maximumQuantity || 1)));
-    quantity = Number(input.quantity ?? 1);
-    if (!Number.isSafeInteger(quantity) || quantity < min || quantity > max) {
-      return { error:'INVALID_QUANTITY', status:400, message:`الكمية يجب أن تكون بين ${min} و${max}.` };
-    }
-    try { supplierFields = validateSeagmCustomerFields(sourceProduct, input.supplierFields || {}); }
-    catch (error) { return { error:'INVALID_SUPPLIER_FIELDS', status:error.status || 400, message:error.message }; }
+  const supplier = sourceProduct?.wamda?.provider === 'wamda' ? sourceProduct.wamda : (sourceProduct?.seagm?.provider === 'seagm' ? sourceProduct.seagm : null);
+  const supplierProvider=supplier?.provider||'';
+  let quantity=1,supplierFields={};
+  if(supplierProvider==='wamda'){
+    if(!Number.isSafeInteger(Number(supplier.productId))||Number(supplier.productId)<=0||!Number.isSafeInteger(Number(supplier.categoryId))||Number(supplier.categoryId)<0) return {error:'INVALID_WAMDA_PRODUCT',status:409,message:'بيانات ربط المنتج مع ومضة غير مكتملة. أعد مزامنته ونشره من لوحة الإدارة.'};
+    if(!wamdaApiTokenRuntime) return {error:'WAMDA_NOT_CONFIGURED',status:503,message:'أدخل API Token الخاص بومضة من لوحة الإدارة ثم اختبر الاتصال.'};
+    const min=Math.max(1,Number(supplier.minimumQuantity||1)),max=Math.min(1000,Math.max(min,Number(supplier.maximumQuantity||1)));
+    quantity=Number(input.quantity??1);
+    if(!Number.isSafeInteger(quantity)||quantity<min||quantity>max) return {error:'INVALID_QUANTITY',status:400,message:`الكمية يجب أن تكون بين ${min} و${max}.`};
+    try{supplierFields=validateWamdaCustomerFields(sourceProduct,input.supplierFields||{});}
+    catch(error){return {error:'INVALID_SUPPLIER_FIELDS',status:error.status||400,message:error.message};}
+  } else if(supplierProvider==='seagm'){
+    if(!['card','recharge'].includes(supplier.kind)||!Number.isSafeInteger(Number(supplier.typeId))||Number(supplier.typeId)<=0||!Number.isSafeInteger(Number(supplier.categoryId))||Number(supplier.categoryId)<=0) return {error:'INVALID_SEAGM_PRODUCT',status:409,message:'بيانات ربط المنتج مع SEAGM غير مكتملة. أعد مزامنته ونشره من لوحة الإدارة.'};
+    if(!storeSettings?.seagmUid||!seagmSecretRuntime) return {error:'SEAGM_NOT_CONFIGURED',status:503,message:'منتج المورد غير متاح حالياً حتى يتم ضبط UID وSecret Key من لوحة الإدارة.'};
+    const min=Math.max(1,Number(supplier.minimumQuantity||1)),max=Math.min(1000,Math.max(min,Number(supplier.maximumQuantity||1)));
+    quantity=Number(input.quantity??1);
+    if(!Number.isSafeInteger(quantity)||quantity<min||quantity>max) return {error:'INVALID_QUANTITY',status:400,message:`الكمية يجب أن تكون بين ${min} و${max}.`};
+    try{supplierFields=validateSeagmCustomerFields(sourceProduct,input.supplierFields||{});}
+    catch(error){return {error:'INVALID_SUPPLIER_FIELDS',status:error.status||400,message:error.message};}
   }
   const currency = String(input.currency || 'SYP').trim().toUpperCase();
   if (!['SYP','USD'].includes(currency)) return { error:'INVALID_CURRENCY', status:400, message:'اختر الليرة السورية أو الدولار الأمريكي.' };
@@ -440,6 +439,7 @@ async function createOrder(input) {
   try {
     wallet = await getWallet(true);
     id = `NX-${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
+    const supplierOrderUuid=supplierProvider==='wamda'?crypto.randomUUID():id;
     invoice = await createShamInvoice(id, pricedPack, wallet);
     await pool.query(`INSERT INTO nexa_orders (
       id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,
@@ -454,17 +454,17 @@ async function createOrder(input) {
       id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pricedPack.label,
       pricedPack.amountMinor.toString(),pricedPack.currency,name,phone,gameAccount,notes,
       invoice.expiresAt,invoice.invoiceNumber,invoice.identifier,invoice.walletLabel,invoice.walletAddress,
-      supplier ? 'seagm' : '',supplier?.kind || '',supplier ? Number(supplier.categoryId) : null,
-      supplier ? Number(supplier.typeId) : null,quantity,JSON.stringify(supplierFields),
-      supplier ? id : null,supplier ? 'pending_payment' : 'not_applicable',
-      supplier ? 'بانتظار تأكيد الدفع من شام كاش.' : '',
+      supplierProvider,supplier?.kind || '',supplier ? Number(supplier.categoryId) : null,
+      supplier ? Number(supplier.typeId || supplier.productId) : null,quantity,JSON.stringify(supplierFields),
+      supplier ? supplierOrderUuid : null,supplier ? 'pending_payment' : 'not_applicable',
+      supplierProvider==='wamda'?'بانتظار تأكيد الدفع من شام كاش؛ سيتم إرسال الطلب إلى ومضة بعد التحقق.':(supplier?'بانتظار تأكيد الدفع من شام كاش.':''),
     ]);
     persisted = true;
     return {
       orderId:id, product:pricedPack.label, amountMinor:pricedPack.amountMinor.toString(), currency:pricedPack.currency,
       expiresAt:invoice.expiresAt.toISOString(),invoiceNumber:invoice.invoiceNumber,invoiceIdentifier:invoice.identifier,
       receiverLabel:invoice.walletLabel,receiverAddress:invoice.identifier,status:'pending_payment',
-      deliveryProvider:supplier ? 'SEAGM' : null,deliveryStatus:supplier ? 'queued_after_payment' : null,
+      deliveryProvider:supplierProvider==='wamda'?'WAMDA':(supplier?'SEAGM':null),deliveryStatus:supplier?'queued_after_payment':null,
     };
   } catch (error) {
     if (invoice?.invoiceNumber && !persisted) {
@@ -519,13 +519,13 @@ async function verifyProviderInvoice(order, transactionRef) {
 }
 
 function supplierDeliveryForOrder(order) {
-  if (order?.supplier_provider !== 'seagm') return null;
+  if (!['seagm','wamda'].includes(order?.supplier_provider)) return null;
   let result = null;
   if (order.supplier_status === 'completed' && order.supplier_result_encrypted) {
     try { result = JSON.parse(decryptSecret(order.supplier_result_encrypted, cfg.settingsEncryptionKey)); } catch {}
   }
   return {
-    provider:'SEAGM',status:String(order.supplier_status || 'pending'),
+    provider:order.supplier_provider==='wamda'?'WAMDA':'SEAGM',status:String(order.supplier_status || 'pending'),
     message:String(order.supplier_message || ''),
     orderId:order.supplier_order_id ? String(order.supplier_order_id) : null,
     ...(result || {}),
@@ -547,7 +547,7 @@ async function verifyPayment(input) {
     if (order.status === 'paid') {
       const used = await client.query('SELECT transaction_id FROM nexa_payments WHERE order_id=$1',[orderId]);
       await client.query('COMMIT');
-      if (used.rowCount && used.rows[0].transaction_id === transactionRef) return {ok:true,alreadyPaid:true,orderId,transactionId:transactionRef,status:'paid',receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:order.paid_at ? new Date(order.paid_at).toISOString() : new Date().toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,...(order.supplier_provider==='seagm'?{delivery:supplierDeliveryForOrder(order)}:{})}};
+      if (used.rowCount && used.rows[0].transaction_id === transactionRef) return {ok:true,alreadyPaid:true,orderId,transactionId:transactionRef,status:'paid',receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:order.paid_at ? new Date(order.paid_at).toISOString() : new Date().toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,...(['seagm','wamda'].includes(order.supplier_provider)?{delivery:supplierDeliveryForOrder(order)}:{})}};
       return {error:'ORDER_ALREADY_PAID',status:409,message:'هذا الطلب مدفوع مسبقاً ولا يقبل رقم عملية آخر.'};
     }
     if (order.status !== 'pending_payment' || new Date(order.expires_at).getTime() <= Date.now()) {
@@ -601,8 +601,8 @@ async function verifyPayment(input) {
       VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING RETURNING id`,
       [transactionRef,orderId,tx.amountMinor.toString(),tx.currency,String(wallet.id),tx.occurredAt,JSON.stringify({invoiceNumber:order.invoice_number,transactionId:transactionRef,amountMinor:tx.amountMinor.toString(),currency:tx.currency,receiverAddress:tx.receiverAddress,type:tx.type,occurredAt:tx.occurredAt.toISOString(),paidAt:paidAt.toISOString()})]);
     if (!inserted.rowCount) { await client.query('ROLLBACK'); return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'}; }
-    await client.query("UPDATE nexa_orders SET status='paid',paid_at=$2,supplier_status=CASE WHEN supplier_provider='seagm' THEN 'pending' ELSE supplier_status END,supplier_message=CASE WHEN supplier_provider='seagm' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.' ELSE supplier_message END WHERE id=$1",[orderId,paidAt]);
-    if (order.supplier_provider === 'seagm') {
+    await client.query("UPDATE nexa_orders SET status='paid',paid_at=$2,supplier_status=CASE WHEN supplier_provider IN ('seagm','wamda') THEN 'pending' ELSE supplier_status END,supplier_message=CASE WHEN supplier_provider='wamda' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.' WHEN supplier_provider='seagm' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.' ELSE supplier_message END WHERE id=$1",[orderId,paidAt]);
+    if (['seagm','wamda'].includes(order.supplier_provider)) {
       await client.query(`INSERT INTO nexa_fulfillment_jobs(order_id,status,next_attempt_at)
         VALUES($1,'pending',NOW()) ON CONFLICT(order_id) DO NOTHING`,[orderId]);
     }
@@ -610,7 +610,7 @@ async function verifyPayment(input) {
     return {ok:true,orderId,invoiceNumber:order.invoice_number,transactionId:transactionRef,status:'paid',verifiedAt:new Date().toISOString(),
       receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,
         invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:paidAt.toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,
-        ...(order.supplier_provider==='seagm'?{delivery:{provider:'SEAGM',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.'}}:{})}};
+        ...(order.supplier_provider==='wamda'?{delivery:{provider:'WAMDA',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.'}}:(order.supplier_provider==='seagm'?{delivery:{provider:'SEAGM',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.'}}:{}))}};
   } catch (error) {
     await client.query('ROLLBACK').catch(()=>{});
     if (error.code === '23505') return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'};
