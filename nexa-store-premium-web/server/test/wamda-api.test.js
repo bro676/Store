@@ -21,6 +21,8 @@ test('loads all product pages and normalizes Wamda fields',async()=>{
   assert.deepEqual(seen,[1,2]);
   assert.equal(result.products[0].unitPrice,.2);
   assert.equal(result.products[0].fields[0].key,'playerId');
+  assert.equal(result.products[0].fields[0].min,null);
+  assert.equal(result.products[0].fields[0].max,null);
 });
 test('creates order with fixed UUID and api-token header',async()=>{
   let sent;
