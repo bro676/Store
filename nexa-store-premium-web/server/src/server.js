@@ -11,6 +11,7 @@ import {
   createAdminSession, verifyAdminSession, encryptSecret, decryptSecret,
   validateCatalog, mergeCatalog, upsertCatalogProduct, isSafeCatalogImage, getJsonPath, normalizeFxRate, validateCatalogApiUrl,
 } from './admin-core.js';
+import { createSeagmClient } from './seagm-api.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -20,6 +21,8 @@ let fxApiTokenRuntime = '';
 let catalogApiTokenRuntime = '';
 let catalogWriteApiTokenRuntime = '';
 let catalogApiSyncInProgress = false;
+let seagmSecretRuntime = '';
+let seagmCatalogSyncInProgress = false;
 const { Pool } = pg;
 const cfg = {
   port: Number(process.env.PORT || 3000),
@@ -417,6 +420,8 @@ function defaultStoreSettings() {
     catalogApiAuthHeader:'Authorization', catalogApiAuthPrefix:'Bearer', catalogApiSyncMode:'merge',
     catalogApiIntervalMinutes:15, catalogApiLastSyncAt:null, catalogApiLastAttemptAt:null, catalogApiLastError:'',
     catalogApiTokenEncrypted:'', catalogApiTokenCleared:false,
+    seagmEnvironment:'sandbox', seagmUid:'', seagmSecretEncrypted:'', seagmSecretCleared:false,
+    seagmCatalogCache:[], seagmAccountInfo:null, seagmLastSyncAt:null, seagmLastTestAt:null, seagmLastError:'',
     catalogWriteApiTokenEncrypted:'', catalogWriteApiTokenCleared:false, catalogWriteApiKeys:[],
     paymentEnabled:cfg.paymentsEnabled, shamApiBase:cfg.apiBase, walletId:cfg.walletId,
     receiverLabel:cfg.receiverLabel, timezoneOffsetMinutes:cfg.timezoneOffsetMinutes,
@@ -448,6 +453,9 @@ function applyStoreSettings() {
   try {
     catalogWriteApiTokenRuntime = storeSettings.catalogWriteApiTokenCleared ? '' : (storeSettings.catalogWriteApiTokenEncrypted ? decryptSecret(storeSettings.catalogWriteApiTokenEncrypted, cfg.settingsEncryptionKey) : '');
   } catch { catalogWriteApiTokenRuntime = ''; }
+  try {
+    seagmSecretRuntime = storeSettings.seagmSecretCleared ? '' : (storeSettings.seagmSecretEncrypted ? decryptSecret(storeSettings.seagmSecretEncrypted, cfg.settingsEncryptionKey) : '');
+  } catch { seagmSecretRuntime = ''; }
   cachedShamWallet = null;
   cachedShamWalletAt = 0;
   refreshPaymentsReady();
@@ -576,8 +584,20 @@ async function refreshAutomaticFx() {
   }
 }
 function safeSettingsForAdmin() {
-  const { shamApiTokenEncrypted, fxApiTokenEncrypted, catalogApiTokenEncrypted, catalogWriteApiTokenEncrypted, catalogWriteApiKeys = [], ...settings } = storeSettings || {};
-  return { ...settings, catalogWriteApiKeys:catalogWriteApiKeys.map(({id,name,createdAt})=>({id,name,createdAt})), shamApiTokenConfigured:Boolean(cfg.apiToken), fxApiTokenConfigured:Boolean(fxApiTokenRuntime), catalogApiTokenConfigured:Boolean(catalogApiTokenRuntime), catalogWriteApiTokenConfigured:Boolean(catalogWriteApiTokenRuntime || catalogWriteApiKeys.length) };
+  const {
+    shamApiTokenEncrypted, fxApiTokenEncrypted, catalogApiTokenEncrypted, catalogWriteApiTokenEncrypted,
+    seagmSecretEncrypted, seagmCatalogCache = [], catalogWriteApiKeys = [], ...settings
+  } = storeSettings || {};
+  return {
+    ...settings,
+    catalogWriteApiKeys:catalogWriteApiKeys.map(({id,name,createdAt})=>({id,name,createdAt})),
+    shamApiTokenConfigured:Boolean(cfg.apiToken),
+    fxApiTokenConfigured:Boolean(fxApiTokenRuntime),
+    catalogApiTokenConfigured:Boolean(catalogApiTokenRuntime),
+    catalogWriteApiTokenConfigured:Boolean(catalogWriteApiTokenRuntime || catalogWriteApiKeys.length),
+    seagmSecretConfigured:Boolean(seagmSecretRuntime),
+    seagmProductCount:seagmCatalogCache.reduce((sum,category)=>sum+(category.products||[]).length,0),
+  };
 }
 function validateAndApplySettings(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('INVALID_SETTINGS');
@@ -604,6 +624,21 @@ function validateAndApplySettings(input) {
   setText('fxApiUrl',500,'');
   setText('fxJsonPath',160,'');
   setText('catalogApiUrl',1000,'');
+  setText('seagmUid',30,'');
+  if (next.seagmUid && !/^\d{1,20}$/.test(next.seagmUid)) throw new Error('INVALID_SEAGM_UID');
+  if (input.seagmEnvironment !== undefined) {
+    if (!['sandbox','production'].includes(input.seagmEnvironment)) throw new Error('INVALID_SEAGM_ENVIRONMENT');
+    next.seagmEnvironment = input.seagmEnvironment;
+  }
+  if (input.seagmSecret !== undefined && input.seagmSecret !== '') {
+    if (typeof input.seagmSecret !== 'string' || input.seagmSecret.length > 512 || !input.seagmSecret.trim()) throw new Error('INVALID_SEAGM_SECRET');
+    next.seagmSecretEncrypted = encryptSecret(input.seagmSecret.trim(),cfg.settingsEncryptionKey);
+    next.seagmSecretCleared = false;
+  }
+  if (input.clearSeagmSecret === true) {
+    next.seagmSecretEncrypted = '';
+    next.seagmSecretCleared = true;
+  }
   if (input.catalogApiJsonPath !== undefined) {
     if (typeof input.catalogApiJsonPath !== 'string' || input.catalogApiJsonPath.length > 160) throw new Error('INVALID_CATALOG_API_JSON_PATH');
     const jsonPath = input.catalogApiJsonPath.trim();
@@ -771,6 +806,129 @@ async function syncCatalogFromApi({ preview = false } = {}) {
     throw error;
   } finally { catalogApiSyncInProgress = false; }
 }
+
+
+function seagmClient() {
+  if (!storeSettings?.seagmUid || !seagmSecretRuntime) {
+    throw Object.assign(new Error('أدخل SEAGM UID وSecret Key واحفظهما أولاً.'),{status:400});
+  }
+  return createSeagmClient({
+    uid:storeSettings.seagmUid,
+    secretKey:seagmSecretRuntime,
+    environment:storeSettings.seagmEnvironment || 'sandbox',
+  });
+}
+async function persistSeagmSettings(nextSettings) {
+  if (!pool) throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
+  await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+  storeSettings = nextSettings;
+}
+async function testSeagmConnection() {
+  const account = await seagmClient().getAccount();
+  const testedAt = new Date().toISOString();
+  const nextSettings = { ...storeSettings,seagmAccountInfo:account,seagmLastTestAt:testedAt,seagmLastError:'' };
+  await persistSeagmSettings(nextSettings);
+  return { ok:true,account,testedAt,environment:storeSettings.seagmEnvironment || 'sandbox' };
+}
+async function refreshSeagmCatalog() {
+  if (seagmCatalogSyncInProgress) throw Object.assign(new Error('SEAGM_SYNC_IN_PROGRESS'),{status:409});
+  seagmCatalogSyncInProgress = true;
+  try {
+    const client = seagmClient();
+    const account = await client.getAccount();
+    const snapshot = await client.getCatalog();
+    const serialized = JSON.stringify(snapshot.categories);
+    if (Buffer.byteLength(serialized,'utf8') > 3000000) throw new Error('SEAGM_CATALOG_SNAPSHOT_TOO_LARGE');
+    const syncedAt = new Date().toISOString();
+    const nextSettings = {
+      ...storeSettings,
+      seagmAccountInfo:account,
+      seagmCatalogCache:snapshot.categories,
+      seagmLastSyncAt:syncedAt,
+      seagmLastError:'',
+    };
+    await persistSeagmSettings(nextSettings);
+    return { ok:true,stats:snapshot.stats,syncedAt,account,environment:storeSettings.seagmEnvironment || 'sandbox',categories:snapshot.categories };
+  } catch (error) {
+    const nextSettings = { ...storeSettings,seagmLastError:String(error?.message || 'SEAGM_SYNC_FAILED').slice(0,300) };
+    await persistSeagmSettings(nextSettings).catch(()=>{});
+    throw error;
+  } finally {
+    seagmCatalogSyncInProgress = false;
+  }
+}
+async function publishSeagmProduct(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('INVALID_SEAGM_PUBLISH_REQUEST');
+  const kind = String(input.kind || '');
+  if (!['card','recharge'].includes(kind)) throw new Error('INVALID_SEAGM_PRODUCT_KIND');
+  const categoryId = Number(input.categoryId);
+  const productId = Number(input.productId);
+  if (!Number.isSafeInteger(categoryId) || categoryId <= 0 || !Number.isSafeInteger(productId) || productId <= 0) {
+    throw new Error('INVALID_SEAGM_PRODUCT_ID');
+  }
+  const priceText = String(input.sellPriceSyp ?? '').trim();
+  if (!/^\d{1,9}(?:\.\d{1,2})?$/.test(priceText)) throw new Error('INVALID_SEAGM_SELL_PRICE');
+  const sellPrice = Number(priceText);
+  if (!Number.isFinite(sellPrice) || sellPrice <= 0 || sellPrice > 1000000000) throw new Error('INVALID_SEAGM_SELL_PRICE');
+
+  const categories = Array.isArray(storeSettings?.seagmCatalogCache) ? storeSettings.seagmCatalogCache : [];
+  const sourceCategory = categories.find(row => row.kind === kind && Number(row.id) === categoryId);
+  const sourceProduct = sourceCategory?.products?.find(row => Number(row.id) === productId);
+  if (!sourceProduct) throw Object.assign(new Error('المنتج غير موجود في آخر مزامنة SEAGM. حدّث المنتجات أولاً.'),{status:404});
+  if (sourceProduct.inStock === false) throw Object.assign(new Error('المنتج غير متوفر حالياً لدى SEAGM.'),{status:409});
+
+  const localCategoryId = 'seagm-' + kind + '-' + categoryId;
+  const localProductId = 'seagm-' + kind + '-' + productId;
+  let workingCatalog = catalog;
+  if (!workingCatalog.some(row => row.id === localCategoryId)) {
+    workingCatalog = validateCatalog([...workingCatalog,{
+      id:localCategoryId,
+      name:String(sourceCategory.name || (kind === 'card' ? 'بطاقات SEAGM' : 'شحن SEAGM')).slice(0,100),
+      desc:'منتجات مستوردة من مورد SEAGM. حدّد سعر البيع المحلي من لوحة الإدارة.',
+      image:'assets/brand/logo.svg',
+      icon:kind === 'card' ? '▣' : '◈',
+      items:[],
+    }]);
+  }
+  const sourceCurrency = String(sourceProduct.currency || '').slice(0,12).toUpperCase();
+  const retailProduct = {
+    id:localProductId,
+    name:String(sourceProduct.name || ('SEAGM product ' + productId)).slice(0,120),
+    desc:('SEAGM ' + (kind === 'card' ? 'بطاقة رقمية' : 'شحن مباشر') + ' · Supplier #' + productId + (sourceCurrency ? ' · تكلفة المورد ' + sourceProduct.unitPrice + ' ' + sourceCurrency : '')).slice(0,700),
+    image:'assets/brand/logo.svg',
+    options:[{
+      id:'seagm-default',
+      name:'الخيار الأساسي',
+      desc:'منتج مرتبط بمصدر SEAGM',
+      flag:'✦',
+      packs:[['سعر البيع',sellPrice]],
+    }],
+    seagm:{
+      provider:'seagm',
+      kind,
+      categoryId,
+      typeId:productId,
+      sourceCurrency,
+      sourceUnitPrice:Number(sourceProduct.unitPrice || 0),
+      minimumQuantity:Number(sourceProduct.minAmount || 1),
+      maximumQuantity:Number(sourceProduct.maxAmount || 1),
+      fields:Array.isArray(sourceProduct.fields) ? sourceProduct.fields : [],
+      autoDelivery:sourceProduct.autoDelivery === true,
+    },
+  };
+  const result = upsertCatalogProduct(workingCatalog,localCategoryId,retailProduct);
+  await persistCatalog(result.catalog);
+  return {
+    ok:true,
+    created:result.created,
+    categoryId:localCategoryId,
+    productId:result.productId,
+    sellPriceSyp:sellPrice,
+    supplier:{kind,categoryId,productId,currency:sourceCurrency,unitPrice:sourceProduct.unitPrice},
+    message:result.created ? 'تم نشر المنتج في كتالوج المتجر.' : 'تم تحديث المنتج وسعر بيعه في كتالوج المتجر.',
+  };
+}
+
 async function cancelPendingOrder(orderId) {
   if (!pool) throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
   const found = await pool.query("SELECT id,invoice_number FROM nexa_orders WHERE id=$1 AND status='pending_payment' AND expires_at>NOW()",[orderId]);
@@ -918,6 +1076,51 @@ const server = http.createServer(async (req,res) => {
       } catch (error) { return send(res,error?.status || 400,{ok:false,error:'INVALID_CATALOG_PRODUCT',message:String(error?.message || 'بيانات المنتج غير صالحة.')}); }
       await persistCatalog(result.catalog);
       return send(res,result.created?201:200,{ok:true,created:result.created,productId:result.productId,message:result.created?'تمت إضافة المنتج عبر API.':'تم تحديث المنتج عبر API.'});
+    }
+    if (req.method === 'GET' && url.pathname === '/api/admin/seagm/catalog') {
+      const categories = Array.isArray(storeSettings?.seagmCatalogCache) ? storeSettings.seagmCatalogCache : [];
+      return send(res,200,{
+        ok:true,
+        configured:Boolean(storeSettings?.seagmUid && seagmSecretRuntime),
+        uid:storeSettings?.seagmUid || '',
+        environment:storeSettings?.seagmEnvironment || 'sandbox',
+        account:storeSettings?.seagmAccountInfo || null,
+        lastSyncAt:storeSettings?.seagmLastSyncAt || null,
+        lastTestAt:storeSettings?.seagmLastTestAt || null,
+        lastError:storeSettings?.seagmLastError || '',
+        syncInProgress:seagmCatalogSyncInProgress,
+        stats:{
+          categories:categories.length,
+          products:categories.reduce((sum,category)=>sum+(category.products||[]).length,0),
+          cards:categories.filter(category=>category.kind==='card').reduce((sum,category)=>sum+(category.products||[]).length,0),
+          recharge:categories.filter(category=>category.kind==='recharge').reduce((sum,category)=>sum+(category.products||[]).length,0),
+        },
+        categories,
+      });
+    }
+    if (req.method === 'POST' && url.pathname === '/api/admin/seagm/test') {
+      if (rateLimit(req,res,'seagm-test:' + ip,5,60_000)) return;
+      try { return send(res,200,await testSeagmConnection()); }
+      catch (error) {
+        return send(res,error?.status || 422,{ok:false,error:'SEAGM_CONNECTION_FAILED',message:String(error?.message || 'تعذر الاتصال بحساب SEAGM.')});
+      }
+    }
+    if (req.method === 'POST' && url.pathname === '/api/admin/seagm/catalog/refresh') {
+      if (rateLimit(req,res,'seagm-sync:' + ip,2,60_000)) return;
+      try {
+        const result = await refreshSeagmCatalog();
+        return send(res,200,result);
+      } catch (error) {
+        return send(res,error?.status || 422,{ok:false,error:'SEAGM_CATALOG_SYNC_FAILED',message:String(error?.message || 'تعذر جلب منتجات SEAGM.')});
+      }
+    }
+    if (req.method === 'POST' && url.pathname === '/api/admin/seagm/catalog/publish') {
+      if (!pool) return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const input = await bodyJson(req,16_384);
+      try { return send(res,200,await publishSeagmProduct(input)); }
+      catch (error) {
+        return send(res,error?.status || 400,{ok:false,error:'SEAGM_PRODUCT_PUBLISH_FAILED',message:String(error?.message || 'تعذر نشر المنتج.')});
+      }
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/catalog/sync-status') {
       return send(res,200,{ok:true,mode:storeSettings.catalogApiMode,lastSyncAt:storeSettings.catalogApiLastSyncAt||null,lastError:storeSettings.catalogApiLastError||'',syncInProgress:catalogApiSyncInProgress,configured:Boolean(storeSettings.catalogApiUrl),tokenConfigured:Boolean(catalogApiTokenRuntime)});
