@@ -1445,7 +1445,7 @@ const server = http.createServer(async (req,res) => {
   try {
     if (req.method === 'GET' && url.pathname === '/api/health') return send(res,200,{ok:true,service:'nexa-shamcash-gateway',paymentsReady,dbReady:Boolean(pool)});
 
-    const wamdaWebhookMatch=url.pathname.match(/^\\/api\\/webhooks\\/wamda\\/([A-Za-z0-9_-]{40,80})$/);
+    const wamdaWebhookMatch=url.pathname.match(/^\/api\/webhooks\/wamda\/([A-Za-z0-9_-]{40,80})$/);
     if(req.method==='POST'&&wamdaWebhookMatch){
       if(!pool||!wamdaWebhookSecretRuntime)return sendText(res,503,'store webhook is not configured');
       const supplied=Buffer.from(wamdaWebhookMatch[1]),expected=Buffer.from(wamdaWebhookSecretRuntime);
