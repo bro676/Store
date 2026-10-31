@@ -2184,6 +2184,86 @@ const server = http.createServer(async (req,res) => {
     }
 
 
+    if (req.method === 'POST' && url.pathname === '/api/customer/register') {
+      if (rateLimit(req,res,'customer-register:'+ip,5,60*60_000)) return;
+      if (!pool) return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      if (!customerRequestSameOrigin(req)) return send(res,403,{ok:false,error:'CROSS_ORIGIN_REQUEST'});
+      const input=await bodyJson(req,4096);
+      const phone=normalizeCustomerPhone(input.phone);
+      const name=String(input.name||'').trim().replace(/\s+/g,' ').slice(0,70);
+      if (!phone || name.length<2) return send(res,400,{ok:false,error:'INVALID_CUSTOMER',message:'أدخل اسماً ورقم هاتف صحيحاً.'});
+      let passwordHash;
+      try { passwordHash=hashCustomerPassword(input.password); }
+      catch(error) { return send(res,error.status||400,{ok:false,error:error.code||'INVALID_PASSWORD',message:error.message}); }
+      const customerId='NC-'+crypto.randomBytes(12).toString('hex').toUpperCase();
+      const token=createCustomerSessionToken(),tokenHash=hashCustomerSessionToken(token);
+      const client=await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query('INSERT INTO nexa_customers(id,phone,customer_name,password_hash) VALUES($1,$2,$3,$4)',[customerId,phone,name,passwordHash]);
+        await client.query('INSERT INTO nexa_customer_wallets(customer_id,balance_minor) VALUES($1,0)',[customerId]);
+        await client.query('INSERT INTO nexa_customer_sessions(token_hash,customer_id,expires_at) VALUES($1,$2,NOW()+INTERVAL \'14 days\')',[tokenHash,customerId]);
+        await client.query('COMMIT');
+        const snapshot=await customerAccountSnapshot(customerId);
+        return send(res,201,{ok:true,...snapshot},{'Set-Cookie':customerCookie(req,token)});
+      } catch(error) {
+        await client.query('ROLLBACK').catch(()=>{});
+        if(error.code==='23505')return send(res,409,{ok:false,error:'CUSTOMER_EXISTS',message:'يوجد حساب مسجل بهذا الرقم. سجّل الدخول بدلاً من إنشاء حساب جديد.'});
+        throw error;
+      } finally {client.release();}
+    }
+    if (req.method === 'POST' && url.pathname === '/api/customer/login') {
+      if (rateLimit(req,res,'customer-login:'+ip,10,10*60_000)) return;
+      if (!pool) return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      if (!customerRequestSameOrigin(req)) return send(res,403,{ok:false,error:'CROSS_ORIGIN_REQUEST'});
+      const input=await bodyJson(req,4096);
+      const phone=normalizeCustomerPhone(input.phone);
+      const password=String(input.password||'');
+      const found=phone?await pool.query('SELECT id,password_hash FROM nexa_customers WHERE phone=$1 LIMIT 1',[phone]):{rowCount:0,rows:[]};
+      if(!found.rowCount||!verifyCustomerPassword(password,found.rows[0].password_hash))return send(res,401,{ok:false,error:'INVALID_CREDENTIALS',message:'رقم الهاتف أو كلمة المرور غير صحيحة.'});
+      const token=createCustomerSessionToken(),tokenHash=hashCustomerSessionToken(token);
+      await pool.query('INSERT INTO nexa_customer_sessions(token_hash,customer_id,expires_at) VALUES($1,$2,NOW()+INTERVAL \'14 days\')',[tokenHash,found.rows[0].id]);
+      const snapshot=await customerAccountSnapshot(found.rows[0].id);
+      return send(res,200,{ok:true,...snapshot},{'Set-Cookie':customerCookie(req,token)});
+    }
+    if (req.method === 'GET' && url.pathname === '/api/customer/me') {
+      const customer=await customerFromRequest(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك أولاً.'});
+      const snapshot=await customerAccountSnapshot(customer.id);
+      return snapshot?send(res,200,{ok:true,...snapshot}):send(res,404,{ok:false,error:'CUSTOMER_NOT_FOUND'});
+    }
+    if (req.method === 'DELETE' && url.pathname === '/api/customer/logout') {
+      if (!customerRequestSameOrigin(req)) return send(res,403,{ok:false,error:'CROSS_ORIGIN_REQUEST'});
+      const tokenHash=hashCustomerSessionToken(readCookie(req,'nexa_customer_session'));
+      if(tokenHash&&pool)await pool.query('DELETE FROM nexa_customer_sessions WHERE token_hash=$1',[tokenHash]);
+      return send(res,200,{ok:true},{'Set-Cookie':customerCookie(req,'',0)});
+    }
+    if (req.method === 'GET' && url.pathname === '/api/customer/orders') {
+      const customer=await customerFromRequest(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك أولاً.'});
+      const result=await pool.query('SELECT id,product_label,amount_minor::text,currency,status,payment_method,created_at,paid_at,supplier_provider,supplier_status,supplier_message FROM nexa_orders WHERE customer_id=$1 ORDER BY created_at DESC LIMIT 50',[customer.id]);
+      return send(res,200,{ok:true,orders:result.rows.map(row=>({id:row.id,product:row.product_label,amountMinor:row.amount_minor,currency:row.currency,status:row.status,paymentMethod:row.payment_method,createdAt:row.created_at,paidAt:row.paid_at,deliveryProvider:row.supplier_provider,deliveryStatus:row.supplier_status,deliveryMessage:row.supplier_message}))});
+    }
+    if (req.method === 'POST' && url.pathname === '/api/wallet/topups') {
+      if (rateLimit(req,res,'wallet-topup:'+ip,5,10*60_000)) return;
+      if (!customerRequestSameOrigin(req)) return send(res,403,{ok:false,error:'CROSS_ORIGIN_REQUEST'});
+      const customer=await customerFromRequest(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك أولاً.'});
+      const input=await bodyJson(req,4096);
+      const result=await createWalletTopup(input,customer.id);
+      if(isHttpErrorResult(result))return send(res,result.status,{ok:false,error:result.error,message:result.message});
+      return send(res,201,{ok:true,...result});
+    }
+    if (req.method === 'POST' && url.pathname === '/api/wallet/topups/verify') {
+      if (rateLimit(req,res,'wallet-topup-verify:'+ip,5,5*60_000)) return;
+      if (!customerRequestSameOrigin(req)) return send(res,403,{ok:false,error:'CROSS_ORIGIN_REQUEST'});
+      const customer=await customerFromRequest(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك أولاً.'});
+      const input=await bodyJson(req,4096);
+      const result=await verifyWalletTopup(input,customer.id);
+      if(isHttpErrorResult(result))return send(res,result.status,result);
+      return send(res,200,result);
+    }
     if (req.method === 'POST' && url.pathname === '/api/admin/session') {
       if (rateLimit(req,res,`admin-login:${ip}`,6,10*60_000)) return;
       const input = await bodyJson(req, 4096);
