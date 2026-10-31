@@ -996,6 +996,17 @@ async function loadCustomerAccount(){
   const ordersResponse=await fetch('/api/customer/orders',{cache:'no-store',credentials:'same-origin'});
   const ordersData=await ordersResponse.json().catch(()=>({}));
   customerOrders=ordersResponse.ok&&ordersData.ok&&Array.isArray(ordersData.orders)?ordersData.orders:[];
+  const topupResponse=await fetch('/api/wallet/topups/current',{cache:'no-store',credentials:'same-origin'});
+  const topupData=await topupResponse.json().catch(()=>({}));
+  if(topupResponse.ok&&topupData.ok&&topupData.topup){
+   pendingWalletTopup=topupData.topup;
+   $('walletTopupInvoice').classList.remove('hidden');
+   $('walletTopupInvoiceNumber').textContent=topupData.topup.invoiceNumber;
+   $('walletTopupInvoiceAmount').textContent=formatMinor(topupData.topup.amountMinor,'SYP');
+   $('walletTopupReceiverLabel').textContent=topupData.topup.receiverLabel||'محفظة Nexa';
+   $('walletTopupReceiverAddress').textContent=topupData.topup.receiverAddress||topupData.topup.invoiceIdentifier;
+   $('walletTopupExpiry').textContent='تنتهي: '+new Date(topupData.topup.expiresAt).toLocaleString('ar-SY');
+  }else{pendingWalletTopup=null;$('walletTopupInvoice')?.classList.add('hidden');}
   renderCustomerAccount();renderOrders();return customerAccount;
  }catch{customerAccount=null;customerOrders=[];renderCustomerAccount();return null;}
 }
@@ -1096,37 +1107,6 @@ async function doOrder(e){
  finally{button.disabled=false;button.textContent=originalText;}
 }
 
- e.preventDefault();
- const form=e.currentTarget;if(!form||!state.selectedPack)return;
- const button=form.querySelector('button[type="submit"]');if(!button||button.disabled)return;
- const originalText=button.textContent;button.disabled=true;button.textContent='جارٍ إنشاء فاتورة شام كاش…';
- try{
-  const pack=state.selectedPack,product=getItem(pack.item),supplier=product?.wamda||product?.seagm||null;
-  const quantity=supplier?Number($('orderQuantity').value||1):1,supplierFields={};
-  if(supplier){
-   for(const control of document.querySelectorAll('[data-seagm-field]'))supplierFields[control.dataset.seagmField]=control.value;
-   const min=Number(supplier.minimumQuantity||1),max=Number(supplier.maximumQuantity||1);
-   if(!Number.isInteger(quantity)||quantity<min||quantity>max)throw new Error('الكمية المختارة خارج الحدود المسموحة.');
-  }
-  const response=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-   categoryId:pack.category,productId:pack.item,optionId:pack.option,packIndex:pack.index,
-   currency:$('orderCurrency').value,customerName:$('customerName').value.trim(),
-   customerPhone:$('customerPhone').value.trim(),accountId:$('accountId').value.trim(),
-   notes:$('orderNotes').value.trim(),quantity,supplierFields
-  })});
-  const data=await response.json();
-  if(!response.ok||!data.ok)throw new Error(data.message||'تعذر إنشاء فاتورة الدفع عبر شام كاش.');
-  const d=storageRead();d.orders=d.orders||[];
-  const order={id:data.orderId,name:data.product||pack.name,price:pack.price,amountMinor:data.amountMinor,currency:data.currency,date:new Intl.DateTimeFormat('ar-SY',{dateStyle:'medium'}).format(new Date()),status:'pending_payment',expiresAt:data.expiresAt,invoiceNumber:data.invoiceNumber,deliveryProvider:data.deliveryProvider||null};
-  d.orders.unshift(order);storageSave(d);state.pendingOrder=data.orderId;$('paymentOrderId').value=data.orderId;
-  $('paymentOrderSummary').innerHTML=`<span>المبلغ المطلوب · ${esc(data.currency)}</span><strong>${formatMinor(data.amountMinor,data.currency)}</strong><small>الفاتورة صالحة حتى ${esc(new Date(data.expiresAt).toLocaleString('ar-SY'))}</small>`;
-  renderInvoiceDetails(data);$('shamCashTransactionId').value='';$('shamCashPaymentResult').textContent='';
-  $('paymentReceipt').classList.add('hidden');$('paymentReceipt').innerHTML='';
-  form.reset();closeModal();renderOrders();navigate('wallet');
-  showToast('تم إنشاء فاتورة شام كاش الرسمية. حوّل المبلغ الظاهر ثم أدخل رقم العملية.');
- }catch(err){showToast(err.message||'تعذر الاتصال بالخادم. لم يتم إنشاء الفاتورة.')}
- finally{button.disabled=false;button.textContent=originalText}
-}
 async function loadPaymentConfig(){try{const r=await fetch('/api/payments/config',{cache:'no-store'});const d=await r.json();const badge=$('shamCashStatusBadge'),status=$('shamCashServiceStatus');if(!r.ok)throw new Error('تعذر فحص بوابة الدفع.');paymentConfigEnabled=!!d.enabled;paymentFxReady=!!d.fxReady;sypPerUsd=Number(d.sypPerUsd)||145;const usdOption=$('orderCurrency')?.querySelector('option[value="USD"]');if(usdOption)usdOption.disabled=!d.fxReady;if(!d.fxReady&&$('orderCurrency')?.value==='USD')$('orderCurrency').value='SYP';renderCurrencyPreview();badge.textContent=d.enabled?'بوابة API جاهزة':'بانتظار إعداد الخادم';status.textContent=d.message||'حالة بوابة الدفع غير معروفة.';status.classList.toggle('ready',!!d.enabled);status.classList.toggle('error',!d.enabled);if(d.enabled){$('shamCashReceiverInfo').innerHTML=`<span>محفظة الاستلام</span><strong>${esc(d.receiverLabel||'محفظة Nexa Store')}</strong><small>عنوان الاستلام الدقيق يظهر داخل كل فاتورة رسمية.</small>`;}else{$('shamCashReceiverInfo').innerHTML='<span>محفظة الاستلام</span><strong>لم يتم تفعيل بوابة الدفع بعد</strong><small>لا تحوّل أي مبلغ قبل ظهور تفاصيل الفاتورة الرسمية.</small>';}}catch(e){$('shamCashStatusBadge').textContent='الخادم غير متصل';$('shamCashServiceStatus').textContent='تعذر الوصول إلى خادم الدفع. شغّل الموقع عبر خادم Nexa وليس بفتح ملف HTML مباشرة.';$('shamCashServiceStatus').classList.add('error');}}
 async function loadShamCashOrderSummary(){
  const orderId=$('paymentOrderId').value.trim().toUpperCase(),summary=$('paymentOrderSummary');
