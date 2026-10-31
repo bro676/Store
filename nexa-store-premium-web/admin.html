@@ -370,6 +370,61 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
       </section>
       <section class="page hidden" id="page-catalog-api">
         <div class="page-head"><div><div class="eyebrow">PRODUCT API CONNECTIONS</div><h2>مصادر إضافة المنتجات</h2><p>اربط أكثر من نظام أو متجر خارجي، وكل مصدر يحصل على مفتاح مستقل لإضافة المنتجات وتحديثها فقط.</p></div><span class="status-pill">حتى 20 مصدر API</span></div>
+        <section class="panel seagm-connect-panel" id="wamdaConnectPanel">
+          <div class="panel-head">
+            <div>
+              <div class="section-caption">WAMDA STORE · SUPPLIER API</div>
+              <h3>ربط ومضة ستور</h3>
+              <p>أضف API Token من حساب ومضة. يحفظه الخادم مشفّراً، ثم يمكنك اختبار الحساب واستيراد المنتجات.</p>
+            </div>
+            <span class="status-pill" id="wamdaConnectionBadge">غير متصل</span>
+          </div>
+          <div class="seagm-credential-grid">
+            <div class="field">
+              <label for="wamdaApiToken">Wamda API Token</label>
+              <input id="wamdaApiToken" type="password" autocomplete="new-password" maxlength="1024" placeholder="ألصق API Token الخاص بحسابك" dir="ltr">
+              <small id="wamdaTokenState">لم يتم حفظ مفتاح ومضة بعد.</small>
+            </div>
+            <div class="field">
+              <label>بيانات الحساب</label>
+              <div class="seagm-sync-summary" id="wamdaAccountSummary">لم يتم اختبار الاتصال بعد.</div>
+              <small id="wamdaLastSync">آخر مزامنة: —</small>
+            </div>
+            <div class="field">
+              <label>Webhook URL الخاص بمتجرك</label>
+              <input id="wamdaWebhookUrl" readonly dir="ltr" value="" placeholder="سيظهر الرابط بعد تحميل الإعدادات">
+              <small>ضع هذا الرابط في إعدادات Webhook بحساب ومضة. الرابط سري، لا تنشره علناً.</small>
+            </div>
+            <div class="field">
+              <label>طريقة استقبال الإشعار</label>
+              <div class="seagm-sync-summary">يوقظ الإشعار عامل الطلبات فقط؛ الخادم يتحقق من الحالة الفعلية عبر Wamda /check.</div>
+              <small>توثيق ومضة الحالي لا يشرح توقيع Webhook أو بنية أحداثه.</small>
+            </div>
+          </div>
+          <div class="seagm-actions">
+            <button class="btn primary" type="button" id="saveWamdaBtn">حفظ API Token</button>
+            <button class="btn soft" type="button" id="testWamdaBtn">اختبار الحساب والرصيد</button>
+            <button class="btn soft" type="button" id="refreshWamdaCatalogBtn">جلب المنتجات من ومضة ↻</button>
+            <button class="btn soft" type="button" id="copyWamdaWebhookBtn">نسخ Webhook URL</button>
+            <label class="seagm-clear-secret"><input id="clearWamdaApiToken" type="checkbox"> حذف Token المحفوظ</label>
+          </div>
+          <div class="seagm-status-message" id="wamdaAccountStatus" role="status">أدخل API Token من ومضة ثم احفظه لاختبار الاتصال.</div>
+          <div class="notice info">المصادقة تتم بترويسة <bdi dir="ltr">api-token</bdi>. لا نضع المفتاح في المتصفح العام أو ملفات GitHub، ولا نحتاج إعداد IP حالياً.</div>
+        </section>
+        <section class="panel seagm-products-panel" id="wamdaProductsPanel">
+          <div class="panel-head">
+            <div>
+              <div class="section-caption">WAMDA LIVE CATALOG</div>
+              <h3>منتجات ومضة المستوردة</h3>
+              <p>حدّد سعر البيع بالليرة السورية الجديدة ثم انشر المنتج في كتالوج المتجر.</p>
+            </div>
+            <span class="status-pill" id="wamdaProductCount">0 منتج</span>
+          </div>
+          <div id="wamdaCatalogResults" class="seagm-catalog-results">
+            <div class="empty-api">احفظ API Token ثم اختبر الحساب واجلب المنتجات.</div>
+          </div>
+          <div class="notice">السعر القادم من ومضة بالدولار ويظهر كتكلفة مرجعية فقط. يجب تحديد سعر البيع المحلي قبل النشر، ولا يتم تأكيد التسليم إلا بعد أن تعيد ومضة حالة completed عند فحص الطلب.</div>
+        </section>
         <section class="panel seagm-connect-panel">
           <div class="panel-head">
             <div>
@@ -544,7 +599,7 @@ function applyAdminTheme(primary,secondary,accent){
  const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=adminMixHex(p,'#10263f',.58);
 }
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={catalog:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},categoryIndex:0,page:'overview',busy:false};
+const state={catalog:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},categoryIndex:0,page:'overview',busy:false};
 const pageTitles={overview:'نظرة عامة',catalog:'المنتجات والأسعار','catalog-api':'ربط المنتجات عبر API',orders:'الطلبات والإيصالات',payments:'شام كاش والمحفظة',exchange:'سعر الصرف'};
 let toastTimer;
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2800)}
@@ -553,10 +608,10 @@ function showLogin(){state.authed=false;$('app').classList.add('hidden');$('logi
 function showApp(){state.authed=true;$('loginScreen').classList.add('hidden');$('app').classList.remove('hidden')}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginError').textContent='';const key=$('adminKey').value;try{await api('/api/admin/session',{method:'POST',body:JSON.stringify({key})});$('adminKey').value='';showApp();await loadAll();toast('تم تسجيل الدخول بأمان.')}catch(err){$('loginError').textContent=err.message;$('adminKey').focus()}});
 $('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/session',{method:'DELETE'})}catch{}showLogin();toast('تم تسجيل الخروج.')});
-function setPage(name){state.page=name;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!=='page-'+name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('pageTitle').textContent=pageTitles[name]||'Nexa';if(name==='catalog')renderCatalog();if(name==='catalog-api'){loadSettings();loadSeagmCatalog()}if(name==='orders')loadOrders();if(name==='payments')loadSettings();if(name==='exchange')loadSettings()}
+function setPage(name){state.page=name;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!=='page-'+name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('pageTitle').textContent=pageTitles[name]||'Nexa';if(name==='catalog')renderCatalog();if(name==='catalog-api'){loadSettings();loadWamdaCatalog();loadSeagmCatalog()}if(name==='orders')loadOrders();if(name==='payments')loadSettings();if(name==='exchange')loadSettings()}
 document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.page)));
 document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.jump)));
-async function loadAll(){showApp();await Promise.all([loadOverview(),loadCatalog(),loadSettings(),loadOrders(),loadSeagmCatalog()]);}
+async function loadAll(){showApp();await Promise.all([loadOverview(),loadCatalog(),loadSettings(),loadOrders(),loadWamdaCatalog(),loadSeagmCatalog()]);}
 async function loadOverview(){const d=await api('/api/admin/overview');const o=d.orders||{};const cards=[['إجمالي الطلبات',o.total||0,'▤','كل الطلبات المسجلة'],['مدفوع ومتحقق',o.paid||0,'✓','دفعات أكدها API'],['بانتظار الدفع',o.pending||0,'◷','فواتير فعالة أو قيد المتابعة'],['عدد المنتجات',d.products||0,'▦',`${d.categories||0} أقسام`]];$('stats').innerHTML=cards.map(([t,v,ico,sub])=>`<article class="stat"><div class="stat-top"><span>${t}</span><i class="stat-icon">${ico}</i></div><strong>${Number(v).toLocaleString('en-US')}</strong><small>${sub}</small></article>`).join('');const max=Math.max(1,o.total||0);$('orderBars').innerHTML=[['مدفوع',o.paid||0],['بانتظار الدفع',o.pending||0],['منتهي',o.expired||0],['ملغي',(o.total||0)-(o.paid||0)-(o.pending||0)-(o.expired||0)]].map(([label,v])=>`<div class="bar-row"><span>${label}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Number(v)/max*100)}%"></div></div><b>${v}</b></div>`).join('');$('topStatus').textContent=d.paymentsReady?'الدفع جاهز':'تحقق من الدفع';}
 async function loadCatalog(){const d=await api('/api/admin/catalog');state.catalog=d.catalog||[];state.categoryIndex=Math.min(state.categoryIndex,Math.max(0,state.catalog.length-1));renderCatalog()}
 function activeCategory(){return state.catalog[state.categoryIndex]||null}
@@ -615,7 +670,7 @@ $('addProductBtn').addEventListener('click',()=>{const c=activeCategory();if(!c)
 $('saveCatalogBtn').addEventListener('click',async()=>{const b=$('saveCatalogBtn');b.disabled=true;try{await api('/api/admin/catalog',{method:'PUT',body:JSON.stringify({catalog:state.catalog})});toast('تم حفظ الكتالوج والصور على قاعدة البيانات.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 async function loadSettings(){const d=await api('/api/admin/settings');state.settings=d.settings||{};renderSettings(d)}
 function renderSettings(d={}){const s=state.settings;$('storeName').value=s.storeName||'Nexa Store';$('announcement').value=s.announcement||'';$('storeLogo').value=s.storeLogo||'assets/brand/logo.svg';$('storeLogoPreview').src=s.storeLogo||'assets/brand/logo.svg';$('themePrimary').value=s.themePrimary||'#397fda';$('themeSecondary').value=s.themeSecondary||'#65b8d7';$('themeAccent').value=s.themeAccent||'#8076d6';applyAdminTheme($('themePrimary').value,$('themeSecondary').value,$('themeAccent').value);$('paymentEnabled').checked=!!s.paymentEnabled;$('shamApiBase').value=s.shamApiBase||'https://apis-shamcash.com/api';$('shamApiToken').value='';$('clearShamApiToken').checked=false;$('shamTokenState').textContent=s.shamApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لم يتم ضبط مفتاح بعد.';$('receiverLabel').value=s.receiverLabel||'';$('walletId').value=s.walletId||'';$('orderTtlMinutes').value=s.orderTtlMinutes??15;$('maxAgeMinutes').value=s.maxAgeMinutes??15;$('futureSkewSeconds').value=s.futureSkewSeconds??90;$('timezoneOffsetMinutes').value=s.timezoneOffsetMinutes??180;$('paymentStatus').textContent=d.paymentsReady?'الدفع مفعّل وجاهز':'الدفع غير جاهز';
- $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;renderCatalogApiKeys();$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';$('seagmEnvironment').value=s.seagmEnvironment||'sandbox';$('seagmUid').value=s.seagmUid||'';$('seagmSecret').value='';$('clearSeagmSecret').checked=false;$('seagmSecretState').textContent=s.seagmSecretConfigured?'يوجد Secret Key محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لا يوجد Secret Key محفوظ.';}
+ $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;renderCatalogApiKeys();$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';$('seagmEnvironment').value=s.seagmEnvironment||'sandbox';$('seagmUid').value=s.seagmUid||'';$('seagmSecret').value='';$('clearSeagmSecret').checked=false;$('seagmSecretState').textContent=s.seagmSecretConfigured?'يوجد Secret Key محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لا يوجد Secret Key محفوظ.';$('wamdaApiToken').value='';$('clearWamdaApiToken').checked=false;$('wamdaTokenState').textContent=s.wamdaApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';$('wamdaWebhookUrl').value=s.wamdaWebhookUrl||'';$('copyWamdaWebhookBtn').disabled=!s.wamdaWebhookUrl;}
 $('fxMode').addEventListener('change',()=>{$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api')});
 function paymentPayload(){return{paymentEnabled:$('paymentEnabled').checked,shamApiBase:$('shamApiBase').value.trim(),shamApiToken:$('shamApiToken').value,clearShamApiToken:$('clearShamApiToken').checked,walletId:$('walletId').value.trim(),receiverLabel:$('receiverLabel').value.trim(),orderTtlMinutes:Number($('orderTtlMinutes').value),maxAgeMinutes:Number($('maxAgeMinutes').value),futureSkewSeconds:Number($('futureSkewSeconds').value),timezoneOffsetMinutes:Number($('timezoneOffsetMinutes').value)}}
 $('savePaymentsBtn').addEventListener('click',async()=>{const b=$('savePaymentsBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(paymentPayload())});state.settings=d.settings;renderSettings(d);toast('تم حفظ إعدادات شام كاش والمحفظة.')}catch(e){toast(e.message)}finally{b.disabled=false}});
@@ -627,6 +682,80 @@ $('refreshFxBtn').addEventListener('click',async()=>{const b=$('refreshFxBtn');b
 $('saveBrandBtn').addEventListener('click',async()=>{const b=$('saveBrandBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify({storeName:$('storeName').value.trim(),announcement:$('announcement').value.trim(),storeLogo:$('storeLogo').value.trim(),themePrimary:$('themePrimary').value,themeSecondary:$('themeSecondary').value,themeAccent:$('themeAccent').value})});state.settings=d.settings;renderSettings(d);toast('تم حفظ الهوية واللون وتطبيق درجاته المتناسقة على المتجر.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 $('storeLogo').addEventListener('input',()=>{$('storeLogoPreview').src=$('storeLogo').value});
 $('storeLogoFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=await compressImage(file);$('storeLogo').value=data;$('storeLogoPreview').src=data;toast('تم تجهيز الشعار، اضغط حفظ الهوية.')}catch{toast('تعذر قراءة الشعار.')}e.target.value=''});
+
+async function loadWamdaCatalog(){
+  try{
+    const d=await api('/api/admin/wamda/catalog');
+    state.wamdaCatalog=Array.isArray(d.categories)?d.categories:[];
+    state.wamdaMeta=d;
+    renderWamdaCatalog();
+    $('wamdaConnectionBadge').textContent=d.configured?'API Token محفوظ':'غير متصل';
+    $('wamdaTokenState').textContent=state.settings.wamdaApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';
+    $('wamdaWebhookUrl').value=d.webhookUrl||state.settings.wamdaWebhookUrl||'';
+    $('copyWamdaWebhookBtn').disabled=!$('wamdaWebhookUrl').value;
+    $('wamdaProductCount').textContent=Number(d.stats?.products||0).toLocaleString('en-US')+' منتج';
+    $('wamdaLastSync').textContent=d.lastSyncAt?'آخر مزامنة: '+new Date(d.lastSyncAt).toLocaleString('ar-SY'):'آخر مزامنة: —';
+    if(d.lastError)$('wamdaAccountStatus').textContent='آخر خطأ: '+d.lastError;
+    else if(d.account)$('wamdaAccountStatus').textContent='متصل · '+(d.account.username||'حساب ومضة')+' · الرصيد '+(d.account.balance??'—')+' '+(d.account.currency||'USD');
+    else if(!d.configured)$('wamdaAccountStatus').textContent='أدخل API Token من ومضة ثم احفظه لاختبار الاتصال.';
+    $('wamdaAccountSummary').textContent=d.account?'الرصيد: '+(d.account.balance??'—')+' '+(d.account.currency||'USD'):'لم يتم اختبار الاتصال بعد.';
+  }catch(error){$('wamdaAccountStatus').textContent=error.message}
+}
+function renderWamdaCatalog(){
+  const list=$('wamdaCatalogResults');if(!list)return;
+  const total=state.wamdaCatalog.reduce((sum,category)=>sum+(category.products||[]).length,0);
+  $('wamdaProductCount').textContent=total.toLocaleString('en-US')+' منتج';
+  if(!state.wamdaCatalog.length){list.innerHTML='<div class="empty-api">لا توجد منتجات مستوردة. اختبر الاتصال ثم اضغط «جلب المنتجات من ومضة».</div>';return;}
+  list.innerHTML=state.wamdaCatalog.map(category=>{
+    const rows=(category.products||[]).map(product=>{
+      const id='wamda-'+product.id,existing=state.catalog.find(local=>local.id===id);
+      const retail=existing?.options?.[0]?.packs?.[0]?.[1]??'';
+      const fields=(product.fields||[]).map(field=>field.label||field.key).join('، ');
+      const unavailable=!product.available;
+      return '<article class="seagm-product-row" data-category-id="'+esc(category.id)+'" data-product-id="'+esc(product.id)+'">'+
+        '<div class="seagm-product-main"><strong>'+esc(product.name)+'</strong>'+
+        '<small>Wamda Product ID '+esc(product.id)+' · التكلفة '+esc(product.unitPrice)+' USD للوحدة</small>'+
+        '<small>الكمية '+esc(product.minQuantity)+'–'+esc(product.maxQuantity)+(fields?' · الحقول: '+esc(fields):'')+'</small></div>'+
+        '<div class="seagm-product-price"><label>سعر البيع (ل.س جديدة)</label><input type="number" min="0.01" max="1000000000" step="0.01" data-wamda-price value="'+esc(retail)+'" placeholder="أدخل سعر البيع"></div>'+
+        '<button class="btn '+(existing?'soft':'primary')+'" type="button" data-publish-wamda '+(unavailable?'disabled':'')+'>'+(existing?'تحديث ونشر':'نشر في المتجر')+'</button>'+
+        (unavailable?'<span class="seagm-unavailable">غير متوفر لدى ومضة</span>':'')+'</article>';
+    }).join('');
+    return '<section class="seagm-category-group"><div class="seagm-category-heading"><strong>'+esc(category.name)+'</strong><small>'+((category.products||[]).length)+' منتج</small></div>'+(rows||'<div class="empty-api">لا توجد منتجات في هذا القسم.</div>')+'</section>';
+  }).join('');
+}
+async function saveWamdaCredentials(){
+  const payload={wamdaApiToken:$('wamdaApiToken').value.trim(),clearWamdaApiToken:$('clearWamdaApiToken').checked};
+  const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(payload)});
+  state.settings=d.settings||state.settings;
+  $('wamdaApiToken').value='';$('clearWamdaApiToken').checked=false;
+  $('wamdaTokenState').textContent=state.settings.wamdaApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';
+  $('wamdaWebhookUrl').value=state.settings.wamdaWebhookUrl||'';
+  $('copyWamdaWebhookBtn').disabled=!$('wamdaWebhookUrl').value;
+  return d;
+}
+async function testWamda(){
+  const b=$('testWamdaBtn');b.disabled=true;$('wamdaAccountStatus').textContent='جارٍ اختبار الاتصال بحساب ومضة…';
+  try{await saveWamdaCredentials();const d=await api('/api/admin/wamda/test',{method:'POST',body:'{}'});$('wamdaConnectionBadge').textContent='متصل · '+(d.account.currency||'USD');$('wamdaAccountSummary').textContent='الرصيد: '+(d.account.balance??'—')+' '+(d.account.currency||'USD');$('wamdaAccountStatus').textContent='تم الاتصال بنجاح · '+(d.account.username||'حساب ومضة')+' · الرصيد '+(d.account.balance??'—')+' '+(d.account.currency||'USD');toast('نجح اختبار API الخاص بومضة.');await loadSettings();}
+  catch(e){$('wamdaConnectionBadge').textContent='فشل الاتصال';$('wamdaAccountStatus').textContent=e.message;toast(e.message);}finally{b.disabled=false;}
+}
+async function refreshWamdaProducts(){
+  const b=$('refreshWamdaCatalogBtn');b.disabled=true;$('wamdaAccountStatus').textContent='جارٍ جلب منتجات ومضة…';
+  try{await saveWamdaCredentials();const d=await api('/api/admin/wamda/catalog/refresh',{method:'POST',body:'{}'});state.wamdaCatalog=d.categories||[];state.wamdaMeta=d;renderWamdaCatalog();$('wamdaConnectionBadge').textContent='متصل · '+(d.account?.currency||'USD');$('wamdaAccountSummary').textContent='الرصيد: '+(d.account?.balance??'—')+' '+(d.account?.currency||'USD');$('wamdaLastSync').textContent='آخر مزامنة: '+new Date(d.syncedAt).toLocaleString('ar-SY');$('wamdaAccountStatus').textContent='تم استيراد '+d.stats.products+' منتج من ومضة.';await loadCatalog();toast('تم جلب '+d.stats.products+' منتج من ومضة.');}
+  catch(e){$('wamdaAccountStatus').textContent=e.message;toast(e.message);}finally{b.disabled=false;}
+}
+$('saveWamdaBtn').addEventListener('click',async()=>{const b=$('saveWamdaBtn');b.disabled=true;try{await saveWamdaCredentials();await loadWamdaCatalog();toast('تم حفظ API Token الخاص بومضة بشكل مشفّر.');}catch(e){toast(e.message);}finally{b.disabled=false;}});
+$('testWamdaBtn').addEventListener('click',testWamda);
+$('refreshWamdaCatalogBtn').addEventListener('click',refreshWamdaProducts);
+$('copyWamdaWebhookBtn').addEventListener('click',async()=>{const value=$('wamdaWebhookUrl').value;if(!value)return;try{await navigator.clipboard.writeText(value);toast('تم نسخ رابط Webhook.');}catch{const field=$('wamdaWebhookUrl');field.focus();field.select();toast('حدّد الرابط وانسخه يدوياً.');}});
+$('wamdaCatalogResults').addEventListener('click',async event=>{
+  const button=event.target.closest('[data-publish-wamda]');if(!button)return;
+  const row=button.closest('.seagm-product-row');if(!row)return;
+  const price=row.querySelector('[data-wamda-price]')?.value;
+  if(!price||!Number.isFinite(Number(price))||Number(price)<=0){toast('أدخل سعر البيع بالليرة السورية الجديدة أولاً.');row.querySelector('[data-wamda-price]')?.focus();return;}
+  button.disabled=true;
+  try{const d=await api('/api/admin/wamda/catalog/publish',{method:'POST',body:JSON.stringify({categoryId:Number(row.dataset.categoryId),productId:Number(row.dataset.productId),sellPriceSyp:price})});await loadCatalog();renderWamdaCatalog();toast(d.message||'تم نشر المنتج.');}
+  catch(error){toast(error.message);button.disabled=false;}
+});
 
 async function loadSeagmCatalog(){
   try{
