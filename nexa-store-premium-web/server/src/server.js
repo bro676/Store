@@ -69,7 +69,7 @@ let pool;
 if (cfg.databaseUrl) {
   pool = new Pool({ connectionString: cfg.databaseUrl, ssl: cfg.databaseSsl ? { rejectUnauthorized: true } : false,
     max: 10, idleTimeoutMillis: 30_000, connectionTimeoutMillis: 8_000 });
-  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql']) {
+  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
   }
 }
@@ -187,7 +187,7 @@ function publicCatalog() {
   return catalog.map(category => ({
     ...category,
     items: category.items.map(product => {
-      const { seagm, wamda, ...publicProduct } = product;
+      const { seagm, wamda, manualOverrides, apiSource, ...publicProduct } = product;
       if (seagm?.provider === 'seagm') {
         return {
           ...publicProduct,
@@ -402,8 +402,12 @@ function providerMessage(error) {
   if (error?.status >= 500) return 'مزوّد شام كاش غير متاح حالياً. لم يتم تأكيد الدفع.';
   return 'تعذر التحقق من العملية عبر شام كاش. لم يتم تأكيد الدفع.';
 }
-async function createOrder(input) {
-  if (!paymentsReady) return { error:'PAYMENTS_NOT_READY', status:503, message:'الدفع غير متاح حتى تكتمل إعدادات API وقاعدة البيانات على الخادم.' };
+async function createOrder(input, customer = null) {
+  const paymentMethod=String(input.paymentMethod || 'shamcash').trim().toLowerCase();
+  if (!['shamcash','wallet'].includes(paymentMethod)) return {error:'INVALID_PAYMENT_METHOD',status:400,message:'طريقة الدفع المختارة غير مدعومة.'};
+  if (!pool) return {error:'DATABASE_NOT_CONFIGURED',status:503,message:'قاعدة بيانات المتجر غير جاهزة.'};
+  if (paymentMethod==='wallet' && !customer) return {error:'CUSTOMER_LOGIN_REQUIRED',status:401,message:'سجّل الدخول إلى حسابك لاستخدام الرصيد.'};
+  if (paymentMethod==='shamcash' && !paymentsReady) return { error:'PAYMENTS_NOT_READY', status:503, message:'الدفع المباشر غير متاح حتى تكتمل إعدادات API وقاعدة البيانات على الخادم.' };
   const pack = findPack(input.categoryId, input.productId, input.optionId, Number(input.packIndex));
   if (!pack) return { error:'INVALID_PRODUCT', status:400, message:'الباقة غير متاحة أو سعرها غير محدد.' };
   const sourceCategory = catalog.find(category => category.id === input.categoryId);
@@ -434,11 +438,61 @@ async function createOrder(input) {
   const totalPack = { ...pack, label:supplier ? `${pack.label} × ${quantity}` : pack.label, amountMinor:pack.amountMinor * BigInt(quantity) };
   const pricedPack = pricePack(totalPack, currency);
   if (!pricedPack) return { error:'INVALID_PRICE', status:400, message:'تعذر حساب السعر بالعملة المختارة.' };
-  const name = String(input.customerName || '').trim().slice(0,70);
-  const phone = String(input.customerPhone || '').trim().slice(0,25);
+  const name = String(input.customerName || customer?.full_name || '').trim().slice(0,70);
+  const phone = String(input.customerPhone || customer?.phone || '').trim().slice(0,25);
   const gameAccount = String(input.accountId || '').trim().slice(0,80);
   const notes = String(input.notes || '').trim().slice(0,500);
   if (name.length < 2 || !/^\+?[0-9\s()-]{7,20}$/.test(phone)) return {error:'INVALID_CUSTOMER',status:400,message:'يرجى إدخال الاسم ورقم هاتف صحيح.'};
+  if(paymentMethod==='wallet'){
+    if(currency!=='SYP')return {error:'WALLET_CURRENCY_UNSUPPORTED',status:400,message:'الرصيد الداخلي حالياً بالليرة السورية الجديدة فقط. اختر SYP للدفع من الرصيد.'};
+    const client=await pool.connect();
+    const id=`NX-${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
+    const supplierOrderUuid=supplierProvider==='wamda'?crypto.randomUUID():id;
+    try{
+      await client.query('BEGIN');
+      const locked=await client.query('SELECT balance_minor::text FROM nexa_customers WHERE id=$1 FOR UPDATE',[customer.id]);
+      if(!locked.rowCount){await client.query('ROLLBACK');return {error:'CUSTOMER_NOT_FOUND',status:401,message:'انتهت جلسة حسابك. سجّل الدخول مجدداً.'};}
+      const balance=BigInt(locked.rows[0].balance_minor);
+      if(balance<pricedPack.amountMinor){await client.query('ROLLBACK');return {error:'WALLET_INSUFFICIENT_FUNDS',status:409,message:'رصيدك غير كافٍ لإتمام هذا الطلب. اشحن رصيدك أو اختر الدفع المباشر.',balanceMinor:balance.toString(),requiredMinor:pricedPack.amountMinor.toString()};}
+      const debited=await client.query('UPDATE nexa_customers SET balance_minor=balance_minor-$2 WHERE id=$1 RETURNING balance_minor::text',[customer.id,pricedPack.amountMinor.toString()]);
+      const nextBalance=String(debited.rows[0].balance_minor);
+      const supplierStatus=supplier?'pending':'not_applicable';
+      const supplierMessage=supplierProvider==='wamda'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى ومضة.':(supplierProvider==='seagm'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى SEAGM.':'');
+      await client.query(`INSERT INTO nexa_orders (
+        id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,
+        customer_name,customer_phone,game_account,notes,status,expires_at,paid_at,
+        supplier_provider,supplier_kind,supplier_category_id,supplier_type_id,supplier_quantity,
+        supplier_fields,supplier_mch_order_id,supplier_status,supplier_message,customer_id,payment_method
+      ) VALUES (
+        $1,$2,$3,$4,$5,$6,$7,'SYP',$8,$9,$10,$11,'paid',NOW()+INTERVAL '365 days',NOW(),
+        $12,$13,$14,$15,$16,$17::jsonb,$18,$19,$20,$21,'wallet'
+      )`,[
+        id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pricedPack.label,pricedPack.amountMinor.toString(),
+        name,phone,gameAccount,notes,supplierProvider,supplier?.kind||'',supplier?Number(supplier.categoryId):null,
+        supplier?Number(supplier.typeId||supplier.productId):null,quantity,JSON.stringify(supplierFields),
+        supplier?supplierOrderUuid:null,supplierStatus,supplierMessage,customer.id
+      ]);
+      await client.query(`INSERT INTO nexa_wallet_ledger(customer_id,kind,amount_minor,balance_after_minor,reference_order_id,note)
+        VALUES($1,'purchase',$2,$3,$4,$5)`,[customer.id,pricedPack.amountMinor.toString(),nextBalance,id,pricedPack.label]);
+      if(['seagm','wamda'].includes(supplierProvider)){
+        await client.query(`INSERT INTO nexa_fulfillment_jobs(order_id,status,next_attempt_at)
+          VALUES($1,'pending',NOW()) ON CONFLICT(order_id) DO NOTHING`,[id]);
+      }
+      await client.query('COMMIT');
+      if(['seagm','wamda'].includes(supplierProvider))runSeagmFulfillmentWorker().catch(error=>console.error('wallet purchase fulfillment failed',String(error?.message||'unknown').slice(0,120)));
+      return {
+        orderId:id,product:pricedPack.label,amountMinor:pricedPack.amountMinor.toString(),currency:'SYP',
+        status:'paid',paymentMethod:'wallet',walletBalanceMinor:nextBalance,
+        deliveryProvider:supplierProvider==='wamda'?'WAMDA':(supplier?'SEAGM':null),
+        deliveryStatus:supplier?'pending':null,
+        receipt:{orderId:id,product:pricedPack.label,amountMinor:pricedPack.amountMinor.toString(),currency:'SYP',customerName:name,paymentMethod:'wallet',paidAt:new Date().toISOString(),...(supplier?{delivery:{provider:supplierProvider==='wamda'?'WAMDA':'SEAGM',status:'pending',message:supplierMessage}}:{})}
+      };
+    }catch(error){
+      await client.query('ROLLBACK').catch(()=>{});
+      if(error.code==='23505')return {error:'WALLET_ORDER_CONFLICT',status:409,message:'تعذر تثبيت الطلب بسبب تكرار في المرجع. لم يتغير رصيدك.'};
+      throw error;
+    }finally{client.release();}
+  }
   let wallet, invoice, id, persisted = false;
   try {
     wallet = await getWallet(true);
@@ -449,10 +503,10 @@ async function createOrder(input) {
       id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,
       customer_name,customer_phone,game_account,notes,expires_at,invoice_number,invoice_identifier,
       wallet_label,wallet_address,supplier_provider,supplier_kind,supplier_category_id,supplier_type_id,
-      supplier_quantity,supplier_fields,supplier_mch_order_id,supplier_status,supplier_message
+      supplier_quantity,supplier_fields,supplier_mch_order_id,supplier_status,supplier_message,customer_id,payment_method
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,
-      $18,$19,$20,$21,$22,$23::jsonb,$24,$25,$26
+      $18,$19,$20,$21,$22,$23::jsonb,$24,$25,$26,$27,$28
     )`,
     [
       id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pricedPack.label,
@@ -462,6 +516,7 @@ async function createOrder(input) {
       supplier ? Number(supplier.typeId || supplier.productId) : null,quantity,JSON.stringify(supplierFields),
       supplier ? supplierOrderUuid : null,supplier ? 'pending_payment' : 'not_applicable',
       supplierProvider==='wamda'?'بانتظار تأكيد الدفع من شام كاش؛ سيتم إرسال الطلب إلى ومضة بعد التحقق.':(supplier?'بانتظار تأكيد الدفع من شام كاش.':''),
+      customer?.id || null,'shamcash',
     ]);
     persisted = true;
     return {
@@ -606,13 +661,24 @@ async function verifyPayment(input) {
       [transactionRef,orderId,tx.amountMinor.toString(),tx.currency,String(wallet.id),tx.occurredAt,JSON.stringify({invoiceNumber:order.invoice_number,transactionId:transactionRef,amountMinor:tx.amountMinor.toString(),currency:tx.currency,receiverAddress:tx.receiverAddress,type:tx.type,occurredAt:tx.occurredAt.toISOString(),paidAt:paidAt.toISOString()})]);
     if (!inserted.rowCount) { await client.query('ROLLBACK'); return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'}; }
     await client.query("UPDATE nexa_orders SET status='paid',paid_at=$2,supplier_status=CASE WHEN supplier_provider IN ('seagm','wamda') THEN 'pending' ELSE supplier_status END,supplier_message=CASE WHEN supplier_provider='wamda' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.' WHEN supplier_provider='seagm' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.' ELSE supplier_message END WHERE id=$1",[orderId,paidAt]);
+    let walletBalanceMinor=null;
+    if(order.wallet_topup_customer_id){
+      const credited=await client.query('UPDATE nexa_customers SET balance_minor=balance_minor+$2 WHERE id=$1 RETURNING balance_minor::text',[order.wallet_topup_customer_id,String(order.amount_minor)]);
+      if(!credited.rowCount){await client.query('ROLLBACK');return {error:'WALLET_ACCOUNT_NOT_FOUND',status:409,message:'تعذر ربط شحنة الرصيد بالحساب. تواصل مع الدعم مع رقم الطلب.'};}
+      walletBalanceMinor=String(credited.rows[0].balance_minor);
+      await client.query(`INSERT INTO nexa_wallet_ledger(customer_id,kind,amount_minor,balance_after_minor,reference_order_id,note)
+        VALUES($1,'topup',$2,$3,$4,'شحن رصيد عبر شام كاش')`,[order.wallet_topup_customer_id,String(order.amount_minor),walletBalanceMinor,orderId]);
+    }
     if (['seagm','wamda'].includes(order.supplier_provider)) {
       await client.query(`INSERT INTO nexa_fulfillment_jobs(order_id,status,next_attempt_at)
         VALUES($1,'pending',NOW()) ON CONFLICT(order_id) DO NOTHING`,[orderId]);
     }
     await client.query('COMMIT');
     return {ok:true,orderId,invoiceNumber:order.invoice_number,transactionId:transactionRef,status:'paid',verifiedAt:new Date().toISOString(),
+      ...(walletBalanceMinor!==null?{walletBalanceMinor}:{}),
       receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,
+        paymentMethod:order.wallet_topup_customer_id?'shamcash_topup':'shamcash',
+        ...(walletBalanceMinor!==null?{walletBalanceMinor}:{}),
         invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:paidAt.toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,
         ...(order.supplier_provider==='wamda'?{delivery:{provider:'WAMDA',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.'}}:(order.supplier_provider==='seagm'?{delivery:{provider:'SEAGM',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.'}}:{}))}};
   } catch (error) {
@@ -739,6 +805,31 @@ function readCookie(req, name) {
     if (key === name) return value.join('=');
   }
   return '';
+}
+function customerCookie(req, token, maxAge = 30 * 24 * 60 * 60) {
+  const secure = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https' || process.env.NODE_ENV === 'production';
+  return `nexa_customer_session=${token}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
+}
+function customerSessionHash(token) {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
+}
+function customerPasswordHash(password, salt) {
+  return crypto.scryptSync(password, salt, 64).toString('hex');
+}
+async function currentCustomer(req) {
+  if (!pool) return null;
+  const token = readCookie(req,'nexa_customer_session');
+  if (!/^[A-Za-z0-9_-]{40,80}$/.test(token)) return null;
+  const result = await pool.query(`SELECT c.id,c.full_name,c.phone,c.balance_minor::text,c.created_at
+    FROM nexa_customer_sessions s JOIN nexa_customers c ON c.id=s.customer_id
+    WHERE s.session_hash=$1 AND s.expires_at>NOW() LIMIT 1`,[customerSessionHash(token)]);
+  return result.rows[0] || null;
+}
+async function createCustomerSession(req,res,customerId) {
+  const token=crypto.randomBytes(32).toString('base64url');
+  await pool.query(`INSERT INTO nexa_customer_sessions(session_hash,customer_id,expires_at)
+    VALUES($1,$2,NOW()+INTERVAL '30 days')`,[customerSessionHash(token),customerId]);
+  res.setHeader('Set-Cookie',customerCookie(req,token));
 }
 function adminAuthorized(req) {
   const supplied = Buffer.from(String(req.headers['x-admin-key'] || ''));
@@ -1525,18 +1616,21 @@ async function publishSeagmProduct(input) {
     }]);
   }
   const sourceCurrency = String(sourceProduct.currency || '').slice(0,12).toUpperCase();
+  const existingPublishedProduct=workingCatalog.flatMap(row=>row.items||[]).find(product=>product.id===localProductId)||null;
+  const manualOverrides=existingPublishedProduct?.manualOverrides||{};
+  const sourceName=String(sourceProduct.name || ('SEAGM product ' + productId)).slice(0,120);
+  const sourceDescription=('SEAGM ' + (kind === 'card' ? 'بطاقة رقمية' : 'شحن مباشر') + ' · Supplier #' + productId + (sourceCurrency ? ' · تكلفة المورد ' + sourceProduct.unitPrice + ' ' + sourceCurrency : '')).slice(0,700);
+  const sourceOptions=[{
+    id:'seagm-default',name:'الخيار الأساسي',desc:'منتج مرتبط بمصدر SEAGM',flag:'✦',packs:[['سعر البيع',sellPrice]],
+  }];
   const retailProduct = {
     id:localProductId,
-    name:String(sourceProduct.name || ('SEAGM product ' + productId)).slice(0,120),
-    desc:('SEAGM ' + (kind === 'card' ? 'بطاقة رقمية' : 'شحن مباشر') + ' · Supplier #' + productId + (sourceCurrency ? ' · تكلفة المورد ' + sourceProduct.unitPrice + ' ' + sourceCurrency : '')).slice(0,700),
-    image:'assets/brand/logo.svg',
-    options:[{
-      id:'seagm-default',
-      name:'الخيار الأساسي',
-      desc:'منتج مرتبط بمصدر SEAGM',
-      flag:'✦',
-      packs:[['سعر البيع',sellPrice]],
-    }],
+    name:String(manualOverrides.name??sourceName).slice(0,120),
+    desc:String(manualOverrides.desc??sourceDescription).slice(0,700),
+    image:String(manualOverrides.image??'assets/brand/logo.svg'),
+    options:Array.isArray(manualOverrides.options)?manualOverrides.options:sourceOptions,
+    apiSource:{name:sourceName,desc:sourceDescription,image:'assets/brand/logo.svg',options:sourceOptions},
+    ...(Object.keys(manualOverrides).length?{manualOverrides}:{}),
     seagm:{
       provider:'seagm',
       kind,
@@ -1918,7 +2012,100 @@ const server = http.createServer(async (req,res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const ip = String(process.env.TRUST_PROXY === 'true' ? (req.headers['x-forwarded-for'] || req.socket.remoteAddress) : req.socket.remoteAddress || 'unknown').split(',')[0].trim();
   try {
-    if (req.method === 'GET' && url.pathname === '/api/health') return send(res,200,{ok:true,service:'nexa-shamcash-gateway',paymentsReady,dbReady:Boolean(pool)});
+    if (req.method === 'GET' && url.pathname === '/api/health') return send(res,200,{ok:true,service:'nexa-shamcash-gateway',paymentsReady,dbReady:Boolean(pool),walletReady:Boolean(pool)});
+
+    if(req.method==='POST'&&url.pathname==='/api/account/register'){
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED',message:'خدمة الحسابات غير جاهزة حالياً.'});
+      if(rateLimit(req,res,'account-register:'+ip,5,10*60_000))return;
+      const input=await bodyJson(req,4096);
+      const name=String(input.name||'').trim().slice(0,70);
+      const phone=String(input.phone||'').replace(/[\s()-]/g,'').trim();
+      const password=String(input.password||'');
+      if(name.length<2||!/^\+?[0-9]{8,18}$/.test(phone)||password.length<8||password.length>128)
+        return send(res,400,{ok:false,error:'INVALID_ACCOUNT_DETAILS',message:'أدخل اسماً ورقم هاتف صحيحاً وكلمة مرور من 8 أحرف على الأقل.'});
+      const id=crypto.randomUUID(),salt=crypto.randomBytes(16).toString('hex'),hash=customerPasswordHash(password,salt);
+      try{
+        await pool.query('INSERT INTO nexa_customers(id,full_name,phone,password_salt,password_hash) VALUES($1,$2,$3,$4,$5)',[id,name,phone,salt,hash]);
+        await createCustomerSession(req,res,id);
+        const customer=await pool.query('SELECT id,full_name,phone,balance_minor::text,created_at FROM nexa_customers WHERE id=$1',[id]);
+        return send(res,201,{ok:true,customer:customer.rows[0]});
+      }catch(error){
+        if(error.code==='23505')return send(res,409,{ok:false,error:'PHONE_ALREADY_REGISTERED',message:'رقم الهاتف مسجل مسبقاً. سجّل الدخول إلى حسابك.'});
+        throw error;
+      }
+    }
+    if(req.method==='POST'&&url.pathname==='/api/account/login'){
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED',message:'خدمة الحسابات غير جاهزة حالياً.'});
+      if(rateLimit(req,res,'account-login:'+ip,8,10*60_000))return;
+      const input=await bodyJson(req,4096),phone=String(input.phone||'').replace(/[\s()-]/g,'').trim(),password=String(input.password||'');
+      if(!/^\+?[0-9]{8,18}$/.test(phone)||!password||password.length>128)return send(res,400,{ok:false,error:'INVALID_LOGIN',message:'تحقق من رقم الهاتف وكلمة المرور.'});
+      const found=await pool.query('SELECT id,password_salt,password_hash FROM nexa_customers WHERE phone=$1 LIMIT 1',[phone]);
+      if(!found.rowCount)return send(res,401,{ok:false,error:'INVALID_CREDENTIALS',message:'رقم الهاتف أو كلمة المرور غير صحيحة.'});
+      const expected=Buffer.from(found.rows[0].password_hash,'hex'),supplied=Buffer.from(customerPasswordHash(password,found.rows[0].password_salt),'hex');
+      if(expected.length!==supplied.length||!crypto.timingSafeEqual(expected,supplied))return send(res,401,{ok:false,error:'INVALID_CREDENTIALS',message:'رقم الهاتف أو كلمة المرور غير صحيحة.'});
+      await pool.query('UPDATE nexa_customers SET last_login_at=NOW() WHERE id=$1',[found.rows[0].id]);
+      await createCustomerSession(req,res,found.rows[0].id);
+      const customer=await pool.query('SELECT id,full_name,phone,balance_minor::text,created_at FROM nexa_customers WHERE id=$1',[found.rows[0].id]);
+      return send(res,200,{ok:true,customer:customer.rows[0]});
+    }
+    if(req.method==='POST'&&url.pathname==='/api/account/logout'){
+      const token=readCookie(req,'nexa_customer_session');
+      if(pool&&token)await pool.query('DELETE FROM nexa_customer_sessions WHERE session_hash=$1',[customerSessionHash(token)]);
+      return send(res,200,{ok:true},{'Set-Cookie':customerCookie(req,'',0)});
+    }
+    if(req.method==='GET'&&url.pathname==='/api/account/me'){
+      const customer=await currentCustomer(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك.'});
+      return send(res,200,{ok:true,customer});
+    }
+    if(req.method==='GET'&&url.pathname==='/api/account/orders'){
+      const customer=await currentCustomer(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك.'});
+      const result=await pool.query(`SELECT o.id,o.product_label,o.amount_minor::text AS "amountMinor",o.currency,o.status,
+        o.payment_method AS "paymentMethod",o.created_at AS "createdAt",o.paid_at AS "paidAt",
+        o.supplier_status AS "supplierStatus",o.supplier_message AS "supplierMessage"
+        FROM nexa_orders o WHERE o.customer_id=$1 ORDER BY o.created_at DESC LIMIT 100`,[customer.id]);
+      return send(res,200,{ok:true,orders:result.rows});
+    }
+    if(req.method==='GET'&&url.pathname==='/api/wallet/transactions'){
+      const customer=await currentCustomer(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك.'});
+      const result=await pool.query(`SELECT kind,amount_minor::text AS "amountMinor",balance_after_minor::text AS "balanceAfterMinor",
+        reference_order_id AS "referenceOrderId",note,created_at AS "createdAt"
+        FROM nexa_wallet_ledger WHERE customer_id=$1 ORDER BY created_at DESC LIMIT 40`,[customer.id]);
+      return send(res,200,{ok:true,transactions:result.rows});
+    }
+    if(req.method==='POST'&&url.pathname==='/api/wallet/topups'){
+      if(!paymentsReady)return send(res,503,{ok:false,error:'PAYMENTS_NOT_READY',message:'شحن الرصيد عبر شام كاش غير متاح حالياً.'});
+      const customer=await currentCustomer(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول قبل شحن الرصيد.'});
+      if(rateLimit(req,res,'wallet-topup:'+customer.id,5,10*60_000))return;
+      const input=await bodyJson(req,4096),amountMinor=decimalMinor(input.amount);
+      if(amountMinor===null||amountMinor<100000n||amountMinor>500000000n)
+        return send(res,400,{ok:false,error:'INVALID_TOPUP_AMOUNT',message:'قيمة الشحن يجب أن تكون بين 1,000 و5,000,000 ليرة سورية جديدة.'});
+      const id=`NX-${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
+      let invoice=null,persisted=false;
+      try{
+        const wallet=await getWallet(true);
+        invoice=await createShamInvoice(id,{amountMinor,currency:'SYP',label:'شحن رصيد حساب Nexa'},wallet);
+        await pool.query(`INSERT INTO nexa_orders(
+          id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,
+          customer_name,customer_phone,game_account,notes,expires_at,invoice_number,invoice_identifier,
+          wallet_label,wallet_address,wallet_topup_customer_id,customer_id,payment_method
+        ) VALUES($1,'wallet','wallet-topup','wallet-topup',0,'شحن رصيد Nexa',$2,'SYP',$3,$4,'','',$5,$6,$7,$8,$9,$10,$10,'shamcash_topup')`,[
+          id,amountMinor.toString(),customer.full_name,customer.phone,invoice.expiresAt,invoice.invoiceNumber,
+          invoice.identifier,invoice.walletLabel,invoice.walletAddress,customer.id
+        ]);
+        persisted=true;
+        return send(res,201,{ok:true,orderId:id,product:'شحن رصيد Nexa',amountMinor:amountMinor.toString(),currency:'SYP',
+          expiresAt:invoice.expiresAt.toISOString(),invoiceNumber:invoice.invoiceNumber,invoiceIdentifier:invoice.identifier,
+          receiverLabel:invoice.walletLabel,receiverAddress:invoice.identifier,status:'pending_payment',paymentMethod:'shamcash_topup'});
+      }catch(error){
+        if(invoice?.invoiceNumber&&!persisted)await shamApi('DELETE',`/v1/invoices/${encodeURIComponent(invoice.invoiceNumber)}`).catch(()=>{});
+        if(error instanceof ProviderError)return send(res,error.status>=500?502:error.status,{ok:false,error:error.code,message:providerMessage(error)});
+        throw error;
+      }
+    }
 
     const wamdaWebhookMatch=url.pathname.match(/^\/api\/webhooks\/wamda\/([A-Za-z0-9_-]{40,80})$/);
     if(req.method==='POST'&&wamdaWebhookMatch){
@@ -2100,15 +2287,54 @@ const server = http.createServer(async (req,res) => {
       catalogWriteApiTokenRuntime = '';
       return send(res,200,{ok:true,message:'تم إلغاء مفتاح كتابة المنتجات.'});
     }
+    const restoreProductApiMatch=url.pathname.match(/^\/api\/admin\/catalog\/([^/]+)\/([^/]+)\/restore-api$/);
+    if(req.method==='POST'&&restoreProductApiMatch){
+      if(!pool)return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const categoryId=decodeURIComponent(restoreProductApiMatch[1]),productId=decodeURIComponent(restoreProductApiMatch[2]);
+      let found=false;
+      const nextCatalog=catalog.map(category=>category.id!==categoryId?category:{
+        ...category,items:category.items.map(product=>{
+          if(product.id!==productId)return product;
+          found=true;
+          const source=product.apiSource;
+          if(!source)return product;
+          const restored={...product};
+          for(const key of ['name','desc','image','options'])if(Object.prototype.hasOwnProperty.call(source,key))restored[key]=source[key];
+          delete restored.manualOverrides;
+          return restored;
+        })
+      });
+      if(!found)return send(res,404,{ok:false,error:'PRODUCT_NOT_FOUND',message:'لم يتم العثور على المنتج.'});
+      const category=nextCatalog.find(item=>item.id===categoryId),product=category?.items.find(item=>item.id===productId);
+      if(!product?.apiSource)return send(res,409,{ok:false,error:'API_SOURCE_MISSING',message:'لا توجد نسخة مصدر محفوظة لهذا المنتج. أعد مزامنة المنتجات أولاً.'});
+      await persistCatalog(nextCatalog);
+      return send(res,200,{ok:true,message:'تمت استعادة بيانات المنتج من آخر نسخة API.',catalog});
+    }
     if (req.method === 'GET' && url.pathname === '/api/admin/catalog') {
       return send(res,200,{ok:true,catalog});
     }
     if (req.method === 'PUT' && url.pathname === '/api/admin/catalog') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const input = await bodyJson(req,4_000_000);
-      const nextCatalog = validateCatalog(input.catalog);
-      await persistCatalog(nextCatalog);
-      return send(res,200,{ok:true,message:'تم حفظ الكتالوج بنجاح.',catalog});
+      const requestedCatalog = validateCatalog(input.catalog);
+      const nextCatalog = requestedCatalog.map(category=>{
+        const previousCategory=catalog.find(item=>item.id===category.id);
+        return {...category,items:category.items.map(product=>{
+          const previous=previousCategory?.items.find(item=>item.id===product.id);
+          if(!previous)return product;
+          const apiSource=previous.apiSource||{name:previous.name,desc:previous.desc,image:previous.image,options:previous.options};
+          const overrides={...(previous.manualOverrides||{})};
+          for(const key of ['name','desc','image','options']){
+            if(JSON.stringify(product[key])!==JSON.stringify(previous[key]))overrides[key]=product[key];
+          }
+          const next={...product,apiSource};
+          if(Object.keys(overrides).length)next.manualOverrides=overrides;
+          else delete next.manualOverrides;
+          return next;
+        })};
+      });
+      await persistCatalog(validateCatalog(nextCatalog));
+      return send(res,200,{ok:true,message:'تم حفظ الكتالوج والتعديلات اليدوية مع الاحتفاظ ببيانات API.',catalog});
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/catalog/products') {
       if (rateLimit(req,res,`catalog-write:${ip}`,40,60_000)) return;
@@ -2334,18 +2560,19 @@ const server = http.createServer(async (req,res) => {
     const orderLookup = url.pathname.match(/^\/api\/orders\/(NX-[A-F0-9]{20})$/);
     if (req.method === 'GET' && orderLookup) {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
-      const q = await pool.query(`SELECT o.id,o.product_label,o.amount_minor,o.currency,o.status,o.expires_at,o.invoice_number,o.invoice_identifier,o.wallet_label,o.wallet_address,o.customer_name,o.paid_at,p.transaction_id,o.supplier_provider,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_result_encrypted
+      const q = await pool.query(`SELECT o.id,o.product_label,o.amount_minor,o.currency,o.status,o.payment_method,o.expires_at,o.invoice_number,o.invoice_identifier,o.wallet_label,o.wallet_address,o.customer_name,o.paid_at,p.transaction_id,o.supplier_provider,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_result_encrypted
         FROM nexa_orders o LEFT JOIN nexa_payments p ON p.order_id=o.id WHERE o.id=$1`,[orderLookup[1]]);
       if (!q.rowCount) return send(res,404,{error:'ORDER_NOT_FOUND',message:'لم يتم العثور على الطلب.'});
       const o=q.rows[0];
       const delivery=o.status==='paid'?supplierDeliveryForOrder(o):null;
-      const receipt = o.status === 'paid' ? {orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,customerName:o.customer_name,invoiceNumber:o.invoice_number,transactionId:o.transaction_id,paidAt:o.paid_at ? new Date(o.paid_at).toISOString() : null,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier,...(delivery?{delivery}:{})} : null;
+      const receipt = o.status === 'paid' ? {orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,customerName:o.customer_name,paymentMethod:o.payment_method||'shamcash',invoiceNumber:o.invoice_number,transactionId:o.transaction_id,paidAt:o.paid_at ? new Date(o.paid_at).toISOString() : null,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier,...(delivery?{delivery}:{})} : null;
       return send(res,200,{ok:true,orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,status:o.status,expiresAt:new Date(o.expires_at).toISOString(),invoiceNumber:o.invoice_number,invoiceIdentifier:o.invoice_identifier,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier,delivery,receipt});
     }
     if (req.method === 'POST' && url.pathname === '/api/orders') {
       if (rateLimit(req,res,`order:${ip}`,8,60_000)) return;
       const input = await bodyJson(req);
-      const result = await createOrder(input);
+      const customer = await currentCustomer(req);
+      const result = await createOrder(input,customer);
       if (isHttpErrorResult(result)) return send(res, result.status, { error:result.error, message:result.message });
       // "pending_payment" is an order state, not an HTTP status code.
       return send(res, 201, { ok:true, ...result });

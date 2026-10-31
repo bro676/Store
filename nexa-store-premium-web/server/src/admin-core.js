@@ -137,10 +137,23 @@ export function mergeCatalog(existing, incoming, mode = 'merge') {
     const oldCategory = merged[categoryIndex];
     const oldProducts = new Map(oldCategory.items.map(product => [product.id, product]));
     const incomingIds = new Set(incomingCategory.items.map(product => product.id));
-    const items = incomingCategory.items.map(product => ({
-      ...(oldProducts.get(product.id) || {}),
-      ...JSON.parse(JSON.stringify(product)),
-    }));
+    const items = incomingCategory.items.map(product => {
+      const previous=oldProducts.get(product.id)||{};
+      const next=JSON.parse(JSON.stringify(product));
+      const apiSource={
+        name:next.name,desc:next.desc,image:next.image,
+        options:Array.isArray(next.options)?next.options.map(option=>({...option,packs:(option.packs||[]).map(pack=>[...pack])})):[],
+      };
+      const overrides=previous.manualOverrides&&typeof previous.manualOverrides==='object'&&!Array.isArray(previous.manualOverrides)
+        ?previous.manualOverrides:{};
+      const merged={...previous,...next,apiSource};
+      for(const key of ['name','desc','image','options']){
+        if(Object.prototype.hasOwnProperty.call(overrides,key))merged[key]=JSON.parse(JSON.stringify(overrides[key]));
+      }
+      if(Object.keys(overrides).length)merged.manualOverrides=overrides;
+      else delete merged.manualOverrides;
+      return merged;
+    });
     for (const oldProduct of oldCategory.items) {
       if (!incomingIds.has(oldProduct.id)) items.push(oldProduct);
     }
@@ -161,7 +174,14 @@ export function upsertCatalogProduct(existingCatalog, categoryId, productInput) 
   const items = current[categoryIndex].items;
   const productIndex = items.findIndex(product=>product.id===validated.id);
   if (productIndex < 0) items.push(validated);
-  else items[productIndex] = validated;
+  else {
+    const previous=items[productIndex];
+    const overrides=previous.manualOverrides&&typeof previous.manualOverrides==='object'?previous.manualOverrides:{};
+    validated.apiSource={name:validated.name,desc:validated.desc,image:validated.image,options:validated.options};
+    for(const key of ['name','desc','image','options'])if(Object.prototype.hasOwnProperty.call(overrides,key))validated[key]=overrides[key];
+    if(Object.keys(overrides).length)validated.manualOverrides=overrides;
+    items[productIndex]=validated;
+  }
   return { catalog:validateCatalog(current),created:productIndex<0,productId:validated.id };
 }
 

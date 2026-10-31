@@ -118,8 +118,8 @@ export function updateWamdaPublishedProduct(existing, source, {
 
   return {
     ...existing,
-    name:String(source.name || existing.name || '').slice(0,120),
-    desc:String(source.description || existing.desc || '').slice(0,700),
+    name:String(existing.manualOverrides?.name ?? source.name ?? existing.name ?? '').slice(0,120),
+    desc:String(existing.manualOverrides?.desc ?? source.description ?? existing.desc ?? '').slice(0,700),
     options,
     wamda:{
       ...currentWamda,

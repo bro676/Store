@@ -124,3 +124,49 @@ test('catalog replace mode is explicit', () => {
   assert.equal(mergeCatalog(catalog,replacement,'replace')[0].name,'Replaced');
   assert.throws(() => mergeCatalog(catalog,replacement,'unknown'),/INVALID_CATALOG_SYNC_MODE/);
 });
+
+test('catalog API refresh preserves manual product display overrides and keeps a fresh API snapshot',()=>{
+  const manualOptions=[{
+    ...catalog[0].items[0].options[0],
+    name:'نسخة معدلة يدوياً',
+    packs:[['باقة يدوية',250]],
+  }];
+  const original=[{
+    ...catalog[0],
+    items:[{
+      ...catalog[0].items[0],
+      manualOverrides:{
+        name:'اسم يدوي',
+        desc:'وصف يدوي',
+        image:'assets/products/logo.svg',
+        options:manualOptions,
+      },
+    }],
+  }];
+  const incoming=[{
+    ...catalog[0],
+    items:[{
+      ...catalog[0].items[0],
+      name:'API product name',
+      desc:'Description from API',
+      image:'assets/products/pubg.svg',
+      options:[{
+        ...catalog[0].items[0].options[0],
+        name:'API option',
+        packs:[['API price',320]],
+      }],
+    }],
+  }];
+  const merged=mergeCatalog(original,incoming);
+  const product=merged[0].items[0];
+  assert.equal(product.name,'اسم يدوي');
+  assert.equal(product.desc,'وصف يدوي');
+  assert.equal(product.image,'assets/products/logo.svg');
+  assert.equal(product.options[0].name,'نسخة معدلة يدوياً');
+  assert.equal(product.options[0].packs[0][1],250);
+  assert.equal(product.apiSource.name,'API product name');
+  assert.equal(product.apiSource.desc,'Description from API');
+  assert.equal(product.apiSource.image,'assets/products/pubg.svg');
+  assert.equal(product.apiSource.options[0].name,'API option');
+  assert.equal(product.apiSource.options[0].packs[0][1],320);
+});

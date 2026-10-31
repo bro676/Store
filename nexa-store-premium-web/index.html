@@ -683,7 +683,43 @@ body{
 <section class="view hidden" data-view="store" id="storeView"><div class="wrap page-shell"><div class="page-heading"><div><span class="section-kicker">NEXA CATALOG</span><h1>الكتالوج الرقمي</h1><p>اختر المنتج والنسخة أو الخطة المناسبة، ثم راجع السعر النهائي قبل إنشاء الفاتورة.</p></div></div><div class="catalog-shell"><div class="catalog-header"><div><h2 id="catalogTitle">كل الأقسام</h2><p id="catalogDescription">ابدأ باختيار القسم المناسب، ثم انتقل إلى المنتج والخيارات والأسعار.</p></div><span class="catalog-count" id="catalogCount">8 أقسام</span></div><div class="catalog-steps" id="catalogSteps"></div><div class="breadcrumbs" id="breadcrumbs"></div><div id="catalogContent"></div><div class="catalog-note"><span>ⓘ</span><div><strong>معلومة مهمة:</strong> السعر والعملة ومدة صلاحية الفاتورة تُعرض لك قبل التحويل. لا يُعتمد أي دفع قبل التحقق من العملية لدى مزوّد الدفع.</div></div></div></div></section>
 <section class="view hidden" data-view="orders"><div class="wrap page-shell"><div class="page-heading"><div><span class="section-kicker">YOUR ACTIVITY</span><h1>طلباتي</h1><p>يعرض هذا القسم سجل الطلبات المحفوظ على هذا الجهاز، بينما تُحفظ الفواتير ونتائج التحقق على الخادم.</p></div><button class="btn btn-soft" data-page="store">إنشاء طلب جديد</button></div><div class="data-panel"><div class="data-table-wrap"><table class="data-table"><thead><tr><th>رقم الطلب</th><th>الخدمة</th><th>التاريخ</th><th>الإجمالي</th><th>الحالة</th></tr></thead><tbody id="ordersTable"><tr><td colspan="5">لا توجد طلبات حتى الآن.</td></tr></tbody></table></div></div></div></section>
 <section class="view hidden" data-view="favorites"><div class="wrap page-shell"><div class="page-heading"><div><span class="section-kicker">SAVED ITEMS</span><h1>المفضلة</h1><p>العناصر التي حفظتها للرجوع إليها لاحقاً على هذا المتصفح.</p></div><button class="btn btn-soft" data-page="store">استكشف المتجر</button></div><div class="featured-grid" id="favoritesGrid"><div class="empty-state"><strong>المفضلة فارغة</strong><p>احفظ المنتجات التي تهمك من بطاقاتها.</p></div></div></div></section>
-<section class="view hidden" data-view="wallet"><div class="wrap page-shell"><div class="page-heading"><div><span class="section-kicker">SECURE CHECKOUT · SHAM CASH</span><h1>الدفع الآمن عبر شام كاش</h1><p>فاتورة رسمية لكل طلب، ومطابقة آلية لرقم التحويل والمبلغ ومحفظة الاستلام قبل اعتماد الدفع.</p></div><span class="status-pill" id="shamCashStatusBadge">جارٍ فحص الاتصال…</span></div><div class="wallet-api-layout"><section class="wallet-api-main"><div class="wallet-api-brand"><div class="wallet-api-mark">ش</div><div><strong>Sham Cash</strong><small>SECURE API PAYMENT GATEWAY</small></div><span class="wallet-api-live-dot"></span></div><div class="wallet-api-state" id="shamCashServiceStatus" role="status">يجري التحقق من تهيئة بوابة الدفع…</div><div class="wallet-receiver" id="shamCashReceiverInfo"><span>محفظة الاستلام</span><strong>ستظهر بياناتها بعد إنشاء الفاتورة الرسمية</strong><small>لن نطلب كلمة مرور شام كاش أو رمز OTP في أي مرحلة.</small></div><div class="wallet-receiver wallet-order-summary" id="paymentOrderSummary"><span>ملخص الطلب</span><strong>يظهر بعد إنشاء الطلب</strong><small>السعر والعملة ومدة الفاتورة يحددها الخادم.</small></div><div class="wallet-invoice-meta" id="paymentInvoiceMeta"><div class="invoice-empty-mark">✦</div><div><strong>بانتظار إنشاء فاتورة</strong><small>اختر المنتج والباقة ثم أنشئ طلبك من المتجر.</small></div></div><form id="shamCashPaymentForm" class="wallet-payment-form"><div class="support-section-head"><div><span class="support-kicker">LIVE TRANSACTION CHECK</span><h2>تحقق من عملية التحويل</h2><p>أدخل رقم الطلب ورقم العملية كما يظهران في النظامين.</p></div><span class="lookup-icon">✓</span></div><div class="form-grid"><div class="field full"><label for="paymentOrderId">رقم طلب Nexa *</label><input id="paymentOrderId" required maxlength="24" placeholder="NX-XXXXXXXXXXXXXXXXXXXX" autocomplete="off" dir="ltr"></div><div class="field full"><label for="shamCashTransactionId">رقم عملية شام كاش *</label><input id="shamCashTransactionId" required inputmode="text" pattern="[A-Za-z0-9_-]{1,64}" minlength="1" maxlength="64" placeholder="اكتب رقم العملية من سجل شام كاش" autocomplete="off" dir="ltr"><small>نقبل التحويل الوارد إلى محفظة الفاتورة نفسها فقط، وبالمبلغ والعملة نفسيهما تماماً.</small></div></div><button class="btn btn-primary" id="verifyShamCashButton" type="submit">تحقق واعتماد الدفع <span>←</span></button><p class="wallet-payment-result" id="shamCashPaymentResult" aria-live="polite"></p></form><div class="payment-receipt hidden" id="paymentReceipt" aria-live="polite"></div><div class="wallet-api-security"><span>🔐</span><p>حماية متعددة الطبقات: فاتورة مرتبطة بمحفظتك، صلاحية زمنية، تحقق مباشر من سجل التحويل، مطابقة دقيقة للمبلغ والعملة، ومنع استخدام رقم العملية أكثر من مرة.</p></div></section><aside class="wallet-api-side"><div class="wallet-side-heading"><span>PAYMENT FLOW</span><h3>خطوات الدفع</h3><p>كل خطوة مرتبطة بفاتورة ورقم طلب محدد.</p></div><ol><li><b>01</b><span><strong>أنشئ الطلب</strong>اختر المنتج والباقة وأدخل بياناتك.</span></li><li><b>02</b><span><strong>استلم الفاتورة</strong>سيظهر عنوان محفظة الاستلام والمبلغ ووقت الانتهاء.</span></li><li><b>03</b><span><strong>حوّل المبلغ</strong>أرسل المبلغ نفسه تماماً إلى العنوان الظاهر.</span></li><li><b>04</b><span><strong>أدخل رقم العملية</strong>انسخ رقم التحويل من سجل شام كاش.</span></li><li><b>05</b><span><strong>اعتماد تلقائي</strong>نراجع العملية والفاتورة لدى API ثم نثبتها مرة واحدة.</span></li></ol><div class="wallet-api-note"><strong>تنبيه أمني</strong><p>لا ترسل لقطة شاشة أو PIN أو OTP. لا تعاود التحويل عند التأخير؛ افحص حالة الطلب أو تواصل مع الدعم.</p></div><div class="wallet-provider-foot"><span class="secure-lock">✓</span><span>API مباشر · لا إيصالات يدوية · لا تأكيد من المتصفح</span></div></aside></div></div></section>
+<section class="view hidden" data-view="wallet"><div class="wrap page-shell"><div class="page-heading"><div><span class="section-kicker">SECURE CHECKOUT · SHAM CASH</span><h1>الدفع الآمن عبر شام كاش</h1><p>فاتورة رسمية لكل طلب، ومطابقة آلية لرقم التحويل والمبلغ ومحفظة الاستلام قبل اعتماد الدفع.</p></div><span class="status-pill" id="shamCashStatusBadge">جارٍ فحص الاتصال…</span></div><section class="customer-wallet-card" id="customerWalletCard">
+  <div class="customer-wallet-head"><div><span class="section-kicker">NEXA WALLET</span><h2>حسابك ورصيدك</h2><p>أنشئ حساباً لتحتفظ برصيدك وتستخدمه عند شراء أي منتج.</p></div><span class="account-status-pill" id="walletAccountStatus">غير مسجل الدخول</span></div>
+  <div id="customerGuestPanel">
+    <div class="account-auth-grid">
+      <form id="accountLoginForm" class="account-auth-form">
+        <h3>تسجيل الدخول</h3>
+        <div class="field"><label for="accountLoginPhone">رقم الهاتف</label><input id="accountLoginPhone" type="tel" inputmode="tel" autocomplete="username" placeholder="+963..." required maxlength="22"></div>
+        <div class="field"><label for="accountLoginPassword">كلمة المرور</label><input id="accountLoginPassword" type="password" autocomplete="current-password" minlength="8" required maxlength="128"></div>
+        <button class="btn btn-primary" type="submit">دخول إلى حسابي</button>
+      </form>
+      <form id="accountRegisterForm" class="account-auth-form hidden">
+        <h3>إنشاء حساب جديد</h3>
+        <div class="field"><label for="accountRegisterName">الاسم الكامل</label><input id="accountRegisterName" autocomplete="name" required maxlength="70"></div>
+        <div class="field"><label for="accountRegisterPhone">رقم الهاتف</label><input id="accountRegisterPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+963..." required maxlength="22"></div>
+        <div class="field"><label for="accountRegisterPassword">كلمة المرور</label><input id="accountRegisterPassword" type="password" autocomplete="new-password" minlength="8" required maxlength="128"></div>
+        <button class="btn btn-primary" type="submit">إنشاء الحساب</button>
+      </form>
+    </div>
+    <button type="button" class="account-auth-switch" id="accountAuthSwitch">ليس لديك حساب؟ أنشئ حساباً جديداً</button>
+    <p class="account-auth-message" id="accountAuthMessage" role="status"></p>
+    <p class="account-auth-note">لا نطلب كلمة مرور شام كاش أو رمز OTP. استخدم كلمة مرور مختلفة عن كلمات مرور حساباتك الأخرى.</p>
+  </div>
+  <div id="customerSignedPanel" class="hidden">
+    <div class="wallet-account-summary">
+      <div><small>مرحباً بك</small><strong id="walletCustomerName">—</strong><span id="walletCustomerPhone" dir="ltr">—</span></div>
+      <div class="wallet-account-balance"><small>رصيدك المتاح</small><strong id="walletBalanceValue">0 ل.س جديدة</strong></div>
+      <button type="button" class="btn btn-soft" id="accountLogoutButton">تسجيل الخروج</button>
+    </div>
+    <form id="walletTopupForm" class="wallet-topup-form">
+      <div><strong>شحن رصيد الحساب</strong><small>اشحن عبر شام كاش؛ سيضاف المبلغ بعد التحقق من الفاتورة ورقم العملية.</small></div>
+      <div class="wallet-topup-controls"><input id="walletTopupAmount" type="number" min="1000" max="5000000" step="1" value="10000" required aria-label="مبلغ الشحن بالليرة السورية الجديدة"><button class="btn btn-primary" type="submit">إنشاء فاتورة شحن</button></div>
+      <small>الحد الأدنى 1,000 والحد الأعلى 5,000,000 ليرة سورية جديدة.</small>
+    </form>
+    <div class="wallet-ledger-panel"><div class="wallet-ledger-head"><strong>آخر حركات الرصيد</strong><small>عمليات الشحن والشراء المؤكدة</small></div><div id="walletLedgerList"><p class="wallet-ledger-empty">لا توجد حركات بعد.</p></div></div>
+  </div>
+</section>
+<div class="wallet-api-layout"><section class="wallet-api-main"><div class="wallet-api-brand"><div class="wallet-api-mark">ش</div><div><strong>Sham Cash</strong><small>SECURE API PAYMENT GATEWAY</small></div><span class="wallet-api-live-dot"></span></div><div class="wallet-api-state" id="shamCashServiceStatus" role="status">يجري التحقق من تهيئة بوابة الدفع…</div><div class="wallet-receiver" id="shamCashReceiverInfo"><span>محفظة الاستلام</span><strong>ستظهر بياناتها بعد إنشاء الفاتورة الرسمية</strong><small>لن نطلب كلمة مرور شام كاش أو رمز OTP في أي مرحلة.</small></div><div class="wallet-receiver wallet-order-summary" id="paymentOrderSummary"><span>ملخص الطلب</span><strong>يظهر بعد إنشاء الطلب</strong><small>السعر والعملة ومدة الفاتورة يحددها الخادم.</small></div><div class="wallet-invoice-meta" id="paymentInvoiceMeta"><div class="invoice-empty-mark">✦</div><div><strong>بانتظار إنشاء فاتورة</strong><small>اختر المنتج والباقة ثم أنشئ طلبك من المتجر.</small></div></div><form id="shamCashPaymentForm" class="wallet-payment-form"><div class="support-section-head"><div><span class="support-kicker">LIVE TRANSACTION CHECK</span><h2>تحقق من عملية التحويل</h2><p>أدخل رقم الطلب ورقم العملية كما يظهران في النظامين.</p></div><span class="lookup-icon">✓</span></div><div class="form-grid"><div class="field full"><label for="paymentOrderId">رقم طلب Nexa *</label><input id="paymentOrderId" required maxlength="24" placeholder="NX-XXXXXXXXXXXXXXXXXXXX" autocomplete="off" dir="ltr"></div><div class="field full"><label for="shamCashTransactionId">رقم عملية شام كاش *</label><input id="shamCashTransactionId" required inputmode="text" pattern="[A-Za-z0-9_-]{1,64}" minlength="1" maxlength="64" placeholder="اكتب رقم العملية من سجل شام كاش" autocomplete="off" dir="ltr"><small>نقبل التحويل الوارد إلى محفظة الفاتورة نفسها فقط، وبالمبلغ والعملة نفسيهما تماماً.</small></div></div><button class="btn btn-primary" id="verifyShamCashButton" type="submit">تحقق واعتماد الدفع <span>←</span></button><p class="wallet-payment-result" id="shamCashPaymentResult" aria-live="polite"></p></form><div class="payment-receipt hidden" id="paymentReceipt" aria-live="polite"></div><div class="wallet-api-security"><span>🔐</span><p>حماية متعددة الطبقات: فاتورة مرتبطة بمحفظتك، صلاحية زمنية، تحقق مباشر من سجل التحويل، مطابقة دقيقة للمبلغ والعملة، ومنع استخدام رقم العملية أكثر من مرة.</p></div></section><aside class="wallet-api-side"><div class="wallet-side-heading"><span>PAYMENT FLOW</span><h3>خطوات الدفع</h3><p>كل خطوة مرتبطة بفاتورة ورقم طلب محدد.</p></div><ol><li><b>01</b><span><strong>أنشئ الطلب</strong>اختر المنتج والباقة وأدخل بياناتك.</span></li><li><b>02</b><span><strong>استلم الفاتورة</strong>سيظهر عنوان محفظة الاستلام والمبلغ ووقت الانتهاء.</span></li><li><b>03</b><span><strong>حوّل المبلغ</strong>أرسل المبلغ نفسه تماماً إلى العنوان الظاهر.</span></li><li><b>04</b><span><strong>أدخل رقم العملية</strong>انسخ رقم التحويل من سجل شام كاش.</span></li><li><b>05</b><span><strong>اعتماد تلقائي</strong>نراجع العملية والفاتورة لدى API ثم نثبتها مرة واحدة.</span></li></ol><div class="wallet-api-note"><strong>تنبيه أمني</strong><p>لا ترسل لقطة شاشة أو PIN أو OTP. لا تعاود التحويل عند التأخير؛ افحص حالة الطلب أو تواصل مع الدعم.</p></div><div class="wallet-provider-foot"><span class="secure-lock">✓</span><span>API مباشر · لا إيصالات يدوية · لا تأكيد من المتصفح</span></div></aside></div></div></section>
 <section class="view hidden" data-view="support" id="supportView">
   <div class="wrap page-shell support-page">
     <div class="page-heading support-heading"><div><span class="section-kicker">NEXA CARE CENTER</span><h1>مركز الدعم والمساعدة</h1><p>اختر طريقة التواصل المناسبة، أو ابحث ضمن سجل الطلبات المحفوظ على هذا الجهاز، أو أرسل تفاصيل المشكلة لفريق الدعم.</p></div><span class="support-live-pill"><i></i> قنوات التواصل متاحة</span></div>
@@ -731,7 +767,7 @@ body{
 </div>
 </div>
 
-<div class="modal-backdrop" id="orderModal"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-head"><h2 id="modalTitle">تأكيد الطلب</h2><button class="modal-close" id="modalClose" aria-label="إغلاق">×</button></div><div class="modal-body"><div class="modal-product"><img id="modalImage" src="assets/products/freefire.svg" alt=""><span><strong id="modalProduct">الباقة المختارة</strong><small id="modalOption">تفاصيل الباقة</small></span><b id="modalPrice">—</b></div><form id="orderForm"><div class="form-grid"><div class="field"><label for="customerName">اسم العميل *</label><input id="customerName" name="customerName" placeholder="اكتب اسمك" required maxlength="70"></div><div class="field"><label for="customerPhone">رقم التواصل *</label><input id="customerPhone" name="customerPhone" placeholder="09xxxxxxxx" required maxlength="20" inputmode="tel"></div><div class="field full currency-field"><label for="orderCurrency">عملة الدفع *</label><select id="orderCurrency" name="currency" required><option value="SYP">الليرة السورية الجديدة (SYP)</option><option value="USD">الدولار الأمريكي (USD)</option></select><strong id="currencyPreview">—</strong><small id="currencyRateHint">يُحسب السعر النهائي على الخادم عند إنشاء الفاتورة.</small></div><div class="field full hidden" id="seagmFieldsContainer"></div><div class="field full hidden" id="seagmQuantityContainer"><label for="orderQuantity">الكمية</label><input id="orderQuantity" name="quantity" type="number" min="1" max="1000" step="1" value="1" inputmode="numeric"><small id="seagmQuantityHint">اختر الكمية المطلوبة.</small></div>
+<div class="modal-backdrop" id="orderModal"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-head"><h2 id="modalTitle">تأكيد الطلب</h2><button class="modal-close" id="modalClose" aria-label="إغلاق">×</button></div><div class="modal-body"><div class="modal-product"><img id="modalImage" src="assets/products/freefire.svg" alt=""><span><strong id="modalProduct">الباقة المختارة</strong><small id="modalOption">تفاصيل الباقة</small></span><b id="modalPrice">—</b></div><form id="orderForm"><div class="form-grid"><div class="field"><label for="customerName">اسم العميل *</label><input id="customerName" name="customerName" placeholder="اكتب اسمك" required maxlength="70"></div><div class="field"><label for="customerPhone">رقم التواصل *</label><input id="customerPhone" name="customerPhone" placeholder="09xxxxxxxx" required maxlength="20" inputmode="tel"></div><div class="field full currency-field"><label for="orderCurrency">عملة الدفع *</label><select id="orderCurrency" name="currency" required><option value="SYP">الليرة السورية الجديدة (SYP)</option><option value="USD">الدولار الأمريكي (USD)</option></select><strong id="currencyPreview">—</strong><small id="currencyRateHint">يُحسب السعر النهائي على الخادم عند إنشاء الفاتورة.</small></div><div class="field full"><label for="paymentMethod">طريقة الدفع *</label><select id="paymentMethod" name="paymentMethod" required><option value="shamcash">دفع مباشر عبر شام كاش</option><option value="wallet">استخدام رصيد حسابي في Nexa</option></select><small id="paymentMethodHint">يمكنك الدفع مباشرة أو استخدام رصيدك بعد تسجيل الدخول.</small></div><div class="field full hidden" id="seagmFieldsContainer"></div><div class="field full hidden" id="seagmQuantityContainer"><label for="orderQuantity">الكمية</label><input id="orderQuantity" name="quantity" type="number" min="1" max="1000" step="1" value="1" inputmode="numeric"><small id="seagmQuantityHint">اختر الكمية المطلوبة.</small></div>
 <div class="field full" id="accountField"><label for="accountId">معرّف اللاعب / الحساب</label><input id="accountId" name="accountId" placeholder="أدخل المعرّف عند الحاجة" maxlength="80"><small>لا تدخل كلمة المرور أو رمز التحقق.</small></div><div class="field full"><label for="orderNotes">ملاحظات إضافية</label><textarea id="orderNotes" name="orderNotes" placeholder="أي تفاصيل تساعد على فهم طلبك..."></textarea></div></div><div class="modal-actions"><button class="btn btn-primary" type="submit">إنشاء الطلب والمتابعة للدفع</button><button class="btn btn-soft" type="button" id="modalCancel">إلغاء</button></div><p style="font-size:9px;color:#808998;line-height:1.8;margin:12px 0 0">سيتم إنشاء طلب على الخادم بسعر الباقة المحدد، ثم تنتقل إلى شاشة التحقق من عملية شام كاش. لن يُقبل الدفع حتى يتأكد الخادم من جميع البيانات.</p></form></div></div></div>
 <section class="assistant-widget" aria-label="مساعد Nexa">
   <button class="assistant-launcher" id="assistantLauncher" type="button" aria-expanded="false" aria-controls="assistantPanel"><span class="assistant-launcher-icon">✦</span><span>مساعد Nexa</span><i></i></button>
@@ -798,7 +834,7 @@ function renderCatalog(){
   $('catalogCount').textContent=filtered.length.toLocaleString('en-US')+' من '+all.length.toLocaleString('en-US')+' منتج';
   html='<div class="back-row"><button class="back-button" data-bc="root">← كل الأقسام</button><span class="catalog-count">'+filtered.length+' منتجات</span></div>'+
    '<div class="store-catalog-toolbar"><input id="storeProductSearch" type="search" value="'+esc(state.productQuery)+'" placeholder="ابحث داخل '+esc(cat.name)+'..." aria-label="بحث في منتجات القسم"><span>'+filtered.length.toLocaleString('en-US')+' نتيجة</span></div>'+
-   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(product=>tile(product.name,product.desc,product.image,'منتج رقمي','data-browse-item="'+esc(product.id)+'',product.wamda?.available===false?'غير متوفر حالياً':'اختيار المنتج',product.wamda?.available===false)).join('')+'</div>':'<div class="empty-state"><strong>لا توجد منتجات مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
+   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(product=>tile(product.name,product.desc,product.image,'منتج رقمي','data-browse-item="'+esc(product.id)+'"',product.wamda?.available===false?'غير متوفر حالياً':'اختيار المنتج',product.wamda?.available===false)).join('')+'</div>':'<div class="empty-state"><strong>لا توجد منتجات مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
    storeCatalogPager(state.productPage,pageCount,'product-page');
  }else if(!opt){
   html='<div class="back-row"><button class="back-button" data-bc="category">← العودة إلى '+esc(cat.name)+'</button><span class="catalog-count">'+it.options.length+' خيارات</span></div><div class="step-summary"><img src="'+esc(it.image)+'" alt=""><span><strong>'+esc(it.name)+'</strong><p>'+esc(it.desc)+' · اختر المنطقة أو النسخة أو الخطة.</p></span></div><div class="option-list">'+it.options.map(o=>'<button class="option-card" data-browse-option="'+esc(o.id)+'"><img src="'+esc(o.image||it.image)+'" alt=""><span><strong>'+esc(o.name)+'</strong><small>'+esc(o.desc)+'</small></span><span class="option-flag">'+esc(o.flag||'›')+'</span></button>').join('')+'</div>';
@@ -814,7 +850,7 @@ function renderSearchResults(){
  $('catalogTitle').textContent='نتائج البحث';$('catalogDescription').textContent='نتائج مطابقة لعبارة: '+state.searchQuery;
  $('catalogCount').textContent=matches.length.toLocaleString('en-US')+' نتيجة';
  $('catalogSteps').innerHTML=renderSteps(1);$('breadcrumbs').innerHTML='<span class="crumb current">نتائج البحث</span>';
- $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,i.image,c.name,'data-open-item="'+esc(i.id)+'',i.wamda?.available===false?'غير متوفر حالياً':'عرض الخيارات',i.wamda?.available===false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
+ $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,i.image,c.name,'data-open-item="'+esc(i.id)+'"',i.wamda?.available===false?'غير متوفر حالياً':'عرض الخيارات',i.wamda?.available===false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
 }
 function openItem(itemId){const it=getItem(itemId);if(!it)return;if(it.wamda?.available===false){showToast('هذا المنتج غير متوفر حالياً لدى ومضة.');return;}state.category=categories.find(c=>c.items.some(x=>x.id===itemId)).id;state.item=itemId;state.option=null;navigate('store');}
 function resetCatalog(){state.category=null;state.item=null;state.option=null;state.catalogPage=1;state.catalogQuery='';state.productPage=1;state.productQuery='';}
@@ -823,7 +859,9 @@ function openOrder(packIndex){
  if(it.wamda?.available===false){showToast('هذا المنتج غير متوفر حالياً لدى ومضة.');return;}
  state.selectedPack={category:state.category,item:state.item,option:state.option,index:packIndex,name:`${it.name} — ${op.name} — ${p[0]}`,price:p[1],image:it.image,supplier:!!supplier};
  $('modalProduct').textContent=it.name+' — '+p[0];$('modalOption').textContent=op.name+' · باقة مختارة';$('modalImage').src=it.image;$('modalPrice').textContent=money(p[1]);
- $('orderCurrency').value='SYP';
+ $('orderCurrency').value='SYP';$('orderCurrency').disabled=false;
+ $('paymentMethod').value='shamcash';
+ if(customerAccount){$('customerName').value=customerAccount.full_name||'';$('customerPhone').value=customerAccount.phone||'';}
  const min=supplier?Math.max(1,Number(supplier.minimumQuantity||1)):1;
  const max=supplier?Math.max(min,Math.min(1000,Number(supplier.maximumQuantity||1))):1;
  $('orderQuantity').min=String(min);$('orderQuantity').max=String(max);$('orderQuantity').value=String(min);
@@ -883,11 +921,21 @@ function showSearchResults(q){
  for(const c of categories)for(const i of c.items||[])if(`${i.name} ${i.desc} ${c.name}`.toLocaleLowerCase('ar').includes(query))state.searchResults.push({c,i});
  navigate('store');renderSearchResults();
 }
-let paymentConfigEnabled=false;let sypPerUsd=145;
+let paymentConfigEnabled=false;let sypPerUsd=145;let customerAccount=null;
 function renderCurrencyPreview(){
  const p=state.selectedPack,choice=$('orderCurrency')?.value||'SYP',preview=$('currencyPreview'),hint=$('currencyRateHint');
  if(!p||!preview)return;
+ const paymentMethod=$('paymentMethod')?.value||'shamcash';
  const quantity=p.supplier?Math.max(1,Number($('orderQuantity')?.value||1)):1;
+ if(paymentMethod==='wallet'){
+  $('orderCurrency').value='SYP';$('orderCurrency').disabled=true;
+  preview.textContent=money(p.price*quantity);
+  hint.textContent='سيتم خصم المبلغ بالليرة السورية الجديدة من رصيد حسابك بعد التحقق من كفايته.';
+  $('paymentMethodHint').textContent=customerAccount?'سيتم الدفع مباشرة من رصيد حسابك.':'سجّل الدخول إلى حسابك لاستخدام الرصيد.';
+  return;
+ }
+ $('orderCurrency').disabled=false;
+ $('paymentMethodHint').textContent='الدفع المباشر ينشئ فاتورة شام كاش مستقلة لهذا الطلب.';
  const totalSyp=p.price*quantity;
  if(choice==='USD'){
   if(!(sypPerUsd>0)){preview.textContent='سعر الدولار غير متاح حالياً';hint.textContent='لن يتم إنشاء فاتورة بالدولار قبل ضبط سعر التحويل على الخادم.';return;}
@@ -906,6 +954,8 @@ async function doOrder(e){
  const originalText=button.textContent;button.disabled=true;button.textContent='جارٍ إنشاء فاتورة شام كاش…';
  try{
   const pack=state.selectedPack,product=getItem(pack.item),supplier=product?.wamda||product?.seagm||null;
+  const paymentMethod=$('paymentMethod').value||'shamcash';
+  if(paymentMethod==='wallet'&&!customerAccount){closeModal();navigate('wallet');showToast('سجّل الدخول أو أنشئ حساباً قبل الدفع من الرصيد.');return;}
   const quantity=supplier?Number($('orderQuantity').value||1):1,supplierFields={};
   if(supplier){
    for(const control of document.querySelectorAll('[data-seagm-field]'))supplierFields[control.dataset.seagmField]=control.value;
@@ -914,15 +964,22 @@ async function doOrder(e){
   }
   const response=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
    categoryId:pack.category,productId:pack.item,optionId:pack.option,packIndex:pack.index,
-   currency:$('orderCurrency').value,customerName:$('customerName').value.trim(),
-   customerPhone:$('customerPhone').value.trim(),accountId:$('accountId').value.trim(),
+   currency:paymentMethod==='wallet'?'SYP':$('orderCurrency').value,paymentMethod,
+   customerName:customerAccount?.full_name||$('customerName').value.trim(),
+   customerPhone:customerAccount?.phone||$('customerPhone').value.trim(),accountId:$('accountId').value.trim(),
    notes:$('orderNotes').value.trim(),quantity,supplierFields
   })});
   const data=await response.json();
-  if(!response.ok||!data.ok)throw new Error(data.message||'تعذر إنشاء فاتورة الدفع عبر شام كاش.');
+  if(!response.ok||!data.ok)throw new Error(data.message||'تعذر إنشاء الطلب.');
   const d=storageRead();d.orders=d.orders||[];
-  const order={id:data.orderId,name:data.product||pack.name,price:pack.price,amountMinor:data.amountMinor,currency:data.currency,date:new Intl.DateTimeFormat('ar-SY',{dateStyle:'medium'}).format(new Date()),status:'pending_payment',expiresAt:data.expiresAt,invoiceNumber:data.invoiceNumber,deliveryProvider:data.deliveryProvider||null};
-  d.orders.unshift(order);storageSave(d);state.pendingOrder=data.orderId;$('paymentOrderId').value=data.orderId;
+  const order={id:data.orderId,name:data.product||pack.name,price:pack.price,amountMinor:data.amountMinor,currency:data.currency,date:new Intl.DateTimeFormat('ar-SY',{dateStyle:'medium'}).format(new Date()),status:data.status||'pending_payment',paymentMethod:data.paymentMethod||'shamcash',expiresAt:data.expiresAt||null,invoiceNumber:data.invoiceNumber||null,deliveryProvider:data.deliveryProvider||null};
+  d.orders.unshift(order);storageSave(d);
+  if(data.paymentMethod==='wallet'){
+   closeModal();renderOrders();
+   if(data.receipt){$('paymentReceipt').classList.remove('hidden');renderPaymentReceipt(data.receipt);}
+   await refreshCustomerAccount();navigate('wallet');showToast('تم الدفع من رصيد حسابك بنجاح.');return;
+  }
+  state.pendingOrder=data.orderId;$('paymentOrderId').value=data.orderId;
   $('paymentOrderSummary').innerHTML=`<span>المبلغ المطلوب · ${esc(data.currency)}</span><strong>${formatMinor(data.amountMinor,data.currency)}</strong><small>الفاتورة صالحة حتى ${esc(new Date(data.expiresAt).toLocaleString('ar-SY'))}</small>`;
   renderInvoiceDetails(data);$('shamCashTransactionId').value='';$('shamCashPaymentResult').textContent='';
   $('paymentReceipt').classList.add('hidden');$('paymentReceipt').innerHTML='';
@@ -960,6 +1017,7 @@ async function verifyShamCashPayment(e){
   result.className='wallet-payment-result success';
   result.textContent=d.receipt?.delivery?'تم تأكيد الدفع بنجاح. نرسل طلبك الآن إلى SEAGM ونحدّثك بنتيجة التسليم.':'تم التحقق من الفاتورة ورقم العملية ومحفظة الاستلام. طلبك مدفوع ومؤكد.';
   if(d.receipt)renderPaymentReceipt(d.receipt);
+  if(d.walletBalanceMinor!==undefined||customerAccount)await refreshCustomerAccount();
   const saved=storageRead();const order=(saved.orders||[]).find(o=>o.id===orderId);
   if(order){order.status='paid';storageSave(saved);renderOrders()}
   showToast('تم اعتماد الدفع وإصدار وصل إلكتروني.');
@@ -1053,7 +1111,7 @@ async function assistantAnswer(raw){
 }
 function sendAssistantPrompt(value){if(!value)return;return assistantAnswer(value)}
 function navigateHome(){navigate('home')}
-const NEXA_THEME_KEY='nexa-color-mode';
+const NEXA_THEME_KEY='nexa-store-color-mode';
 function setStoreColorMode(mode,{persist=true}={}){
  const selected=mode==='light'?'light':'dark';
  document.documentElement.dataset.theme=selected;
@@ -1069,7 +1127,7 @@ function initializeStoreColorMode(){
  window.addEventListener('storage',event=>{if(event.key===NEXA_THEME_KEY&&event.newValue)setStoreColorMode(event.newValue,{persist:false});});
 }
 async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;const footerName=document.querySelector('.footer-brand strong');if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
-async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items)&&c.items.length);}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();loadPaymentConfig();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','favorites','wallet','support'].includes(hash))navigate(hash);$('sideYear').textContent=new Date().getFullYear();}
+async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items)&&c.items.length);}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();loadPaymentConfig();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','favorites','wallet','support'].includes(hash))navigate(hash);$('sideYear').textContent=new Date().getFullYear();await refreshCustomerAccount();}
 // delegated interactions
  document.addEventListener('click',e=>{const el=e.target.closest('[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-open-item],[data-favorite],[data-reset-catalog],[data-scroll],[data-catalog-page],[data-product-page],[data-search-page]');if(!el)return;
  if(el.dataset.openAssistant!==undefined){openAssistant();return}
@@ -1103,6 +1161,85 @@ document.addEventListener('input',event=>{
 document.addEventListener('click',e=>{const copy=e.target.closest('[data-copy-value]');if(copy){const text=copy.dataset.copyValue||'';if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(()=>showToast('تم النسخ')).catch(()=>showToast('تعذر النسخ التلقائي'));else showToast('انسخ النص يدوياً من الحقل.');}});
 document.addEventListener('click',e=>{if(e.target.closest('[data-print-receipt]')){document.body.classList.add('printing-receipt');window.print();}});window.addEventListener('afterprint',()=>document.body.classList.remove('printing-receipt'));$('orderForm').addEventListener('submit',doOrder);$('orderCurrency').addEventListener('change',renderCurrencyPreview);
 $('orderQuantity').addEventListener('input',renderCurrencyPreview);$('shamCashPaymentForm').addEventListener('submit',verifyShamCashPayment);$('paymentOrderId').addEventListener('change',loadShamCashOrderSummary);$('paymentOrderId').addEventListener('blur',loadShamCashOrderSummary);$('supportForm').addEventListener('submit',submitSupportTicket);$('supportLookupForm').addEventListener('submit',lookupSupportOrder);$('assistantLauncher').addEventListener('click',openAssistant);$('assistantClose').addEventListener('click',closeAssistant);$('assistantForm').addEventListener('submit',e=>{e.preventDefault();const input=$('assistantInput');const value=input.value.trim();if(!value)return;input.value='';sendAssistantPrompt(value)});$('modalClose').addEventListener('click',closeModal);$('modalCancel').addEventListener('click',closeModal);$('orderModal').addEventListener('click',e=>{if(e.target===$('orderModal'))closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeMenu();closeAssistant()}});$('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){showSearchResults(e.currentTarget.value)}});$('globalSearch').addEventListener('search',e=>{if(!e.currentTarget.value){navigate('home')}});$('menuToggle').addEventListener('click',()=>{const opened=document.body.classList.toggle('sidebar-open');$('menuToggle').setAttribute('aria-expanded',String(opened))});$('sidebarBackdrop').addEventListener('click',closeMenu);
+
+async function refreshCustomerAccount(){
+ const guest=$('customerGuestPanel'),signed=$('customerSignedPanel'),status=$('walletAccountStatus');
+ try{
+  const response=await fetch('/api/account/me',{credentials:'same-origin',cache:'no-store'});
+  if(!response.ok){customerAccount=null;guest.classList.remove('hidden');signed.classList.add('hidden');status.textContent='غير مسجل الدخول';return;}
+  const data=await response.json();customerAccount=data.customer||null;
+  if(!customerAccount){guest.classList.remove('hidden');signed.classList.add('hidden');status.textContent='غير مسجل الدخول';return;}
+  guest.classList.add('hidden');signed.classList.remove('hidden');status.textContent='حساب نشط';
+  $('walletCustomerName').textContent=customerAccount.full_name||'';
+  $('walletCustomerPhone').textContent=customerAccount.phone||'';
+  $('walletBalanceValue').textContent=formatMinor(customerAccount.balance_minor||'0','SYP');
+  $('customerName').value=customerAccount.full_name||$('customerName').value;
+  $('customerPhone').value=customerAccount.phone||$('customerPhone').value;
+  const txResponse=await fetch('/api/wallet/transactions',{credentials:'same-origin',cache:'no-store'});
+  const txData=txResponse.ok?await txResponse.json():{transactions:[]};
+  const rows=Array.isArray(txData.transactions)?txData.transactions:[];
+  $('walletLedgerList').innerHTML=rows.length?'<ul class="wallet-ledger-list">'+rows.map(item=>{
+   const credit=['topup','refund','adjustment'].includes(item.kind);
+   const label=item.kind==='topup'?'شحن رصيد':item.kind==='purchase'?'شراء منتج':item.kind==='refund'?'استرداد':'تعديل رصيد';
+   const date=item.createdAt?new Date(item.createdAt).toLocaleString('ar-SY'):'';
+   return '<li class="wallet-ledger-row"><span class="wallet-ledger-icon">'+(credit?'＋':'−')+'</span><span class="wallet-ledger-copy"><strong>'+esc(label)+'</strong><small>'+esc(item.note||item.referenceOrderId||'')+' · '+esc(date)+'</small></span><b class="'+(credit?'credit':'debit')+'">'+(credit?'+':'−')+formatMinor(item.amountMinor,'SYP')+'</b></li>';
+  }).join('')+'</ul>':'<p class="wallet-ledger-empty">لا توجد حركات رصيد حتى الآن.</p>';
+  const orderResponse=await fetch('/api/account/orders',{credentials:'same-origin',cache:'no-store'});
+  if(orderResponse.ok){
+   const orderData=await orderResponse.json();
+   const orders=(orderData.orders||[]).map(item=>({id:item.id,name:item.product_label,date:item.createdAt?new Date(item.createdAt).toLocaleDateString('ar-SY'):'',amountMinor:item.amountMinor,currency:item.currency,status:item.status,paymentMethod:item.paymentMethod}));
+   const saved=storageRead();saved.orders=orders;storageSave(saved);renderOrders();
+  }
+  if(state.selectedPack)renderCurrencyPreview();
+ }catch{
+  customerAccount=null;guest.classList.remove('hidden');signed.classList.add('hidden');status.textContent='تعذر تحميل الحساب';
+ }
+}
+async function submitAccountForm(form,endpoint,payload){
+ const button=form.querySelector('button[type="submit"]'),message=$('accountAuthMessage'),original=button?.textContent||'';
+ if(button){button.disabled=true;button.textContent='جارٍ التحقق…';}
+ message.textContent='';
+ try{
+  const response=await fetch(endpoint,{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'تعذر إكمال العملية.');
+  form.reset();await refreshCustomerAccount();message.textContent='تم تسجيل الدخول إلى حسابك بنجاح.';
+ }catch(error){message.textContent=error.message;}
+ finally{if(button){button.disabled=false;button.textContent=original;}}
+}
+async function createWalletTopup(event){
+ event.preventDefault();
+ if(!customerAccount){showToast('سجّل الدخول أولاً.');return;}
+ const button=$('walletTopupForm').querySelector('button[type="submit"]');
+ button.disabled=true;button.textContent='جارٍ إنشاء الفاتورة…';
+ try{
+  const response=await fetch('/api/wallet/topups',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:$('walletTopupAmount').value})});
+  const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'تعذر إنشاء فاتورة الشحن.');
+  state.pendingOrder=data.orderId;$('paymentOrderId').value=data.orderId;
+  $('paymentOrderSummary').innerHTML='<span>شحن رصيد الحساب · SYP</span><strong>'+formatMinor(data.amountMinor,'SYP')+'</strong><small>الفاتورة صالحة حتى '+esc(new Date(data.expiresAt).toLocaleString('ar-SY'))+'</small>';
+  renderInvoiceDetails(data);$('shamCashTransactionId').value='';$('shamCashPaymentResult').textContent='';
+  $('paymentReceipt').classList.add('hidden');$('paymentReceipt').innerHTML='';
+  showToast('حوّل قيمة الفاتورة إلى محفظة Nexa، ثم أدخل رقم العملية في نموذج التحقق.');
+  $('paymentOrderId').scrollIntoView({behavior:'smooth',block:'center'});
+  $('shamCashTransactionId').focus();
+ }catch(error){showToast(error.message);}
+ finally{button.disabled=false;button.textContent='إنشاء فاتورة شحن';}
+}
+$('accountLoginForm').addEventListener('submit',event=>{event.preventDefault();submitAccountForm(event.currentTarget,'/api/account/login',{phone:$('accountLoginPhone').value.trim(),password:$('accountLoginPassword').value});});
+$('accountRegisterForm').addEventListener('submit',event=>{event.preventDefault();submitAccountForm(event.currentTarget,'/api/account/register',{name:$('accountRegisterName').value.trim(),phone:$('accountRegisterPhone').value.trim(),password:$('accountRegisterPassword').value});});
+$('accountAuthSwitch').addEventListener('click',()=>{
+ const isRegister=$('accountRegisterForm').classList.contains('hidden');
+ $('accountRegisterForm').classList.toggle('hidden',!isRegister);
+ $('accountLoginForm').classList.toggle('hidden',isRegister);
+ $('accountAuthSwitch').textContent=isRegister?'لديك حساب؟ سجّل الدخول':'ليس لديك حساب؟ أنشئ حساباً جديداً';
+ $('accountAuthMessage').textContent='';
+});
+$('accountLogoutButton').addEventListener('click',async()=>{
+ try{await fetch('/api/account/logout',{method:'POST',credentials:'same-origin'});}catch{}
+ customerAccount=null;await refreshCustomerAccount();showToast('تم تسجيل الخروج.');
+});
+$('walletTopupForm').addEventListener('submit',createWalletTopup);
+$('paymentMethod').addEventListener('change',renderCurrencyPreview);
+
 initializeStoreColorMode();
 init();
 </script>
