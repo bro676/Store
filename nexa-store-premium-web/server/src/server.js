@@ -647,7 +647,7 @@ function defaultStoreSettings() {
     wamdaApiTokenEncrypted:'',wamdaApiTokenCleared:false,wamdaWebhookSecretEncrypted:'',
     wamdaCatalogCache:[],wamdaAccountInfo:null,wamdaLastSyncAt:null,wamdaLastRefreshAttemptAt:null,wamdaLastTestAt:null,wamdaLastError:'',
     wamdaProfitMarginPercent:0,wamdaPricingPolicy:{mode:'percent',value:0},wamdaCategoryPricingPolicies:{},wamdaAutoRefreshEnabled:true,wamdaRefreshIntervalMinutes:15,
-    nexaAiProvider:'gemini',nexaAiModel:'gemini-3.8-flash',nexaAiApiKeyEncrypted:'',nexaAiApiKeyCleared:false,
+    nexaAiProvider:'gemini',nexaAiModel:'gemini-3.6-flash',nexaAiApiKeyEncrypted:'',nexaAiApiKeyCleared:false,
     catalogWriteApiTokenEncrypted:'', catalogWriteApiTokenCleared:false, catalogWriteApiKeys:[],
     paymentEnabled:cfg.paymentsEnabled, shamApiBase:cfg.apiBase, walletId:cfg.walletId,
     receiverLabel:cfg.receiverLabel, timezoneOffsetMinutes:cfg.timezoneOffsetMinutes,
@@ -954,7 +954,7 @@ function validateAndApplySettings(input) {
   }
   if(input.clearNexaAiApiKey===true){next.nexaAiApiKeyEncrypted='';next.nexaAiApiKeyCleared=true;}
   if(input.nexaAiProvider!==undefined){if(input.nexaAiProvider!=='gemini')throw new Error('UNSUPPORTED_NEXA_AI_PROVIDER');next.nexaAiProvider='gemini';}
-  if(input.nexaAiModel!==undefined){if(!['gemini-3.8-flash','gemini-3.6-flash','gemini-3.5-flash-lite','gemini-3.1-flash-lite'].includes(input.nexaAiModel))throw new Error('INVALID_NEXA_AI_MODEL');next.nexaAiModel=input.nexaAiModel;}
+  if(input.nexaAiModel!==undefined){if(!['gemini-3.6-flash','gemini-3.5-flash','gemini-3.5-flash-lite','gemini-3.1-flash-lite'].includes(input.nexaAiModel))throw new Error('INVALID_NEXA_AI_MODEL');next.nexaAiModel=input.nexaAiModel;}
   if(input.wamdaProfitMarginPercent!==undefined){
     next.wamdaProfitMarginPercent=normalizeWamdaMargin(input.wamdaProfitMarginPercent);
     if(input.wamdaPricingPolicy===undefined)next.wamdaPricingPolicy={mode:'percent',value:next.wamdaProfitMarginPercent};
@@ -1745,7 +1745,7 @@ function assistantTextFromInteraction(payload){
 }
 async function callNexaGeminiInteraction(history,{test=false}={}){
   if(!nexaAiApiKeyRuntime)throw Object.assign(new Error('مساعد Nexa غير مفعّل بعد. أضف مفتاح Gemini API من لوحة الإدارة.'),{status:503,code:'NEXA_AI_NOT_CONFIGURED'});
-  const model=String(storeSettings?.nexaAiModel||'gemini-3.8-flash');
+  const model=String(storeSettings?.nexaAiModel||'gemini-3.6-flash');
   const systemInstruction=[
     'أنت مساعد Nexa Store لخدمة العملاء باللغة العربية، ويمكنك استخدام لهجة عربية بسيطة ومفهومة.',
     'اعتمد على أدوات الكتالوج والمعلومات الموثوقة فقط عند الحديث عن منتجات المتجر أو الأسعار أو التوفر أو الدفع.',
