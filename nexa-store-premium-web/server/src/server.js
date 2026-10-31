@@ -1637,6 +1637,23 @@ const server = http.createServer(async (req,res) => {
       await persistCatalog(result.catalog);
       return send(res,result.created?201:200,{ok:true,created:result.created,productId:result.productId,message:result.created?'تمت إضافة المنتج عبر API.':'تم تحديث المنتج عبر API.'});
     }
+    if(req.method==='GET'&&url.pathname==='/api/admin/wamda/catalog'){
+      const categories=Array.isArray(storeSettings?.wamdaCatalogCache)?storeSettings.wamdaCatalogCache:[];
+      return send(res,200,{ok:true,configured:Boolean(wamdaApiTokenRuntime),account:storeSettings?.wamdaAccountInfo||null,lastSyncAt:storeSettings?.wamdaLastSyncAt||null,lastTestAt:storeSettings?.wamdaLastTestAt||null,lastError:storeSettings?.wamdaLastError||'',syncInProgress:wamdaCatalogSyncInProgress,webhookUrl:safeSettingsForAdmin().wamdaWebhookUrl,stats:{categories:categories.length,products:categories.reduce((sum,category)=>sum+(category.products||[]).length,0),available:categories.reduce((sum,category)=>sum+(category.products||[]).filter(product=>product.available).length,0)},categories});
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/wamda/test'){
+      if(rateLimit(req,res,'wamda-test:'+ip,5,60_000))return;
+      try{return send(res,200,await testWamdaConnection());}catch(error){return send(res,error?.status||422,{ok:false,error:'WAMDA_CONNECTION_FAILED',message:String(error?.message||'تعذر الاتصال بومضة.').slice(0,300)});}
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/wamda/catalog/refresh'){
+      if(rateLimit(req,res,'wamda-sync:'+ip,2,60_000))return;
+      try{return send(res,200,await refreshWamdaCatalog());}catch(error){return send(res,error?.status||422,{ok:false,error:'WAMDA_CATALOG_SYNC_FAILED',message:String(error?.message||'تعذر جلب منتجات ومضة.').slice(0,300)});}
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/wamda/catalog/publish'){
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const input=await bodyJson(req,16_384);
+      try{return send(res,200,await publishWamdaProduct(input));}catch(error){return send(res,error?.status||400,{ok:false,error:'WAMDA_PRODUCT_PUBLISH_FAILED',message:String(error?.message||'تعذر نشر منتج ومضة.').slice(0,300)});}
+    }
     if (req.method === 'GET' && url.pathname === '/api/admin/seagm/catalog') {
       const categories = Array.isArray(storeSettings?.seagmCatalogCache) ? storeSettings.seagmCatalogCache : [];
       return send(res,200,{
