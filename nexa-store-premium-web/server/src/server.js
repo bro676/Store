@@ -954,7 +954,7 @@ function validateAndApplySettings(input) {
   }
   if(input.clearNexaAiApiKey===true){next.nexaAiApiKeyEncrypted='';next.nexaAiApiKeyCleared=true;}
   if(input.nexaAiProvider!==undefined){if(input.nexaAiProvider!=='gemini')throw new Error('UNSUPPORTED_NEXA_AI_PROVIDER');next.nexaAiProvider='gemini';}
-  if(input.nexaAiModel!==undefined){if(!['gemini-3.8-flash','gemini-3.7-flash','gemini-3.5-flash','gemini-3.1-flash-lite'].includes(input.nexaAiModel))throw new Error('INVALID_NEXA_AI_MODEL');next.nexaAiModel=input.nexaAiModel;}
+  if(input.nexaAiModel!==undefined){if(!['gemini-3.8-flash','gemini-3.6-flash','gemini-3.5-flash-lite','gemini-3.1-flash-lite'].includes(input.nexaAiModel))throw new Error('INVALID_NEXA_AI_MODEL');next.nexaAiModel=input.nexaAiModel;}
   if(input.wamdaProfitMarginPercent!==undefined){
     next.wamdaProfitMarginPercent=normalizeWamdaMargin(input.wamdaProfitMarginPercent);
     if(input.wamdaPricingPolicy===undefined)next.wamdaPricingPolicy={mode:'percent',value:next.wamdaProfitMarginPercent};
