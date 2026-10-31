@@ -150,6 +150,8 @@ export function mergeCatalog(existing, incoming, mode = 'merge') {
           mergedProduct[field]=JSON.parse(JSON.stringify(manualOverrides[field]));
         }
         mergedProduct.manualOverrides=JSON.parse(JSON.stringify(manualOverrides));
+      }else{
+        delete mergedProduct.manualOverrides;
       }
       return mergedProduct;
     });
