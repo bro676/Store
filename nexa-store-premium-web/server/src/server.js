@@ -1616,18 +1616,21 @@ async function publishSeagmProduct(input) {
     }]);
   }
   const sourceCurrency = String(sourceProduct.currency || '').slice(0,12).toUpperCase();
+  const existingPublishedProduct=workingCatalog.flatMap(row=>row.items||[]).find(product=>product.id===localProductId)||null;
+  const manualOverrides=existingPublishedProduct?.manualOverrides||{};
+  const sourceName=String(sourceProduct.name || ('SEAGM product ' + productId)).slice(0,120);
+  const sourceDescription=('SEAGM ' + (kind === 'card' ? 'بطاقة رقمية' : 'شحن مباشر') + ' · Supplier #' + productId + (sourceCurrency ? ' · تكلفة المورد ' + sourceProduct.unitPrice + ' ' + sourceCurrency : '')).slice(0,700);
+  const sourceOptions=[{
+    id:'seagm-default',name:'الخيار الأساسي',desc:'منتج مرتبط بمصدر SEAGM',flag:'✦',packs:[['سعر البيع',sellPrice]],
+  }];
   const retailProduct = {
     id:localProductId,
-    name:String(sourceProduct.name || ('SEAGM product ' + productId)).slice(0,120),
-    desc:('SEAGM ' + (kind === 'card' ? 'بطاقة رقمية' : 'شحن مباشر') + ' · Supplier #' + productId + (sourceCurrency ? ' · تكلفة المورد ' + sourceProduct.unitPrice + ' ' + sourceCurrency : '')).slice(0,700),
-    image:'assets/brand/logo.svg',
-    options:[{
-      id:'seagm-default',
-      name:'الخيار الأساسي',
-      desc:'منتج مرتبط بمصدر SEAGM',
-      flag:'✦',
-      packs:[['سعر البيع',sellPrice]],
-    }],
+    name:String(manualOverrides.name??sourceName).slice(0,120),
+    desc:String(manualOverrides.desc??sourceDescription).slice(0,700),
+    image:String(manualOverrides.image??'assets/brand/logo.svg'),
+    options:Array.isArray(manualOverrides.options)?manualOverrides.options:sourceOptions,
+    apiSource:{name:sourceName,desc:sourceDescription,image:'assets/brand/logo.svg',options:sourceOptions},
+    ...(Object.keys(manualOverrides).length?{manualOverrides}:{}),
     seagm:{
       provider:'seagm',
       kind,
