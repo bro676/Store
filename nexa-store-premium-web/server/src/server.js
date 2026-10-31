@@ -444,7 +444,7 @@ async function createOrder(input, customerId = null) {
   const phone = String(input.customerPhone || '').trim().slice(0,25);
   const gameAccount = String(input.accountId || '').trim().slice(0,80);
   const notes = String(input.notes || '').trim().slice(0,500);
-  if (name.length < 2 || !/^\+?[0-9\s()-]{7,20}$/.test(phone)) return {error:'INVALID_CUSTOMER',status:400,message:'يرجى إدخال الاسم ورقم هاتف صحيح.'};
+  if (paymentMethod === 'shamcash' && (name.length < 2 || !/^\+?[0-9\s()-]{7,20}$/.test(phone))) return {error:'INVALID_CUSTOMER',status:400,message:'يرجى إدخال الاسم ورقم هاتف صحيح.'};
   if(paymentMethod==='wallet')return createWalletPaidOrder({customerId,input,pricedPack,gameAccount,notes,supplierProvider,supplier,supplierFields,quantity});
   let wallet, invoice, id, persisted = false;
   try {
@@ -2243,6 +2243,13 @@ const server = http.createServer(async (req,res) => {
       if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك أولاً.'});
       const result=await pool.query('SELECT id,product_label,amount_minor::text,currency,status,payment_method,created_at,paid_at,supplier_provider,supplier_status,supplier_message FROM nexa_orders WHERE customer_id=$1 ORDER BY created_at DESC LIMIT 50',[customer.id]);
       return send(res,200,{ok:true,orders:result.rows.map(row=>({id:row.id,product:row.product_label,amountMinor:row.amount_minor,currency:row.currency,status:row.status,paymentMethod:row.payment_method,createdAt:row.created_at,paidAt:row.paid_at,deliveryProvider:row.supplier_provider,deliveryStatus:row.supplier_status,deliveryMessage:row.supplier_message}))});
+    }
+    if (req.method === 'GET' && url.pathname === '/api/wallet/topups/current') {
+      const customer=await customerFromRequest(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك أولاً.'});
+      const result=await pool.query("SELECT id,amount_minor::text,currency,invoice_number,invoice_identifier,wallet_label,wallet_address,expires_at FROM nexa_wallet_topups WHERE customer_id=$1 AND status='pending' AND expires_at>NOW() ORDER BY created_at DESC LIMIT 1",[customer.id]);
+      const row=result.rows[0];
+      return send(res,200,{ok:true,topup:row?{topupId:row.id,amountMinor:row.amount_minor,currency:row.currency,invoiceNumber:row.invoice_number,invoiceIdentifier:row.invoice_identifier,receiverLabel:row.wallet_label,receiverAddress:row.invoice_identifier,expiresAt:row.expires_at,status:'pending'}:null});
     }
     if (req.method === 'POST' && url.pathname === '/api/wallet/topups') {
       if (rateLimit(req,res,'wallet-topup:'+ip,5,10*60_000)) return;
