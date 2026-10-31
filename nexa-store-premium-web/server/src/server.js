@@ -1953,18 +1953,18 @@ const server = http.createServer(async (req,res) => {
       const message=String(input.message||'').trim();
       if(!message||message.length>1000)return send(res,400,{ok:false,error:'INVALID_ASSISTANT_MESSAGE',message:'اكتب سؤالاً من 1 إلى 1000 حرف.'});
       const prior=Array.isArray(input.history)?input.history.slice(-8):[];
+      const redactAssistantText=value=>String(value||'')
+        .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[بريد محذوف]')
+        .replace(/\bNX-[A-Z0-9-]{8,}\b/gi,'[رقم طلب محذوف]')
+        .replace(/(?:\+?\d[\d\s().-]{7,}\d)/g,'[رقم هاتف محذوف]');
+      const safeMessage=redactAssistantText(message);
+      const prior=Array.isArray(input.history)?input.history.slice(-8):[];
       const transcript=prior.map(item=>{
         const role=item?.role==='assistant'?'المساعد':'العميل';
-        const content=String(item?.content||'').replace(/[\\u0000-\\u001f]/g,' ').slice(0,500);
+        const content=redactAssistantText(item?.content).replace(/[\u0000-\u001f]/g,' ').slice(0,500);
         return content?role+': '+content:'';
-      }).filter(Boolean).join('\\n');
-      const redactAssistantText=value=>String(value||'')
-        .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi,'[بريد محذوف]')
-        .replace(/\\bNX-[A-Z0-9-]{8,}\\b/gi,'[رقم طلب محذوف]')
-        .replace(/(?:\\+?\\d[\\d\\s().-]{7,}\\d)/g,'[رقم هاتف محذوف]');
-      const safeTranscript=redactAssistantText(transcript);
-      const safeMessage=redactAssistantText(message);
-      const prompt=(safeTranscript?('سياق المحادثة السابقة:\\n'+safeTranscript+'\\n\\n'):'')+'سؤال العميل الحالي:\\n'+safeMessage;
+      }).filter(Boolean).join('\n');
+      const prompt=(transcript?('سياق المحادثة السابقة:\n'+transcript+'\n\n'):'')+'سؤال العميل الحالي:\n'+safeMessage;
       const history=[{type:'user_input',content:[{type:'text',text:prompt}]}];
       try{
         const result=await callNexaGeminiInteraction(history);
