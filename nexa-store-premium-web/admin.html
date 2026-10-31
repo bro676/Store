@@ -576,7 +576,12 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
           <div id="wamdaCatalogResults" class="seagm-catalog-results">
             <div class="empty-api">احفظ API Token ثم اختبر الحساب واجلب المنتجات.</div>
           </div>
-          <div class="notice">الأولوية: تخصيص المنتج ثم سياسة القسم ثم السياسة العامة. الربح التلقائي إما نسبة مئوية أو مبلغ ثابت بالليرة يضاف إلى تكلفة ومضة بعد تحويلها بسعر الصرف. «سعر بيع ثابت» للمنتج لا يتغير مع تحديث التكلفة. زر التسعير العام يعيد جميع المنتجات المنشورة والأقسام إلى السياسة العامة. والمنتج غير المتوفر يتوقف عن استقبال الطلبات دون حذفه.</div>
+          <div class="wamda-catalog-pager" id="wamdaCatalogPager">
+            <button class="btn soft" type="button" id="wamdaCatalogPrev" disabled>السابق</button>
+            <span id="wamdaCatalogPageInfo">صفحة 1 من 1</span>
+            <button class="btn soft" type="button" id="wamdaCatalogNext" disabled>التالي</button>
+          </div>
+          <div class="notice">الأولوية: تخصيص المنتج ثم سياسة القسم ثم السياسة العامة. الربح التلقائي إما نسبة مئوية أو مبلغ ثابت بالليرة يضاف إلى تكلفة ومضة بعد تحويلها بسعر الصرف. «سعر بيع ثابت» للمنتج لا يتغير مع تحديث التكلفة. زر التطبيق الجماعي يحفظ نسبة الربح الحالية، ويعيد كل المنتجات والأقسام إلى السياسة العامة، ثم يعيد حساب السعر وينشر كل المنتجات المتاحة ذات السعر الصالح. المنتجات غير المتوفرة أو التي لا تنتج سعراً موجباً تُستثنى مع إظهار العدد.</div>
         </section>
         <section class="panel seagm-connect-panel">
           <div class="panel-head">
@@ -651,11 +656,6 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
           <div class="api-key-reveal hidden" id="apiKeyReveal">
             <div><strong>مفتاح المصدر الجديد</strong><p>انسخه الآن واحفظه في نظامك؛ لن يظهر مرة أخرى.</p></div>
             <div class="api-key-value-row"><input id="apiKeyValue" type="password" readonly dir="ltr" placeholder="سيظهر المفتاح هنا"><button class="btn soft" id="copyApiKeyBtn" type="button">نسخ المفتاح</button></div>
-          </div>
-          <div class="wamda-catalog-pager" id="wamdaCatalogPager">
-            <button class="btn soft" type="button" id="wamdaCatalogPrev" disabled>السابق</button>
-            <span id="wamdaCatalogPageInfo">صفحة 1 من 1</span>
-            <button class="btn soft" type="button" id="wamdaCatalogNext" disabled>التالي</button>
           </div>
         </section>
       </section>
