@@ -1129,25 +1129,88 @@ async function testWamdaConnection(){
   await persistWamdaSettings({...storeSettings,wamdaAccountInfo:account,wamdaLastTestAt:testedAt,wamdaLastError:''});
   return {ok:true,account,testedAt};
 }
-async function refreshWamdaCatalog(){
+async function refreshWamdaCatalog({source='manual'}={}){
   if(wamdaCatalogSyncInProgress)throw Object.assign(new Error('WAMDA_SYNC_IN_PROGRESS'),{status:409});
+  if(!wamdaApiTokenRuntime)throw Object.assign(new Error('أدخل Wamda API Token من لوحة الإدارة أولاً.'),{status:400,code:'WAMDA_TOKEN_MISSING'});
   wamdaCatalogSyncInProgress=true;
+  const attemptedAt=new Date().toISOString();
+  await persistWamdaSettings({...storeSettings,wamdaLastRefreshAttemptAt:attemptedAt,wamdaLastError:''});
   try{
     const client=wamdaClient();
     const [account,snapshot]=await Promise.all([client.getProfile(),client.getProducts({limit:1000})]);
-    const groups=new Map();
+    const groups=new Map(),remoteIds=new Set();
     for(const product of snapshot.products){
-      const id=String(product.categoryId||0);
-      if(!groups.has(id))groups.set(id,{id:Number(product.categoryId||0),name:product.categoryName||'متفرقات',products:[]});
-      groups.get(id).products.push(product);
+      const categoryId=Number(product.categoryId||0);
+      remoteIds.add(Number(product.id));
+      if(!groups.has(categoryId))groups.set(categoryId,{id:categoryId,name:product.categoryName||'متفرقات',products:[]});
+      groups.get(categoryId).products.push(product);
     }
     const categories=Array.from(groups.values()).sort((a,b)=>a.name.localeCompare(b.name,'ar'));
-    if(Buffer.byteLength(JSON.stringify(categories),'utf8')>3000000)throw new Error('WAMDA_CATALOG_TOO_LARGE');
+    const previous=Array.isArray(storeSettings?.wamdaCatalogCache)?storeSettings.wamdaCatalogCache:[];
+    const categoryById=new Map(categories.map(category=>[Number(category.id),category]));
+    for(const oldCategory of previous){
+      for(const oldProduct of oldCategory.products||[]){
+        if(remoteIds.has(Number(oldProduct.id)))continue;
+        let target=categoryById.get(Number(oldProduct.categoryId||oldCategory.id));
+        if(!target){
+          target={id:Number(oldProduct.categoryId||oldCategory.id),name:String(oldProduct.categoryName||oldCategory.name||'متفرقات'),products:[]};
+          categories.push(target);categoryById.set(Number(target.id),target);
+        }
+        target.products.push({...oldProduct,available:false,missingFromLatestSync:true});
+      }
+    }
     const syncedAt=new Date().toISOString();
-    await persistWamdaSettings({...storeSettings,wamdaAccountInfo:account,wamdaCatalogCache:categories,wamdaLastSyncAt:syncedAt,wamdaLastError:''});
-    return {ok:true,account,syncedAt,pagesFetched:snapshot.pagesFetched,stats:{categories:categories.length,products:snapshot.products.length,available:snapshot.products.filter(row=>row.available).length},categories};
+    const {fxRate,marginPercent}=getWamdaPricingContext();
+    const remoteById=new Map(snapshot.products.map(product=>[Number(product.id),product]));
+    let updatedPublished=0,unavailablePublished=0,manualOverrides=0;
+    const nextCatalog=catalog.map(category=>({
+      ...category,
+      items:(category.items||[]).map(existing=>{
+        if(existing.wamda?.provider!=='wamda')return existing;
+        const current=remoteById.get(Number(existing.wamda.productId));
+        if(!current){
+          unavailablePublished++;
+          const next=markWamdaProductUnavailable(existing,syncedAt);
+          if(JSON.stringify(next)!==JSON.stringify(existing))updatedPublished++;
+          return next;
+        }
+        try{
+          const next=updateWamdaPublishedProduct(existing,current,{fxRate,marginPercent,syncedAt});
+          updatedPublished++;
+          if(next.wamda.priceMode==='manual')manualOverrides++;
+          if(!next.wamda.available)unavailablePublished++;
+          return next;
+        }catch(error){
+          unavailablePublished++;
+          return {...existing,wamda:{...existing.wamda,available:false,pricingError:String(error?.code||error?.message||'WAMDA_PRICE_ERROR').slice(0,120),lastSyncedAt:syncedAt}};
+        }
+      }),
+    }));
+    const publishedById=new Map();
+    for(const category of nextCatalog)for(const product of category.items||[]){
+      if(product.wamda?.provider==='wamda')publishedById.set(Number(product.wamda.productId),product);
+    }
+    const enriched=categories.map(category=>({
+      ...category,
+      products:(category.products||[]).map(product=>{
+        const published=publishedById.get(Number(product.id));
+        let calculatedSellPriceSyp=null;
+        try{calculatedSellPriceSyp=calculateWamdaSellPriceSyp({unitPriceUsd:product.unitPrice,fxRate,marginPercent});}catch{}
+        return {...product,calculatedSellPriceSyp,published:Boolean(published),
+          currentPriceSyp:published?.options?.[0]?.packs?.[0]?.[1]??calculatedSellPriceSyp,
+          priceMode:published?.wamda?.priceMode||'auto',manualPriceSyp:published?.wamda?.manualPriceSyp??null};
+      }),
+    }));
+    if(Buffer.byteLength(JSON.stringify(enriched),'utf8')>4_000_000)throw new Error('WAMDA_CATALOG_TOO_LARGE');
+    const nextSettings={...storeSettings,wamdaAccountInfo:account,wamdaCatalogCache:enriched,
+      wamdaLastSyncAt:syncedAt,wamdaLastRefreshAttemptAt:attemptedAt,wamdaLastError:''};
+    await persistWamdaSnapshot(nextCatalog,nextSettings);
+    return {ok:true,source,account,syncedAt,pagesFetched:snapshot.pagesFetched,
+      stats:{categories:categories.length,products:snapshot.products.length,
+        available:snapshot.products.filter(row=>row.available).length,updatedPublished,unavailablePublished,manualOverrides},
+      categories:enriched};
   }catch(error){
-    await persistWamdaSettings({...storeSettings,wamdaLastError:String(error?.message||'WAMDA_SYNC_FAILED').slice(0,300)}).catch(()=>{});
+    await persistWamdaSettings({...storeSettings,wamdaLastRefreshAttemptAt:attemptedAt,wamdaLastError:String(error?.message||'WAMDA_SYNC_FAILED').slice(0,300)}).catch(()=>{});
     throw error;
   }finally{wamdaCatalogSyncInProgress=false;}
 }
