@@ -1739,15 +1739,15 @@ const server = http.createServer(async (req,res) => {
       if (!pool) return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
       const orderId=adminFulfillmentRetry[1];
       const found=await pool.query(`SELECT status,supplier_provider,supplier_status FROM nexa_orders WHERE id=$1`,[orderId]);
-      if (!found.rowCount || found.rows[0].status!=='paid' || found.rows[0].supplier_provider!=='seagm') {
-        return send(res,409,{ok:false,error:'FULFILLMENT_NOT_RETRYABLE',message:'لا يمكن إعادة محاولة هذا الطلب قبل تأكيد الدفع وربطه بمورد SEAGM.'});
+      if (!found.rowCount || found.rows[0].status!=='paid' || !['seagm','wamda'].includes(found.rows[0].supplier_provider)) {
+        return send(res,409,{ok:false,error:'FULFILLMENT_NOT_RETRYABLE',message:'لا يمكن إعادة محاولة هذا الطلب قبل تأكيد الدفع وربطه بمورد رقمي.'});
       }
       if (found.rows[0].supplier_status==='completed') return send(res,409,{ok:false,error:'FULFILLMENT_ALREADY_COMPLETED',message:'تم تسليم هذا الطلب بالفعل؛ لا يمكن إعادة شرائه.'});
       await pool.query(`INSERT INTO nexa_fulfillment_jobs(order_id,status,attempt_count,next_attempt_at,locked_at,last_error)
         VALUES($1,'pending',0,NOW(),NULL,'')
         ON CONFLICT(order_id) DO UPDATE SET status='pending',attempt_count=0,failure_count=0,next_attempt_at=NOW(),locked_at=NULL,last_error='',updated_at=NOW()`,[orderId]);
       await pool.query(`UPDATE nexa_orders SET supplier_status='pending',supplier_message='أعيد إرسال الطلب إلى قائمة تنفيذ المورد من لوحة الإدارة.' WHERE id=$1`,[orderId]);
-      runSeagmFulfillmentWorker().catch(error=>console.error('manual SEAGM retry failed',String(error?.message||'unknown').slice(0,120)));
+      runSeagmFulfillmentWorker().catch(error=>console.error('manual supplier retry failed',String(error?.message||'unknown').slice(0,120)));
       return send(res,200,{ok:true,message:'تمت جدولة إعادة فحص الطلب باستخدام رقم المورد الأصلي؛ لن يتم إنشاء رقم طلب مختلف.'});
     }
     const adminOrderMatch = url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/cancel$/);
