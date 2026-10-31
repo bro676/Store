@@ -19,11 +19,11 @@ test('SEAGM base URLs are restricted to the documented sandbox and production ho
   assert.throws(() => seagmBaseUrl('http://localhost'), /INVALID_SEAGM_ENVIRONMENT/);
 });
 
-test('SEAGM client rejects malformed credentials and arbitrary endpoints', () => {
+test('SEAGM client rejects malformed credentials and arbitrary endpoints', async () => {
   assert.throws(() => createSeagmClient({ uid:'abc', secretKey:DOC_SECRET }), /INVALID_SEAGM_UID/);
   assert.throws(() => createSeagmClient({ uid:'10001', secretKey:'' }), /INVALID_SEAGM_SECRET_KEY/);
   const client = createSeagmClient({ uid:'10001', secretKey:DOC_SECRET, fetchImpl:async()=>{ throw new Error('should not call'); } });
-  assert.rejects(client.get('https://evil.example/v1/me'), /INVALID_SEAGM_ENDPOINT/);
+  await assert.rejects(client.get('https://evil.example/v1/me'), /INVALID_SEAGM_ENDPOINT/);
 });
 
 test('account test calls signed /v1/me and normalizes balance details', async () => {
