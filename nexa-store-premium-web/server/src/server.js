@@ -1062,6 +1062,235 @@ async function publishSeagmProduct(input) {
   };
 }
 
+
+function seagmOrderMetadata(data) {
+  const number = value => Number.isFinite(Number(value)) ? Number(value) : null;
+  return {
+    id:data?.id == null ? null : String(data.id).slice(0,80),
+    mch_order_id:String(data?.mch_order_id || '').slice(0,100),
+    type_id:number(data?.type_id ?? data?.product_id),
+    status:String(data?.status || '').slice(0,80),
+    status_code:number(data?.status_code),
+    pay_status:String(data?.pay_status || '').slice(0,80),
+    pay_status_code:number(data?.pay_status_code),
+    send_status:String(data?.send_status || '').slice(0,80),
+    send_status_code:number(data?.send_status_code),
+    buy_amount:number(data?.buy_amount),
+    currency:String(data?.currency || '').slice(0,12),
+  };
+}
+
+function seagmErrorMessage(error) {
+  const code=Number(error?.code);
+  const messages={
+    20062:'المنتج غير متاح لدى SEAGM حالياً.',
+    20071:'خدمة البطاقات غير مفعّلة لحساب SEAGM.',
+    20072:'خدمة الشحن المباشر غير مفعّلة لحساب SEAGM.',
+    20073:'حساب SEAGM لا يملك صلاحية شراء هذا المنتج.',
+    20077:'نوع البطاقة غير موجود لدى SEAGM.',
+    20079:'المنتج غير موجود لدى SEAGM.',
+    20080:'لم يعثر SEAGM على الطلب السابق.',
+    20107:'الكمية المطلوبة تتجاوز المخزون.',
+    20115:'الحساب غير مسموح له بإجراء عملية الشراء.',
+    20116:'حساب الشحن مقيّد لدى المورد.',
+    20121:'الكمية أقل من الحد الأدنى المسموح.',
+    20124:'كمية الشراء غير صالحة لدى المورد.',
+    20125:'نفد مخزون المنتج لدى المورد.',
+    20126:'نوع المنتج لا يقبل الشحن المباشر.',
+    20129:'رصيد Credits لدى SEAGM غير كافٍ أو مبلغ الطلب غير صالح.',
+    20133:'بيانات اللاعب أو الحساب غير مقبولة لدى المورد.',
+    20134:'فشل التحقق من بيانات حساب الشحن.',
+    20135:'رقم طلب المتجر موجود مسبقاً لدى المورد؛ جارٍ استعادة الطلب الأصلي.',
+  };
+  return messages[code]||String(error?.message||'تعذر تنفيذ طلب المورد.').slice(0,240);
+}
+
+async function claimSeagmFulfillmentJob() {
+  const client=await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result=await client.query(`
+      SELECT j.order_id,j.attempt_count,o.supplier_kind,o.supplier_type_id,o.supplier_quantity,
+        o.supplier_fields,o.supplier_mch_order_id,o.supplier_order_id,o.supplier_provider
+      FROM nexa_fulfillment_jobs j
+      JOIN nexa_orders o ON o.id=j.order_id
+      WHERE j.status IN ('pending','retry','processing')
+        AND j.next_attempt_at<=NOW()
+        AND (j.status<>'processing' OR j.locked_at<NOW()-INTERVAL '4 minutes')
+      ORDER BY j.next_attempt_at ASC,j.created_at ASC
+      FOR UPDATE OF j SKIP LOCKED LIMIT 1`);
+    if(!result.rowCount){await client.query('COMMIT');return null;}
+    const job=result.rows[0];
+    await client.query(`UPDATE nexa_fulfillment_jobs
+      SET status='processing',attempt_count=attempt_count+1,locked_at=NOW(),updated_at=NOW()
+      WHERE order_id=$1`,[job.order_id]);
+    await client.query('COMMIT');
+    return {...job,attempt_count:Number(job.attempt_count)+1};
+  } catch(error) {
+    await client.query('ROLLBACK').catch(()=>{});
+    throw error;
+  } finally {client.release();}
+}
+
+async function saveSeagmFulfillmentState(job,{jobStatus,orderStatus,message,errorText='',metadata=null,resultEncrypted='',delaySeconds=0}={}) {
+  const client=await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(`UPDATE nexa_fulfillment_jobs SET
+      status=$2,last_error=$3,provider_order_id=$4,provider_status_code=$5,provider_status=$6,
+      provider_response=$7::jsonb,next_attempt_at=NOW()+($8::text || ' seconds')::interval,
+      locked_at=NULL,updated_at=NOW()
+      WHERE order_id=$1`,[
+        job.order_id,jobStatus,String(errorText||'').slice(0,500),
+        metadata?.id||job.provider_order_id||null,metadata?.status_code??null,
+        metadata?.status||'',JSON.stringify(metadata||{}),Math.max(0,Number(delaySeconds)||0),
+      ]);
+    await client.query(`UPDATE nexa_orders SET
+      supplier_status=$2,supplier_message=$3,
+      supplier_order_id=COALESCE($4,supplier_order_id),
+      supplier_result_encrypted=CASE WHEN $5<>'' THEN $5 ELSE supplier_result_encrypted END,
+      supplier_completed_at=CASE WHEN $2='completed' THEN NOW() ELSE supplier_completed_at END
+      WHERE id=$1`,[
+        job.order_id,orderStatus,String(message||'').slice(0,500),
+        metadata?.id||null,resultEncrypted,
+      ]);
+    await client.query('COMMIT');
+  } catch(error) {
+    await client.query('ROLLBACK').catch(()=>{});
+    throw error;
+  } finally {client.release();}
+}
+
+async function processSeagmFulfillmentJob(job) {
+  if(job.supplier_provider!=='seagm'||!['card','recharge'].includes(job.supplier_kind)||
+      !Number.isSafeInteger(Number(job.supplier_type_id))||Number(job.supplier_type_id)<=0) {
+    await saveSeagmFulfillmentState(job,{
+      jobStatus:'manual_review',orderStatus:'manual_review',
+      message:'بيانات ربط المنتج مع المورد غير مكتملة. تواصل مع إدارة المتجر.',
+      errorText:'INVALID_STORED_SUPPLIER_PRODUCT',
+    });
+    return;
+  }
+  const client=seagmClient();
+  const merchantOrderId=String(job.supplier_mch_order_id||job.order_id);
+  let providerOrder=await client.getOrderByMerchantId(job.supplier_kind,merchantOrderId);
+  if(!providerOrder) {
+    try {
+      providerOrder=job.supplier_kind==='card'
+        ? await client.createCardOrder({typeId:Number(job.supplier_type_id),quantity:Number(job.supplier_quantity||1),merchantOrderId})
+        : await client.createRechargeOrder({typeId:Number(job.supplier_type_id),quantity:Number(job.supplier_quantity||1),merchantOrderId,fields:job.supplier_fields||{}});
+    } catch(createError) {
+      // A timeout or duplicate merchant ID may happen after SEAGM accepted the purchase.
+      try {providerOrder=await client.getOrderByMerchantId(job.supplier_kind,merchantOrderId);}
+      catch(lookupError){throw lookupError;}
+      if(!providerOrder)throw createError;
+    }
+  }
+  const metadata=seagmOrderMetadata(providerOrder);
+  if(metadata.mch_order_id!==merchantOrderId||
+      metadata.type_id!==Number(job.supplier_type_id)||
+      metadata.buy_amount!==Number(job.supplier_quantity||1)) {
+    await saveSeagmFulfillmentState(job,{
+      jobStatus:'manual_review',orderStatus:'manual_review',
+      message:'وصل رد من المورد لكن بيانات الطلب لا تطابق طلب المتجر؛ أوقفنا التسليم الآلي للحماية.',
+      errorText:'SEAGM_ORDER_DETAILS_MISMATCH',metadata,
+    });
+    return;
+  }
+  const statusCode=Number(providerOrder.status_code);
+  const payStatusCode=Number(providerOrder.pay_status_code);
+  const sendStatusCode=Number(providerOrder.send_status_code);
+  if(statusCode===10003&&payStatusCode===2&&[3,4].includes(sendStatusCode)) {
+    let resultPayload={};
+    if(job.supplier_kind==='card') {
+      const cards=Array.isArray(providerOrder.cards)?providerOrder.cards.map(card=>({
+        cardNumber:String(card?.card_number||'').slice(0,200),
+        cardPin:String(card?.card_pin||'').slice(0,200),
+        expired:String(card?.expired||'').slice(0,40),
+      })):[];
+      if(cards.length<Number(job.supplier_quantity||1)||cards.some(card=>!card.cardNumber||!card.cardPin)) {
+        await saveSeagmFulfillmentState(job,{
+          jobStatus:'manual_review',orderStatus:'manual_review',
+          message:'أكد المورد اكتمال الطلب لكن بيانات البطاقة لم تصل كاملة. تم إيقاف التسليم التلقائي لتجنب تسليم ناقص.',
+          errorText:'SEAGM_CARD_DATA_INCOMPLETE',metadata,
+        });
+        return;
+      }
+      resultPayload={cards};
+    } else {
+      resultPayload={
+        deliveredAmount:String(providerOrder.sent_amount??providerOrder.send_amount??''),
+        sentAt:providerOrder.sent_time?new Date(Number(providerOrder.sent_time)*1000).toISOString():null,
+      };
+    }
+    await saveSeagmFulfillmentState(job,{
+      jobStatus:'completed',orderStatus:'completed',
+      message:job.supplier_kind==='card'?'تم تسليم البطاقة الرقمية بنجاح.':'أكد SEAGM اكتمال عملية الشحن.',
+      metadata,resultEncrypted:encryptSecret(JSON.stringify(resultPayload),cfg.settingsEncryptionKey),
+    });
+    return;
+  }
+  if(statusCode===10001||statusCode===10002) {
+    if(payStatusCode!==2) {
+      await saveSeagmFulfillmentState(job,{
+        jobStatus:'manual_review',orderStatus:'manual_review',
+        message:'أنشأ المورد الطلب لكن حالة دفعه لدى SEAGM ليست مؤكدة؛ يلزم تدخل الإدارة.',
+        errorText:'SEAGM_SUPPLIER_PAYMENT_NOT_CONFIRMED',metadata,
+      });
+      return;
+    }
+    await saveSeagmFulfillmentState(job,{
+      jobStatus:'retry',orderStatus:'waiting',
+      message:statusCode===10001?'تم إرسال طلبك إلى SEAGM وهو بانتظار التنفيذ.':'SEAGM ينفذ طلبك الآن.',
+      metadata,delaySeconds:30,
+    });
+    return;
+  }
+  const refunded=statusCode===10004||payStatusCode===3;
+  await saveSeagmFulfillmentState(job,{
+    jobStatus:'manual_review',orderStatus:'manual_review',
+    message:refunded?'أعاد المورد مبلغ الطلب إلى رصيد الحساب أو ألغى التنفيذ؛ تواصل الدعم لمراجعة طلبك.':'لم يتمكن النظام من تأكيد اكتمال طلب المورد؛ تم تحويله لمراجعة الإدارة.',
+    errorText:refunded?'SEAGM_ORDER_REFUNDED':'SEAGM_UNEXPECTED_ORDER_STATUS',metadata,
+  });
+}
+
+async function runSeagmFulfillmentWorker() {
+  if(!pool||seagmFulfillmentWorkerBusy||!storeSettings?.seagmUid||!seagmSecretRuntime)return;
+  seagmFulfillmentWorkerBusy=true;
+  let job=null;
+  try {
+    job=await claimSeagmFulfillmentJob();
+    if(!job)return;
+    await processSeagmFulfillmentJob(job);
+  } catch(error) {
+    if(!job) {
+      console.error('SEAGM fulfillment worker failed to claim a job',String(error?.code||error?.message||'unknown').slice(0,120));
+      return;
+    }
+    const status=Number(error?.status||0);
+    const code=Number(error?.code);
+    const retryable=[429,418].includes(status)||status>=500||
+      ['SEAGM_REQUEST_TIMEOUT','SEAGM_INVALID_JSON_RESPONSE','SEAGM_INVALID_RESPONSE'].includes(String(error?.message||''))||
+      !Number.isFinite(code)||code===20135;
+    const attempt=Number(job.attempt_count||1);
+    if(retryable&&attempt<12) {
+      const retryAfter=Number(error?.retryAfter||0);
+      const delay=Math.min(300,Math.max(retryAfter,10*Math.pow(2,Math.min(attempt-1,5))));
+      await saveSeagmFulfillmentState(job,{
+        jobStatus:'retry',orderStatus:'waiting',
+        message:'تعذر تأكيد رد SEAGM مؤقتاً. سيعيد النظام الفحص بنفس رقم الطلب دون إنشاء طلب مكرر.',
+        errorText:seagmErrorMessage(error),delaySeconds:delay,
+      }).catch(saveError=>console.error('could not schedule SEAGM retry',String(saveError?.message||'unknown').slice(0,120)));
+    } else {
+      await saveSeagmFulfillmentState(job,{
+        jobStatus:'manual_review',orderStatus:'manual_review',
+        message:'لم يكتمل طلب المورد تلقائياً. تم تحويله لمراجعة الإدارة ولن تتم إعادة الشراء تلقائياً.',
+        errorText:seagmErrorMessage(error),
+      }).catch(saveError=>console.error('could not mark SEAGM manual review',String(saveError?.message||'unknown').slice(0,120)));
+    }
+  } finally {seagmFulfillmentWorkerBusy=false;}
+}
+
 async function cancelPendingOrder(orderId) {
   if (!pool) throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
   const found = await pool.query("SELECT id,invoice_number FROM nexa_orders WHERE id=$1 AND status='pending_payment' AND expires_at>NOW()",[orderId]);
@@ -1072,6 +1301,9 @@ async function cancelPendingOrder(orderId) {
 }
 
 await initializeStoreState();
+const seagmFulfillmentTimer=setInterval(()=>runSeagmFulfillmentWorker().catch(error=>console.error('SEAGM worker loop failed',String(error?.message||'unknown').slice(0,120))),5_000);
+seagmFulfillmentTimer.unref?.();
+runSeagmFulfillmentWorker().catch(error=>console.error('initial SEAGM fulfillment run failed',String(error?.message||'unknown').slice(0,120)));
 if (storeSettings?.fxMode === 'api') refreshAutomaticFx().catch(error=>console.error('initial FX refresh failed',error.message));
 if (storeSettings?.catalogApiMode === 'auto') syncCatalogFromApi().catch(error=>console.error('initial catalogue API sync failed',error.message));
 const fxRefreshTimer = setInterval(()=>{ if (storeSettings?.fxMode === 'api') refreshAutomaticFx().catch(error=>console.error('scheduled FX refresh failed',error.message)); },5*60_000);
