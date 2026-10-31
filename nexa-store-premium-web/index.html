@@ -798,7 +798,7 @@ function renderCatalog(){
   $('catalogCount').textContent=filtered.length.toLocaleString('en-US')+' من '+all.length.toLocaleString('en-US')+' منتج';
   html='<div class="back-row"><button class="back-button" data-bc="root">← كل الأقسام</button><span class="catalog-count">'+filtered.length+' منتجات</span></div>'+
    '<div class="store-catalog-toolbar"><input id="storeProductSearch" type="search" value="'+esc(state.productQuery)+'" placeholder="ابحث داخل '+esc(cat.name)+'..." aria-label="بحث في منتجات القسم"><span>'+filtered.length.toLocaleString('en-US')+' نتيجة</span></div>'+
-   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(product=>tile(product.name,product.desc,product.image,'منتج رقمي','data-browse-item="'+esc(product.id)+'',product.wamda?.available===false?'غير متوفر حالياً':'اختيار المنتج',product.wamda?.available===false)).join('')+'</div>':'<div class="empty-state"><strong>لا توجد منتجات مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
+   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(product=>tile(product.name,product.desc,product.image,'منتج رقمي','data-browse-item="'+esc(product.id)+'"',product.wamda?.available===false?'غير متوفر حالياً':'اختيار المنتج',product.wamda?.available===false)).join('')+'</div>':'<div class="empty-state"><strong>لا توجد منتجات مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
    storeCatalogPager(state.productPage,pageCount,'product-page');
  }else if(!opt){
   html='<div class="back-row"><button class="back-button" data-bc="category">← العودة إلى '+esc(cat.name)+'</button><span class="catalog-count">'+it.options.length+' خيارات</span></div><div class="step-summary"><img src="'+esc(it.image)+'" alt=""><span><strong>'+esc(it.name)+'</strong><p>'+esc(it.desc)+' · اختر المنطقة أو النسخة أو الخطة.</p></span></div><div class="option-list">'+it.options.map(o=>'<button class="option-card" data-browse-option="'+esc(o.id)+'"><img src="'+esc(o.image||it.image)+'" alt=""><span><strong>'+esc(o.name)+'</strong><small>'+esc(o.desc)+'</small></span><span class="option-flag">'+esc(o.flag||'›')+'</span></button>').join('')+'</div>';
@@ -814,7 +814,7 @@ function renderSearchResults(){
  $('catalogTitle').textContent='نتائج البحث';$('catalogDescription').textContent='نتائج مطابقة لعبارة: '+state.searchQuery;
  $('catalogCount').textContent=matches.length.toLocaleString('en-US')+' نتيجة';
  $('catalogSteps').innerHTML=renderSteps(1);$('breadcrumbs').innerHTML='<span class="crumb current">نتائج البحث</span>';
- $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,i.image,c.name,'data-open-item="'+esc(i.id)+'',i.wamda?.available===false?'غير متوفر حالياً':'عرض الخيارات',i.wamda?.available===false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
+ $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,i.image,c.name,'data-open-item="'+esc(i.id)+'"',i.wamda?.available===false?'غير متوفر حالياً':'عرض الخيارات',i.wamda?.available===false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
 }
 function openItem(itemId){const it=getItem(itemId);if(!it)return;if(it.wamda?.available===false){showToast('هذا المنتج غير متوفر حالياً لدى ومضة.');return;}state.category=categories.find(c=>c.items.some(x=>x.id===itemId)).id;state.item=itemId;state.option=null;navigate('store');}
 function resetCatalog(){state.category=null;state.item=null;state.option=null;state.catalogPage=1;state.catalogQuery='';state.productPage=1;state.productQuery='';}
@@ -1053,7 +1053,7 @@ async function assistantAnswer(raw){
 }
 function sendAssistantPrompt(value){if(!value)return;return assistantAnswer(value)}
 function navigateHome(){navigate('home')}
-const NEXA_THEME_KEY='nexa-color-mode';
+const NEXA_THEME_KEY='nexa-store-color-mode';
 function setStoreColorMode(mode,{persist=true}={}){
  const selected=mode==='light'?'light':'dark';
  document.documentElement.dataset.theme=selected;
@@ -1066,7 +1066,6 @@ function initializeStoreColorMode(){
  let saved='dark';try{saved=localStorage.getItem(NEXA_THEME_KEY)||'dark'}catch{}
  setStoreColorMode(saved,{persist:false});
  $('storeThemeToggle')?.addEventListener('click',()=>setStoreColorMode(document.documentElement.dataset.theme==='dark'?'light':'dark'));
- window.addEventListener('storage',event=>{if(event.key===NEXA_THEME_KEY&&event.newValue)setStoreColorMode(event.newValue,{persist:false});});
 }
 async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;const footerName=document.querySelector('.footer-brand strong');if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
 async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items)&&c.items.length);}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();loadPaymentConfig();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','favorites','wallet','support'].includes(hash))navigate(hash);$('sideYear').textContent=new Date().getFullYear();}
