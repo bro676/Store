@@ -45,3 +45,22 @@ test('store product tiles emit complete click targets and account checkout choic
   assert.ok(store.includes('value="shamcash"') && store.includes('value="wallet"'), 'Checkout must offer direct and wallet payment');
   assert.ok(store.includes('id="customerWalletCard"') && store.includes('id="walletTopupForm"'), 'Wallet account and top-up interface must exist');
 });
+
+test('store and admin themes use independent persisted preferences', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  const storeKey = store.match(/const NEXA_THEME_KEY='([^']+)'/);
+  const adminKey = admin.match(/const ADMIN_THEME_KEY='([^']+)'/);
+  assert.ok(storeKey, 'Store theme preference key is present');
+  assert.ok(adminKey, 'Admin theme preference key is present');
+  assert.notEqual(storeKey[1], adminKey[1], 'Store and admin theme preferences must not synchronize');
+});
+
+test('product tile click attributes are quoted and wallet checkout controls exist', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  assert.ok(store.includes("'data-browse-item=\"'+esc(product.id)+'\"'"), 'Category product tiles must close the product ID attribute');
+  assert.ok(store.includes("'data-open-item=\"'+esc(i.id)+'\"'"), 'Search product tiles must close the product ID attribute');
+  assert.ok(store.includes('id="paymentMethod"'), 'Checkout must expose a payment method selector');
+  assert.ok(store.includes('value="shamcash"') && store.includes('value="wallet"'), 'Checkout must offer direct and wallet payment');
+  assert.ok(store.includes('id="customerWalletCard"') && store.includes('id="walletTopupForm"'), 'Wallet account and top-up interface must exist');
+});
