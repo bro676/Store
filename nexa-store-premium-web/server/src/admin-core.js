@@ -66,15 +66,22 @@ function validateUniqueIds(rows, label) {
   }
 }
 
+const MAX_CATALOG_CATEGORIES = 1000;
+const MAX_PRODUCTS_PER_CATEGORY = 500;
+const MAX_CATALOG_PRODUCTS = 10000;
+
 export function validateCatalog(input) {
-  if (!Array.isArray(input) || input.length < 1 || input.length > 40) throw new Error('INVALID_CATALOG');
+  if (!Array.isArray(input) || input.length < 1 || input.length > MAX_CATALOG_CATEGORIES) throw new Error('INVALID_CATALOG');
   validateUniqueIds(input, 'CATEGORY');
+  let totalProducts = 0;
   for (const category of input) {
     requiredText(category.name, 100, 'CATEGORY_NAME');
     if (typeof category.desc !== 'string' || category.desc.length > 500) throw new Error('INVALID_CATEGORY_DESC');
     if (!isSafeCatalogImage(category.image)) throw new Error('INVALID_CATEGORY_IMAGE');
     if (category.icon !== undefined && (typeof category.icon !== 'string' || category.icon.length > 12)) throw new Error('INVALID_CATEGORY_ICON');
-    if (!Array.isArray(category.items) || category.items.length > 200) throw new Error('INVALID_CATEGORY_ITEMS');
+    if (!Array.isArray(category.items) || category.items.length > MAX_PRODUCTS_PER_CATEGORY) throw new Error('INVALID_CATEGORY_ITEMS');
+    totalProducts += category.items.length;
+    if (totalProducts > MAX_CATALOG_PRODUCTS) throw new Error('CATALOG_PRODUCT_LIMIT_EXCEEDED');
     validateUniqueIds(category.items, 'PRODUCT');
     for (const product of category.items) {
       requiredText(product.name, 120, 'PRODUCT_NAME');
