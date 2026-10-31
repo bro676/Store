@@ -446,7 +446,7 @@ async function createOrder(input, customer = null) {
   if(paymentMethod==='wallet'){
     if(currency!=='SYP')return {error:'WALLET_CURRENCY_UNSUPPORTED',status:400,message:'الرصيد الداخلي حالياً بالليرة السورية الجديدة فقط. اختر SYP للدفع من الرصيد.'};
     const client=await pool.connect();
-    const id=\`NX-\${crypto.randomBytes(10).toString('hex').toUpperCase()}\`;
+    const id=`NX-${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
     const supplierOrderUuid=supplierProvider==='wamda'?crypto.randomUUID():id;
     try{
       await client.query('BEGIN');
@@ -458,7 +458,7 @@ async function createOrder(input, customer = null) {
       const nextBalance=String(debited.rows[0].balance_minor);
       const supplierStatus=supplier?'pending':'not_applicable';
       const supplierMessage=supplierProvider==='wamda'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى ومضة.':(supplierProvider==='seagm'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى SEAGM.':'');
-      await client.query(\`INSERT INTO nexa_orders (
+      await client.query(`INSERT INTO nexa_orders (
         id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,
         customer_name,customer_phone,game_account,notes,status,expires_at,paid_at,
         supplier_provider,supplier_kind,supplier_category_id,supplier_type_id,supplier_quantity,
@@ -466,17 +466,17 @@ async function createOrder(input, customer = null) {
       ) VALUES (
         $1,$2,$3,$4,$5,$6,$7,'SYP',$8,$9,$10,$11,'paid',NOW()+INTERVAL '365 days',NOW(),
         $12,$13,$14,$15,$16,$17::jsonb,$18,$19,$20,$21,'wallet'
-      )\`,[
+      )`,[
         id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pricedPack.label,pricedPack.amountMinor.toString(),
         name,phone,gameAccount,notes,supplierProvider,supplier?.kind||'',supplier?Number(supplier.categoryId):null,
         supplier?Number(supplier.typeId||supplier.productId):null,quantity,JSON.stringify(supplierFields),
         supplier?supplierOrderUuid:null,supplierStatus,supplierMessage,customer.id
       ]);
-      await client.query(\`INSERT INTO nexa_wallet_ledger(customer_id,kind,amount_minor,balance_after_minor,reference_order_id,note)
-        VALUES($1,'purchase',$2,$3,$4,$5)\`,[customer.id,pricedPack.amountMinor.toString(),nextBalance,id,pricedPack.label]);
+      await client.query(`INSERT INTO nexa_wallet_ledger(customer_id,kind,amount_minor,balance_after_minor,reference_order_id,note)
+        VALUES($1,'purchase',$2,$3,$4,$5)`,[customer.id,pricedPack.amountMinor.toString(),nextBalance,id,pricedPack.label]);
       if(['seagm','wamda'].includes(supplierProvider)){
-        await client.query(\`INSERT INTO nexa_fulfillment_jobs(order_id,status,next_attempt_at)
-          VALUES($1,'pending',NOW()) ON CONFLICT(order_id) DO NOTHING\`,[id]);
+        await client.query(`INSERT INTO nexa_fulfillment_jobs(order_id,status,next_attempt_at)
+          VALUES($1,'pending',NOW()) ON CONFLICT(order_id) DO NOTHING`,[id]);
       }
       await client.query('COMMIT');
       if(['seagm','wamda'].includes(supplierProvider))runSeagmFulfillmentWorker().catch(error=>console.error('wallet purchase fulfillment failed',String(error?.message||'unknown').slice(0,120)));
@@ -808,7 +808,7 @@ function readCookie(req, name) {
 }
 function customerCookie(req, token, maxAge = 30 * 24 * 60 * 60) {
   const secure = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https' || process.env.NODE_ENV === 'production';
-  return \`nexa_customer_session=\${token}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=\${maxAge}\${secure ? '; Secure' : ''}\`;
+  return `nexa_customer_session=${token}; HttpOnly; SameSite=Strict; Path=/api; Max-Age=${maxAge}${secure ? '; Secure' : ''}`;
 }
 function customerSessionHash(token) {
   return crypto.createHash('sha256').update(String(token)).digest('hex');
@@ -820,15 +820,15 @@ async function currentCustomer(req) {
   if (!pool) return null;
   const token = readCookie(req,'nexa_customer_session');
   if (!/^[A-Za-z0-9_-]{40,80}$/.test(token)) return null;
-  const result = await pool.query(\`SELECT c.id,c.full_name,c.phone,c.balance_minor::text,c.created_at
+  const result = await pool.query(`SELECT c.id,c.full_name,c.phone,c.balance_minor::text,c.created_at
     FROM nexa_customer_sessions s JOIN nexa_customers c ON c.id=s.customer_id
-    WHERE s.session_hash=$1 AND s.expires_at>NOW() LIMIT 1\`,[customerSessionHash(token)]);
+    WHERE s.session_hash=$1 AND s.expires_at>NOW() LIMIT 1`,[customerSessionHash(token)]);
   return result.rows[0] || null;
 }
 async function createCustomerSession(req,res,customerId) {
   const token=crypto.randomBytes(32).toString('base64url');
-  await pool.query(\`INSERT INTO nexa_customer_sessions(session_hash,customer_id,expires_at)
-    VALUES($1,$2,NOW()+INTERVAL '30 days')\`,[customerSessionHash(token),customerId]);
+  await pool.query(`INSERT INTO nexa_customer_sessions(session_hash,customer_id,expires_at)
+    VALUES($1,$2,NOW()+INTERVAL '30 days')`,[customerSessionHash(token),customerId]);
   res.setHeader('Set-Cookie',customerCookie(req,token));
 }
 function adminAuthorized(req) {
@@ -2061,18 +2061,18 @@ const server = http.createServer(async (req,res) => {
     if(req.method==='GET'&&url.pathname==='/api/account/orders'){
       const customer=await currentCustomer(req);
       if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك.'});
-      const result=await pool.query(\`SELECT o.id,o.product_label,o.amount_minor::text AS "amountMinor",o.currency,o.status,
+      const result=await pool.query(`SELECT o.id,o.product_label,o.amount_minor::text AS "amountMinor",o.currency,o.status,
         o.payment_method AS "paymentMethod",o.created_at AS "createdAt",o.paid_at AS "paidAt",
         o.supplier_status AS "supplierStatus",o.supplier_message AS "supplierMessage"
-        FROM nexa_orders o WHERE o.customer_id=$1 ORDER BY o.created_at DESC LIMIT 100\`,[customer.id]);
+        FROM nexa_orders o WHERE o.customer_id=$1 ORDER BY o.created_at DESC LIMIT 100`,[customer.id]);
       return send(res,200,{ok:true,orders:result.rows});
     }
     if(req.method==='GET'&&url.pathname==='/api/wallet/transactions'){
       const customer=await currentCustomer(req);
       if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك.'});
-      const result=await pool.query(\`SELECT kind,amount_minor::text AS "amountMinor",balance_after_minor::text AS "balanceAfterMinor",
+      const result=await pool.query(`SELECT kind,amount_minor::text AS "amountMinor",balance_after_minor::text AS "balanceAfterMinor",
         reference_order_id AS "referenceOrderId",note,created_at AS "createdAt"
-        FROM nexa_wallet_ledger WHERE customer_id=$1 ORDER BY created_at DESC LIMIT 40\`,[customer.id]);
+        FROM nexa_wallet_ledger WHERE customer_id=$1 ORDER BY created_at DESC LIMIT 40`,[customer.id]);
       return send(res,200,{ok:true,transactions:result.rows});
     }
     if(req.method==='POST'&&url.pathname==='/api/wallet/topups'){
@@ -2083,16 +2083,16 @@ const server = http.createServer(async (req,res) => {
       const input=await bodyJson(req,4096),amountMinor=decimalMinor(input.amount);
       if(amountMinor===null||amountMinor<100000n||amountMinor>500000000n)
         return send(res,400,{ok:false,error:'INVALID_TOPUP_AMOUNT',message:'قيمة الشحن يجب أن تكون بين 1,000 و5,000,000 ليرة سورية جديدة.'});
-      const id=\`NX-\${crypto.randomBytes(10).toString('hex').toUpperCase()}\`;
+      const id=`NX-${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
       let invoice=null,persisted=false;
       try{
         const wallet=await getWallet(true);
         invoice=await createShamInvoice(id,{amountMinor,currency:'SYP',label:'شحن رصيد حساب Nexa'},wallet);
-        await pool.query(\`INSERT INTO nexa_orders(
+        await pool.query(`INSERT INTO nexa_orders(
           id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,
           customer_name,customer_phone,game_account,notes,expires_at,invoice_number,invoice_identifier,
           wallet_label,wallet_address,wallet_topup_customer_id,customer_id,payment_method
-        ) VALUES($1,'wallet','wallet-topup','wallet-topup',0,'شحن رصيد Nexa',$2,'SYP',$3,$4,'','',$5,$6,$7,$8,$9,$10,$10,'shamcash_topup')\`,[
+        ) VALUES($1,'wallet','wallet-topup','wallet-topup',0,'شحن رصيد Nexa',$2,'SYP',$3,$4,'','',$5,$6,$7,$8,$9,$10,$10,'shamcash_topup')`,[
           id,amountMinor.toString(),customer.full_name,customer.phone,invoice.expiresAt,invoice.invoiceNumber,
           invoice.identifier,invoice.walletLabel,invoice.walletAddress,customer.id
         ]);
@@ -2101,13 +2101,11 @@ const server = http.createServer(async (req,res) => {
           expiresAt:invoice.expiresAt.toISOString(),invoiceNumber:invoice.invoiceNumber,invoiceIdentifier:invoice.identifier,
           receiverLabel:invoice.walletLabel,receiverAddress:invoice.identifier,status:'pending_payment',paymentMethod:'shamcash_topup'});
       }catch(error){
-        if(invoice?.invoiceNumber&&!persisted)await shamApi('DELETE',\`/v1/invoices/\${encodeURIComponent(invoice.invoiceNumber)}\`).catch(()=>{});
+        if(invoice?.invoiceNumber&&!persisted)await shamApi('DELETE',`/v1/invoices/${encodeURIComponent(invoice.invoiceNumber)}`).catch(()=>{});
         if(error instanceof ProviderError)return send(res,error.status>=500?502:error.status,{ok:false,error:error.code,message:providerMessage(error)});
         throw error;
       }
     }
-
-    const wamdaWebhookMatch=
 
     const wamdaWebhookMatch=url.pathname.match(/^\/api\/webhooks\/wamda\/([A-Za-z0-9_-]{40,80})$/);
     if(req.method==='POST'&&wamdaWebhookMatch){
