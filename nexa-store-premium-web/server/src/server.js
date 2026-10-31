@@ -1196,7 +1196,7 @@ async function refreshWamdaCatalog({source='manual'}={}){
     const previous=Array.isArray(storeSettings?.wamdaCatalogCache)?storeSettings.wamdaCatalogCache:[];
     const previousProducts=new Map(previous.flatMap(category=>(category.products||[]).map(product=>[Number(product.id),product])));
     for(const category of categories)category.products=category.products.map(product=>({
-      ...product,pricingOverride:previousProducts.get(Number(product.id))?.pricingOverride||{mode:'inherit'},
+      ...product,...(previousProducts.get(Number(product.id))?.pricingOverride?{pricingOverride:previousProducts.get(Number(product.id)).pricingOverride}:{ }),
     }));
     const categoryById=new Map(categories.map(category=>[Number(category.id),category]));
     for(const oldCategory of previous){
