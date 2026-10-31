@@ -2009,7 +2009,102 @@ const server = http.createServer(async (req,res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const ip = String(process.env.TRUST_PROXY === 'true' ? (req.headers['x-forwarded-for'] || req.socket.remoteAddress) : req.socket.remoteAddress || 'unknown').split(',')[0].trim();
   try {
-    if (req.method === 'GET' && url.pathname === '/api/health') return send(res,200,{ok:true,service:'nexa-shamcash-gateway',paymentsReady,dbReady:Boolean(pool)});
+    if (req.method === 'GET' && url.pathname === '/api/health') return send(res,200,{ok:true,service:'nexa-shamcash-gateway',paymentsReady,dbReady:Boolean(pool),walletReady:Boolean(pool)});
+
+    if(req.method==='POST'&&url.pathname==='/api/account/register'){
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED',message:'خدمة الحسابات غير جاهزة حالياً.'});
+      if(rateLimit(req,res,'account-register:'+ip,5,10*60_000))return;
+      const input=await bodyJson(req,4096);
+      const name=String(input.name||'').trim().slice(0,70);
+      const phone=String(input.phone||'').replace(/[\s()-]/g,'').trim();
+      const password=String(input.password||'');
+      if(name.length<2||!/^\+?[0-9]{8,18}$/.test(phone)||password.length<8||password.length>128)
+        return send(res,400,{ok:false,error:'INVALID_ACCOUNT_DETAILS',message:'أدخل اسماً ورقم هاتف صحيحاً وكلمة مرور من 8 أحرف على الأقل.'});
+      const id=crypto.randomUUID(),salt=crypto.randomBytes(16).toString('hex'),hash=customerPasswordHash(password,salt);
+      try{
+        await pool.query('INSERT INTO nexa_customers(id,full_name,phone,password_salt,password_hash) VALUES($1,$2,$3,$4,$5)',[id,name,phone,salt,hash]);
+        await createCustomerSession(req,res,id);
+        const customer=await pool.query('SELECT id,full_name,phone,balance_minor::text,created_at FROM nexa_customers WHERE id=$1',[id]);
+        return send(res,201,{ok:true,customer:customer.rows[0]});
+      }catch(error){
+        if(error.code==='23505')return send(res,409,{ok:false,error:'PHONE_ALREADY_REGISTERED',message:'رقم الهاتف مسجل مسبقاً. سجّل الدخول إلى حسابك.'});
+        throw error;
+      }
+    }
+    if(req.method==='POST'&&url.pathname==='/api/account/login'){
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED',message:'خدمة الحسابات غير جاهزة حالياً.'});
+      if(rateLimit(req,res,'account-login:'+ip,8,10*60_000))return;
+      const input=await bodyJson(req,4096),phone=String(input.phone||'').replace(/[\s()-]/g,'').trim(),password=String(input.password||'');
+      if(!/^\+?[0-9]{8,18}$/.test(phone)||!password||password.length>128)return send(res,400,{ok:false,error:'INVALID_LOGIN',message:'تحقق من رقم الهاتف وكلمة المرور.'});
+      const found=await pool.query('SELECT id,password_salt,password_hash FROM nexa_customers WHERE phone=$1 LIMIT 1',[phone]);
+      if(!found.rowCount)return send(res,401,{ok:false,error:'INVALID_CREDENTIALS',message:'رقم الهاتف أو كلمة المرور غير صحيحة.'});
+      const expected=Buffer.from(found.rows[0].password_hash,'hex'),supplied=Buffer.from(customerPasswordHash(password,found.rows[0].password_salt),'hex');
+      if(expected.length!==supplied.length||!crypto.timingSafeEqual(expected,supplied))return send(res,401,{ok:false,error:'INVALID_CREDENTIALS',message:'رقم الهاتف أو كلمة المرور غير صحيحة.'});
+      await pool.query('UPDATE nexa_customers SET last_login_at=NOW() WHERE id=$1',[found.rows[0].id]);
+      await createCustomerSession(req,res,found.rows[0].id);
+      const customer=await pool.query('SELECT id,full_name,phone,balance_minor::text,created_at FROM nexa_customers WHERE id=$1',[found.rows[0].id]);
+      return send(res,200,{ok:true,customer:customer.rows[0]});
+    }
+    if(req.method==='POST'&&url.pathname==='/api/account/logout'){
+      const token=readCookie(req,'nexa_customer_session');
+      if(pool&&token)await pool.query('DELETE FROM nexa_customer_sessions WHERE session_hash=$1',[customerSessionHash(token)]);
+      return send(res,200,{ok:true},{'Set-Cookie':customerCookie(req,'',0)});
+    }
+    if(req.method==='GET'&&url.pathname==='/api/account/me'){
+      const customer=await currentCustomer(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك.'});
+      return send(res,200,{ok:true,customer});
+    }
+    if(req.method==='GET'&&url.pathname==='/api/account/orders'){
+      const customer=await currentCustomer(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك.'});
+      const result=await pool.query(\`SELECT o.id,o.product_label,o.amount_minor::text AS "amountMinor",o.currency,o.status,
+        o.payment_method AS "paymentMethod",o.created_at AS "createdAt",o.paid_at AS "paidAt",
+        o.supplier_status AS "supplierStatus",o.supplier_message AS "supplierMessage"
+        FROM nexa_orders o WHERE o.customer_id=$1 ORDER BY o.created_at DESC LIMIT 100\`,[customer.id]);
+      return send(res,200,{ok:true,orders:result.rows});
+    }
+    if(req.method==='GET'&&url.pathname==='/api/wallet/transactions'){
+      const customer=await currentCustomer(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك.'});
+      const result=await pool.query(\`SELECT kind,amount_minor::text AS "amountMinor",balance_after_minor::text AS "balanceAfterMinor",
+        reference_order_id AS "referenceOrderId",note,created_at AS "createdAt"
+        FROM nexa_wallet_ledger WHERE customer_id=$1 ORDER BY created_at DESC LIMIT 40\`,[customer.id]);
+      return send(res,200,{ok:true,transactions:result.rows});
+    }
+    if(req.method==='POST'&&url.pathname==='/api/wallet/topups'){
+      if(!paymentsReady)return send(res,503,{ok:false,error:'PAYMENTS_NOT_READY',message:'شحن الرصيد عبر شام كاش غير متاح حالياً.'});
+      const customer=await currentCustomer(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول قبل شحن الرصيد.'});
+      if(rateLimit(req,res,'wallet-topup:'+customer.id,5,10*60_000))return;
+      const input=await bodyJson(req,4096),amountMinor=decimalMinor(input.amount);
+      if(amountMinor===null||amountMinor<100000n||amountMinor>500000000n)
+        return send(res,400,{ok:false,error:'INVALID_TOPUP_AMOUNT',message:'قيمة الشحن يجب أن تكون بين 1,000 و5,000,000 ليرة سورية جديدة.'});
+      const id=\`NX-\${crypto.randomBytes(10).toString('hex').toUpperCase()}\`;
+      let invoice=null,persisted=false;
+      try{
+        const wallet=await getWallet(true);
+        invoice=await createShamInvoice(id,{amountMinor,currency:'SYP',label:'شحن رصيد حساب Nexa'},wallet);
+        await pool.query(\`INSERT INTO nexa_orders(
+          id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,
+          customer_name,customer_phone,game_account,notes,expires_at,invoice_number,invoice_identifier,
+          wallet_label,wallet_address,wallet_topup_customer_id,customer_id,payment_method
+        ) VALUES($1,'wallet','wallet-topup','wallet-topup',0,'شحن رصيد Nexa',$2,'SYP',$3,$4,'','',$5,$6,$7,$8,$9,$10,$10,'shamcash_topup')\`,[
+          id,amountMinor.toString(),customer.full_name,customer.phone,invoice.expiresAt,invoice.invoiceNumber,
+          invoice.identifier,invoice.walletLabel,invoice.walletAddress,customer.id
+        ]);
+        persisted=true;
+        return send(res,201,{ok:true,orderId:id,product:'شحن رصيد Nexa',amountMinor:amountMinor.toString(),currency:'SYP',
+          expiresAt:invoice.expiresAt.toISOString(),invoiceNumber:invoice.invoiceNumber,invoiceIdentifier:invoice.identifier,
+          receiverLabel:invoice.walletLabel,receiverAddress:invoice.identifier,status:'pending_payment',paymentMethod:'shamcash_topup'});
+      }catch(error){
+        if(invoice?.invoiceNumber&&!persisted)await shamApi('DELETE',\`/v1/invoices/\${encodeURIComponent(invoice.invoiceNumber)}\`).catch(()=>{});
+        if(error instanceof ProviderError)return send(res,error.status>=500?502:error.status,{ok:false,error:error.code,message:providerMessage(error)});
+        throw error;
+      }
+    }
+
+    const wamdaWebhookMatch=
 
     const wamdaWebhookMatch=url.pathname.match(/^\/api\/webhooks\/wamda\/([A-Za-z0-9_-]{40,80})$/);
     if(req.method==='POST'&&wamdaWebhookMatch){
@@ -2436,7 +2531,8 @@ const server = http.createServer(async (req,res) => {
     if (req.method === 'POST' && url.pathname === '/api/orders') {
       if (rateLimit(req,res,`order:${ip}`,8,60_000)) return;
       const input = await bodyJson(req);
-      const result = await createOrder(input);
+      const customer = await currentCustomer(req);
+      const result = await createOrder(input,customer);
       if (isHttpErrorResult(result)) return send(res, result.status, { error:result.error, message:result.message });
       // "pending_payment" is an order state, not an HTTP status code.
       return send(res, 201, { ok:true, ...result });
