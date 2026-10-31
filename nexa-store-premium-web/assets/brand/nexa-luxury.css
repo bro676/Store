@@ -2194,3 +2194,33 @@ html[data-theme="light"]{background:#f5f1e7!important;color-scheme:light!importa
   .wamda-catalog-pager{justify-content:space-between!important;gap:7px!important}
   #app.shell .seagm-product-row{grid-template-columns:1fr!important}
 }
+
+
+/* Storefront large-catalog navigation. */
+.store-catalog-toolbar{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  gap:12px!important;margin:16px 0!important;padding:12px!important;border-radius:14px!important;
+  border:1px solid rgba(212,175,55,.2)!important;
+}
+.store-catalog-toolbar input{
+  flex:1 1 320px!important;min-width:160px!important;min-height:42px!important;
+  border-radius:11px!important;padding:9px 13px!important;
+}
+:root[data-theme="dark"] .store-catalog-toolbar{background:#171717!important;color:#ded8c9!important}
+:root[data-theme="light"] .store-catalog-toolbar{background:#fffdf7!important;color:#4a412e!important;border-color:#e5dac0!important}
+:root[data-theme="dark"] .store-catalog-toolbar input{background:#101010!important;color:#f3f0e8!important;border:1px solid rgba(212,175,55,.25)!important}
+:root[data-theme="light"] .store-catalog-toolbar input{background:#fff!important;color:#181713!important;border:1px solid #ded2b5!important}
+.store-catalog-pager{
+  display:flex!important;align-items:center!important;justify-content:center!important;gap:12px!important;
+  margin:18px auto 4px!important;padding:12px!important;border:1px solid rgba(212,175,55,.2)!important;
+  border-radius:14px!important;max-width:380px!important;font-size:10px!important;
+}
+:root[data-theme="dark"] .store-catalog-pager{background:#171717!important;color:#ded8c9!important}
+:root[data-theme="light"] .store-catalog-pager{background:#fffdf7!important;color:#4a412e!important;border-color:#e5dac0!important}
+.store-catalog-pager button{min-width:82px!important}
+.store-catalog-pager button:disabled{opacity:.35!important;cursor:not-allowed!important}
+@media(max-width:600px){
+  .store-catalog-toolbar{align-items:stretch!important;flex-direction:column!important}
+  .store-catalog-toolbar input{width:100%!important;flex:auto!important}
+  .store-catalog-pager{justify-content:space-between!important;gap:6px!important}
+}
