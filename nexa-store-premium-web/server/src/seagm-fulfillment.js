@@ -68,7 +68,7 @@ export function evaluateSeagmOrder({
   const payStatusCode = metadata.pay_status_code;
   const sendStatusCode = metadata.send_status_code;
 
-  if (statusCode === 10003 && payStatusCode === 2 && [3, 4].includes(sendStatusCode)) {
+  if (statusCode === 10003 && payStatusCode === 2 && sendStatusCode === 3) {
     if (kind === 'card') {
       const cards = Array.isArray(providerOrder.cards)
         ? providerOrder.cards.map(card => ({
