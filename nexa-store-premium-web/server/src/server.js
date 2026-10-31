@@ -2404,6 +2404,7 @@ const server = http.createServer(async (req,res) => {
           workingCatalog = validateCatalog([...workingCatalog,category]);
         }
         const productInput = { ...(input.product || {}) };
+        delete productInput.manualOverrides;
         if (productInput.desc === undefined) productInput.desc = String(productInput.description || '');
         if (!productInput.image) productInput.image = 'assets/brand/logo.svg';
         if (!Array.isArray(productInput.options) && productInput.price !== undefined) {
