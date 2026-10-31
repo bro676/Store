@@ -816,18 +816,39 @@ function openOrder(packIndex){
  $('seagmQuantityHint').textContent=supplier?'السعر المعروض لكل وحدة؛ يتم ضربه بالكمية قبل إنشاء فاتورة الدفع.':'';
  const fieldBox=$('seagmFieldsContainer');
  const definitions=Array.isArray(supplier?.fields)?supplier.fields:[];
+ const makeSupplierControl=(field,key,rawOptions,parentField=false)=>{
+  const required=field.required!==false;
+  const choices=Array.isArray(rawOptions)?rawOptions.filter(option=>String(option.value||'').length):[];
+  if(choices.length){
+   return '<select data-seagm-field="'+esc(key)+'" '+(parentField?'data-seagm-parent-field="true" ':'')+(required?'required':'')+'><option value="">اختر '+esc(field.label||key)+'</option>'+choices.map(option=>'<option value="'+esc(option.value)+'">'+esc(option.label||option.value)+'</option>').join('')+'</select>';
+  }
+  if(field.multiline)return '<textarea data-seagm-field="'+esc(key)+'" maxlength="500" placeholder="'+esc(field.placeholder||field.prefix||'')+'" '+(required?'required':'')+'></textarea>';
+  return '<input type="text" data-seagm-field="'+esc(key)+'" maxlength="500" placeholder="'+esc(field.placeholder||field.prefix||'')+'" '+(required?'required':'')+'>';
+ };
  fieldBox.innerHTML=definitions.map(field=>{
   const key=String(field.submitField||field.name||'');
   const label=String(field.label||field.name||'بيانات المنتج');
   const required=field.required!==false;
-  const options=Array.isArray(field.options)?field.options.filter(option=>String(option.value||'').length):[];
-  const control=options.length
-   ? '<select data-seagm-field="'+esc(key)+'" '+(required?'required':'')+'><option value="">اختر '+esc(label)+'</option>'+options.map(option=>'<option value="'+esc(option.value)+'">'+esc(option.label||option.value)+'</option>').join('')+'</select>'
-   : field.multiline
-    ? '<textarea data-seagm-field="'+esc(key)+'" maxlength="500" placeholder="'+esc(field.placeholder||'')+'" '+(required?'required':'')+'></textarea>'
-    : '<input type="text" data-seagm-field="'+esc(key)+'" maxlength="500" placeholder="'+esc(field.placeholder||'')+'" '+(required?'required':'')+'>';
-  return '<div class="field"><label>'+esc(label)+(required?' *':'')+'</label>'+control+(field.tips?'<small>'+esc(field.tips)+'</small>':'')+'</div>';
+  const control=makeSupplierControl(field,key,field.options,true);
+  return '<div class="field"><label>'+esc(label)+(required?' *':'')+'</label>'+control+(field.tips?'<small>'+esc(field.tips)+'</small>':'')+'<div data-seagm-children-for="'+esc(key)+'"></div></div>';
  }).join('');
+ fieldBox.querySelectorAll('select[data-seagm-parent-field]').forEach(parent=>{
+  const key=parent.dataset.seagmField;
+  const definition=definitions.find(field=>String(field.submitField||field.name||'')===key);
+  const childBox=Array.from(fieldBox.querySelectorAll('[data-seagm-children-for]')).find(element=>element.dataset.seagmChildrenFor===key);
+  if(!definition||!childBox)return;
+  const renderChildren=()=>{
+   const selected=(definition.options||[]).find(option=>String(option.value||'')===parent.value);
+   childBox.innerHTML=(selected?.child||[]).map(child=>{
+    const childKey=String(child.name||'');
+    const childLabel=String(child.label||childKey||'بيانات إضافية');
+    const childControl=makeSupplierControl(child,childKey,child.options||[],false);
+    return '<div class="field supplier-dependent-field"><label>'+esc(childLabel)+' *</label>'+childControl+(child.prefix?'<small>'+esc(child.prefix)+'</small>':'')+'</div>';
+   }).join('');
+  };
+  parent.addEventListener('change',renderChildren);
+  renderChildren();
+ });
  fieldBox.classList.toggle('hidden',!supplier||definitions.length===0);
  $('accountField').classList.toggle('hidden',!!supplier||!['games','apps'].includes(state.category));
  renderCurrencyPreview();
