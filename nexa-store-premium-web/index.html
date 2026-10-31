@@ -1017,6 +1017,7 @@ async function verifyShamCashPayment(e){
   result.className='wallet-payment-result success';
   result.textContent=d.receipt?.delivery?'تم تأكيد الدفع بنجاح. نرسل طلبك الآن إلى SEAGM ونحدّثك بنتيجة التسليم.':'تم التحقق من الفاتورة ورقم العملية ومحفظة الاستلام. طلبك مدفوع ومؤكد.';
   if(d.receipt)renderPaymentReceipt(d.receipt);
+  if(d.walletBalanceMinor!==undefined||customerAccount)await refreshCustomerAccount();
   const saved=storageRead();const order=(saved.orders||[]).find(o=>o.id===orderId);
   if(order){order.status='paid';storageSave(saved);renderOrders()}
   showToast('تم اعتماد الدفع وإصدار وصل إلكتروني.');
