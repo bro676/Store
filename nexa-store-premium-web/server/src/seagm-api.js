@@ -87,6 +87,7 @@ function normalizeFields(fields) {
       prefix: cleanText(field?.prefix, 40),
       tips: cleanText(field?.tips || field?.des || '', 240),
       tipsImage: cleanText(field?.tipsImg || field?.tips_img || '', 300),
+      required: field?.required !== false && field?.is_required !== false && field?.isRequired !== false,
       multiline: field?.multiline === true,
       position: Number.isInteger(Number(field?.position)) ? Number(field.position) : index,
       options,
@@ -160,6 +161,100 @@ export function createSeagmClient({ uid, secretKey, environment = 'sandbox', fet
     }
   }
 
+  async function post(path, body = {}) {
+    if (typeof path !== 'string' || !/^\/v1\/[a-z0-9\-/:]+$/i.test(path)) throw new Error('INVALID_SEAGM_ENDPOINT');
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('INVALID_SEAGM_PARAMETERS');
+    const bodyParams = {};
+    for (const [key, value] of Object.entries(body)) {
+      if (!/^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(key) || value === undefined || value === null) continue;
+      if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') throw new Error('INVALID_SEAGM_PARAMETERS');
+      const text = String(value);
+      if (text.length > 1000) throw new Error('INVALID_SEAGM_PARAMETERS');
+      bodyParams[key] = text;
+    }
+    const params = { ...bodyParams, timestamp: Math.floor(Date.now() / 1000), uid: normalizedUid };
+    const signature = buildSeagmSignature(params, secretKey);
+    const query = new URLSearchParams();
+    query.set('uid', normalizedUid);
+    query.set('timestamp', String(params.timestamp));
+    query.set('signature', signature);
+    const formBody = new URLSearchParams();
+    for (const key of Object.keys(bodyParams).sort()) formBody.set(key, bodyParams[key]);
+    const url = base + path + '?' + query.toString();
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetchImpl(url, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: formBody.toString(),
+        redirect: 'error',
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        const error = new Error('SEAGM HTTP ' + response.status);
+        error.status = response.status;
+        error.retryAfter = Number(response.headers?.get?.('retry-after') || 0) || null;
+        if (response.status === 429 || response.status === 418) error.code = response.status === 429 ? 'SEAGM_RATE_LIMITED' : 'SEAGM_IP_BLOCKED';
+        throw error;
+      }
+      return responseData(await readJsonLimited(response));
+    } catch (error) {
+      if (error?.name === 'AbortError') throw new Error('SEAGM_REQUEST_TIMEOUT');
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  function normalizeOrderKind(kind) {
+    if (kind !== 'card' && kind !== 'recharge') throw new Error('INVALID_SEAGM_ORDER_KIND');
+    return kind;
+  }
+
+  async function getOrderByMerchantId(kind, merchantOrderId) {
+    const normalizedKind = normalizeOrderKind(kind);
+    const id = String(merchantOrderId ?? '').trim();
+    if (!/^[A-Za-z0-9_-]{1,100}$/.test(id)) throw new Error('INVALID_SEAGM_MERCHANT_ORDER_ID');
+    const endpoint = normalizedKind === 'card' ? '/v1/card-orders/' : '/v1/recharge-orders/';
+    try {
+      const data = await get(endpoint + encodeURIComponent(id), { query_type: 'mchOrderId' });
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('SEAGM_INVALID_ORDER_RESPONSE');
+      return data;
+    } catch (error) {
+      if (Number(error?.code) === 20080 || Number(error?.status) === 404) return null;
+      throw error;
+    }
+  }
+
+  async function createCardOrder({ typeId, quantity = 1, merchantOrderId }) {
+    const type = Number(typeId);
+    const amount = Number(quantity);
+    if (!Number.isSafeInteger(type) || type <= 0 || !Number.isSafeInteger(amount) || amount <= 0 || amount > 1000) throw new Error('INVALID_SEAGM_ORDER_PARAMETERS');
+    const id = String(merchantOrderId ?? '').trim();
+    if (!/^[A-Za-z0-9_-]{1,100}$/.test(id)) throw new Error('INVALID_SEAGM_MERCHANT_ORDER_ID');
+    return post('/v1/card-orders', { type_id: type, buy_amount: amount, mch_order_id: id });
+  }
+
+  async function createRechargeOrder({ typeId, quantity = 1, merchantOrderId, fields = {} }) {
+    const type = Number(typeId);
+    const amount = Number(quantity);
+    if (!Number.isSafeInteger(type) || type <= 0 || !Number.isSafeInteger(amount) || amount <= 0 || amount > 1000) throw new Error('INVALID_SEAGM_ORDER_PARAMETERS');
+    const id = String(merchantOrderId ?? '').trim();
+    if (!/^[A-Za-z0-9_-]{1,100}$/.test(id)) throw new Error('INVALID_SEAGM_MERCHANT_ORDER_ID');
+    if (!fields || typeof fields !== 'object' || Array.isArray(fields)) throw new Error('INVALID_SEAGM_ORDER_FIELDS');
+    const body = { type_id: type, buy_amount: amount, mch_order_id: id };
+    const reserved = new Set(['uid', 'timestamp', 'signature', 'type_id', 'buy_amount', 'mch_order_id']);
+    for (const [key, value] of Object.entries(fields)) {
+      if (!/^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(key) || reserved.has(key)) throw new Error('INVALID_SEAGM_ORDER_FIELDS');
+      if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') throw new Error('INVALID_SEAGM_ORDER_FIELDS');
+      const text = String(value);
+      if (!text || text.length > 500) throw new Error('INVALID_SEAGM_ORDER_FIELDS');
+      body[key] = text;
+    }
+    return post('/v1/recharge-orders', body);
+  }
+
   async function getAccount() {
     const data = await get('/v1/me');
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('SEAGM_INVALID_ACCOUNT_RESPONSE');
@@ -220,7 +315,11 @@ export function createSeagmClient({ uid, secretKey, environment = 'sandbox', fet
     };
   }
 
-  return Object.freeze({ get, getAccount, getCatalog, base, uid: normalizedUid, environment });
+  return Object.freeze({
+    get, post, getAccount, getCatalog,
+    createCardOrder, createRechargeOrder, getOrderByMerchantId,
+    base, uid: normalizedUid, environment,
+  });
 }
 
 export const SEAGM_API_ENDPOINTS = Object.freeze({
