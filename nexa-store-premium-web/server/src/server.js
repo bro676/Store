@@ -1216,29 +1216,42 @@ async function refreshWamdaCatalog({source='manual'}={}){
 }
 async function publishWamdaProduct(input){
   if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('INVALID_WAMDA_PUBLISH_REQUEST');
-  const categoryId=Number(input.categoryId),productId=Number(input.productId),priceText=String(input.sellPriceSyp??'').trim();
+  const categoryId=Number(input.categoryId),productId=Number(input.productId);
   if(!Number.isSafeInteger(categoryId)||categoryId<0||!Number.isSafeInteger(productId)||productId<=0)throw new Error('INVALID_WAMDA_PRODUCT_ID');
-  if(!/^[0-9]{1,9}(?:\\.[0-9]{1,2})?$/.test(priceText))throw new Error('INVALID_WAMDA_SELL_PRICE');
-  const sellPrice=Number(priceText);
-  if(!Number.isFinite(sellPrice)||sellPrice<=0||sellPrice>1000000000)throw new Error('INVALID_WAMDA_SELL_PRICE');
   const categories=Array.isArray(storeSettings?.wamdaCatalogCache)?storeSettings.wamdaCatalogCache:[];
   const sourceCategory=categories.find(row=>Number(row.id)===categoryId);
   const sourceProduct=sourceCategory?.products?.find(row=>Number(row.id)===productId);
   if(!sourceProduct)throw Object.assign(new Error('المنتج غير موجود في آخر مزامنة ومضة. حدّث المنتجات أولاً.'),{status:404});
   if(!sourceProduct.available)throw Object.assign(new Error('المنتج غير متاح حالياً لدى ومضة.'),{status:409});
+  const hasManualPrice=input.sellPriceSyp!==undefined&&String(input.sellPriceSyp).trim()!=='';
+  let manualPriceSyp=null;
+  if(hasManualPrice){
+    const priceText=String(input.sellPriceSyp).trim();
+    if(!/^[0-9]{1,9}(?:\.[0-9]{1,2})?$/.test(priceText))throw new Error('INVALID_WAMDA_SELL_PRICE');
+    manualPriceSyp=Number(priceText);
+    if(!Number.isFinite(manualPriceSyp)||manualPriceSyp<=0||manualPriceSyp>1_000_000_000)throw new Error('INVALID_WAMDA_SELL_PRICE');
+  }
   const localCategoryId='wamda-category-'+categoryId,localProductId='wamda-'+productId;
   let workingCatalog=catalog;
-  if(!workingCatalog.some(row=>row.id===localCategoryId))workingCatalog=validateCatalog([...workingCatalog,{id:localCategoryId,name:String(sourceCategory.name||'منتجات ومضة').slice(0,100),desc:'منتجات رقمية مستوردة من ومضة ستور.',image:'assets/brand/logo.svg',icon:'⚡',items:[]}]);
-  const fields=Array.isArray(sourceProduct.fields)?sourceProduct.fields.map(field=>({key:field.key,label:field.label,type:field.type,required:field.required!==false,min:field.min,max:field.max})):[];
-  const retailProduct={
+  if(!workingCatalog.some(row=>row.id===localCategoryId))workingCatalog=validateCatalog([...workingCatalog,{id:localCategoryId,name:String(sourceCategory.name||'منتجات ومضة').slice(0,100),desc:'منتجات رقمية متزامنة مع ومضة ستور.',image:'assets/brand/logo.svg',icon:'⚡',items:[]}]);
+  const existing=workingCatalog.flatMap(category=>category.items||[]).find(product=>product.id===localProductId);
+  const base=existing||{
     id:localProductId,name:String(sourceProduct.name||('Wamda product '+productId)).slice(0,120),
     desc:String(sourceProduct.description||'منتج رقمي مرتبط بمورد ومضة.').slice(0,700),image:'assets/brand/logo.svg',
-    options:[{id:'wamda-default',name:'الخيار الأساسي',desc:'منتج مرتبط بمصدر ومضة',flag:'⚡',packs:[['سعر البيع',sellPrice]]}],
-    wamda:{provider:'wamda',categoryId,productId,minimumQuantity:Number(sourceProduct.minQuantity||1),maximumQuantity:Number(sourceProduct.maxQuantity||1),fields,sourcePrice:Number(sourceProduct.sourcePrice||0),pricePerQuantity:Number(sourceProduct.pricePerQuantity||1),unitPrice:Number(sourceProduct.unitPrice||0),currency:'USD'},
+    options:[{id:'wamda-default',name:'الخيار الأساسي',desc:'منتج مرتبط بمصدر ومضة',flag:'⚡',packs:[['سعر البيع',1]]}],
   };
-  const result=upsertCatalogProduct(workingCatalog,localCategoryId,retailProduct);
+  const nextWamda={...(base.wamda||{}),provider:'wamda',
+    priceMode:hasManualPrice?'manual':(input.resetToAutomatic===true?'auto':(base.wamda?.priceMode||'auto')),
+    manualPriceSyp:hasManualPrice?manualPriceSyp:(input.resetToAutomatic===true?null:(base.wamda?.manualPriceSyp??null)),
+  };
+  const {fxRate,marginPercent}=getWamdaPricingContext();
+  const updated=updateWamdaPublishedProduct({...base,wamda:nextWamda},sourceProduct,{fxRate,marginPercent,forceAutomatic:input.resetToAutomatic===true});
+  const result=upsertCatalogProduct(workingCatalog,localCategoryId,updated);
   await persistCatalog(result.catalog);
-  return {ok:true,created:result.created,categoryId:localCategoryId,productId:result.productId,sellPriceSyp:sellPrice,message:result.created?'تم نشر المنتج في كتالوج المتجر.':'تم تحديث المنتج وسعر بيعه في كتالوج المتجر.'};
+  const finalPrice=updated.options?.[0]?.packs?.[0]?.[1]??null;
+  return {ok:true,created:result.created,categoryId:localCategoryId,productId:result.productId,sellPriceSyp:finalPrice,
+    priceMode:updated.wamda.priceMode,calculatedPriceSyp:updated.wamda.calculatedPriceSyp,
+    message:result.created?'تم نشر المنتج بالسعر المحسوب من ومضة.':(updated.wamda.priceMode==='manual'?'تم تثبيت السعر اليدوي للمنتج.':'تم إرجاع المنتج إلى التسعير التلقائي.')};
 }
 async function testSeagmConnection() {
   const account = await seagmClient().getAccount();
