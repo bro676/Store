@@ -234,7 +234,7 @@ function validateWamdaCustomerFields(product, rawFields) {
     if(value.length>500||/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(value))throw Object.assign(new Error('إحدى بيانات المنتج أطول من المسموح أو تحتوي محارف غير صالحة.'),{status:400});
     if(String(field.type||'text')==='number'){
       const number=Number(value);
-      if(!Number.isFinite(number)||(Number.isFinite(Number(field.min))&&number<Number(field.min))||(Number.isFinite(Number(field.max))&&number>Number(field.max)))throw Object.assign(new Error('القيمة الرقمية للحقل '+String(field.label||key)+' خارج الحدود المسموحة.'),{status:400});
+      if(!Number.isFinite(number)||(field.min!==null&&field.min!==undefined&&field.min!==''&&Number.isFinite(Number(field.min))&&number<Number(field.min))||(field.max!==null&&field.max!==undefined&&field.max!==''&&Number.isFinite(Number(field.max))&&number>Number(field.max)))throw Object.assign(new Error('القيمة الرقمية للحقل '+String(field.label||key)+' خارج الحدود المسموحة.'),{status:400});
     }
     if(String(field.type||'')==='email'&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))throw Object.assign(new Error('البريد الإلكتروني في الحقل '+String(field.label||key)+' غير صالح.'),{status:400});
     if(String(field.type||'')==='url'){
