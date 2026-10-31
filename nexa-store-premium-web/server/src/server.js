@@ -17,6 +17,7 @@ import { wamdaOrderDecision, classifyWamdaError } from './wamda-fulfillment.js';
 import { normalizeWamdaMargin, normalizeWamdaPricingRule, resolveWamdaPricingRule, calculateWamdaSellPriceSyp, updateWamdaPublishedProduct, markWamdaProductUnavailable } from './wamda-pricing.js';
 import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSignature } from './seagm-webhook.js';
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
+import { normalizeCustomerPhone, hashCustomerPassword, verifyCustomerPassword, createCustomerSessionToken, hashCustomerSessionToken } from './customer-wallet.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -69,7 +70,7 @@ let pool;
 if (cfg.databaseUrl) {
   pool = new Pool({ connectionString: cfg.databaseUrl, ssl: cfg.databaseSsl ? { rejectUnauthorized: true } : false,
     max: 10, idleTimeoutMillis: 30_000, connectionTimeoutMillis: 8_000 });
-  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql']) {
+  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
   }
 }
@@ -739,6 +740,33 @@ function readCookie(req, name) {
     if (key === name) return value.join('=');
   }
   return '';
+}
+function customerCookie(req, token, maxAge = 1209600) {
+  const secure = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https' || process.env.NODE_ENV === 'production';
+  return 'nexa_customer_session=' + token + '; HttpOnly; SameSite=Strict; Path=/; Max-Age=' + maxAge + (secure ? '; Secure' : '');
+}
+function customerRequestSameOrigin(req) {
+  const origin = req.headers.origin;
+  if (origin) { try { if (new URL(origin).host !== String(req.headers.host || '')) return false; } catch { return false; } }
+  const site = String(req.headers['sec-fetch-site'] || '').toLowerCase();
+  return !site || site === 'same-origin' || site === 'none';
+}
+async function customerFromRequest(req) {
+  if (!pool) return null;
+  const tokenHash = hashCustomerSessionToken(readCookie(req,'nexa_customer_session'));
+  if (!tokenHash) return null;
+  const result = await pool.query('SELECT c.id,c.customer_name,c.phone FROM nexa_customer_sessions s JOIN nexa_customers c ON c.id=s.customer_id WHERE s.token_hash=$1 AND s.expires_at>NOW() LIMIT 1',[tokenHash]);
+  return result.rows[0] || null;
+}
+async function customerAccountSnapshot(customerId) {
+  const [account,ledger] = await Promise.all([
+    pool.query('SELECT c.id,c.customer_name,c.phone,w.balance_minor::text FROM nexa_customers c JOIN nexa_customer_wallets w ON w.customer_id=c.id WHERE c.id=$1 LIMIT 1',[customerId]),
+    pool.query('SELECT id,entry_type,direction,amount_minor::text,currency,balance_after_minor::text,description,created_at FROM nexa_wallet_ledger WHERE customer_id=$1 ORDER BY created_at DESC,id DESC LIMIT 30',[customerId]),
+  ]);
+  if (!account.rowCount) return null;
+  const row=account.rows[0];
+  return {customer:{id:row.id,name:row.customer_name,phone:row.phone},balanceMinor:row.balance_minor,currency:'SYP',
+    ledger:ledger.rows.map(entry=>({id:entry.id,entryType:entry.entry_type,direction:entry.direction,amountMinor:entry.amount_minor,currency:entry.currency,balanceAfterMinor:entry.balance_after_minor,description:entry.description,createdAt:entry.created_at}))};
 }
 function adminAuthorized(req) {
   const supplied = Buffer.from(String(req.headers['x-admin-key'] || ''));
