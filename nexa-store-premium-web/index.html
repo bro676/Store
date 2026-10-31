@@ -650,6 +650,7 @@ body{
       <button class="icon-button menu-toggle" id="menuToggle" type="button" aria-label="فتح القائمة الجانبية" aria-expanded="false" aria-controls="sidebar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
       </button>
+      <button class="icon-button store-theme-toggle" id="storeThemeToggle" type="button" aria-label="التبديل إلى الوضع الفاتح" title="تبديل الوضع اللوني" aria-pressed="true">☀</button>
       <button class="icon-button" data-page="favorites" title="المفضلة" aria-label="المفضلة">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.5 8.8c0 5.2-8.5 10-8.5 10s-8.5-4.8-8.5-10A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8.5 2.8Z"/></svg>
       </button>
@@ -746,14 +747,14 @@ body{
 <script>
 let categories=[];
 const $=id=>document.getElementById(id);const money=v=>v>0?new Intl.NumberFormat('en-US').format(v)+' ل.س جديدة':'يحدد لاحقاً';const formatMinor=(minor,currency='SYP')=>{const value=Number(BigInt(minor||0))/100;return currency==='USD'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value):new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value)+' ل.س جديدة'};const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let state={view:'home',category:null,item:null,option:null,selectedPack:null,pendingOrder:null};let toastTimer;let memoryData={orders:[],favs:[],supportTickets:[]};const deliveryWatchers=new Set();
+let state={view:'home',category:null,item:null,option:null,selectedPack:null,pendingOrder:null,catalogPage:1,catalogQuery:'',productPage:1,productQuery:'',searchResults:[],searchPage:1};let toastTimer;let memoryData={orders:[],favs:[],supportTickets:[]};const deliveryWatchers=new Set();
 function getCategory(id){return categories.find(x=>x.id===id)}function getItem(id){for(const c of categories){const it=c.items.find(x=>x.id===id);if(it)return it}return null}function getOption(id){const it=state.item&&getItem(state.item);return it?.options.find(x=>x.id===id)||null}
 function storageRead(){try{const raw=localStorage.getItem('nexa-store-client');if(raw){memoryData=JSON.parse(raw);return memoryData}}catch{}return memoryData}function storageSave(d){memoryData=d;try{localStorage.setItem('nexa-store-client',JSON.stringify(d))}catch{}}
 function showToast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2400)}
 function navigate(view){state.view=view;document.querySelectorAll('.view').forEach(e=>e.classList.toggle('hidden',e.dataset.view!==view));document.querySelectorAll('[data-page]').forEach(e=>e.classList.toggle('active',e.dataset.page===view));document.querySelectorAll('[data-nav]').forEach(e=>e.classList.toggle('active',e.dataset.nav===view));try{history.replaceState(null,'','#'+view)}catch{try{location.hash=view}catch{}}if(view==='store')renderCatalog();if(view==='orders')renderOrders();if(view==='favorites')renderFavorites();if(view==='home')renderFeatured();if(view==='support')renderSupportState();window.scrollTo({top:0,behavior:'smooth'});closeMenu()}
 function closeMenu(){document.body.classList.remove('menu-open','sidebar-open');$('menuToggle')?.setAttribute('aria-expanded','false')}
 function categoryCard(c){return `<button class="category-card" data-category="${c.id}"><img src="${esc(c.image)}" alt="" loading="lazy"><span class="category-mark">${esc(c.icon)}</span><span class="category-card-content"><strong>${esc(c.name)}</strong><small>${esc(c.desc)}</small></span></button>`}
-function renderHomeCategories(){$('homeCategoryGrid').innerHTML=categories.length?categories.map(categoryCard).join(''):'<div class="empty-state"><strong>لا توجد أقسام منشورة حالياً</strong><p>تواصل مع فريق الدعم للمساعدة.</p></div>';const count=$('homeCategoryCount');if(count)count.textContent=categories.length.toLocaleString('en-US');}
+function renderHomeCategories(){const preview=categories.slice(0,8);$('homeCategoryGrid').innerHTML=categories.length?preview.map(categoryCard).join(''):'<div class="empty-state"><strong>لا توجد أقسام منشورة حالياً</strong><p>تواصل مع فريق الدعم للمساعدة.</p></div>';const count=$('homeCategoryCount');if(count)count.textContent=categories.length.toLocaleString('en-US');}
 function renderFeatured(){
  const list=categories.flatMap(cat=>(cat.items||[]).filter(it=>it.wamda?.available!==false).map(it=>({cat,it}))).slice(0,4);
  $('featuredGrid').innerHTML=list.length?list.map(({cat,it})=>`<article class="product-card"><div class="product-image"><img src="${esc(it.image)}" alt="${esc(it.name)}" loading="lazy"><span class="product-badge">${esc(cat.name)}</span><button class="favorite" data-favorite="${esc(it.id)}" aria-label="إضافة للمفضلة">♡</button></div><div class="product-info"><div class="product-meta"><span class="product-category">${esc(cat.name)}</span><span class="product-label">خيارات متاحة</span></div><h3>${esc(it.name)}</h3><p>${esc(it.desc)}</p><div class="product-foot"><span class="price">خيارات متعددة<small>السعر بعد اختيار الخيار</small></span><button class="mini-choose" data-open-item="${esc(it.id)}">استكشف ←</button></div></div></article>`).join(''):'<div class="empty-state"><strong>لا توجد منتجات متاحة حالياً</strong><p>سيظهر هنا أحدث ما هو منشور في المتجر.</p></div>';
@@ -762,14 +763,61 @@ function renderFeatured(){
 function renderSteps(level){const steps=['القسم','اللعبة / الخدمة','المنطقة / الخطة','الباقة والسعر'];return steps.map((s,i)=>`${i?'<span class="step-arrow">←</span>':''}<span class="step ${i+1===level?'active':''}"><span>${i+1}</span>${s}</span>`).join('')}
 function breadcrumb(){let s='<button class="crumb" data-bc="root">كل الأقسام</button>';if(state.category){const c=getCategory(state.category);s+=`<span>‹</span><button class="crumb ${!state.item?'current':''}" ${state.item?'data-bc="category"':''}>${esc(c.name)}</button>`}if(state.item){const i=getItem(state.item);s+=`<span>‹</span><button class="crumb ${!state.option?'current':''}" ${state.option?'data-bc="item"':''}>${esc(i.name)}</button>`}if(state.option){const o=getOption(state.option);s+=`<span>‹</span><span class="crumb current">${esc(o.name)}</span>`}return s}
 function tile(title,desc,image,tag,action,foot='عرض الخيارات',disabled=false){return `<button class="catalog-tile" ${disabled?'disabled aria-disabled="true"':''} ${action}><span class="catalog-tile-image"><img src="${esc(image)}" alt="" loading="lazy"><span class="catalog-tile-tag">${esc(tag)}</span></span><span class="catalog-tile-body"><strong>${esc(title)}</strong><p>${esc(desc)}</p><span class="tile-foot">${esc(foot)} <span>←</span></span></span></button>`}
-function renderCatalog(){const target=$('catalogContent');if(!target)return;if(!categories.length){$('catalogTitle').textContent='الكتالوج الرقمي';$('catalogDescription').textContent='لا توجد منتجات منشورة حالياً.';$('catalogCount').textContent='0 أقسام';$('catalogSteps').innerHTML='';$('breadcrumbs').innerHTML='';target.innerHTML='<div class="empty-state"><strong>لا توجد منتجات متاحة حالياً</strong><p>تواصل مع فريق الدعم للمساعدة أو عد لاحقاً للاطلاع على المنتجات المنشورة.</p><a class="btn btn-soft" href="https://wa.me/963936382101" target="_blank" rel="noopener">التواصل مع الدعم ↗</a></div>';return;}const cat=state.category?getCategory(state.category):null,it=state.item?getItem(state.item):null,opt=state.option?getOption(state.option):null;const level=opt?4:it?3:cat?2:1;$('catalogTitle').textContent=opt?opt.name:it?it.name:cat?cat.name:'كل الأقسام';$('catalogDescription').textContent=opt?'اختر الباقة المناسبة وراجع السعر والعملة قبل إنشاء الفاتورة.':it?'اختر المنطقة أو النسخة أو الخطة المناسبة.':cat?cat.desc:'ابدأ باختيار القسم المناسب لتظهر لك الخيارات بالتدريج.';$('catalogCount').textContent=opt?`${opt.packs.length} باقات`:it?`${it.options.length} خيارات`:cat?`${cat.items.length} منتجات`:`${categories.length} أقسام`;$('catalogSteps').innerHTML=renderSteps(level);$('breadcrumbs').innerHTML=breadcrumb();let html='';
- if(!cat){html=`<div class="catalog-grid">${categories.map(c=>tile(c.name,c.desc,c.image,'قسم رئيسي',`data-browse-category="${c.id}"`,`${c.items.length} منتجات`)).join('')}</div>`}
- else if(!it){html=`<div class="back-row"><button class="back-button" data-bc="root">← كل الأقسام</button><span class="catalog-count">${cat.items.length} منتجات</span></div><div class="catalog-grid">${cat.items.map(i=>tile(i.name,i.desc,i.image,'منتج رقمي',`data-browse-item="${i.id}"`,i.wamda?.available===false?'غير متوفر حالياً':'اختيار المنتج',i.wamda?.available===false)).join('')}</div>`}
- else if(!opt){html=`<div class="back-row"><button class="back-button" data-bc="category">← العودة إلى ${esc(cat.name)}</button><span class="catalog-count">${it.options.length} خيارات</span></div><div class="step-summary"><img src="${esc(it.image)}" alt=""><span><strong>${esc(it.name)}</strong><p>${esc(it.desc)} · اختر المنطقة أو النسخة أو الخطة.</p></span></div><div class="option-list">${it.options.map(o=>`<button class="option-card" data-browse-option="${o.id}"><img src="${esc(o.image||it.image)}" alt=""><span><strong>${esc(o.name)}</strong><small>${esc(o.desc)}</small></span><span class="option-flag">${esc(o.flag||'›')}</span></button>`).join('')}</div>`}
- else{html=`<div class="back-row"><button class="back-button" data-bc="item">← العودة إلى الخيارات</button><span class="catalog-count">${opt.packs.length} باقات</span></div><div class="step-summary"><img src="${esc(it.image)}" alt=""><span><strong>${esc(it.name)} · ${esc(opt.name)}</strong><p>${esc(opt.desc)}</p></span></div><div class="pack-grid">${opt.packs.map((p,n)=>`<article class="pack-card"><div class="pack-image"><img src="${esc(it.image)}" alt="" loading="lazy"><span class="pack-label">${it.wamda?.available===false?'غير متوفر حالياً':'متاح للطلب'}</span></div><div class="pack-body"><h3>${esc(p[0])}</h3><p>${it.wamda?'سعر البيع المعتمد من المتجر، ويظهر المبلغ النهائي في الفاتورة.':'السعر المعروض هو سعر البيع المحدد لهذا الخيار.'}</p><div class="pack-price">${money(p[1])}<small>${'السعر المعتمد'}</small></div><button class="btn btn-primary" data-select-pack="${n}">اختيار الباقة ←</button></div></article>`).join('')}</div>`}
- target.innerHTML=html;}
+function storeCatalogPager(page,pageCount,attribute){
+ if(pageCount<=1)return '';
+ return '<div class="store-catalog-pager"><button class="btn btn-soft" type="button" data-'+attribute+'="'+(page-1)+'" '+(page<=1?'disabled':'')+'>السابق</button><span>صفحة '+page.toLocaleString('en-US')+' من '+pageCount.toLocaleString('en-US')+'</span><button class="btn btn-soft" type="button" data-'+attribute+'="'+(page+1)+'" '+(page>=pageCount?'disabled':'')+'>التالي</button></div>';
+}
+function renderCatalog(){
+ const target=$('catalogContent');if(!target)return;
+ if(!categories.length){
+  $('catalogTitle').textContent='الكتالوج الرقمي';$('catalogDescription').textContent='لا توجد منتجات منشورة حالياً.';$('catalogCount').textContent='0 أقسام';$('catalogSteps').innerHTML='';$('breadcrumbs').innerHTML='';
+  target.innerHTML='<div class="empty-state"><strong>لا توجد منتجات متاحة حالياً</strong><p>تواصل مع فريق الدعم للمساعدة أو عد لاحقاً للاطلاع على المنتجات المنشورة.</p><a class="btn btn-soft" href="https://wa.me/963936382101" target="_blank" rel="noopener">التواصل مع الدعم ↗</a></div>';return;
+ }
+ const cat=state.category?getCategory(state.category):null,it=state.item?getItem(state.item):null,opt=state.option?getOption(state.option):null;
+ const level=opt?4:it?3:cat?2:1;
+ $('catalogTitle').textContent=opt?opt.name:it?it.name:cat?cat.name:'كل الأقسام';
+ $('catalogDescription').textContent=opt?'اختر الباقة المناسبة وراجع السعر والعملة قبل إنشاء الفاتورة.':it?'اختر المنطقة أو النسخة أو الخطة المناسبة.':cat?cat.desc:'ابحث ضمن جميع الأقسام أو تصفّح صفحات الكتالوج.';
+ $('catalogSteps').innerHTML=renderSteps(level);$('breadcrumbs').innerHTML=breadcrumb();
+ let html='';
+ if(!cat){
+  const query=String(state.catalogQuery||'').trim().toLocaleLowerCase('ar');
+  const all=categories.filter(category=>!query||[category.name,category.desc,category.id].some(value=>String(value||'').toLocaleLowerCase('ar').includes(query)));
+  const pageSize=36,pageCount=Math.max(1,Math.ceil(all.length/pageSize));
+  state.catalogPage=Math.min(Math.max(1,Number(state.catalogPage)||1),pageCount);
+  const pageRows=all.slice((state.catalogPage-1)*pageSize,state.catalogPage*pageSize);
+  $('catalogCount').textContent=all.length.toLocaleString('en-US')+' من '+categories.length.toLocaleString('en-US')+' قسم';
+  html='<div class="store-catalog-toolbar"><input id="storeCatalogSearch" type="search" value="'+esc(state.catalogQuery)+'" placeholder="ابحث باسم القسم أو الخدمة..." aria-label="بحث في الأقسام"><span>'+all.length.toLocaleString('en-US')+' نتيجة</span></div>'+
+   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(c=>tile(c.name,c.desc,c.image,'قسم رئيسي','data-browse-category="'+esc(c.id)+'',(c.items||[]).length+' منتجات')).join('')+'</div>':'<div class="empty-state"><strong>لا توجد أقسام مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
+   storeCatalogPager(state.catalogPage,pageCount,'catalog-page');
+ }else if(!it){
+  const all=cat.items||[],query=String(state.productQuery||'').trim().toLocaleLowerCase('ar');
+  const filtered=all.filter(product=>!query||[product.name,product.desc,product.id].some(value=>String(value||'').toLocaleLowerCase('ar').includes(query)));
+  const pageSize=36,pageCount=Math.max(1,Math.ceil(filtered.length/pageSize));
+  state.productPage=Math.min(Math.max(1,Number(state.productPage)||1),pageCount);
+  const pageRows=filtered.slice((state.productPage-1)*pageSize,state.productPage*pageSize);
+  $('catalogCount').textContent=filtered.length.toLocaleString('en-US')+' من '+all.length.toLocaleString('en-US')+' منتج';
+  html='<div class="back-row"><button class="back-button" data-bc="root">← كل الأقسام</button><span class="catalog-count">'+filtered.length+' منتجات</span></div>'+
+   '<div class="store-catalog-toolbar"><input id="storeProductSearch" type="search" value="'+esc(state.productQuery)+'" placeholder="ابحث داخل '+esc(cat.name)+'..." aria-label="بحث في منتجات القسم"><span>'+filtered.length.toLocaleString('en-US')+' نتيجة</span></div>'+
+   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(product=>tile(product.name,product.desc,product.image,'منتج رقمي','data-browse-item="'+esc(product.id)+'',product.wamda?.available===false?'غير متوفر حالياً':'اختيار المنتج',product.wamda?.available===false)).join('')+'</div>':'<div class="empty-state"><strong>لا توجد منتجات مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
+   storeCatalogPager(state.productPage,pageCount,'product-page');
+ }else if(!opt){
+  html='<div class="back-row"><button class="back-button" data-bc="category">← العودة إلى '+esc(cat.name)+'</button><span class="catalog-count">'+it.options.length+' خيارات</span></div><div class="step-summary"><img src="'+esc(it.image)+'" alt=""><span><strong>'+esc(it.name)+'</strong><p>'+esc(it.desc)+' · اختر المنطقة أو النسخة أو الخطة.</p></span></div><div class="option-list">'+it.options.map(o=>'<button class="option-card" data-browse-option="'+esc(o.id)+'"><img src="'+esc(o.image||it.image)+'" alt=""><span><strong>'+esc(o.name)+'</strong><small>'+esc(o.desc)+'</small></span><span class="option-flag">'+esc(o.flag||'›')+'</span></button>').join('')+'</div>';
+ }else{
+  html='<div class="back-row"><button class="back-button" data-bc="item">← العودة إلى الخيارات</button><span class="catalog-count">'+opt.packs.length+' باقات</span></div><div class="step-summary"><img src="'+esc(it.image)+'" alt=""><span><strong>'+esc(it.name)+' · '+esc(opt.name)+'</strong><p>'+esc(opt.desc)+'</p></span></div><div class="pack-grid">'+opt.packs.map((p,n)=>'<article class="pack-card"><div class="pack-image"><img src="'+esc(it.image)+'" alt="" loading="lazy"><span class="pack-label">'+(it.wamda?.available===false?'غير متوفر حالياً':'متاح للطلب')+'</span></div><div class="pack-body"><h3>'+esc(p[0])+'</h3><p>'+(it.wamda?'سعر البيع المعتمد من المتجر، ويظهر المبلغ النهائي في الفاتورة.':'السعر المعروض هو سعر البيع المحدد لهذا الخيار.')+'</p><div class="pack-price">'+money(p[1])+'<small>السعر المعتمد</small></div><button class="btn btn-primary" data-select-pack="'+n+'">اختيار الباقة ←</button></div></article>').join('')+'</div>';
+ }
+ target.innerHTML=html;
+}
+function renderSearchResults(){
+ const matches=state.searchResults||[],pageSize=60,pageCount=Math.max(1,Math.ceil(matches.length/pageSize));
+ state.searchPage=Math.min(Math.max(1,Number(state.searchPage)||1),pageCount);
+ const rows=matches.slice((state.searchPage-1)*pageSize,state.searchPage*pageSize);
+ $('catalogTitle').textContent='نتائج البحث';$('catalogDescription').textContent='نتائج مطابقة لعبارة: '+state.searchQuery;
+ $('catalogCount').textContent=matches.length.toLocaleString('en-US')+' نتيجة';
+ $('catalogSteps').innerHTML=renderSteps(1);$('breadcrumbs').innerHTML='<span class="crumb current">نتائج البحث</span>';
+ $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,i.image,c.name,'data-open-item="'+esc(i.id)+'',i.wamda?.available===false?'غير متوفر حالياً':'عرض الخيارات',i.wamda?.available===false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
+}
 function openItem(itemId){const it=getItem(itemId);if(!it)return;if(it.wamda?.available===false){showToast('هذا المنتج غير متوفر حالياً لدى ومضة.');return;}state.category=categories.find(c=>c.items.some(x=>x.id===itemId)).id;state.item=itemId;state.option=null;navigate('store');}
-function resetCatalog(){state.category=null;state.item=null;state.option=null;}
+function resetCatalog(){state.category=null;state.item=null;state.option=null;state.catalogPage=1;state.catalogQuery='';state.productPage=1;state.productQuery='';}
 function openOrder(packIndex){
  const it=getItem(state.item),op=getOption(state.option),p=op.packs[packIndex],supplier=it.wamda||it.seagm||null;
  if(it.wamda?.available===false){showToast('هذا المنتج غير متوفر حالياً لدى ومضة.');return;}
@@ -829,7 +877,12 @@ function renderOrders(){const d=storageRead(),rows=d.orders||[];$('orderBadge').
 function syncFavorites(){const favs=storageRead().favs||[];document.querySelectorAll('[data-favorite]').forEach(b=>{const active=favs.includes(b.dataset.favorite);b.classList.toggle('active',active);b.textContent=active?'♥':'♡'})}
 function renderFavorites(){const d=storageRead(),ids=d.favs||[],items=ids.map(id=>({id,item:getItem(id)})).filter(x=>x.item);$('favoritesGrid').innerHTML=items.length?items.map(({id,item})=>{const cat=categories.find(c=>c.items.some(i=>i.id===id));return `<article class="product-card"><div class="product-image"><img src="${esc(item.image)}" alt=""><span class="product-badge">${esc(cat.name)}</span><button class="favorite active" data-favorite="${item.id}" aria-label="إزالة من المفضلة">♥</button></div><div class="product-info"><div class="product-meta"><span class="product-category">${esc(cat.name)}</span><span class="product-label">محفوظ</span></div><h3>${esc(item.name)}</h3><p>${esc(item.desc)}</p><div class="product-foot"><span class="price">خيارات متعددة<small>السعر بعد اختيار المنطقة</small></span><button class="mini-choose" data-open-item="${item.id}">استكشف ←</button></div></div></article>`}).join(''):`<div class="empty-state"><strong>المفضلة فارغة</strong><p>احفظ المنتجات التي تهمك من بطاقاتها.</p><button class="btn btn-soft" data-page="store">استكشف المتجر</button></div>`;syncFavorites()}
 function toggleFavorite(id){const d=storageRead();d.favs=d.favs||[];d.favs=d.favs.includes(id)?d.favs.filter(x=>x!==id):[...d.favs,id];storageSave(d);syncFavorites();if(state.view==='favorites')renderFavorites();showToast(d.favs.includes(id)?'تمت الإضافة إلى المفضلة':'تمت الإزالة من المفضلة')}
-function showSearchResults(q){q=q.trim().toLocaleLowerCase('ar');if(!q)return;resetCatalog();navigate('store');const matches=[];for(const c of categories)for(const i of c.items)if(`${i.name} ${i.desc} ${c.name}`.toLocaleLowerCase('ar').includes(q))matches.push({c,i});$('catalogTitle').textContent='نتائج البحث';$('catalogDescription').textContent=`نتائج مطابقة لعبارة: ${q}`;$('catalogCount').textContent=`${matches.length} نتيجة`;$('catalogSteps').innerHTML=renderSteps(1);$('breadcrumbs').innerHTML='<span class="crumb current">نتائج البحث</span>';$('catalogContent').innerHTML=matches.length?`<div class="catalog-grid">${matches.map(({c,i})=>tile(i.name,i.desc,i.image,c.name,`data-open-item="${i.id}"`,i.wamda?.available===false?'غير متوفر حالياً':'عرض الخيارات',i.wamda?.available===false)).join('')}</div>`:'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>'}
+function showSearchResults(q){
+ const query=String(q||'').trim().toLocaleLowerCase('ar');if(!query)return;
+ state.searchQuery=query;state.searchPage=1;state.searchResults=[];
+ for(const c of categories)for(const i of c.items||[])if(`${i.name} ${i.desc} ${c.name}`.toLocaleLowerCase('ar').includes(query))state.searchResults.push({c,i});
+ navigate('store');renderSearchResults();
+}
 let paymentConfigEnabled=false;let sypPerUsd=145;
 function renderCurrencyPreview(){
  const p=state.selectedPack,choice=$('orderCurrency')?.value||'SYP',preview=$('currencyPreview'),hint=$('currencyRateHint');
@@ -1000,55 +1053,34 @@ async function assistantAnswer(raw){
 }
 function sendAssistantPrompt(value){if(!value)return;return assistantAnswer(value)}
 function navigateHome(){navigate('home')}
-function nexaMixHex(a,b,t){
- const toRgb=h=>{const s=String(h||'').replace('#','');return [0,2,4].map(i=>parseInt(s.slice(i,i+2),16))};
- const x=toRgb(a),y=toRgb(b);return '#'+x.map((v,i)=>Math.round(v*(1-t)+y[i]*t).toString(16).padStart(2,'0')).join('');
+const NEXA_THEME_KEY='nexa-color-mode';
+function setStoreColorMode(mode,{persist=true}={}){
+ const selected=mode==='light'?'light':'dark';
+ document.documentElement.dataset.theme=selected;
+ if(persist){try{localStorage.setItem(NEXA_THEME_KEY,selected)}catch{}}
+ const button=$('storeThemeToggle');
+ if(button){button.textContent=selected==='dark'?'☀':'☾';button.title=selected==='dark'?'التبديل إلى الوضع الفاتح':'التبديل إلى الوضع الداكن';button.setAttribute('aria-label',button.title);button.setAttribute('aria-pressed',String(selected==='dark'));}
+ const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=selected==='dark'?'#0f0f0f':'#f5f1e7';
 }
-function applyStoreTheme(primary,secondary,accent){
- const p=/^#[0-9a-f]{6}$/i.test(String(primary||''))?primary:'#397fda';
- const s=/^#[0-9a-f]{6}$/i.test(String(secondary||''))?secondary:'#65b8d7';
- const a=/^#[0-9a-f]{6}$/i.test(String(accent||''))?accent:'#8076d6';
- const root=document.documentElement.style;
- root.setProperty('--nexa-primary',p);root.setProperty('--nexa-secondary',s);root.setProperty('--nexa-highlight',a);
- root.setProperty('--nexa-primary-strong',nexaMixHex(p,'#143454',.19));
- root.setProperty('--nexa-secondary-strong',nexaMixHex(s,'#143c55',.20));
- root.setProperty('--nexa-highlight-strong',nexaMixHex(a,'#332b68',.18));
- root.setProperty('--nexa-primary-soft',nexaMixHex(p,'#ffffff',.88));
- root.setProperty('--nexa-secondary-soft',nexaMixHex(s,'#ffffff',.87));
- root.setProperty('--nexa-highlight-soft',nexaMixHex(a,'#ffffff',.88));
- root.setProperty('--nexa-accent',p);root.setProperty('--nexa-accent-strong',nexaMixHex(p,'#143454',.19));
- root.setProperty('--nexa-accent-2',s);root.setProperty('--nexa-dark',nexaMixHex(p,'#10263f',.58));
- root.setProperty('--nexa-soft',nexaMixHex(s,'#ffffff',.82));root.setProperty('--nexa-pale',nexaMixHex(s,'#ffffff',.93));
- root.setProperty('--nexa-line',nexaMixHex(s,'#ffffff',.76));
- root.setProperty('--nexa-gradient','linear-gradient(118deg,'+p+' 0%,'+s+' 56%,'+a+' 100%)');
- root.setProperty('--nexa-primary-line',nexaMixHex(p,'#ffffff',.72));
- root.setProperty('--nexa-secondary-line',nexaMixHex(s,'#ffffff',.72));
- root.setProperty('--nexa-highlight-line',nexaMixHex(a,'#ffffff',.70));
- root.setProperty('--nexa-primary-ink',nexaMixHex(p,'#10263f',.34));
- root.setProperty('--nexa-secondary-ink',nexaMixHex(s,'#10263f',.36));
- root.setProperty('--nexa-highlight-ink',nexaMixHex(a,'#10263f',.36));
- root.setProperty('--nexa-surface-tint',nexaMixHex(s,'#ffffff',.95));
- root.setProperty('--nexa-surface-accent',nexaMixHex(a,'#ffffff',.94));
- root.setProperty('--nexa-status',nexaMixHex(s,'#143c55',.20));
- root.setProperty('--nexa-status-soft',nexaMixHex(s,'#ffffff',.87));
- root.setProperty('--green',nexaMixHex(s,'#143c55',.20));
- root.setProperty('--teal',nexaMixHex(s,'#143c55',.20));
- root.setProperty('--blue',p);
- root.setProperty('--purple',a);
- root.setProperty('--navy',nexaMixHex(p,'#10263f',.58));
- root.setProperty('--navy2',nexaMixHex(s,'#10263f',.56));
-
- const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=nexaMixHex(p,'#10263f',.58);
+function initializeStoreColorMode(){
+ let saved='dark';try{saved=localStorage.getItem(NEXA_THEME_KEY)||'dark'}catch{}
+ setStoreColorMode(saved,{persist:false});
+ $('storeThemeToggle')?.addEventListener('click',()=>setStoreColorMode(document.documentElement.dataset.theme==='dark'?'light':'dark'));
+ window.addEventListener('storage',event=>{if(event.key===NEXA_THEME_KEY&&event.newValue)setStoreColorMode(event.newValue,{persist:false});});
 }
-async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;const footerName=document.querySelector('.footer-brand strong');if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}applyStoreTheme(d.themePrimary||'#397fda',d.themeSecondary||'#65b8d7',d.themeAccent||'#8076d6');const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
+async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;const footerName=document.querySelector('.footer-brand strong');if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
 async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items)&&c.items.length);}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();loadPaymentConfig();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','favorites','wallet','support'].includes(hash))navigate(hash);$('sideYear').textContent=new Date().getFullYear();}
 // delegated interactions
- document.addEventListener('click',e=>{const el=e.target.closest('[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-open-item],[data-favorite],[data-reset-catalog],[data-scroll]');if(!el)return;
+ document.addEventListener('click',e=>{const el=e.target.closest('[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-open-item],[data-favorite],[data-reset-catalog],[data-scroll],[data-catalog-page],[data-product-page],[data-search-page]');if(!el)return;
  if(el.dataset.openAssistant!==undefined){openAssistant();return}
  if(el.dataset.assistantPrompt){sendAssistantPrompt(el.dataset.assistantPrompt);return}
  if(el.dataset.page){e.preventDefault();if(el.dataset.page==='store')resetCatalog();navigate(el.dataset.page);return}
  if(el.dataset.nav){e.preventDefault();navigate(el.dataset.nav);return}
  if(el.dataset.scroll){document.getElementById(el.dataset.scroll)?.scrollIntoView({behavior:'smooth'});return}
+ if(el.dataset.catalogPage){state.catalogPage=Number(el.dataset.catalogPage)||1;renderCatalog();return}
+ if(el.dataset.productPage){state.productPage=Number(el.dataset.productPage)||1;renderCatalog();return}
+ if(el.dataset.searchPage){state.searchPage=Number(el.dataset.searchPage)||1;renderSearchResults();return}
+
  if(el.dataset.category){state.category=el.dataset.category;state.item=null;state.option=null;navigate('store');return}
  if(el.dataset.browseCategory){state.category=el.dataset.browseCategory;state.item=null;state.option=null;renderCatalog();return}
  if(el.dataset.browseItem){state.item=el.dataset.browseItem;state.option=null;renderCatalog();return}
@@ -1059,9 +1091,19 @@ async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'})
  if(el.dataset.favorite){toggleFavorite(el.dataset.favorite);return}
  if(el.dataset.resetCatalog){resetCatalog();renderCatalog();return}
  });
+document.addEventListener('input',event=>{
+ const id=event.target?.id;
+ if(id!=='storeCatalogSearch'&&id!=='storeProductSearch')return;
+ const value=event.target.value;
+ if(id==='storeCatalogSearch'){state.catalogQuery=value;state.catalogPage=1;}else{state.productQuery=value;state.productPage=1;}
+ const keepId=id,caret=value.length;
+ renderCatalog();
+ const next=$(keepId);if(next){next.focus();try{next.setSelectionRange(caret,caret)}catch{}}
+});
 document.addEventListener('click',e=>{const copy=e.target.closest('[data-copy-value]');if(copy){const text=copy.dataset.copyValue||'';if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(()=>showToast('تم النسخ')).catch(()=>showToast('تعذر النسخ التلقائي'));else showToast('انسخ النص يدوياً من الحقل.');}});
 document.addEventListener('click',e=>{if(e.target.closest('[data-print-receipt]')){document.body.classList.add('printing-receipt');window.print();}});window.addEventListener('afterprint',()=>document.body.classList.remove('printing-receipt'));$('orderForm').addEventListener('submit',doOrder);$('orderCurrency').addEventListener('change',renderCurrencyPreview);
 $('orderQuantity').addEventListener('input',renderCurrencyPreview);$('shamCashPaymentForm').addEventListener('submit',verifyShamCashPayment);$('paymentOrderId').addEventListener('change',loadShamCashOrderSummary);$('paymentOrderId').addEventListener('blur',loadShamCashOrderSummary);$('supportForm').addEventListener('submit',submitSupportTicket);$('supportLookupForm').addEventListener('submit',lookupSupportOrder);$('assistantLauncher').addEventListener('click',openAssistant);$('assistantClose').addEventListener('click',closeAssistant);$('assistantForm').addEventListener('submit',e=>{e.preventDefault();const input=$('assistantInput');const value=input.value.trim();if(!value)return;input.value='';sendAssistantPrompt(value)});$('modalClose').addEventListener('click',closeModal);$('modalCancel').addEventListener('click',closeModal);$('orderModal').addEventListener('click',e=>{if(e.target===$('orderModal'))closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeMenu();closeAssistant()}});$('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){showSearchResults(e.currentTarget.value)}});$('globalSearch').addEventListener('search',e=>{if(!e.currentTarget.value){navigate('home')}});$('menuToggle').addEventListener('click',()=>{const opened=document.body.classList.toggle('sidebar-open');$('menuToggle').setAttribute('aria-expanded',String(opened))});$('sidebarBackdrop').addEventListener('click',closeMenu);
+initializeStoreColorMode();
 init();
 </script>
 </body>
