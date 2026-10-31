@@ -401,7 +401,30 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
               <small>توثيق ومضة الحالي لا يشرح توقيع Webhook أو بنية أحداثه.</small>
             </div>
           </div>
+          <div class="seagm-credential-grid" id="wamdaPricingControls">
+            <div class="field">
+              <label for="wamdaProfitMarginPercent">نسبة الربح العامة (%)</label>
+              <input id="wamdaProfitMarginPercent" type="number" min="0" max="1000" step="0.1" value="0">
+              <small>تُضاف النسبة نفسها على تكلفة كل منتج قادمة من API.</small>
+            </div>
+            <div class="field">
+              <label>سعر الصرف المعتمد</label>
+              <div class="seagm-sync-summary" id="wamdaFxRateDisplay">145 ل.س لكل 1 USD</div>
+              <small>يستخدم سعر الصرف العام الموجود في إعدادات المتجر.</small>
+            </div>
+            <div class="field">
+              <label for="wamdaRefreshIntervalMinutes">تحديث الأسعار والتوفر كل (دقيقة)</label>
+              <input id="wamdaRefreshIntervalMinutes" type="number" min="5" max="1440" step="1" value="15">
+              <small>الحد الأدنى 5 دقائق، والحد الأقصى 24 ساعة.</small>
+            </div>
+            <div class="field">
+              <label>المزامنة التلقائية</label>
+              <label class="seagm-clear-secret"><input id="wamdaAutoRefreshEnabled" type="checkbox" checked> تحديث الأسعار والتوفر تلقائياً</label>
+              <small id="wamdaRefreshStatus">سيعمل التحديث من الخادم حتى لو أغلقت لوحة الإدارة.</small>
+            </div>
+          </div>
           <div class="seagm-actions">
+            <button class="btn primary" type="button" id="saveWamdaPricingBtn">حفظ إعدادات التسعير</button>
             <button class="btn primary" type="button" id="saveWamdaBtn">حفظ API Token</button>
             <button class="btn soft" type="button" id="testWamdaBtn">اختبار الحساب والرصيد</button>
             <button class="btn soft" type="button" id="refreshWamdaCatalogBtn">جلب المنتجات من ومضة ↻</button>
@@ -416,14 +439,14 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
             <div>
               <div class="section-caption">WAMDA LIVE CATALOG</div>
               <h3>منتجات ومضة المستوردة</h3>
-              <p>حدّد سعر البيع بالليرة السورية الجديدة ثم انشر المنتج في كتالوج المتجر.</p>
+              <p>تُحسب الأسعار آلياً من تكلفة ومضة ونسبة ربحك. يمكنك تثبيت سعر يدوي لأي منتج متى شئت.</p>
             </div>
             <span class="status-pill" id="wamdaProductCount">0 منتج</span>
           </div>
           <div id="wamdaCatalogResults" class="seagm-catalog-results">
             <div class="empty-api">احفظ API Token ثم اختبر الحساب واجلب المنتجات.</div>
           </div>
-          <div class="notice">السعر القادم من ومضة بالدولار ويظهر كتكلفة مرجعية فقط. يجب تحديد سعر البيع المحلي قبل النشر، ولا يتم تأكيد التسليم إلا بعد أن تعيد ومضة حالة completed عند فحص الطلب.</div>
+          <div class="notice">السعر الآلي = تكلفة الوحدة بالدولار × سعر صرف المتجر × (1 + نسبة الربح). تعديلاتك اليدوية لا تتغير عند المزامنة. والمنتج غير المتوفر يتوقف عن استقبال الطلبات دون حذفه.</div>
         </section>
         <section class="panel seagm-connect-panel">
           <div class="panel-head">
