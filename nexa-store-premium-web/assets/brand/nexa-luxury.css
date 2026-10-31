@@ -2224,3 +2224,208 @@ html[data-theme="light"]{background:#f5f1e7!important;color-scheme:light!importa
   .store-catalog-toolbar input{width:100%!important;flex:auto!important}
   .store-catalog-pager{justify-content:space-between!important;gap:6px!important}
 }
+
+
+/* FINAL THEME SEPARATION + CUSTOMER WALLET */
+:root[data-theme="dark"]{
+  color-scheme:dark!important;
+  --page-bg:#0b0b0b!important;--card-bg:#171717!important;--card-bg-2:#202020!important;
+  --body-ink:#f3f0e8!important;--body-muted:#a39d90!important;--theme-line:rgba(212,175,55,.2)!important;
+}
+:root[data-theme="light"]{
+  color-scheme:light!important;
+  --page-bg:#f5f1e7!important;--card-bg:#fffdf7!important;--card-bg-2:#f2ecde!important;
+  --body-ink:#181713!important;--body-muted:#77715f!important;--theme-line:#e5dac0!important;
+}
+:root[data-theme="dark"] html,:root[data-theme="dark"] body,
+html[data-theme="dark"],body:has(html[data-theme="dark"]){
+  background:#0b0b0b!important;color:#f3f0e8!important;
+}
+:root[data-theme="light"] html,:root[data-theme="light"] body,
+html[data-theme="light"],body:has(html[data-theme="light"]){
+  background:#f5f1e7!important;color:#181713!important;
+}
+
+/* Light mode uses light surfaces everywhere, including the side navigation. */
+:root[data-theme="light"] .sidebar,
+:root[data-theme="light"] .side{
+  background:linear-gradient(165deg,#fffdf7 0%,#f4eddb 100%)!important;
+  color:#242116!important;border-color:#e5dac0!important;
+  box-shadow:-8px 0 28px rgba(81,62,19,.08)!important;
+}
+:root[data-theme="light"] .sidebar-brand strong,
+:root[data-theme="light"] .brand strong,
+:root[data-theme="light"] .side-foot b{color:#181713!important}
+:root[data-theme="light"] .sidebar-brand small,
+:root[data-theme="light"] .sidebar-caption,
+:root[data-theme="light"] .side-label{color:#87651a!important}
+:root[data-theme="light"] .nav button,
+:root[data-theme="light"] .side-link{color:#57503d!important}
+:root[data-theme="light"] .nav button:hover,
+:root[data-theme="light"] .side-link:hover{background:#eee5d2!important;color:#302713!important}
+:root[data-theme="light"] .nav button.active,
+:root[data-theme="light"] .side-link.active{
+  background:#f0e5c9!important;color:#6c4e10!important;border-color:#dfc98d!important;
+  box-shadow:inset -3px 0 #a98223!important;
+}
+:root[data-theme="light"] .nav .ico,
+:root[data-theme="light"] .side-icon{
+  background:#efe5cf!important;color:#87651a!important;border-color:#e3d5b4!important;
+}
+:root[data-theme="light"] .side-foot{color:#77715f!important;border-color:#e5dac0!important}
+
+/* Store promo/footer and admin login follow the selected theme too. */
+:root[data-theme="light"] .promo{
+  background:#eee5d2!important;color:#57503d!important;border-color:#e1d4b6!important;
+}
+:root[data-theme="light"] .promo strong{color:#795916!important}
+:root[data-theme="light"] .footer{
+  background:linear-gradient(145deg,#eee6d4,#e7ddc8)!important;color:#48412f!important;
+  border-top:1px solid #ded1b3!important;
+}
+:root[data-theme="light"] .footer-brand{color:#181713!important}
+:root[data-theme="light"] .footer-note,
+:root[data-theme="light"] .footer-bottom{color:#6c6554!important}
+:root[data-theme="light"] .footer-bottom{border-top-color:#d9cba9!important}
+:root[data-theme="light"] .footer-links a:hover{color:#805d17!important}
+:root[data-theme="light"] .login-screen{
+  background:radial-gradient(circle at 20% 25%,rgba(212,175,55,.13),transparent 28%),
+    linear-gradient(135deg,#f5f1e7,#e9dfc9)!important;
+}
+:root[data-theme="light"] .login-card{background:#fffdf7!important;color:#181713!important;border-color:#e5dac0!important}
+:root[data-theme="light"] .login-card h1,:root[data-theme="light"] .login-card label{color:#181713!important}
+:root[data-theme="light"] .login-card p{color:#77715f!important}
+:root[data-theme="dark"] .login-card{background:#171717!important;color:#f3f0e8!important;border-color:rgba(212,175,55,.2)!important}
+:root[data-theme="dark"] .login-card h1,:root[data-theme="dark"] .login-card label{color:#f3f0e8!important}
+:root[data-theme="dark"] .login-card p{color:#a39d90!important}
+
+/* Storefront and dashboard surfaces are never left with the opposite-mode fill. */
+:root[data-theme="dark"] .customer-wallet-card,
+:root[data-theme="dark"] .customer-wallet-card .account-auth-form,
+:root[data-theme="dark"] .customer-wallet-card .wallet-topup-form,
+:root[data-theme="dark"] .customer-wallet-card .wallet-ledger-panel{
+  background:linear-gradient(150deg,#1b1b1b,#131313)!important;color:#f3f0e8!important;border-color:rgba(212,175,55,.18)!important;
+}
+:root[data-theme="light"] .customer-wallet-card,
+:root[data-theme="light"] .customer-wallet-card .account-auth-form,
+:root[data-theme="light"] .customer-wallet-card .wallet-topup-form,
+:root[data-theme="light"] .customer-wallet-card .wallet-ledger-panel{
+  background:#fffdf7!important;color:#181713!important;border-color:#e5dac0!important;
+}
+:root[data-theme="dark"] .customer-wallet-card input,
+:root[data-theme="dark"] .customer-wallet-card select,
+:root[data-theme="dark"] .customer-wallet-card textarea{
+  background:#101010!important;color:#f3f0e8!important;border-color:rgba(212,175,55,.25)!important;
+}
+:root[data-theme="light"] .customer-wallet-card input,
+:root[data-theme="light"] .customer-wallet-card select,
+:root[data-theme="light"] .customer-wallet-card textarea{
+  background:#fff!important;color:#181713!important;border-color:#ded2b5!important;
+}
+:root[data-theme="dark"] .customer-wallet-card h2,
+:root[data-theme="dark"] .customer-wallet-card h3,
+:root[data-theme="dark"] .customer-wallet-card strong{color:#f3f0e8!important}
+:root[data-theme="light"] .customer-wallet-card h2,
+:root[data-theme="light"] .customer-wallet-card h3,
+:root[data-theme="light"] .customer-wallet-card strong{color:#181713!important}
+:root[data-theme="dark"] .customer-wallet-card p,
+:root[data-theme="dark"] .customer-wallet-card small{color:#a39d90!important}
+:root[data-theme="light"] .customer-wallet-card p,
+:root[data-theme="light"] .customer-wallet-card small{color:#77715f!important}
+
+/* Dashboard panels, tables, forms, dropdowns and modals. */
+:root[data-theme="dark"] #app.shell .toolbar,
+:root[data-theme="dark"] #app.shell .table-wrap,
+:root[data-theme="dark"] #app.shell .product-body,
+:root[data-theme="dark"] #app.shell .option-editor,
+:root[data-theme="dark"] #app.shell .modal-content{
+  background:#171717!important;color:#f3f0e8!important;border-color:rgba(212,175,55,.2)!important;
+}
+:root[data-theme="light"] #app.shell .toolbar,
+:root[data-theme="light"] #app.shell .table-wrap,
+:root[data-theme="light"] #app.shell .product-body,
+:root[data-theme="light"] #app.shell .option-editor,
+:root[data-theme="light"] #app.shell .modal-content{
+  background:#fffdf7!important;color:#181713!important;border-color:#e5dac0!important;
+}
+:root[data-theme="dark"] #app.shell .danger,
+:root[data-theme="dark"] #app.shell .btn.danger{background:#2a1717!important;color:#f0b1a9!important;border-color:#693b34!important}
+:root[data-theme="light"] #app.shell .danger,
+:root[data-theme="light"] #app.shell .btn.danger{background:#f8e9e5!important;color:#97453b!important;border-color:#ebccc4!important}
+:root[data-theme="dark"] #app.shell .product-editor[open] summary{background:#292018!important;color:#f3f0e8!important}
+:root[data-theme="light"] #app.shell .product-editor[open] summary{background:#f6efdf!important;color:#181713!important}
+:root[data-theme="dark"] #app.shell .quick-actions button,
+:root[data-theme="dark"] #app.shell .tabs button{background:#1c1c1c!important;color:#ded8c9!important;border-color:rgba(212,175,55,.18)!important}
+:root[data-theme="light"] #app.shell .quick-actions button,
+:root[data-theme="light"] #app.shell .tabs button{background:#f7f1e3!important;color:#4a412e!important;border-color:#e5dac0!important}
+:root[data-theme="dark"] #app.shell .quick-actions button:hover,
+:root[data-theme="dark"] #app.shell .tabs button.active{background:#2d2718!important;color:#f0d982!important}
+:root[data-theme="light"] #app.shell .quick-actions button:hover,
+:root[data-theme="light"] #app.shell .tabs button.active{background:#eee2c3!important;color:#6c4e10!important}
+:root[data-theme="dark"] #app.shell .field small,
+:root[data-theme="dark"] #app.shell .hint{color:#a39d90!important}
+:root[data-theme="light"] #app.shell .field small,
+:root[data-theme="light"] #app.shell .hint{color:#77715f!important}
+
+/* Consistent wallet layout. */
+.customer-wallet-card{
+  margin:0 0 18px!important;padding:20px!important;border-radius:18px!important;
+  border:1px solid var(--theme-line)!important;box-shadow:0 10px 28px rgba(0,0,0,.06)!important;
+}
+.customer-wallet-head,.wallet-ledger-head{
+  display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;
+}
+.customer-wallet-head h2{font-size:18px!important;margin:4px 0!important}
+.customer-wallet-head p{font-size:10px!important;margin:2px 0!important;color:var(--body-muted)!important}
+.account-status-pill{border-radius:99px;padding:6px 10px;font-size:9px;font-weight:900;background:rgba(57,127,218,.12);color:#65b8d7}
+:root[data-theme="light"] .account-status-pill{background:#e8f2ee;color:#24745a}
+.account-auth-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:14px}
+.account-auth-form,.wallet-topup-form,.wallet-ledger-panel{
+  border:1px solid var(--theme-line);border-radius:14px;padding:14px;min-width:0;
+}
+.account-auth-form h3{font-size:12px;margin:0 0 8px}
+.account-auth-form .field{margin:8px 0}
+.account-auth-form .btn{width:100%;margin-top:4px}
+.account-auth-switch{border:0;background:transparent;color:var(--nexa-primary);font-weight:900;font-size:10px;margin-top:9px;padding:4px 0}
+.account-auth-message{font-size:10px;min-height:18px;color:var(--nexa-accent-2)}
+.account-auth-note{font-size:9px;color:var(--body-muted);margin:6px 0 0}
+.wallet-account-summary{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  padding:14px;border-radius:13px;background:var(--card-bg-2);margin-top:14px;
+}
+.wallet-account-summary>div{display:grid;gap:3px}
+.wallet-account-summary small{font-size:9px;color:var(--body-muted)}
+.wallet-account-summary strong{font-size:14px}
+.wallet-account-summary span{font-size:10px;color:var(--body-muted);direction:ltr;text-align:right}
+.wallet-account-balance strong{font-size:20px;color:var(--nexa-primary)!important}
+.wallet-topup-form{display:grid;gap:11px;margin-top:12px}
+.wallet-topup-form>div:first-child{display:grid;gap:3px}
+.wallet-topup-form>div:first-child strong{font-size:12px}
+.wallet-topup-form>div:first-child small,.wallet-topup-form>small{font-size:9px;color:var(--body-muted)}
+.wallet-topup-controls{display:flex;gap:9px;align-items:center}
+.wallet-topup-controls input{min-width:0;flex:1;border:1px solid var(--theme-line);border-radius:10px;padding:10px 12px}
+.wallet-ledger-panel{margin-top:12px}
+.wallet-ledger-head{margin-bottom:8px}
+.wallet-ledger-head strong{font-size:11px}
+.wallet-ledger-head small{font-size:9px;color:var(--body-muted)}
+.wallet-ledger-list{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.wallet-ledger-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--theme-line)}
+.wallet-ledger-row:last-child{border-bottom:0}
+.wallet-ledger-icon{width:28px;height:28px;display:grid;place-items:center;border-radius:9px;background:rgba(57,127,218,.12);color:#65b8d7;font-weight:900}
+.wallet-ledger-copy{min-width:0;display:grid;gap:2px;flex:1}
+.wallet-ledger-copy strong{font-size:10px}
+.wallet-ledger-copy small{font-size:8px;color:var(--body-muted)!important}
+.wallet-ledger-row b{font-size:10px;white-space:nowrap}
+.wallet-ledger-row b.credit{color:#179565!important}
+.wallet-ledger-row b.debit{color:#d36b55!important}
+.wallet-ledger-empty{font-size:10px;color:var(--body-muted);text-align:center;padding:14px}
+:root[data-theme="dark"] .customer-wallet-card .wallet-ledger-row{border-color:rgba(212,175,55,.12)}
+:root[data-theme="light"] .customer-wallet-card .wallet-ledger-row{border-color:#eee5d1}
+@media(max-width:640px){
+  .account-auth-grid{grid-template-columns:1fr!important}
+  .wallet-account-summary{align-items:flex-start}
+  .wallet-topup-controls{align-items:stretch;flex-direction:column}
+  .wallet-topup-controls input,.wallet-topup-controls button{width:100%}
+  .customer-wallet-card{padding:14px!important}
+  .customer-wallet-head{align-items:flex-start}
+}
