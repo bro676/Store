@@ -237,7 +237,10 @@ function validateSeagmCustomerFields(product, rawFields) {
         if (childValue.length > 500 || /[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/.test(childValue)) {
           throw Object.assign(new Error('إحدى بيانات المنتج أطول من المسموح أو تحتوي محارف غير صالحة.'), { status:400 });
         }
-        const childChoices = Array.isArray(child.options) ? child.options : [];
+        const childChoices = Array.isArray(child.options)
+          ? child.options.filter(dependency => String(dependency?.parent_value ?? '') === value)
+            .flatMap(dependency => Array.isArray(dependency.child_options) ? dependency.child_options : [])
+          : [];
         if (childChoices.length && !childChoices.some(option => String(option?.value ?? '') === childValue)) {
           throw Object.assign(new Error('القيمة المختارة للحقل ' + String(child.label || childName) + ' غير موجودة ضمن الخيارات.'), { status:400 });
         }
