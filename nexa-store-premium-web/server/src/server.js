@@ -23,6 +23,7 @@ let catalogWriteApiTokenRuntime = '';
 let catalogApiSyncInProgress = false;
 let seagmSecretRuntime = '';
 let seagmCatalogSyncInProgress = false;
+let seagmFulfillmentWorkerBusy = false;
 const { Pool } = pg;
 const cfg = {
   port: Number(process.env.PORT || 3000),
@@ -58,7 +59,7 @@ let pool;
 if (cfg.databaseUrl) {
   pool = new Pool({ connectionString: cfg.databaseUrl, ssl: cfg.databaseSsl ? { rejectUnauthorized: true } : false,
     max: 10, idleTimeoutMillis: 30_000, connectionTimeoutMillis: 8_000 });
-  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql']) {
+  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
   }
 }
@@ -148,6 +149,78 @@ function pricePack(pack, currency) {
   if (amountMinor < 1n) return null;
   return { ...pack, currency, amountMinor };
 }
+
+function publicCatalog() {
+  return catalog.map(category => ({
+    ...category,
+    items: category.items.map(product => {
+      const { seagm, ...publicProduct } = product;
+      if (!seagm || seagm.provider !== 'seagm') return publicProduct;
+      return {
+        ...publicProduct,
+        seagm: {
+          provider: 'seagm',
+          kind: seagm.kind === 'recharge' ? 'recharge' : 'card',
+          minimumQuantity: Number(seagm.minimumQuantity || 1),
+          maximumQuantity: Number(seagm.maximumQuantity || 1),
+          fields: Array.isArray(seagm.fields) ? seagm.fields.map(field => ({
+            name: String(field.name || ''),
+            submitField: String(field.submitField || field.name || ''),
+            label: String(field.label || field.name || ''),
+            type: String(field.type || 'input'),
+            placeholder: String(field.placeholder || ''),
+            prefix: String(field.prefix || ''),
+            tips: String(field.tips || ''),
+            required: field.required !== false,
+            multiline: field.multiline === true,
+            options: Array.isArray(field.options) ? field.options.map(option => ({
+              label: String(option.label || ''),
+              value: String(option.value || ''),
+            })) : [],
+          })) : [],
+        },
+      };
+    }),
+  }));
+}
+
+function validateSeagmCustomerFields(product, rawFields) {
+  if (!rawFields || typeof rawFields !== 'object' || Array.isArray(rawFields)) {
+    throw Object.assign(new Error('بيانات الحقول المطلوبة للمنتج غير صالحة.'), { status:400 });
+  }
+  const definitions = Array.isArray(product.seagm?.fields) ? product.seagm.fields : [];
+  const allowedKeys = new Set();
+  const output = {};
+  const reserved = new Set(['uid','timestamp','signature','type_id','buy_amount','mch_order_id']);
+  for (const field of definitions) {
+    const name = String(field?.name || '').trim();
+    const submitField = String(field?.submitField || name).trim();
+    if (!/^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(submitField) || reserved.has(submitField)) {
+      throw Object.assign(new Error('إعدادات حقول المورد غير صالحة؛ راجع المنتج من الداشبورد.'), { status:409 });
+    }
+    allowedKeys.add(submitField);
+    const provided = Object.prototype.hasOwnProperty.call(rawFields, submitField)
+      ? rawFields[submitField] : rawFields[name];
+    const value = String(provided ?? '').trim();
+    if (!value && field.required !== false) {
+      throw Object.assign(new Error('يرجى تعبئة الحقل: ' + String(field.label || name || submitField)), { status:400 });
+    }
+    if (!value) continue;
+    if (value.length > 500 || /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(value)) {
+      throw Object.assign(new Error('إحدى بيانات المنتج أطول من المسموح أو تحتوي محارف غير صالحة.'), { status:400 });
+    }
+    const choices = Array.isArray(field.options) ? field.options : [];
+    if (choices.length && !choices.some(option => String(option?.value ?? '') === value)) {
+      throw Object.assign(new Error('القيمة المختارة للحقل ' + String(field.label || name) + ' غير موجودة ضمن الخيارات.'), { status:400 });
+    }
+    output[submitField] = value;
+  }
+  for (const key of Object.keys(rawFields)) {
+    if (!allowedKeys.has(key)) throw Object.assign(new Error('تم إرسال حقل غير معروف للمنتج.'), { status:400 });
+  }
+  return output;
+}
+
 function parseProviderDate(value) {
   if (typeof value !== 'string' || !value.trim()) return new Date(NaN);
   const s = value.trim();
@@ -244,9 +317,33 @@ async function createOrder(input) {
   if (!paymentsReady) return { error:'PAYMENTS_NOT_READY', status:503, message:'الدفع غير متاح حتى تكتمل إعدادات API وقاعدة البيانات على الخادم.' };
   const pack = findPack(input.categoryId, input.productId, input.optionId, Number(input.packIndex));
   if (!pack) return { error:'INVALID_PRODUCT', status:400, message:'الباقة غير متاحة أو سعرها غير محدد.' };
+  const sourceCategory = catalog.find(category => category.id === input.categoryId);
+  const sourceProduct = sourceCategory?.items?.find(product => product.id === input.productId);
+  const supplier = sourceProduct?.seagm?.provider === 'seagm' ? sourceProduct.seagm : null;
+  let quantity = 1;
+  let supplierFields = {};
+  if (supplier) {
+    if (!['card','recharge'].includes(supplier.kind) ||
+        !Number.isSafeInteger(Number(supplier.typeId)) || Number(supplier.typeId) <= 0 ||
+        !Number.isSafeInteger(Number(supplier.categoryId)) || Number(supplier.categoryId) <= 0) {
+      return { error:'INVALID_SEAGM_PRODUCT', status:409, message:'بيانات ربط المنتج مع SEAGM غير مكتملة. أعد مزامنته ونشره من لوحة الإدارة.' };
+    }
+    if (!storeSettings?.seagmUid || !seagmSecretRuntime) {
+      return { error:'SEAGM_NOT_CONFIGURED', status:503, message:'منتج المورد غير متاح حالياً حتى يتم ضبط UID وSecret Key من لوحة الإدارة.' };
+    }
+    const min = Math.max(1, Number(supplier.minimumQuantity || 1));
+    const max = Math.min(1000, Math.max(min, Number(supplier.maximumQuantity || 1)));
+    quantity = Number(input.quantity ?? 1);
+    if (!Number.isSafeInteger(quantity) || quantity < min || quantity > max) {
+      return { error:'INVALID_QUANTITY', status:400, message:`الكمية يجب أن تكون بين ${min} و${max}.` };
+    }
+    try { supplierFields = validateSeagmCustomerFields(sourceProduct, input.supplierFields || {}); }
+    catch (error) { return { error:'INVALID_SUPPLIER_FIELDS', status:error.status || 400, message:error.message }; }
+  }
   const currency = String(input.currency || 'SYP').trim().toUpperCase();
   if (!['SYP','USD'].includes(currency)) return { error:'INVALID_CURRENCY', status:400, message:'اختر الليرة السورية أو الدولار الأمريكي.' };
-  const pricedPack = pricePack(pack, currency);
+  const totalPack = { ...pack, label:supplier ? `${pack.label} × ${quantity}` : pack.label, amountMinor:pack.amountMinor * BigInt(quantity) };
+  const pricedPack = pricePack(totalPack, currency);
   if (!pricedPack) return { error:'INVALID_PRICE', status:400, message:'تعذر حساب السعر بالعملة المختارة.' };
   const name = String(input.customerName || '').trim().slice(0,70);
   const phone = String(input.customerPhone || '').trim().slice(0,25);
@@ -258,14 +355,30 @@ async function createOrder(input) {
     wallet = await getWallet(true);
     id = `NX-${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
     invoice = await createShamInvoice(id, pricedPack, wallet);
-    await pool.query(`INSERT INTO nexa_orders (id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,customer_name,customer_phone,game_account,notes,expires_at,invoice_number,invoice_identifier,wallet_label,wallet_address)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
-      [id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pricedPack.label,pricedPack.amountMinor.toString(),pricedPack.currency,name,phone,gameAccount,notes,invoice.expiresAt,invoice.invoiceNumber,invoice.identifier,invoice.walletLabel,invoice.walletAddress]);
+    await pool.query(`INSERT INTO nexa_orders (
+      id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,
+      customer_name,customer_phone,game_account,notes,expires_at,invoice_number,invoice_identifier,
+      wallet_label,wallet_address,supplier_provider,supplier_kind,supplier_category_id,supplier_type_id,
+      supplier_quantity,supplier_fields,supplier_mch_order_id,supplier_status,supplier_message
+    ) VALUES (
+      $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,
+      $18,$19,$20,$21,$22,$23::jsonb,$24,$25,$26
+    )`,
+    [
+      id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pricedPack.label,
+      pricedPack.amountMinor.toString(),pricedPack.currency,name,phone,gameAccount,notes,
+      invoice.expiresAt,invoice.invoiceNumber,invoice.identifier,invoice.walletLabel,invoice.walletAddress,
+      supplier ? 'seagm' : '',supplier?.kind || '',supplier ? Number(supplier.categoryId) : null,
+      supplier ? Number(supplier.typeId) : null,quantity,JSON.stringify(supplierFields),
+      supplier ? id : null,supplier ? 'pending_payment' : 'not_applicable',
+      supplier ? 'بانتظار تأكيد الدفع من شام كاش.' : '',
+    ]);
     persisted = true;
     return {
-      orderId:id, product:pricedPack.label, amountMinor:pricedPack.amountMinor.toString(), currency:pricedPack.currency, expiresAt:invoice.expiresAt.toISOString(),
-      invoiceNumber:invoice.invoiceNumber, invoiceIdentifier:invoice.identifier, receiverLabel:invoice.walletLabel,
-      receiverAddress:invoice.identifier, status:'pending_payment',
+      orderId:id, product:pricedPack.label, amountMinor:pricedPack.amountMinor.toString(), currency:pricedPack.currency,
+      expiresAt:invoice.expiresAt.toISOString(),invoiceNumber:invoice.invoiceNumber,invoiceIdentifier:invoice.identifier,
+      receiverLabel:invoice.walletLabel,receiverAddress:invoice.identifier,status:'pending_payment',
+      deliveryProvider:supplier ? 'SEAGM' : null,deliveryStatus:supplier ? 'queued_after_payment' : null,
     };
   } catch (error) {
     if (invoice?.invoiceNumber && !persisted) {
@@ -318,6 +431,21 @@ async function verifyProviderInvoice(order, transactionRef) {
   }
   return invoice;
 }
+
+function supplierDeliveryForOrder(order) {
+  if (order?.supplier_provider !== 'seagm') return null;
+  let result = null;
+  if (order.supplier_status === 'completed' && order.supplier_result_encrypted) {
+    try { result = JSON.parse(decryptSecret(order.supplier_result_encrypted, cfg.settingsEncryptionKey)); } catch {}
+  }
+  return {
+    provider:'SEAGM',status:String(order.supplier_status || 'pending'),
+    message:String(order.supplier_message || ''),
+    orderId:order.supplier_order_id ? String(order.supplier_order_id) : null,
+    ...(result || {}),
+  };
+}
+
 async function verifyPayment(input) {
   if (!paymentsReady) return {error:'PAYMENTS_NOT_READY',status:503,message:'التحقق من الدفع غير متاح حتى تكتمل إعدادات API على الخادم.'};
   const orderId = String(input.orderId || '').trim().toUpperCase();
@@ -333,7 +461,7 @@ async function verifyPayment(input) {
     if (order.status === 'paid') {
       const used = await client.query('SELECT transaction_id FROM nexa_payments WHERE order_id=$1',[orderId]);
       await client.query('COMMIT');
-      if (used.rowCount && used.rows[0].transaction_id === transactionRef) return {ok:true,alreadyPaid:true,orderId,transactionId:transactionRef,status:'paid',receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:order.paid_at ? new Date(order.paid_at).toISOString() : new Date().toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier}};
+      if (used.rowCount && used.rows[0].transaction_id === transactionRef) return {ok:true,alreadyPaid:true,orderId,transactionId:transactionRef,status:'paid',receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:order.paid_at ? new Date(order.paid_at).toISOString() : new Date().toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,...(order.supplier_provider==='seagm'?{delivery:supplierDeliveryForOrder(order)}:{})}};
       return {error:'ORDER_ALREADY_PAID',status:409,message:'هذا الطلب مدفوع مسبقاً ولا يقبل رقم عملية آخر.'};
     }
     if (order.status !== 'pending_payment' || new Date(order.expires_at).getTime() <= Date.now()) {
@@ -387,11 +515,16 @@ async function verifyPayment(input) {
       VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING RETURNING id`,
       [transactionRef,orderId,tx.amountMinor.toString(),tx.currency,String(wallet.id),tx.occurredAt,JSON.stringify({invoiceNumber:order.invoice_number,transactionId:transactionRef,amountMinor:tx.amountMinor.toString(),currency:tx.currency,receiverAddress:tx.receiverAddress,type:tx.type,occurredAt:tx.occurredAt.toISOString(),paidAt:paidAt.toISOString()})]);
     if (!inserted.rowCount) { await client.query('ROLLBACK'); return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'}; }
-    await client.query("UPDATE nexa_orders SET status='paid',paid_at=$2 WHERE id=$1",[orderId,paidAt]);
+    await client.query("UPDATE nexa_orders SET status='paid',paid_at=$2,supplier_status=CASE WHEN supplier_provider='seagm' THEN 'pending' ELSE supplier_status END,supplier_message=CASE WHEN supplier_provider='seagm' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.' ELSE supplier_message END WHERE id=$1",[orderId,paidAt]);
+    if (order.supplier_provider === 'seagm') {
+      await client.query(`INSERT INTO nexa_fulfillment_jobs(order_id,status,next_attempt_at)
+        VALUES($1,'pending',NOW()) ON CONFLICT(order_id) DO NOTHING`,[orderId]);
+    }
     await client.query('COMMIT');
     return {ok:true,orderId,invoiceNumber:order.invoice_number,transactionId:transactionRef,status:'paid',verifiedAt:new Date().toISOString(),
       receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,
-        invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:paidAt.toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier}};
+        invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:paidAt.toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,
+        ...(order.supplier_provider==='seagm'?{delivery:{provider:'SEAGM',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.'}}:{})}};
   } catch (error) {
     await client.query('ROLLBACK').catch(()=>{});
     if (error.code === '23505') return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'};
@@ -929,6 +1062,235 @@ async function publishSeagmProduct(input) {
   };
 }
 
+
+function seagmOrderMetadata(data) {
+  const number = value => Number.isFinite(Number(value)) ? Number(value) : null;
+  return {
+    id:data?.id == null ? null : String(data.id).slice(0,80),
+    mch_order_id:String(data?.mch_order_id || '').slice(0,100),
+    type_id:number(data?.type_id ?? data?.product_id),
+    status:String(data?.status || '').slice(0,80),
+    status_code:number(data?.status_code),
+    pay_status:String(data?.pay_status || '').slice(0,80),
+    pay_status_code:number(data?.pay_status_code),
+    send_status:String(data?.send_status || '').slice(0,80),
+    send_status_code:number(data?.send_status_code),
+    buy_amount:number(data?.buy_amount),
+    currency:String(data?.currency || '').slice(0,12),
+  };
+}
+
+function seagmErrorMessage(error) {
+  const code=Number(error?.code);
+  const messages={
+    20062:'المنتج غير متاح لدى SEAGM حالياً.',
+    20071:'خدمة البطاقات غير مفعّلة لحساب SEAGM.',
+    20072:'خدمة الشحن المباشر غير مفعّلة لحساب SEAGM.',
+    20073:'حساب SEAGM لا يملك صلاحية شراء هذا المنتج.',
+    20077:'نوع البطاقة غير موجود لدى SEAGM.',
+    20079:'المنتج غير موجود لدى SEAGM.',
+    20080:'لم يعثر SEAGM على الطلب السابق.',
+    20107:'الكمية المطلوبة تتجاوز المخزون.',
+    20115:'الحساب غير مسموح له بإجراء عملية الشراء.',
+    20116:'حساب الشحن مقيّد لدى المورد.',
+    20121:'الكمية أقل من الحد الأدنى المسموح.',
+    20124:'كمية الشراء غير صالحة لدى المورد.',
+    20125:'نفد مخزون المنتج لدى المورد.',
+    20126:'نوع المنتج لا يقبل الشحن المباشر.',
+    20129:'رصيد Credits لدى SEAGM غير كافٍ أو مبلغ الطلب غير صالح.',
+    20133:'بيانات اللاعب أو الحساب غير مقبولة لدى المورد.',
+    20134:'فشل التحقق من بيانات حساب الشحن.',
+    20135:'رقم طلب المتجر موجود مسبقاً لدى المورد؛ جارٍ استعادة الطلب الأصلي.',
+  };
+  return messages[code]||String(error?.message||'تعذر تنفيذ طلب المورد.').slice(0,240);
+}
+
+async function claimSeagmFulfillmentJob() {
+  const client=await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result=await client.query(`
+      SELECT j.order_id,j.attempt_count,o.supplier_kind,o.supplier_type_id,o.supplier_quantity,
+        o.supplier_fields,o.supplier_mch_order_id,o.supplier_order_id,o.supplier_provider
+      FROM nexa_fulfillment_jobs j
+      JOIN nexa_orders o ON o.id=j.order_id
+      WHERE j.status IN ('pending','retry','processing')
+        AND j.next_attempt_at<=NOW()
+        AND (j.status<>'processing' OR j.locked_at<NOW()-INTERVAL '4 minutes')
+      ORDER BY j.next_attempt_at ASC,j.created_at ASC
+      FOR UPDATE OF j SKIP LOCKED LIMIT 1`);
+    if(!result.rowCount){await client.query('COMMIT');return null;}
+    const job=result.rows[0];
+    await client.query(`UPDATE nexa_fulfillment_jobs
+      SET status='processing',attempt_count=attempt_count+1,locked_at=NOW(),updated_at=NOW()
+      WHERE order_id=$1`,[job.order_id]);
+    await client.query('COMMIT');
+    return {...job,attempt_count:Number(job.attempt_count)+1};
+  } catch(error) {
+    await client.query('ROLLBACK').catch(()=>{});
+    throw error;
+  } finally {client.release();}
+}
+
+async function saveSeagmFulfillmentState(job,{jobStatus,orderStatus,message,errorText='',metadata=null,resultEncrypted='',delaySeconds=0}={}) {
+  const client=await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(`UPDATE nexa_fulfillment_jobs SET
+      status=$2,last_error=$3,provider_order_id=$4,provider_status_code=$5,provider_status=$6,
+      provider_response=$7::jsonb,next_attempt_at=NOW()+($8::text || ' seconds')::interval,
+      locked_at=NULL,updated_at=NOW()
+      WHERE order_id=$1`,[
+        job.order_id,jobStatus,String(errorText||'').slice(0,500),
+        metadata?.id||job.provider_order_id||null,metadata?.status_code??null,
+        metadata?.status||'',JSON.stringify(metadata||{}),Math.max(0,Number(delaySeconds)||0),
+      ]);
+    await client.query(`UPDATE nexa_orders SET
+      supplier_status=$2,supplier_message=$3,
+      supplier_order_id=COALESCE($4,supplier_order_id),
+      supplier_result_encrypted=CASE WHEN $5<>'' THEN $5 ELSE supplier_result_encrypted END,
+      supplier_completed_at=CASE WHEN $2='completed' THEN NOW() ELSE supplier_completed_at END
+      WHERE id=$1`,[
+        job.order_id,orderStatus,String(message||'').slice(0,500),
+        metadata?.id||null,resultEncrypted,
+      ]);
+    await client.query('COMMIT');
+  } catch(error) {
+    await client.query('ROLLBACK').catch(()=>{});
+    throw error;
+  } finally {client.release();}
+}
+
+async function processSeagmFulfillmentJob(job) {
+  if(job.supplier_provider!=='seagm'||!['card','recharge'].includes(job.supplier_kind)||
+      !Number.isSafeInteger(Number(job.supplier_type_id))||Number(job.supplier_type_id)<=0) {
+    await saveSeagmFulfillmentState(job,{
+      jobStatus:'manual_review',orderStatus:'manual_review',
+      message:'بيانات ربط المنتج مع المورد غير مكتملة. تواصل مع إدارة المتجر.',
+      errorText:'INVALID_STORED_SUPPLIER_PRODUCT',
+    });
+    return;
+  }
+  const client=seagmClient();
+  const merchantOrderId=String(job.supplier_mch_order_id||job.order_id);
+  let providerOrder=await client.getOrderByMerchantId(job.supplier_kind,merchantOrderId);
+  if(!providerOrder) {
+    try {
+      providerOrder=job.supplier_kind==='card'
+        ? await client.createCardOrder({typeId:Number(job.supplier_type_id),quantity:Number(job.supplier_quantity||1),merchantOrderId})
+        : await client.createRechargeOrder({typeId:Number(job.supplier_type_id),quantity:Number(job.supplier_quantity||1),merchantOrderId,fields:job.supplier_fields||{}});
+    } catch(createError) {
+      // A timeout or duplicate merchant ID may happen after SEAGM accepted the purchase.
+      try {providerOrder=await client.getOrderByMerchantId(job.supplier_kind,merchantOrderId);}
+      catch(lookupError){throw lookupError;}
+      if(!providerOrder)throw createError;
+    }
+  }
+  const metadata=seagmOrderMetadata(providerOrder);
+  if(metadata.mch_order_id!==merchantOrderId||
+      metadata.type_id!==Number(job.supplier_type_id)||
+      metadata.buy_amount!==Number(job.supplier_quantity||1)) {
+    await saveSeagmFulfillmentState(job,{
+      jobStatus:'manual_review',orderStatus:'manual_review',
+      message:'وصل رد من المورد لكن بيانات الطلب لا تطابق طلب المتجر؛ أوقفنا التسليم الآلي للحماية.',
+      errorText:'SEAGM_ORDER_DETAILS_MISMATCH',metadata,
+    });
+    return;
+  }
+  const statusCode=Number(providerOrder.status_code);
+  const payStatusCode=Number(providerOrder.pay_status_code);
+  const sendStatusCode=Number(providerOrder.send_status_code);
+  if(statusCode===10003&&payStatusCode===2&&[3,4].includes(sendStatusCode)) {
+    let resultPayload={};
+    if(job.supplier_kind==='card') {
+      const cards=Array.isArray(providerOrder.cards)?providerOrder.cards.map(card=>({
+        cardNumber:String(card?.card_number||'').slice(0,200),
+        cardPin:String(card?.card_pin||'').slice(0,200),
+        expired:String(card?.expired||'').slice(0,40),
+      })):[];
+      if(cards.length<Number(job.supplier_quantity||1)||cards.some(card=>!card.cardNumber||!card.cardPin)) {
+        await saveSeagmFulfillmentState(job,{
+          jobStatus:'manual_review',orderStatus:'manual_review',
+          message:'أكد المورد اكتمال الطلب لكن بيانات البطاقة لم تصل كاملة. تم إيقاف التسليم التلقائي لتجنب تسليم ناقص.',
+          errorText:'SEAGM_CARD_DATA_INCOMPLETE',metadata,
+        });
+        return;
+      }
+      resultPayload={cards};
+    } else {
+      resultPayload={
+        deliveredAmount:String(providerOrder.sent_amount??providerOrder.send_amount??''),
+        sentAt:providerOrder.sent_time?new Date(Number(providerOrder.sent_time)*1000).toISOString():null,
+      };
+    }
+    await saveSeagmFulfillmentState(job,{
+      jobStatus:'completed',orderStatus:'completed',
+      message:job.supplier_kind==='card'?'تم تسليم البطاقة الرقمية بنجاح.':'أكد SEAGM اكتمال عملية الشحن.',
+      metadata,resultEncrypted:encryptSecret(JSON.stringify(resultPayload),cfg.settingsEncryptionKey),
+    });
+    return;
+  }
+  if(statusCode===10001||statusCode===10002) {
+    if(payStatusCode!==2) {
+      await saveSeagmFulfillmentState(job,{
+        jobStatus:'manual_review',orderStatus:'manual_review',
+        message:'أنشأ المورد الطلب لكن حالة دفعه لدى SEAGM ليست مؤكدة؛ يلزم تدخل الإدارة.',
+        errorText:'SEAGM_SUPPLIER_PAYMENT_NOT_CONFIRMED',metadata,
+      });
+      return;
+    }
+    await saveSeagmFulfillmentState(job,{
+      jobStatus:'retry',orderStatus:'waiting',
+      message:statusCode===10001?'تم إرسال طلبك إلى SEAGM وهو بانتظار التنفيذ.':'SEAGM ينفذ طلبك الآن.',
+      metadata,delaySeconds:30,
+    });
+    return;
+  }
+  const refunded=statusCode===10004||payStatusCode===3;
+  await saveSeagmFulfillmentState(job,{
+    jobStatus:'manual_review',orderStatus:'manual_review',
+    message:refunded?'أعاد المورد مبلغ الطلب إلى رصيد الحساب أو ألغى التنفيذ؛ تواصل الدعم لمراجعة طلبك.':'لم يتمكن النظام من تأكيد اكتمال طلب المورد؛ تم تحويله لمراجعة الإدارة.',
+    errorText:refunded?'SEAGM_ORDER_REFUNDED':'SEAGM_UNEXPECTED_ORDER_STATUS',metadata,
+  });
+}
+
+async function runSeagmFulfillmentWorker() {
+  if(!pool||seagmFulfillmentWorkerBusy||!storeSettings?.seagmUid||!seagmSecretRuntime)return;
+  seagmFulfillmentWorkerBusy=true;
+  let job=null;
+  try {
+    job=await claimSeagmFulfillmentJob();
+    if(!job)return;
+    await processSeagmFulfillmentJob(job);
+  } catch(error) {
+    if(!job) {
+      console.error('SEAGM fulfillment worker failed to claim a job',String(error?.code||error?.message||'unknown').slice(0,120));
+      return;
+    }
+    const status=Number(error?.status||0);
+    const code=Number(error?.code);
+    const retryable=[429,418].includes(status)||status>=500||
+      ['SEAGM_REQUEST_TIMEOUT','SEAGM_INVALID_JSON_RESPONSE','SEAGM_INVALID_RESPONSE'].includes(String(error?.message||''))||
+      !Number.isFinite(code)||code===20135;
+    const attempt=Number(job.attempt_count||1);
+    if(retryable&&attempt<12) {
+      const retryAfter=Number(error?.retryAfter||0);
+      const delay=Math.min(300,Math.max(retryAfter,10*Math.pow(2,Math.min(attempt-1,5))));
+      await saveSeagmFulfillmentState(job,{
+        jobStatus:'retry',orderStatus:'waiting',
+        message:'تعذر تأكيد رد SEAGM مؤقتاً. سيعيد النظام الفحص بنفس رقم الطلب دون إنشاء طلب مكرر.',
+        errorText:seagmErrorMessage(error),delaySeconds:delay,
+      }).catch(saveError=>console.error('could not schedule SEAGM retry',String(saveError?.message||'unknown').slice(0,120)));
+    } else {
+      await saveSeagmFulfillmentState(job,{
+        jobStatus:'manual_review',orderStatus:'manual_review',
+        message:'لم يكتمل طلب المورد تلقائياً. تم تحويله لمراجعة الإدارة ولن تتم إعادة الشراء تلقائياً.',
+        errorText:seagmErrorMessage(error),
+      }).catch(saveError=>console.error('could not mark SEAGM manual review',String(saveError?.message||'unknown').slice(0,120)));
+    }
+  } finally {seagmFulfillmentWorkerBusy=false;}
+}
+
 async function cancelPendingOrder(orderId) {
   if (!pool) throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
   const found = await pool.query("SELECT id,invoice_number FROM nexa_orders WHERE id=$1 AND status='pending_payment' AND expires_at>NOW()",[orderId]);
@@ -939,6 +1301,9 @@ async function cancelPendingOrder(orderId) {
 }
 
 await initializeStoreState();
+const seagmFulfillmentTimer=setInterval(()=>runSeagmFulfillmentWorker().catch(error=>console.error('SEAGM worker loop failed',String(error?.message||'unknown').slice(0,120))),5_000);
+seagmFulfillmentTimer.unref?.();
+runSeagmFulfillmentWorker().catch(error=>console.error('initial SEAGM fulfillment run failed',String(error?.message||'unknown').slice(0,120)));
 if (storeSettings?.fxMode === 'api') refreshAutomaticFx().catch(error=>console.error('initial FX refresh failed',error.message));
 if (storeSettings?.catalogApiMode === 'auto') syncCatalogFromApi().catch(error=>console.error('initial catalogue API sync failed',error.message));
 const fxRefreshTimer = setInterval(()=>{ if (storeSettings?.fxMode === 'api') refreshAutomaticFx().catch(error=>console.error('scheduled FX refresh failed',error.message)); },5*60_000);
@@ -975,7 +1340,7 @@ const server = http.createServer(async (req,res) => {
       return send(res,401,{ok:false,error:'UNAUTHORIZED',message:'سجّل الدخول إلى لوحة الإدارة أولاً.'});
     }
     if (req.method === 'GET' && url.pathname === '/api/catalog') {
-      return send(res,200,{ok:true,catalog});
+      return send(res,200,{ok:true,catalog:publicCatalog()});
     }
     if (req.method === 'GET' && url.pathname === '/api/storefront-config') {
       return send(res,200,{ok:true,...publicSettings()});
@@ -1154,8 +1519,24 @@ const server = http.createServer(async (req,res) => {
     if (req.method === 'GET' && url.pathname === '/api/admin/orders') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const limit = Math.min(200,Math.max(1,Number(url.searchParams.get('limit')||100)));
-      const result = await pool.query(`SELECT id,product_label,amount_minor::text,currency,status,customer_name,customer_phone,game_account,notes,invoice_number,invoice_identifier,wallet_label,created_at,expires_at,paid_at FROM nexa_orders ORDER BY created_at DESC LIMIT $1`,[limit]);
+      const result = await pool.query(`SELECT o.id,o.product_label,o.amount_minor::text,o.currency,o.status,o.customer_name,o.customer_phone,o.game_account,o.notes,o.invoice_number,o.invoice_identifier,o.wallet_label,o.created_at,o.expires_at,o.paid_at,o.supplier_provider,o.supplier_kind,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_mch_order_id,j.last_error AS supplier_error FROM nexa_orders o LEFT JOIN nexa_fulfillment_jobs j ON j.order_id=o.id ORDER BY o.created_at DESC LIMIT $1`,[limit]);
       return send(res,200,{ok:true,orders:result.rows.map(o=>({...o,amountMinor:o.amount_minor,createdAt:o.created_at,expiresAt:o.expires_at,paidAt:o.paid_at}))});
+    }
+    const adminFulfillmentRetry = url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/fulfillment\/retry$/);
+    if (req.method === 'POST' && adminFulfillmentRetry) {
+      if (!pool) return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const orderId=adminFulfillmentRetry[1];
+      const found=await pool.query(`SELECT status,supplier_provider,supplier_status FROM nexa_orders WHERE id=$1`,[orderId]);
+      if (!found.rowCount || found.rows[0].status!=='paid' || found.rows[0].supplier_provider!=='seagm') {
+        return send(res,409,{ok:false,error:'FULFILLMENT_NOT_RETRYABLE',message:'لا يمكن إعادة محاولة هذا الطلب قبل تأكيد الدفع وربطه بمورد SEAGM.'});
+      }
+      if (found.rows[0].supplier_status==='completed') return send(res,409,{ok:false,error:'FULFILLMENT_ALREADY_COMPLETED',message:'تم تسليم هذا الطلب بالفعل؛ لا يمكن إعادة شرائه.'});
+      await pool.query(`INSERT INTO nexa_fulfillment_jobs(order_id,status,attempt_count,next_attempt_at,locked_at,last_error)
+        VALUES($1,'pending',0,NOW(),NULL,'')
+        ON CONFLICT(order_id) DO UPDATE SET status='pending',attempt_count=0,next_attempt_at=NOW(),locked_at=NULL,last_error='',updated_at=NOW()`,[orderId]);
+      await pool.query(`UPDATE nexa_orders SET supplier_status='pending',supplier_message='أعيد إرسال الطلب إلى قائمة تنفيذ المورد من لوحة الإدارة.' WHERE id=$1`,[orderId]);
+      runSeagmFulfillmentWorker().catch(error=>console.error('manual SEAGM retry failed',String(error?.message||'unknown').slice(0,120)));
+      return send(res,200,{ok:true,message:'تمت جدولة إعادة فحص الطلب باستخدام رقم المورد الأصلي؛ لن يتم إنشاء رقم طلب مختلف.'});
     }
     const adminOrderMatch = url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/cancel$/);
     if (req.method === 'POST' && adminOrderMatch) {
@@ -1181,12 +1562,13 @@ const server = http.createServer(async (req,res) => {
     const orderLookup = url.pathname.match(/^\/api\/orders\/(NX-[A-F0-9]{20})$/);
     if (req.method === 'GET' && orderLookup) {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
-      const q = await pool.query(`SELECT o.id,o.product_label,o.amount_minor,o.currency,o.status,o.expires_at,o.invoice_number,o.invoice_identifier,o.wallet_label,o.wallet_address,o.customer_name,o.paid_at,p.transaction_id
+      const q = await pool.query(`SELECT o.id,o.product_label,o.amount_minor,o.currency,o.status,o.expires_at,o.invoice_number,o.invoice_identifier,o.wallet_label,o.wallet_address,o.customer_name,o.paid_at,p.transaction_id,o.supplier_provider,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_result_encrypted
         FROM nexa_orders o LEFT JOIN nexa_payments p ON p.order_id=o.id WHERE o.id=$1`,[orderLookup[1]]);
       if (!q.rowCount) return send(res,404,{error:'ORDER_NOT_FOUND',message:'لم يتم العثور على الطلب.'});
       const o=q.rows[0];
-      const receipt = o.status === 'paid' ? {orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,customerName:o.customer_name,invoiceNumber:o.invoice_number,transactionId:o.transaction_id,paidAt:o.paid_at ? new Date(o.paid_at).toISOString() : null,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier} : null;
-      return send(res,200,{ok:true,orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,status:o.status,expiresAt:new Date(o.expires_at).toISOString(),invoiceNumber:o.invoice_number,invoiceIdentifier:o.invoice_identifier,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier,receipt});
+      const delivery=o.status==='paid'?supplierDeliveryForOrder(o):null;
+      const receipt = o.status === 'paid' ? {orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,customerName:o.customer_name,invoiceNumber:o.invoice_number,transactionId:o.transaction_id,paidAt:o.paid_at ? new Date(o.paid_at).toISOString() : null,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier,...(delivery?{delivery}:{})} : null;
+      return send(res,200,{ok:true,orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,status:o.status,expiresAt:new Date(o.expires_at).toISOString(),invoiceNumber:o.invoice_number,invoiceIdentifier:o.invoice_identifier,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier,delivery,receipt});
     }
     if (req.method === 'POST' && url.pathname === '/api/orders') {
       if (rateLimit(req,res,`order:${ip}`,8,60_000)) return;

@@ -424,7 +424,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
           <div id="seagmCatalogResults" class="seagm-catalog-results">
             <div class="empty-api">احفظ بيانات الحساب ثم اضغط «جلب المنتجات من SEAGM».</div>
           </div>
-          <div class="notice">سعر المورد يظهر بعملة حساب SEAGM (Credits). لا يتم تحويله تلقائياً إلى الليرة؛ أدخل سعر البيع المحلي بنفسك لتجنب تحويل غير دقيق أو خسارة في الهامش. نشر المنتج لا ينشئ طلب شراء من حساب المورد تلقائياً.</div>
+          <div class="notice">سعر المورد يظهر بعملة حساب SEAGM (Credits). لا يتم تحويله تلقائياً إلى الليرة؛ أدخل سعر البيع المحلي بنفسك لتجنب تحويل غير دقيق أو خسارة في الهامش. بعد تحقق شام كاش من دفع العميل، يرسل الخادم طلب الشراء إلى SEAGM ويتابع التسليم تلقائياً؛ نشر المنتج وحده لا يخصم رصيد المورد.</div>
         </section>
         <section class="panel api-connect-panel">
           <div class="panel-head"><div><div class="section-caption">NEW CONNECTION</div><h3>إضافة مصدر API جديد</h3><p>اكتب اسماً للمصدر ثم أنشئ مفتاحه. لا تحتاج إعدادات تقنية إضافية.</p></div></div>
@@ -447,7 +447,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
         </section>
       </section>
       <section class="page hidden" id="page-orders">
-        <div class="page-head"><div><div class="eyebrow">ORDERS & RECEIPTS</div><h2>الطلبات والفواتير</h2><p>عرض حالة كل طلب ومبلغه وبيانات الفاتورة. لا يمكن اعتماد الدفع يدوياً من لوحة الإدارة.</p></div><button class="btn soft" id="refreshOrdersBtn">تحديث القائمة ↻</button></div>
+        <div class="page-head"><div><div class="eyebrow">ORDERS & RECEIPTS</div><h2>الطلبات والفواتير</h2><p>عرض حالة الدفع والتسليم من SEAGM. لا يمكن اعتماد الدفع يدوياً من لوحة الإدارة، ويمكن إعادة فحص طلب المورد عند الحاجة.</p></div><button class="btn soft" id="refreshOrdersBtn">تحديث القائمة ↻</button></div>
         <section class="panel"><div class="toolbar"><input id="orderSearch" placeholder="ابحث برقم الطلب أو الاسم أو رقم الفاتورة"><select id="orderStatus" class="field" style="margin:0;width:145px"><option value="">كل الحالات</option><option value="paid">مدفوع</option><option value="pending_payment">بانتظار الدفع</option><option value="expired">منتهي</option><option value="cancelled">ملغي</option></select></div><div class="table-wrap"><table><thead><tr><th>رقم الطلب</th><th>المنتج</th><th>العميل</th><th>المبلغ</th><th>الحالة</th><th>الفاتورة</th><th>التاريخ</th><th>إجراء</th></tr></thead><tbody id="ordersBody"><tr><td colspan="8">جارٍ التحميل…</td></tr></tbody></table></div></section>
       </section>
       <section class="page hidden" id="page-payments">
@@ -780,9 +780,44 @@ $('copyApiEndpointBtn').addEventListener('click',async()=>{
 async function loadOrders(){const d=await api('/api/admin/orders?limit=200');state.orders=d.orders||[];renderOrders()}
 function formatAmount(minor,currency){const amount=Number(BigInt(minor||0))/100;return currency==='USD'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(amount):new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(amount)+' ل.س جديدة'}
 function statusTag(status){const m={paid:['مدفوع','green'],pending_payment:['بانتظار الدفع','orange'],expired:['منتهي','red'],cancelled:['ملغي','red']};const [t,c]=m[status]||[status,''];return `<span class="tag ${c}">${t}</span>`}
-function renderOrders(){const q=($('orderSearch').value||'').toLowerCase(),status=$('orderStatus').value;const rows=state.orders.filter(o=>(!status||o.status===status)&&[o.id,o.product_label,o.customer_name,o.invoice_number].some(v=>String(v||'').toLowerCase().includes(q)));$('ordersBody').innerHTML=rows.length?rows.map(o=>`<tr><td class="ltr">${esc(o.id)}</td><td>${esc(o.product_label)}</td><td>${esc(o.customer_name)}<small class="muted"> · ${esc(o.customer_phone||'')}</small></td><td>${formatAmount(o.amountMinor,o.currency)}</td><td>${statusTag(o.status)}</td><td class="ltr">${esc(o.invoice_number||'—')}</td><td>${new Date(o.createdAt).toLocaleString('ar-SY')}</td><td><div class="table-actions">${o.status==='pending_payment'?'<button class="btn danger" data-cancel-order="'+esc(o.id)+'">إلغاء</button>':''}<button class="btn soft" data-order-detail="${esc(o.id)}">تفاصيل</button></div></td></tr>`).join(''):'<tr><td colspan="8"><div class="empty">لا توجد طلبات مطابقة.</div></td></tr>'}
+function renderOrders(){
+ const q=($('orderSearch').value||'').toLowerCase(),status=$('orderStatus').value;
+ const rows=state.orders.filter(o=>(!status||o.status===status)&&[o.id,o.product_label,o.customer_name,o.invoice_number,o.supplier_order_id,o.supplier_status].some(v=>String(v||'').toLowerCase().includes(q)));
+ $('ordersBody').innerHTML=rows.length?rows.map(o=>{
+  const deliveryLabels={not_applicable:'—',pending_payment:'بعد تأكيد الدفع',pending:'بانتظار الإرسال',waiting:'قيد التنفيذ لدى SEAGM',completed:'تم التسليم',manual_review:'مراجعة الإدارة'};
+  const supplierLine=o.supplier_provider==='seagm'?'<small class="muted">SEAGM · '+esc(deliveryLabels[o.supplier_status]||o.supplier_status||'—')+'</small>':'';
+  const retry=o.supplier_provider==='seagm'&&o.status==='paid'&&o.supplier_status!=='completed'&&['manual_review','waiting'].includes(o.supplier_status)
+   ?'<button class="btn soft" data-retry-fulfillment="'+esc(o.id)+'">إعادة فحص المورد</button>':'';
+  return '<tr><td class="ltr">'+esc(o.id)+'</td><td>'+esc(o.product_label)+'</td><td>'+esc(o.customer_name)+'<small class="muted"> · '+esc(o.customer_phone||'')+'</small></td><td>'+formatAmount(o.amountMinor,o.currency)+'</td><td>'+statusTag(o.status)+supplierLine+'</td><td class="ltr">'+esc(o.invoice_number||'—')+'</td><td>'+new Date(o.createdAt).toLocaleString('ar-SY')+'</td><td><div class="table-actions">'+(o.status==='pending_payment'?'<button class="btn danger" data-cancel-order="'+esc(o.id)+'">إلغاء</button>':'')+retry+'<button class="btn soft" data-order-detail="'+esc(o.id)+'">تفاصيل</button></div></td></tr>';
+ }).join(''):'<tr><td colspan="8"><div class="empty">لا توجد طلبات مطابقة.</div></td></tr>';
+}
 $('orderSearch').addEventListener('input',renderOrders);$('orderStatus').addEventListener('change',renderOrders);$('refreshOrdersBtn').addEventListener('click',loadOrders);
-$('ordersBody').addEventListener('click',async e=>{const cancel=e.target.closest('[data-cancel-order]'),detail=e.target.closest('[data-order-detail]');if(cancel){if(!confirm('سيتم إلغاء الطلب المعلّق لدى المتجر. تأكد من عدم تنفيذ تحويل خارجي.'))return;try{await api('/api/admin/orders/'+cancel.dataset.cancelOrder+'/cancel',{method:'POST',body:'{}'});await loadOrders();toast('تم إلغاء الطلب.')}catch(err){toast(err.message)}}if(detail){const o=state.orders.find(x=>x.id===detail.dataset.orderDetail);if(o)alert(['رقم الطلب: '+o.id,'المنتج: '+o.product_label,'العميل: '+o.customer_name,'الهاتف: '+o.customer_phone,'المبلغ: '+formatAmount(o.amountMinor,o.currency),'الحالة: '+o.status,'رقم الفاتورة: '+(o.invoice_number||'—'),'عنوان الاستلام: '+(o.invoice_identifier||'—'),'تاريخ الإنشاء: '+new Date(o.createdAt).toLocaleString('ar-SY'),'تاريخ الدفع: '+(o.paidAt?new Date(o.paidAt).toLocaleString('ar-SY'):'—'),'ملاحظات: '+(o.notes||'—')].join('\n'))}});
+$('ordersBody').addEventListener('click',async e=>{
+ const cancel=e.target.closest('[data-cancel-order]'),detail=e.target.closest('[data-order-detail]'),retry=e.target.closest('[data-retry-fulfillment]');
+ if(retry){
+  if(!confirm('سيتم إعادة فحص الطلب لدى SEAGM باستخدام نفس رقم طلب المتجر. لن يتم إنشاء رقم شراء جديد.'))return;
+  try{await api('/api/admin/orders/'+retry.dataset.retryFulfillment+'/fulfillment/retry',{method:'POST',body:'{}'});await loadOrders();toast('تمت جدولة إعادة فحص طلب المورد.')}
+  catch(err){toast(err.message)}
+ }
+ if(cancel){
+  if(!confirm('سيتم إلغاء الطلب المعلّق لدى المتجر. تأكد من عدم تنفيذ تحويل خارجي.'))return;
+  try{await api('/api/admin/orders/'+cancel.dataset.cancelOrder+'/cancel',{method:'POST',body:'{}'});await loadOrders();toast('تم إلغاء الطلب.')}
+  catch(err){toast(err.message)}
+ }
+ if(detail){
+  const o=state.orders.find(x=>x.id===detail.dataset.orderDetail);
+  if(o)alert([
+   'رقم الطلب: '+o.id,'المنتج: '+o.product_label,'العميل: '+o.customer_name,'الهاتف: '+o.customer_phone,
+   'المبلغ: '+formatAmount(o.amountMinor,o.currency),'الحالة: '+o.status,
+   'المورد: '+(o.supplier_provider||'—'),'حالة التسليم: '+(o.supplier_status||'—'),
+   'رقم طلب المورد: '+(o.supplier_order_id||o.supplier_mch_order_id||'—'),
+   'رسالة المورد: '+(o.supplier_message||'—'),'آخر خطأ: '+(o.supplier_error||'—'),
+   'رقم الفاتورة: '+(o.invoice_number||'—'),'عنوان الاستلام: '+(o.invoice_identifier||'—'),
+   'تاريخ الإنشاء: '+new Date(o.createdAt).toLocaleString('ar-SY'),
+   'تاريخ الدفع: '+(o.paidAt?new Date(o.paidAt).toLocaleString('ar-SY'):'—'),'ملاحظات: '+(o.notes||'—')
+  ].join('\n'));
+ }
+});
 $('fxRate').addEventListener('input',()=>{$('fxPreview').textContent=(Number($('fxRate').value)||0).toLocaleString('en-US')+' ل.س'});
 async function boot(){try{await api('/api/admin/session');showApp();await loadAll()}catch{showLogin()}}
 boot();

@@ -149,3 +149,84 @@ test('SEAGM HTTP errors and timeouts are reported safely', async () => {
   });
   await assert.rejects(timeout.getAccount(), /SEAGM_REQUEST_TIMEOUT/);
 });
+
+test('signed card order uses HMAC over query and form body and keeps merchant order id', async () => {
+  let captured;
+  const client = createSeagmClient({
+    uid:'10001', secretKey:DOC_SECRET, environment:'sandbox',
+    fetchImpl:async (url, options) => {
+      captured = { url:new URL(url), options };
+      return new Response(JSON.stringify({code:200,msg:'OK',data:{
+        id:17401657,type_id:49,buy_amount:2,mch_order_id:'NX-0123456789ABCDEF0123',
+        status_code:10003,pay_status_code:2,send_status_code:3,
+        cards:[{card_number:'SERIAL-1',card_pin:'PIN-1',expired:'-'}],
+      }}),{status:200});
+    },
+  });
+  const result = await client.createCardOrder({typeId:49,quantity:2,merchantOrderId:'NX-0123456789ABCDEF0123'});
+  assert.equal(captured.url.origin,'https://openapi.seagm.io');
+  assert.equal(captured.url.pathname,'/v1/card-orders');
+  assert.equal(captured.options.method,'POST');
+  assert.match(captured.options.headers['Content-Type'],/application\/x-www-form-urlencoded/);
+  const body = new URLSearchParams(captured.options.body);
+  assert.equal(body.get('type_id'),'49');
+  assert.equal(body.get('buy_amount'),'2');
+  assert.equal(body.get('mch_order_id'),'NX-0123456789ABCDEF0123');
+  const signedParams = {
+    type_id:body.get('type_id'), buy_amount:body.get('buy_amount'), mch_order_id:body.get('mch_order_id'),
+    uid:captured.url.searchParams.get('uid'), timestamp:captured.url.searchParams.get('timestamp'),
+  };
+  assert.equal(captured.url.searchParams.get('signature'),buildSeagmSignature(signedParams,DOC_SECRET));
+  assert.equal(result.cards[0].card_pin,'PIN-1');
+});
+
+test('signed recharge order includes only validated supplier submit fields in the form body', async () => {
+  let captured;
+  const client = createSeagmClient({
+    uid:'10001',secretKey:DOC_SECRET,
+    fetchImpl:async(url,options)=>{
+      captured={url:new URL(url),options};
+      return new Response(JSON.stringify({code:200,data:{id:17401675,type_id:2987,buy_amount:1,mch_order_id:'NX-0123456789ABCDEF0123',status_code:10001,pay_status_code:2,send_status_code:1}}),{status:200});
+    },
+  });
+  const result=await client.createRechargeOrder({
+    typeId:2987,quantity:1,merchantOrderId:'NX-0123456789ABCDEF0123',
+    fields:{charge_account:'player-123',region:'EU'},
+  });
+  const body=new URLSearchParams(captured.options.body);
+  assert.equal(captured.url.pathname,'/v1/recharge-orders');
+  assert.equal(body.get('charge_account'),'player-123');
+  assert.equal(body.get('region'),'EU');
+  assert.equal(result.status_code,10001);
+  await assert.rejects(client.createRechargeOrder({
+    typeId:2987,merchantOrderId:'NX-0123456789ABCDEF0123',fields:{signature:'spoof'},
+  }),/INVALID_SEAGM_ORDER_FIELDS/);
+});
+
+test('SEAGM order lookup queries by merchant order id and recovers not-found responses', async () => {
+  const calls=[];
+  let missing=true;
+  const client=createSeagmClient({
+    uid:'10001',secretKey:DOC_SECRET,
+    fetchImpl:async url=>{
+      const parsed=new URL(url);
+      calls.push(parsed);
+      if(missing) return new Response(JSON.stringify({code:400,error_info:{info_code:20080,info_message:'Order not exist.'}}),{status:200});
+      return new Response(JSON.stringify({code:200,data:{id:123,mch_order_id:'NX-0123456789ABCDEF0123'}}),{status:200});
+    },
+  });
+  assert.equal(await client.getOrderByMerchantId('card','NX-0123456789ABCDEF0123'),null);
+  missing=false;
+  const found=await client.getOrderByMerchantId('recharge','NX-0123456789ABCDEF0123');
+  assert.equal(found.id,123);
+  assert.equal(calls[0].pathname,'/v1/card-orders/NX-0123456789ABCDEF0123');
+  assert.equal(calls[0].searchParams.get('query_type'),'mchOrderId');
+  assert.equal(calls[1].pathname,'/v1/recharge-orders/NX-0123456789ABCDEF0123');
+});
+
+test('SEAGM refuses invalid card and recharge order identifiers and quantities', async () => {
+  const client=createSeagmClient({uid:'10001',secretKey:DOC_SECRET,fetchImpl:async()=>{throw new Error('not called')}});
+  await assert.rejects(client.createCardOrder({typeId:0,quantity:1,merchantOrderId:'NX-1'}),/INVALID_SEAGM_ORDER_PARAMETERS/);
+  await assert.rejects(client.createRechargeOrder({typeId:2987,quantity:1001,merchantOrderId:'NX-1'}),/INVALID_SEAGM_ORDER_PARAMETERS/);
+  await assert.rejects(client.getOrderByMerchantId('mobile','NX-1'),/INVALID_SEAGM_ORDER_KIND/);
+});
