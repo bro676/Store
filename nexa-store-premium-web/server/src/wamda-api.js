@@ -9,6 +9,11 @@ function positiveInteger(value, fallback = null) {
   const number = Number(value);
   return Number.isSafeInteger(number) && number > 0 ? number : fallback;
 }
+function optionalNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
 function providerError(payload, httpStatus = 200) {
   const code = Number(payload?.code);
   const message = cleanText(payload?.message || payload?.error || 'WAMDA_API_ERROR', 300);
@@ -59,8 +64,8 @@ function normalizeProduct(row) {
       label:cleanText(field?.label || key, 100),
       type,
       required:field?.required !== false,
-      min:positiveInteger(field?.min),
-      max:positiveInteger(field?.max),
+      min:optionalNumber(field?.min),
+      max:optionalNumber(field?.max),
     };
   }).filter(Boolean) : [];
   const categoryId = positiveInteger(row?.category_id, 0);
