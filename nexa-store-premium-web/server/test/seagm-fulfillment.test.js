@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -183,4 +184,44 @@ test('transient errors stop retrying after the retry limit', () => {
   const result = classifySeagmFulfillmentError({ status: 503, code: 'UPSTREAM' }, 12);
   assert.equal(result.action, 'manual_review');
   assert.equal(result.failureCount, 12);
+});
+
+test('SEAGM fulfilment is queued only after Sham Cash invoice and transaction verification succeeds', async () => {
+  const server = await readFile(new URL('../src/server.js', import.meta.url), 'utf8');
+  const paidUpdate = server.indexOf("UPDATE nexa_orders SET status='paid'");
+  const enqueue = server.indexOf('INSERT INTO nexa_fulfillment_jobs(order_id,status,next_attempt_at)', paidUpdate);
+  const commit = server.indexOf("await client.query('COMMIT')", enqueue);
+  assert.ok(paidUpdate >= 0, 'payment state must be updated');
+  assert.ok(enqueue > paidUpdate, 'supplier job must be enqueued after payment is marked paid');
+  assert.ok(commit > enqueue, 'supplier job must be committed in the same payment transaction');
+  assert.match(server.slice(enqueue, commit), /ON CONFLICT\(order_id\) DO NOTHING/);
+});
+
+test('supplier order is reconciled by the same merchant order ID before any create call', async () => {
+  const server = await readFile(new URL('../src/server.js', import.meta.url), 'utf8');
+  const start = server.indexOf('async function processSeagmFulfillmentJob(job)');
+  const end = server.indexOf('async function runSeagmFulfillmentWorker()', start);
+  const worker = server.slice(start, end);
+  const lookup = worker.indexOf('client.getOrderByMerchantId(job.supplier_kind,merchantOrderId)');
+  const create = worker.indexOf('client.createCardOrder');
+  assert.ok(start >= 0 && end > start, 'fulfilment worker must exist');
+  assert.ok(lookup >= 0 && create > lookup, 'existing supplier order must be checked before a new purchase');
+  assert.match(worker, /if\(!providerOrder\)/);
+  assert.match(worker, /client.getOrderByMerchantId\(job.supplier_kind,merchantOrderId\)/);
+});
+
+test('delivered card data is encrypted at rest and only decrypted for the order receipt', async () => {
+  const server = await readFile(new URL('../src/server.js', import.meta.url), 'utf8');
+  assert.match(server, /resultEncrypted:encryptSecret\(JSON\.stringify\(decision\.result\),cfg\.settingsEncryptionKey\)/);
+  assert.match(server, /decryptSecret\(order\.supplier_result_encrypted,cfg\.settingsEncryptionKey\)/);
+  assert.match(server, /supplier_result_encrypted=CASE WHEN \$5<>'' THEN \$5 ELSE supplier_result_encrypted END/);
+});
+
+test('SEAGM retry failure counter is persisted separately from provider status polling', async () => {
+  const server = await readFile(new URL('../src/server.js', import.meta.url), 'utf8');
+  const migration = await readFile(new URL('../migrations/005_seagm_fulfillment_reliability.sql', import.meta.url), 'utf8');
+  assert.match(migration, /failure_count INTEGER NOT NULL DEFAULT 0/);
+  assert.match(server, /failure_count=COALESCE\(\$9,failure_count\)/);
+  assert.match(server, /classifySeagmFulfillmentError\(error,Number\(job\.failure_count\|\|0\)\)/);
+  assert.match(server, /failure_count=0,next_attempt_at=NOW\(\)/);
 });
