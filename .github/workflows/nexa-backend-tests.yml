@@ -1,0 +1,24 @@
+name: Nexa backend tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - main
+      - feat/seagm-provider-catalog-integration-20261031
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install backend dependencies
+        run: npm --prefix nexa-store-premium-web/server install --omit=dev --no-audit
+      - name: Run backend regression and SEAGM tests
+        run: npm --prefix nexa-store-premium-web/server test
