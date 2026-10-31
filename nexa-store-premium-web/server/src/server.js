@@ -1028,6 +1028,68 @@ async function persistSeagmSettings(nextSettings) {
   await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
   storeSettings = nextSettings;
 }
+function wamdaClient(){
+  if(!wamdaApiTokenRuntime)throw Object.assign(new Error('أدخل Wamda API Token من لوحة الإدارة أولاً.'),{status:400,code:'WAMDA_TOKEN_MISSING'});
+  return createWamdaClient({apiToken:wamdaApiTokenRuntime});
+}
+async function persistWamdaSettings(nextSettings){
+  if(!pool)throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
+  await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+  storeSettings=nextSettings;applyStoreSettings();
+}
+async function testWamdaConnection(){
+  const account=await wamdaClient().getProfile(),testedAt=new Date().toISOString();
+  await persistWamdaSettings({...storeSettings,wamdaAccountInfo:account,wamdaLastTestAt:testedAt,wamdaLastError:''});
+  return {ok:true,account,testedAt};
+}
+async function refreshWamdaCatalog(){
+  if(wamdaCatalogSyncInProgress)throw Object.assign(new Error('WAMDA_SYNC_IN_PROGRESS'),{status:409});
+  wamdaCatalogSyncInProgress=true;
+  try{
+    const client=wamdaClient();
+    const [account,snapshot]=await Promise.all([client.getProfile(),client.getProducts({limit:1000})]);
+    const groups=new Map();
+    for(const product of snapshot.products){
+      const id=String(product.categoryId||0);
+      if(!groups.has(id))groups.set(id,{id:Number(product.categoryId||0),name:product.categoryName||'متفرقات',products:[]});
+      groups.get(id).products.push(product);
+    }
+    const categories=Array.from(groups.values()).sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+    if(Buffer.byteLength(JSON.stringify(categories),'utf8')>3000000)throw new Error('WAMDA_CATALOG_TOO_LARGE');
+    const syncedAt=new Date().toISOString();
+    await persistWamdaSettings({...storeSettings,wamdaAccountInfo:account,wamdaCatalogCache:categories,wamdaLastSyncAt:syncedAt,wamdaLastError:''});
+    return {ok:true,account,syncedAt,pagesFetched:snapshot.pagesFetched,stats:{categories:categories.length,products:snapshot.products.length,available:snapshot.products.filter(row=>row.available).length},categories};
+  }catch(error){
+    await persistWamdaSettings({...storeSettings,wamdaLastError:String(error?.message||'WAMDA_SYNC_FAILED').slice(0,300)}).catch(()=>{});
+    throw error;
+  }finally{wamdaCatalogSyncInProgress=false;}
+}
+async function publishWamdaProduct(input){
+  if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('INVALID_WAMDA_PUBLISH_REQUEST');
+  const categoryId=Number(input.categoryId),productId=Number(input.productId),priceText=String(input.sellPriceSyp??'').trim();
+  if(!Number.isSafeInteger(categoryId)||categoryId<0||!Number.isSafeInteger(productId)||productId<=0)throw new Error('INVALID_WAMDA_PRODUCT_ID');
+  if(!/^[0-9]{1,9}(?:\\.[0-9]{1,2})?$/.test(priceText))throw new Error('INVALID_WAMDA_SELL_PRICE');
+  const sellPrice=Number(priceText);
+  if(!Number.isFinite(sellPrice)||sellPrice<=0||sellPrice>1000000000)throw new Error('INVALID_WAMDA_SELL_PRICE');
+  const categories=Array.isArray(storeSettings?.wamdaCatalogCache)?storeSettings.wamdaCatalogCache:[];
+  const sourceCategory=categories.find(row=>Number(row.id)===categoryId);
+  const sourceProduct=sourceCategory?.products?.find(row=>Number(row.id)===productId);
+  if(!sourceProduct)throw Object.assign(new Error('المنتج غير موجود في آخر مزامنة ومضة. حدّث المنتجات أولاً.'),{status:404});
+  if(!sourceProduct.available)throw Object.assign(new Error('المنتج غير متاح حالياً لدى ومضة.'),{status:409});
+  const localCategoryId='wamda-category-'+categoryId,localProductId='wamda-'+productId;
+  let workingCatalog=catalog;
+  if(!workingCatalog.some(row=>row.id===localCategoryId))workingCatalog=validateCatalog([...workingCatalog,{id:localCategoryId,name:String(sourceCategory.name||'منتجات ومضة').slice(0,100),desc:'منتجات رقمية مستوردة من ومضة ستور.',image:'assets/brand/logo.svg',icon:'⚡',items:[]}]);
+  const fields=Array.isArray(sourceProduct.fields)?sourceProduct.fields.map(field=>({key:field.key,label:field.label,type:field.type,required:field.required!==false,min:field.min,max:field.max})):[];
+  const retailProduct={
+    id:localProductId,name:String(sourceProduct.name||('Wamda product '+productId)).slice(0,120),
+    desc:String(sourceProduct.description||'منتج رقمي مرتبط بمورد ومضة.').slice(0,700),image:'assets/brand/logo.svg',
+    options:[{id:'wamda-default',name:'الخيار الأساسي',desc:'منتج مرتبط بمصدر ومضة',flag:'⚡',packs:[['سعر البيع',sellPrice]]}],
+    wamda:{provider:'wamda',categoryId,productId,minimumQuantity:Number(sourceProduct.minQuantity||1),maximumQuantity:Number(sourceProduct.maxQuantity||1),fields,sourcePrice:Number(sourceProduct.sourcePrice||0),pricePerQuantity:Number(sourceProduct.pricePerQuantity||1),unitPrice:Number(sourceProduct.unitPrice||0),currency:'USD'},
+  };
+  const result=upsertCatalogProduct(workingCatalog,localCategoryId,retailProduct);
+  await persistCatalog(result.catalog);
+  return {ok:true,created:result.created,categoryId:localCategoryId,productId:result.productId,sellPriceSyp:sellPrice,message:result.created?'تم نشر المنتج في كتالوج المتجر.':'تم تحديث المنتج وسعر بيعه في كتالوج المتجر.'};
+}
 async function testSeagmConnection() {
   const account = await seagmClient().getAccount();
   const testedAt = new Date().toISOString();
