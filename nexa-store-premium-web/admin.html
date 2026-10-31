@@ -282,6 +282,94 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
 .seagm-unavailable{font-size:8px;color:var(--red);grid-column:1/-1}
 @media(max-width:760px){.seagm-credential-grid{grid-template-columns:1fr}.seagm-product-row{grid-template-columns:1fr 1fr}.seagm-product-main{grid-column:1/-1}.seagm-product-row>button{min-height:38px}}
 
+
+/* NEXA admin theme modes — cohesive blue/cyan/lilac light + deep navy dark. */
+:root[data-theme="light"]{color-scheme:light;--ink:#17324f;--muted:#70849a;--line:#dceafa;--paper:#f3f8fd;--white:#fff;--navy:#173b61;--navy2:#24577f;--nexa-pale:#f3f8fd;--nexa-soft:#e9f3ff;--shadow:0 9px 26px rgba(20,55,91,.07)}
+:root[data-theme="light"] body{background:radial-gradient(ellipse at 0 0,rgba(77,146,235,.11),transparent 40%),linear-gradient(140deg,#f4f8fd,#edf5fb);color:var(--ink)}
+:root[data-theme="light"] .side{background:linear-gradient(180deg,#183d63,#22557b 75%,#263f74);color:#fff;border-left:1px solid #2d5d81;box-shadow:-10px 0 30px rgba(20,55,91,.12)}
+:root[data-theme="light"] .brand strong,:root[data-theme="light"] .side-foot b{color:#fff}
+:root[data-theme="light"] .brand small,:root[data-theme="light"] .side-foot{color:#bdcfe2}
+:root[data-theme="light"] .side-label{color:#94b4cf}
+:root[data-theme="light"] .nav button{color:#d1e0ef}
+:root[data-theme="light"] .nav button.active{color:#fff;background:linear-gradient(100deg,rgba(77,146,235,.3),rgba(164,201,245,.13));border-color:rgba(255,255,255,.16);box-shadow:inset -3px 0 #a4c9f5}
+:root[data-theme="light"] .nav .ico{background:rgba(255,255,255,.12);color:#d9ebfa}
+:root[data-theme="light"] .topbar{background:rgba(248,252,255,.93);border-color:#dbe8f4}
+:root[data-theme="light"] .stat,:root[data-theme="light"] .panel{background:rgba(255,255,255,.92);border-color:#dbe8f4;box-shadow:var(--shadow)}
+:root[data-theme="light"] .stat-icon{background:#e8f2ff;color:#2875ce}
+:root[data-theme="light"] .product-editor{background:#fbfdff;border-color:#dceafa}
+:root[data-theme="light"] .product-editor summary,:root[data-theme="light"] .option-editor{background:#f2f7fd;border-color:#dceafa}
+:root[data-theme="light"] .category-choice,:root[data-theme="light"] .tabs button{background:#fafdff;border-color:#dceafa;color:#355779}
+:root[data-theme="light"] .category-choice.active{background:#e5f1ff;color:#225e98;border-color:#a9c9ed}
+:root[data-theme="light"] .field input,:root[data-theme="light"] .field textarea,:root[data-theme="light"] .field select,:root[data-theme="light"] .toolbar input{background:#f8fbff;border-color:#d6e5f3;color:#17324f}
+:root[data-theme="light"] .field input:focus,:root[data-theme="light"] .field textarea:focus,:root[data-theme="light"] .field select:focus{background:#fff;border-color:#6ca9e7;box-shadow:0 0 0 3px rgba(77,146,235,.13)}
+:root[data-theme="light"] .soft{background:#eff6ff;border-color:#d7e6f7;color:#27547e}
+:root[data-theme="light"] .soft:hover{background:#e5f1ff;border-color:#a9c9ed}
+:root[data-theme="light"] .quick-actions button{background:#f5f9fe;border-color:#dceafa}
+:root[data-theme="light"] .quick-actions button:hover{background:#eaf4ff;border-color:#b6d2ef}
+:root[data-theme="light"] .table-wrap{border-color:#dceafa}
+:root[data-theme="light"] th{background:#eaf3fc;color:#56718d}
+:root[data-theme="light"] td{border-color:#e5eef7}
+:root[data-theme="light"] .secret-box,:root[data-theme="light"] .api-code{background:#f1f7fd;border-color:#d8e7f6;color:#385979}
+:root[data-theme="light"] .notice.info{background:#edf5ff;border-color:#d6e7f8;color:#41678e}
+:root[data-theme="light"] .status-pill{background:#e9f5f4;color:#2c7778}
+:root[data-theme="light"] .btn.primary{background:linear-gradient(120deg,#2875ce,#4d92eb 58%,#857fd8);box-shadow:0 8px 18px rgba(40,117,206,.19)}
+:root[data-theme="dark"]{color-scheme:dark;--ink:#e5effb;--muted:#9db2ca;--line:#2b4562;--paper:#0d1b2b;--white:#172b40;--navy:#0b1b2e;--navy2:#143453;--nexa-pale:#152b42;--nexa-soft:#1a3856;--shadow:0 13px 34px rgba(0,0,0,.2)}
+:root[data-theme="dark"] body{background:radial-gradient(ellipse at 0 0,rgba(77,146,235,.13),transparent 42%),linear-gradient(145deg,#091726,#10263c 65%,#17243d);color:var(--ink)}
+:root[data-theme="dark"] .side{background:linear-gradient(180deg,#091726,#102d49 72%,#18294a);border-left:1px solid #294661;color:#edf5ff;box-shadow:-12px 0 36px rgba(0,0,0,.25)}
+:root[data-theme="dark"] .brand{border-color:#263d55}
+:root[data-theme="dark"] .brand strong,:root[data-theme="dark"] .side-foot b{color:#f0f6ff}
+:root[data-theme="dark"] .brand small,:root[data-theme="dark"] .side-foot{color:#9ab1c9}
+:root[data-theme="dark"] .side-label{color:#7c98b4}
+:root[data-theme="dark"] .nav button{color:#b7cadf}
+:root[data-theme="dark"] .nav button:hover{background:#19344f;color:#fff}
+:root[data-theme="dark"] .nav button.active{color:#fff;background:linear-gradient(100deg,rgba(77,146,235,.28),rgba(135,127,216,.14));border-color:#385a7b;box-shadow:inset -3px 0 #a4c9f5}
+:root[data-theme="dark"] .nav .ico{background:#1b3855;color:#b9d8f7}
+:root[data-theme="dark"] .topbar{background:rgba(13,30,48,.93);border-color:#29445f;box-shadow:0 2px 18px rgba(0,0,0,.12)}
+:root[data-theme="dark"] .topbar h1,:root[data-theme="dark"] .page-head h2,:root[data-theme="dark"] .panel-head h3,:root[data-theme="dark"] .stat strong{color:#e8f2ff}
+:root[data-theme="dark"] .topbar p,:root[data-theme="dark"] .panel-head p,:root[data-theme="dark"] .page-head p{color:#9bb1c8}
+:root[data-theme="dark"] .main{background:transparent}
+:root[data-theme="dark"] .stat,:root[data-theme="dark"] .panel{background:rgba(20,41,63,.92);border-color:#2a4560;box-shadow:var(--shadow);color:var(--ink)}
+:root[data-theme="dark"] .stat-icon{background:#1e3e5d;color:#a9cfff}
+:root[data-theme="dark"] .product-editor{background:#122940;border-color:#2c4966}
+:root[data-theme="dark"] .product-editor summary,:root[data-theme="dark"] .option-editor{background:#172f48;border-color:#2c4966;color:#e2edf9}
+:root[data-theme="dark"] .product-editor[open] summary{background:#1b3855}
+:root[data-theme="dark"] .category-choice,:root[data-theme="dark"] .tabs button{background:#152d45;border-color:#2c4a67;color:#c2d5e8}
+:root[data-theme="dark"] .category-choice.active,:root[data-theme="dark"] .tabs button.active{background:#234d70;border-color:#5a86b1;color:#fff}
+:root[data-theme="dark"] .field label{color:#bdd0e3}
+:root[data-theme="dark"] .field input,:root[data-theme="dark"] .field textarea,:root[data-theme="dark"] .field select,:root[data-theme="dark"] .toolbar input{background:#10263c;border-color:#2e4a66;color:#e4effb}
+:root[data-theme="dark"] .field input::placeholder,:root[data-theme="dark"] .field textarea::placeholder,:root[data-theme="dark"] .toolbar input::placeholder{color:#809bb6}
+:root[data-theme="dark"] .field input:focus,:root[data-theme="dark"] .field textarea:focus,:root[data-theme="dark"] .field select:focus{background:#17334f;border-color:#6ca9e7;box-shadow:0 0 0 3px rgba(77,146,235,.19)}
+:root[data-theme="dark"] .soft,:root[data-theme="dark"] .icon-btn{background:#1a3854;border-color:#355775;color:#d1e3f5}
+:root[data-theme="dark"] .soft:hover,:root[data-theme="dark"] .icon-btn:hover{background:#22496c;border-color:#618eb7;color:#fff}
+:root[data-theme="dark"] .quick-actions button{background:#172f48;border-color:#2c4966;color:#d7e7f7}
+:root[data-theme="dark"] .quick-actions button:hover{background:#1d3c59;border-color:#527da4}
+:root[data-theme="dark"] .quick-actions i{background:#23486a;color:#c2e0ff}
+:root[data-theme="dark"] .bar-track{background:#233d57}
+:root[data-theme="dark"] .table-wrap{border-color:#2c4966}
+:root[data-theme="dark"] th{background:#1c3954;color:#a9bfd5}
+:root[data-theme="dark"] td{border-color:#263f58;color:#d9e7f5}
+:root[data-theme="dark"] .tag{background:#223c56;color:#c4d5e5}
+:root[data-theme="dark"] .tag.green{background:#1d473e;color:#91d7c2}
+:root[data-theme="dark"] .tag.orange{background:#4b3b28;color:#f0c98b}
+:root[data-theme="dark"] .tag.red{background:#4a2d39;color:#f0a7b5}
+:root[data-theme="dark"] .secret-box,:root[data-theme="dark"] .api-code{background:#132c43;border-color:#31506c;color:#c5d9ec}
+:root[data-theme="dark"] .notice{background:#3b3327;border-color:#6b5739;color:#ecd0a2}
+:root[data-theme="dark"] .notice.info{background:#1a3854;border-color:#365b7b;color:#c1d9f0}
+:root[data-theme="dark"] .fx-preview{background:linear-gradient(115deg,#173551,#263653);border-color:#34516e}
+:root[data-theme="dark"] .fx-preview strong{color:#acd0f4}
+:root[data-theme="dark"] .login-screen{background:radial-gradient(circle at 20% 20%,rgba(77,146,235,.24),transparent 28%),linear-gradient(135deg,#081625,#13314f 65%,#222e4e)}
+:root[data-theme="dark"] .login-card{background:#13283d;border-color:#2e4b67;color:#e6eff9;box-shadow:0 28px 80px rgba(0,0,0,.38)}
+:root[data-theme="dark"] .login-card h1{color:#edf5ff}
+:root[data-theme="dark"] .login-card p{color:#a6b9cc}
+:root[data-theme="dark"] .login-card .field label{color:#c3d5e7}
+:root[data-theme="dark"] .toast{background:#244c70;color:#fff}
+:root[data-theme="dark"] .empty,:root[data-theme="dark"] .loading{color:#a6bbd0}
+:root[data-theme="dark"] .image-preview,:root[data-theme="dark"] .product-thumb{background:#172f48;border-color:#314e69}
+:root[data-theme="dark"] .status-pill{background:#1a4651;color:#91d8d0}
+:root[data-theme="dark"] .btn.primary{background:linear-gradient(120deg,#2875ce,#4d92eb 58%,#857fd8);color:#fff}
+:root[data-theme="dark"] .admin-sidebar-backdrop{background:rgba(0,0,0,.55)}
+:root[data-theme="dark"] .nexa-ai-panel .notice.info a{color:#9cc8f5;text-decoration:underline}
+@media(max-width:820px){:root[data-theme="light"] .side{background:linear-gradient(180deg,#183d63,#22557b 75%,#263f74)}}
 </style>
 <link rel="stylesheet" href="/assets/brand/nexa-luxury.css">
 </head>
@@ -317,7 +405,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
     <header class="topbar">
       <button class="admin-menu-toggle" id="adminMenuToggle" type="button" aria-label="فتح القائمة الجانبية" aria-expanded="false" aria-controls="adminSidebar"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg></button>
       <div><h1 id="pageTitle">نظرة عامة</h1><p>إدارة وتشغيل Nexa Store</p></div>
-      <div class="top-actions"><span class="status-pill" id="topStatus">متصل</span><div class="avatar">NX</div><button class="btn soft" id="logoutBtn">خروج</button></div>
+      <div class="top-actions"><span class="status-pill" id="topStatus">متصل</span><button class="btn soft" id="adminThemeToggle" type="button" aria-label="تبديل الوضع اللوني">🌙 الوضع الداكن</button><div class="avatar">NX</div><button class="btn soft" id="logoutBtn">خروج</button></div>
     </header>
     <div class="container">
       <section class="page" id="page-overview">
@@ -370,6 +458,40 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
       </section>
       <section class="page hidden" id="page-catalog-api">
         <div class="page-head"><div><div class="eyebrow">PRODUCT API CONNECTIONS</div><h2>مصادر إضافة المنتجات</h2><p>اربط أكثر من نظام أو متجر خارجي، وكل مصدر يحصل على مفتاح مستقل لإضافة المنتجات وتحديثها فقط.</p></div><span class="status-pill">حتى 20 مصدر API</span></div>
+        <section class="panel seagm-connect-panel nexa-ai-panel" id="nexaAiPanel">
+          <div class="panel-head">
+            <div>
+              <div class="section-caption">NEXA AI AGENT · GEMINI INTERACTIONS</div>
+              <h3>مساعد Nexa الذكي</h3>
+              <p>مساعد ذكاء اصطناعي حقيقي يستطيع البحث في الكتالوج وقراءة الأسعار والتوفر وشرح خطوات الطلب، مع صلاحيات قراءة محدودة فقط.</p>
+            </div>
+            <span class="status-pill" id="nexaAiBadge">غير مفعّل</span>
+          </div>
+          <div class="seagm-credential-grid">
+            <div class="field">
+              <label for="nexaAiApiKey">مفتاح Gemini API</label>
+              <input id="nexaAiApiKey" type="password" autocomplete="new-password" maxlength="1024" placeholder="أدخل مفتاح Google AI Studio" dir="ltr">
+              <small id="nexaAiKeyState">لا يوجد مفتاح محفوظ. أدخل مفتاحاً جديداً أو اترك الحقل فارغاً للاحتفاظ بالموجود.</small>
+            </div>
+            <div class="field">
+              <label for="nexaAiModel">نموذج الذكاء الاصطناعي</label>
+              <select id="nexaAiModel">
+                <option value="gemini-3.8-flash">Gemini 3.8 Flash · موصى به</option>
+                <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+                <option value="gemini-3.5-flash-lite">Gemini 3.5 Flash-Lite</option>
+                <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash-Lite</option>
+              </select>
+              <small>تستطيع تغيير النموذج دون تغيير كود الموقع.</small>
+            </div>
+          </div>
+          <div class="seagm-actions">
+            <button class="btn primary" id="saveNexaAiSettingsBtn" type="button">حفظ إعدادات المساعد</button>
+            <button class="btn soft" id="testNexaAiBtn" type="button">اختبار اتصال الذكاء الاصطناعي</button>
+            <label class="seagm-clear-secret"><input id="clearNexaAiApiKey" type="checkbox"> حذف المفتاح المحفوظ</label>
+          </div>
+          <div class="seagm-status-message" id="nexaAiStatus" role="status">المساعد غير مفعّل حتى تحفظ مفتاح API صالحاً.</div>
+          <div class="notice info">للحصول على مفتاح: <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio · API Keys</a>. قد تتوفر حصة مجانية بحدود استخدام متغيرة، لكن طلبات المستوى المجاني قد تُستخدم لتحسين خدمات Google. المساعد لا يقرأ الطلبات أو بيانات العملاء أو مفاتيح الدفع؛ صلاحياته مقتصرة على معلومات المنتجات العامة.</div>
+        </section>
         <section class="panel seagm-connect-panel" id="wamdaConnectPanel">
           <div class="panel-head">
             <div>
@@ -585,6 +707,20 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
 <div id="toast" class="toast"></div>
 <script>
 const $=id=>document.getElementById(id);
+const ADMIN_THEME_KEY='nexa-admin-theme';
+function setAdminColorMode(mode){
+ const selected=mode==='dark'?'dark':'light';
+ document.documentElement.dataset.theme=selected;
+ try{localStorage.setItem(ADMIN_THEME_KEY,selected)}catch{}
+ const button=$('adminThemeToggle');
+ if(button){button.textContent=selected==='dark'?'☀️ الوضع الفاتح':'🌙 الوضع الداكن';button.setAttribute('aria-label',selected==='dark'?'التبديل إلى الوضع الفاتح':'التبديل إلى الوضع الداكن');}
+}
+function initializeAdminColorMode(){
+ let saved='light';try{saved=localStorage.getItem(ADMIN_THEME_KEY)||'light'}catch{}
+ setAdminColorMode(saved);
+ $('adminThemeToggle')?.addEventListener('click',()=>setAdminColorMode(document.documentElement.dataset.theme==='dark'?'light':'dark'));
+}
+
 function adminMixHex(a,b,t){
  const toRgb=h=>{const s=String(h||'').replace('#','');return [0,2,4].map(i=>parseInt(s.slice(i,i+2),16))};
  const x=toRgb(a),y=toRgb(b);return '#'+x.map((v,i)=>Math.round(v*(1-t)+y[i]*t).toString(16).padStart(2,'0')).join('');
@@ -696,7 +832,47 @@ $('catalogEditor').addEventListener('input',e=>{if(e.target.dataset.packLabel){c
 $('addCategoryBtn').addEventListener('click',()=>{state.catalog.push({id:'category-'+Date.now().toString(36),name:'قسم جديد',desc:'وصف القسم',image:'assets/categories/custom.svg',icon:'✦',items:[]});state.categoryIndex=state.catalog.length-1;renderCatalog()});
 $('addProductBtn').addEventListener('click',()=>{const c=activeCategory();if(!c)return;c.items.push({id:'product-'+Date.now().toString(36),name:'منتج جديد',desc:'وصف المنتج',image:'assets/products/website.svg',options:[{id:'option-'+Date.now().toString(36),name:'الخيار الأساسي',desc:'',flag:'✦',packs:[['باقة جديدة',0]]}]});renderCatalog()});
 $('saveCatalogBtn').addEventListener('click',async()=>{const b=$('saveCatalogBtn');b.disabled=true;try{await api('/api/admin/catalog',{method:'PUT',body:JSON.stringify({catalog:state.catalog})});toast('تم حفظ الكتالوج والصور على قاعدة البيانات.')}catch(e){toast(e.message)}finally{b.disabled=false}});
-async function loadSettings(){const d=await api('/api/admin/settings');state.settings=d.settings||{};renderSettings(d)}
+async function loadSettings(){const d=await api('/api/admin/settings');state.settings=d.settings||{};renderSettings(d);renderNexaAiSettings()}
+
+function renderNexaAiSettings(){
+ const configured=Boolean(state.settings.nexaAiConfigured);
+ if($('nexaAiApiKey'))$('nexaAiApiKey').value='';
+ if($('clearNexaAiApiKey'))$('clearNexaAiApiKey').checked=false;
+ if($('nexaAiModel'))$('nexaAiModel').value=state.settings.nexaAiModel||'gemini-3.8-flash';
+ if($('nexaAiKeyState'))$('nexaAiKeyState').textContent=configured?'يوجد مفتاح محفوظ ومشفّر على الخادم. اترك الحقل فارغاً للاحتفاظ به.':'لا يوجد مفتاح محفوظ. أنشئ مفتاحاً من Google AI Studio ثم أدخله هنا.';
+ if($('nexaAiBadge'))$('nexaAiBadge').textContent=configured?'المساعد مهيأ':'غير مفعّل';
+ if($('nexaAiStatus'))$('nexaAiStatus').textContent=configured?'مفتاح Gemini محفوظ. اختبر الاتصال للتأكد من صلاحيته.':'المساعد غير مفعّل حتى تحفظ مفتاح API صالحاً.';
+}
+async function saveNexaAiSettings(){
+ const payload={nexaAiModel:$('nexaAiModel').value,clearNexaAiApiKey:$('clearNexaAiApiKey').checked};
+ const token=$('nexaAiApiKey').value.trim();if(token)payload.nexaAiApiKey=token;
+ const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(payload)});
+ state.settings=d.settings||state.settings;
+ renderNexaAiSettings();
+ $('nexaAiStatus').textContent=state.settings.nexaAiConfigured?'تم حفظ مفتاح Gemini مشفّراً. اضغط اختبار الاتصال للتحقق منه.':'تم حذف مفتاح المساعد. المساعد غير مفعّل الآن.';
+ toast('تم حفظ إعدادات مساعد Nexa.');
+ return d;
+}
+$('saveNexaAiSettingsBtn').addEventListener('click',async()=>{
+ const button=$('saveNexaAiSettingsBtn');button.disabled=true;
+ try{await saveNexaAiSettings();}
+ catch(error){$('nexaAiStatus').textContent=error.message;toast(error.message);}
+ finally{button.disabled=false;}
+});
+$('testNexaAiBtn').addEventListener('click',async()=>{
+ const button=$('testNexaAiBtn');button.disabled=true;$('nexaAiStatus').textContent='جارٍ اختبار الاتصال بنموذج Gemini…';
+ try{
+  await saveNexaAiSettings();
+  const result=await api('/api/admin/ai/test',{method:'POST',body:'{}'});
+  $('nexaAiBadge').textContent='متصل';
+  $('nexaAiStatus').textContent='نجح الاتصال · '+result.model+' · '+result.reply;
+  toast('مساعد Nexa متصل بنجاح.');
+ }catch(error){
+  $('nexaAiBadge').textContent='فشل الاتصال';
+  $('nexaAiStatus').textContent=error.message;
+  toast(error.message);
+ }finally{button.disabled=false;}
+});
 function renderSettings(d={}){const s=state.settings;$('storeName').value=s.storeName||'Nexa Store';$('announcement').value=s.announcement||'';$('storeLogo').value=s.storeLogo||'assets/brand/logo.svg';$('storeLogoPreview').src=s.storeLogo||'assets/brand/logo.svg';$('themePrimary').value=s.themePrimary||'#397fda';$('themeSecondary').value=s.themeSecondary||'#65b8d7';$('themeAccent').value=s.themeAccent||'#8076d6';applyAdminTheme($('themePrimary').value,$('themeSecondary').value,$('themeAccent').value);$('paymentEnabled').checked=!!s.paymentEnabled;$('shamApiBase').value=s.shamApiBase||'https://apis-shamcash.com/api';$('shamApiToken').value='';$('clearShamApiToken').checked=false;$('shamTokenState').textContent=s.shamApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لم يتم ضبط مفتاح بعد.';$('receiverLabel').value=s.receiverLabel||'';$('walletId').value=s.walletId||'';$('orderTtlMinutes').value=s.orderTtlMinutes??15;$('maxAgeMinutes').value=s.maxAgeMinutes??15;$('futureSkewSeconds').value=s.futureSkewSeconds??90;$('timezoneOffsetMinutes').value=s.timezoneOffsetMinutes??180;$('paymentStatus').textContent=d.paymentsReady?'الدفع مفعّل وجاهز':'الدفع غير جاهز';
  $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;renderCatalogApiKeys();$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';$('seagmEnvironment').value=s.seagmEnvironment||'sandbox';$('seagmUid').value=s.seagmUid||'';$('seagmSecret').value='';$('clearSeagmSecret').checked=false;$('seagmSecretState').textContent=s.seagmSecretConfigured?'يوجد Secret Key محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لا يوجد Secret Key محفوظ.';$('wamdaApiToken').value='';$('clearWamdaApiToken').checked=false;$('wamdaTokenState').textContent=s.wamdaApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';$('wamdaWebhookUrl').value=s.wamdaWebhookUrl||'';$('copyWamdaWebhookBtn').disabled=!s.wamdaWebhookUrl;const globalWamdaPolicy=s.wamdaPricingPolicy||{mode:'percent',value:s.wamdaProfitMarginPercent??0};$('wamdaGlobalPricingMode').value=globalWamdaPolicy.mode==='fixed_profit'?'fixed_profit':'percent';$('wamdaGlobalPricingValue').value=globalWamdaPolicy.value??0;$('wamdaAutoRefreshEnabled').checked=s.wamdaAutoRefreshEnabled!==false;$('wamdaRefreshIntervalMinutes').value=s.wamdaRefreshIntervalMinutes??15;$('wamdaFxRateDisplay').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س لكل 1 USD';}
 $('fxMode').addEventListener('change',()=>{$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api')});
@@ -1066,6 +1242,7 @@ $('ordersBody').addEventListener('click',async e=>{
  }
 });
 $('fxRate').addEventListener('input',()=>{$('fxPreview').textContent=(Number($('fxRate').value)||0).toLocaleString('en-US')+' ل.س'});
+initializeAdminColorMode();
 async function boot(){try{await api('/api/admin/session');showApp();await loadAll()}catch{showLogin()}}
 boot();
 </script>

@@ -29,6 +29,7 @@ let catalogApiSyncInProgress = false;
 let seagmSecretRuntime = '';
 let wamdaApiTokenRuntime = '';
 let wamdaWebhookSecretRuntime = '';
+let nexaAiApiKeyRuntime = '';
 let wamdaCatalogSyncInProgress = false;
 let seagmCatalogSyncInProgress = false;
 let seagmFulfillmentWorkerBusy = false;
@@ -646,6 +647,7 @@ function defaultStoreSettings() {
     wamdaApiTokenEncrypted:'',wamdaApiTokenCleared:false,wamdaWebhookSecretEncrypted:'',
     wamdaCatalogCache:[],wamdaAccountInfo:null,wamdaLastSyncAt:null,wamdaLastRefreshAttemptAt:null,wamdaLastTestAt:null,wamdaLastError:'',
     wamdaProfitMarginPercent:0,wamdaPricingPolicy:{mode:'percent',value:0},wamdaCategoryPricingPolicies:{},wamdaAutoRefreshEnabled:true,wamdaRefreshIntervalMinutes:15,
+    nexaAiProvider:'gemini',nexaAiModel:'gemini-3.8-flash',nexaAiApiKeyEncrypted:'',nexaAiApiKeyCleared:false,
     catalogWriteApiTokenEncrypted:'', catalogWriteApiTokenCleared:false, catalogWriteApiKeys:[],
     paymentEnabled:cfg.paymentsEnabled, shamApiBase:cfg.apiBase, walletId:cfg.walletId,
     receiverLabel:cfg.receiverLabel, timezoneOffsetMinutes:cfg.timezoneOffsetMinutes,
@@ -682,6 +684,7 @@ function applyStoreSettings() {
   } catch { seagmSecretRuntime = ''; }
   try { wamdaApiTokenRuntime=storeSettings.wamdaApiTokenCleared?'':(storeSettings.wamdaApiTokenEncrypted?decryptSecret(storeSettings.wamdaApiTokenEncrypted,cfg.settingsEncryptionKey):''); } catch { wamdaApiTokenRuntime=''; }
   try { wamdaWebhookSecretRuntime=storeSettings.wamdaWebhookSecretEncrypted?decryptSecret(storeSettings.wamdaWebhookSecretEncrypted,cfg.settingsEncryptionKey):''; } catch { wamdaWebhookSecretRuntime=''; }
+  try { nexaAiApiKeyRuntime=storeSettings.nexaAiApiKeyCleared?'':(storeSettings.nexaAiApiKeyEncrypted?decryptSecret(storeSettings.nexaAiApiKeyEncrypted,cfg.settingsEncryptionKey):''); } catch { nexaAiApiKeyRuntime=''; }
   cachedShamWallet = null;
   cachedShamWalletAt = 0;
   refreshPaymentsReady();
@@ -814,7 +817,7 @@ async function refreshAutomaticFx() {
   }
 }
 function safeSettingsForAdmin() {
-  const {shamApiTokenEncrypted,fxApiTokenEncrypted,catalogApiTokenEncrypted,catalogWriteApiTokenEncrypted,seagmSecretEncrypted,seagmCatalogCache=[],catalogWriteApiKeys=[],wamdaApiTokenEncrypted,wamdaWebhookSecretEncrypted,wamdaCatalogCache=[],...settings}=storeSettings||{};
+  const {shamApiTokenEncrypted,fxApiTokenEncrypted,catalogApiTokenEncrypted,catalogWriteApiTokenEncrypted,seagmSecretEncrypted,seagmCatalogCache=[],catalogWriteApiKeys=[],wamdaApiTokenEncrypted,wamdaWebhookSecretEncrypted,wamdaCatalogCache=[],nexaAiApiKeyEncrypted,...settings}=storeSettings||{};
   const publicBase=String(process.env.PUBLIC_BASE_URL||'https://nexa-store-9st4.onrender.com').replace(/\/+$/,'');
   return {...settings,catalogWriteApiKeys:catalogWriteApiKeys.map(({id,name,createdAt})=>({id,name,createdAt})),
     shamApiTokenConfigured:Boolean(cfg.apiToken),fxApiTokenConfigured:Boolean(fxApiTokenRuntime),catalogApiTokenConfigured:Boolean(catalogApiTokenRuntime),
@@ -823,6 +826,7 @@ function safeSettingsForAdmin() {
     wamdaApiTokenConfigured:Boolean(wamdaApiTokenRuntime),wamdaWebhookConfigured:Boolean(wamdaWebhookSecretRuntime),
     wamdaWebhookUrl:wamdaWebhookSecretRuntime?publicBase+'/api/webhooks/wamda/'+encodeURIComponent(wamdaWebhookSecretRuntime):'',
     wamdaProductCount:wamdaCatalogCache.reduce((sum,category)=>sum+(category.products||[]).length,0),
+    nexaAiConfigured:Boolean(nexaAiApiKeyRuntime),
   };
 }
 function validateAndApplySettings(input) {
@@ -944,6 +948,13 @@ function validateAndApplySettings(input) {
     next.wamdaApiTokenEncrypted=encryptSecret(input.wamdaApiToken.trim(),cfg.settingsEncryptionKey);next.wamdaApiTokenCleared=false;
   }
   if(input.clearWamdaApiToken===true){next.wamdaApiTokenEncrypted='';next.wamdaApiTokenCleared=true;}
+  if(input.nexaAiApiKey!==undefined&&input.nexaAiApiKey!==''){
+    if(typeof input.nexaAiApiKey!=='string'||input.nexaAiApiKey.length>1024||!input.nexaAiApiKey.trim())throw new Error('INVALID_NEXA_AI_API_KEY');
+    next.nexaAiApiKeyEncrypted=encryptSecret(input.nexaAiApiKey.trim(),cfg.settingsEncryptionKey);next.nexaAiApiKeyCleared=false;
+  }
+  if(input.clearNexaAiApiKey===true){next.nexaAiApiKeyEncrypted='';next.nexaAiApiKeyCleared=true;}
+  if(input.nexaAiProvider!==undefined){if(input.nexaAiProvider!=='gemini')throw new Error('UNSUPPORTED_NEXA_AI_PROVIDER');next.nexaAiProvider='gemini';}
+  if(input.nexaAiModel!==undefined){if(!['gemini-3.8-flash','gemini-3.6-flash','gemini-3.5-flash-lite','gemini-3.1-flash-lite'].includes(input.nexaAiModel))throw new Error('INVALID_NEXA_AI_MODEL');next.nexaAiModel=input.nexaAiModel;}
   if(input.wamdaProfitMarginPercent!==undefined){
     next.wamdaProfitMarginPercent=normalizeWamdaMargin(input.wamdaProfitMarginPercent);
     if(input.wamdaPricingPolicy===undefined)next.wamdaPricingPolicy={mode:'percent',value:next.wamdaProfitMarginPercent};
@@ -1685,7 +1696,128 @@ async function cancelPendingOrder(orderId) {
   return Boolean(result.rowCount);
 }
 
+
+const nexaAssistantTools=[
+  {type:'function',name:'search_store_catalog',description:'Search publicly visible products in the live Nexa Store catalogue. Use this to find items by product name, game, app, service or category. Never invent availability or prices.',parameters:{type:'object',properties:{query:{type:'string',description:'A product, service, game or category name to search for.'}},required:['query']}},
+  {type:'function',name:'get_store_product_details',description:'Get the current public details, options, price packs and availability for a product from the published store catalogue.',parameters:{type:'object',properties:{product_id:{type:'string',description:'The exact product ID returned by search_store_catalog.'}},required:['product_id']}},
+  {type:'function',name:'get_store_help_information',description:'Get verified public store information about how ordering and Sham Cash payment verification work, plus support channels.',parameters:{type:'object',properties:{},required:[]}},
+];
+function publicAssistantProducts(){
+  return (Array.isArray(catalog)?catalog:[]).flatMap(category=>(category.items||[]).map(product=>({categoryId:String(category.id),categoryName:String(category.name||''),product})));
+}
+function assistantToolResult(name,args){
+  const rows=publicAssistantProducts();
+  if(name==='search_store_catalog'){
+    const query=String(args?.query||'').trim().toLowerCase();
+    if(!query||query.length>100)return {ok:false,message:'اكتب اسم المنتج أو الخدمة المراد البحث عنها.'};
+    const found=rows.map(row=>({...row,score:[row.product.name,row.product.desc,row.categoryName,row.product.id].filter(Boolean).some(value=>String(value).toLowerCase().includes(query))?1:0}))
+      .filter(row=>row.score).slice(0,8).map(row=>({id:String(row.product.id),name:String(row.product.name),description:String(row.product.desc||'').slice(0,240),category:row.categoryName,
+        available:row.product.wamda?.available!==false,options:(row.product.options||[]).map(option=>({name:option.name,packs:(option.packs||[]).slice(0,12).map(pack=>({name:String(pack[0]),price:Number(pack[1])}))}))}));
+    return {ok:true,results:found,total:found.length};
+  }
+  if(name==='get_store_product_details'){
+    const productId=String(args?.product_id||'');
+    const row=rows.find(item=>String(item.product.id)===productId);
+    if(!row)return {ok:false,message:'لم يتم العثور على هذا المنتج ضمن الكتالوج المنشور.'};
+    return {ok:true,product:{id:String(row.product.id),name:String(row.product.name),description:String(row.product.desc||'').slice(0,700),
+      category:row.categoryName,available:row.product.wamda?.available!==false,
+      options:(row.product.options||[]).map(option=>({name:String(option.name),description:String(option.desc||''),packs:(option.packs||[]).map(pack=>({name:String(pack[0]),price:Number(pack[1])}))}))}};
+  }
+  if(name==='get_store_help_information'){
+    return {ok:true,store:'Nexa Store',currency:'الليرة السورية الجديدة',payment:'تُنشأ فاتورة شام كاش من الخادم، ولا يعتمد الدفع إلا بعد التحقق من رقم العملية والمبلغ والعملة ومحفظة الفاتورة وصلاحيتها. لا ترسل كلمة المرور أو OTP أو بيانات البطاقة إلى الدعم أو المساعد.',
+      fulfillment:'بعد تأكيد الدفع يرسل الخادم طلب المورد المرتبط بالمنتج ويتابع حالته. قد يحتاج الطلب إلى مراجعة عند وجود مشكلة لدى المورد؛ لا تعد العميل بتسليم فوري قبل تأكيد الحالة.',
+      support:{whatsapp:'https://wa.me/963936382101',email:'support.nsde@gmail.com'},
+      steps:['اختر منتجاً منشوراً ومتوفراً','اختر المنطقة أو الخطة والباقة','أنشئ الطلب واستلم فاتورة الخادم','حوّل المبلغ الظاهر إلى محفظة الفاتورة','أدخل رقم العملية للتحقق من الدفع']};
+  }
+  return {ok:false,message:'الأداة المطلوبة غير متاحة.'};
+}
+function assistantTextFromInteraction(payload){
+  if(typeof payload?.output_text==='string'&&payload.output_text.trim())return payload.output_text.trim();
+  const steps=Array.isArray(payload?.steps)?payload.steps:[];
+  for(let i=steps.length-1;i>=0;i--){
+    const content=steps[i]?.content;
+    if(Array.isArray(content)){
+      const text=content.filter(part=>part?.type==='text'&&typeof part.text==='string').map(part=>part.text).join('\n').trim();
+      if(text&&steps[i].type!=='function_call')return text;
+    }
+  }
+  return '';
+}
+async function callNexaGeminiInteraction(history,{test=false}={}){
+  if(!nexaAiApiKeyRuntime)throw Object.assign(new Error('مساعد Nexa غير مفعّل بعد. أضف مفتاح Gemini API من لوحة الإدارة.'),{status:503,code:'NEXA_AI_NOT_CONFIGURED'});
+  const model=String(storeSettings?.nexaAiModel||'gemini-3.8-flash');
+  const systemInstruction=[
+    'أنت مساعد Nexa Store لخدمة العملاء باللغة العربية، ويمكنك استخدام لهجة عربية بسيطة ومفهومة.',
+    'اعتمد على أدوات الكتالوج والمعلومات الموثوقة فقط عند الحديث عن منتجات المتجر أو الأسعار أو التوفر أو الدفع.',
+    'لا تخترع منتجات أو أسعاراً أو مواعيد تسليم أو حالة طلبات. إذا لم تظهر معلومة في نتيجة الأداة فقل إنك لا تستطيع تأكيدها.',
+    'لا تطلب كلمة مرور أو رمز OTP أو بيانات بطاقة أو رقم معاملة الدفع في المحادثة. لا تحاول إنشاء فاتورة أو إجراء دفع أو تعديل أسعار أو الوصول لطلبات الأفراد.',
+    'أنت لا تملك صلاحية إنشاء طلب أو إلغاء طلب أو تغيير بيانات الحساب. وجّه المستخدم إلى صفحة الدعم عند الحاجة.',
+    'استخدم search_store_catalog عند البحث عن منتجات، ثم get_store_product_details عند الحاجة إلى تفاصيل وأسعار أدق. استخدم get_store_help_information للأسئلة عن الطلب والدفع والدعم.',
+    'كن مختصراً وودوداً، واذكر أن سعر العرض النهائي يؤخذ من صفحة المنتج وفاتورة الخادم.'
+  ].join('\n');
+  const controller=new AbortController();
+  const timeout=setTimeout(()=>controller.abort(),18_000);
+  const steps=Array.isArray(history)?history.slice(-12):[];
+  const input=steps.length?steps:[{type:'user_input',content:[{type:'text',text:'مرحباً'}]}];
+  try{
+    for(let round=0;round<4;round++){
+      const response=await fetch('https://generativelanguage.googleapis.com/v1beta/interactions',{
+        method:'POST',headers:{'content-type':'application/json','x-goog-api-key':nexaAiApiKeyRuntime},
+        body:JSON.stringify({model,input,tools:test?[]:nexaAssistantTools,system_instruction:systemInstruction,store:false,generation_config:{temperature:0.25}}),
+        signal:controller.signal,redirect:'error',
+      });
+      const raw=await response.text();
+      let payload;try{payload=JSON.parse(raw);}catch{throw new Error('تعذر قراءة استجابة Gemini API.');}
+      if(!response.ok)throw Object.assign(new Error(String(payload?.error?.message||'تعذر الاتصال بخدمة الذكاء الاصطناعي.').slice(0,260)),{status:response.status>=500?502:422});
+      const modelSteps=Array.isArray(payload.steps)?payload.steps:[];
+      input.push(...modelSteps);
+      const functionCalls=modelSteps.filter(step=>step?.type==='function_call');
+      if(!functionCalls.length){
+        const reply=assistantTextFromInteraction(payload);
+        if(!reply)throw new Error('لم يُرجع المساعد إجابة نصية.');
+        return {reply:reply.slice(0,3000),model};
+      }
+      for(const step of functionCalls){
+        const name=String(step.name||''),args=step.arguments&&typeof step.arguments==='object'?step.arguments:{};
+        const result=assistantToolResult(name,args);
+        input.push({type:'function_result',name,call_id:String(step.id||''),result:[{type:'text',text:JSON.stringify(result)}]});
+      }
+    }
+    throw new Error('تجاوز المساعد الحد المسموح لاستدعاء أدوات المتجر.');
+  }catch(error){
+    if(error?.name==='AbortError')throw Object.assign(new Error('تأخر رد المساعد. حاول مرة أخرى.'),{status:504});
+    throw error;
+  }finally{clearTimeout(timeout);}
+}
+async function testNexaAiConnection(){
+  const history=[{type:'user_input',content:[{type:'text',text:'أجب بكلمة واحدة: جاهز'}]}];
+  const result=await callNexaGeminiInteraction(history,{test:true});
+  return {ok:true,model:result.model,reply:result.reply.slice(0,100),testedAt:new Date().toISOString()};
+}
+
 await initializeStoreState();
+const legacyDefaultProductIds={
+  games:new Set(['freefire','pubg','roblox','codm']),
+  apps:new Set(['tiktok','likee']),
+  giftcards:new Set(['googleplay','playstation','steam']),
+  subscriptions:new Set(['netflix','youtube','spotify','chatgpt']),
+  design:new Set(['logo','video']),
+  marketing:new Set(['ads','seo']),
+  websites:new Set(['website','landing']),
+  custom:new Set(['custom']),
+};
+const migratedCatalog=catalog.map(category=>({
+  ...category,
+  items:(category.items||[]).filter(product=>{
+    const remove=legacyDefaultProductIds[category.id]?.has(String(product.id))&&!product.wamda&&!product.seagm;
+    return !remove;
+  }),
+})).filter(category=>!legacyDefaultProductIds[category.id]||(category.items||[]).length>0);
+const legacyItemsRemoved=catalog.reduce((sum,category)=>sum+(category.items||[]).filter(product=>legacyDefaultProductIds[category.id]?.has(String(product.id))&&!product.wamda&&!product.seagm).length,0);
+if(legacyItemsRemoved>0){
+  await persistCatalog(migratedCatalog);
+  console.log('Removed '+legacyItemsRemoved+' legacy sample products from the live catalogue; supplier products and order records were preserved.');
+}
 const seagmFulfillmentTimer=setInterval(()=>runSeagmFulfillmentWorker().catch(error=>console.error('SEAGM worker loop failed',String(error?.message||'unknown').slice(0,120))),5_000);
 seagmFulfillmentTimer.unref?.();
 runSeagmFulfillmentWorker().catch(error=>console.error('initial SEAGM fulfillment run failed',String(error?.message||'unknown').slice(0,120)));
@@ -1811,6 +1943,34 @@ const server = http.createServer(async (req,res) => {
     }
     if (req.method === 'GET' && url.pathname === '/api/storefront-config') {
       return send(res,200,{ok:true,...publicSettings()});
+    }
+    if(req.method==='POST'&&url.pathname==='/api/assistant/chat'){
+      if(rateLimit(req,res,'nexa-assistant:'+ip,12,60_000))return;
+      if(!nexaAiApiKeyRuntime)return send(res,503,{ok:false,error:'NEXA_AI_NOT_CONFIGURED',message:'مساعد Nexa الذكي لم يتم تفعيله بعد. يمكنك التواصل مع فريق الدعم حالياً.'});
+      const input=await bodyJson(req,12_000);
+      const message=String(input.message||'').trim();
+      if(!message||message.length>1000)return send(res,400,{ok:false,error:'INVALID_ASSISTANT_MESSAGE',message:'اكتب سؤالاً من 1 إلى 1000 حرف.'});
+      const prior=Array.isArray(input.history)?input.history.slice(-8):[];
+      const redactAssistantText=value=>String(value||'')
+        .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi,'[بريد محذوف]')
+        .replace(/\bNX-[A-Z0-9-]{8,}\b/gi,'[رقم طلب محذوف]')
+        .replace(/(?:\+?\d[\d\s().-]{7,}\d)/g,'[رقم هاتف محذوف]');
+      const safeMessage=redactAssistantText(message);
+      const transcript=prior.map(item=>{
+        const role=item?.role==='assistant'?'المساعد':'العميل';
+        const content=redactAssistantText(item?.content).replace(/[\u0000-\u001f]/g,' ').slice(0,500);
+        return content?role+': '+content:'';
+      }).filter(Boolean).join('\n');
+      const prompt=(transcript?('سياق المحادثة السابقة:\n'+transcript+'\n\n'):'')+'سؤال العميل الحالي:\n'+safeMessage;
+      const history=[{type:'user_input',content:[{type:'text',text:prompt}]}];
+      try{
+        const result=await callNexaGeminiInteraction(history);
+        return send(res,200,{ok:true,reply:result.reply,model:result.model});
+      }catch(error){
+        const status=error?.status||502;
+        return send(res,status,{ok:false,error:error?.code||'NEXA_AI_REQUEST_FAILED',
+          message:String(error?.message||'تعذر الحصول على رد من المساعد.').slice(0,260)});
+      }
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/overview') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
@@ -2028,6 +2188,11 @@ const server = http.createServer(async (req,res) => {
       if (rateLimit(req,res,`catalog-sync:${ip}`,5,60_000)) return;
       try { const result = await syncCatalogFromApi(); return send(res,200,result); }
       catch (error) { return send(res,error?.status || 422,{ok:false,error:'CATALOG_API_SYNC_FAILED',message:String(error?.message || 'تعذرت مزامنة API المنتجات.')}); }
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/ai/test'){
+      if(rateLimit(req,res,'nexa-ai-test:'+ip,5,60_000))return;
+      try{return send(res,200,await testNexaAiConnection());}
+      catch(error){return send(res,error?.status||422,{ok:false,error:error?.code||'NEXA_AI_TEST_FAILED',message:String(error?.message||'تعذر اختبار الاتصال بالمساعد.').slice(0,260)});}
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/settings') {
       return send(res,200,{ok:true,settings:safeSettingsForAdmin(),paymentsReady,fxReady:fxRateReady()});
