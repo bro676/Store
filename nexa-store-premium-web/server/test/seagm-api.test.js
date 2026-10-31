@@ -82,6 +82,45 @@ test('catalog sync enumerates card and direct top-up categories and their produc
   assert.equal(result.categories[1].products[0].maxAmount,10);
 });
 
+test('normalizes current camelCase product fields and provider submitField names', async () => {
+  const client = createSeagmClient({
+    uid:'10001',secretKey:DOC_SECRET,
+    fetchImpl:async url=>{
+      const path=new URL(url).pathname;
+      const payload=path==='/v1/card-categories'
+        ? {code:200,data:[{id:11,name:'Digital Cards',code:'cards'}]}
+        : path==='/v1/recharge-categories'
+          ? {code:200,data:[{id:12,name:'Direct Recharge',code:'recharge'}]}
+          : path==='/v1/card-categories/11/card-types'
+            ? {code:200,data:[{id:13,name:'Card',categoryId:11,unitPrice:'3.50',parValue:'5',parValueCurrency:'USD',maxAmount:4,hasStock:true}]}
+            : {code:200,data:[{id:14,name:'Topup',categoryId:12,unitPrice:'2.75',minAmount:1,maxAmount:8,fields:[{name:'player_id',submitField:'charge_account',type:'input',label:'Player ID',tips:'Enter your ID'}]}]};
+      return new Response(JSON.stringify(payload),{status:200});
+    },
+  });
+  const result=await client.getCatalog();
+  const card=result.categories[0].products[0];
+  const recharge=result.categories[1].products[0];
+  assert.equal(card.parValue,5);
+  assert.equal(card.parValueCurrency,'USD');
+  assert.equal(card.maxAmount,4);
+  assert.equal(recharge.minAmount,1);
+  assert.equal(recharge.maxAmount,8);
+  assert.equal(recharge.fields[0].submitField,'charge_account');
+  assert.equal(recharge.fields[0].tips,'Enter your ID');
+});
+
+test('SEAGM stops on provider rate limits and exposes retry-after', async () => {
+  const client=createSeagmClient({
+    uid:'10001',secretKey:DOC_SECRET,
+    fetchImpl:async()=>new Response('rate limited',{status:429,headers:{'retry-after':'30'}}),
+  });
+  await assert.rejects(client.getAccount(),error=>{
+    assert.equal(error.code,'SEAGM_RATE_LIMITED');
+    assert.equal(error.retryAfter,30);
+    return true;
+  });
+});
+
 test('SEAGM errors are surfaced without accepting non-200 provider codes', async () => {
   const client = createSeagmClient({
     uid:'10001',secretKey:DOC_SECRET,
