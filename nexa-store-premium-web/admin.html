@@ -370,6 +370,61 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
       </section>
       <section class="page hidden" id="page-catalog-api">
         <div class="page-head"><div><div class="eyebrow">PRODUCT API CONNECTIONS</div><h2>مصادر إضافة المنتجات</h2><p>اربط أكثر من نظام أو متجر خارجي، وكل مصدر يحصل على مفتاح مستقل لإضافة المنتجات وتحديثها فقط.</p></div><span class="status-pill">حتى 20 مصدر API</span></div>
+        <section class="panel seagm-connect-panel" id="wamdaConnectPanel">
+          <div class="panel-head">
+            <div>
+              <div class="section-caption">WAMDA STORE · SUPPLIER API</div>
+              <h3>ربط ومضة ستور</h3>
+              <p>أضف API Token من حساب ومضة. يحفظه الخادم مشفّراً، ثم يمكنك اختبار الحساب واستيراد المنتجات.</p>
+            </div>
+            <span class="status-pill" id="wamdaConnectionBadge">غير متصل</span>
+          </div>
+          <div class="seagm-credential-grid">
+            <div class="field">
+              <label for="wamdaApiToken">Wamda API Token</label>
+              <input id="wamdaApiToken" type="password" autocomplete="new-password" maxlength="1024" placeholder="ألصق API Token الخاص بحسابك" dir="ltr">
+              <small id="wamdaTokenState">لم يتم حفظ مفتاح ومضة بعد.</small>
+            </div>
+            <div class="field">
+              <label>بيانات الحساب</label>
+              <div class="seagm-sync-summary" id="wamdaAccountSummary">لم يتم اختبار الاتصال بعد.</div>
+              <small id="wamdaLastSync">آخر مزامنة: —</small>
+            </div>
+            <div class="field">
+              <label>Webhook URL الخاص بمتجرك</label>
+              <input id="wamdaWebhookUrl" readonly dir="ltr" value="" placeholder="سيظهر الرابط بعد تحميل الإعدادات">
+              <small>ضع هذا الرابط في إعدادات Webhook بحساب ومضة. الرابط سري، لا تنشره علناً.</small>
+            </div>
+            <div class="field">
+              <label>طريقة استقبال الإشعار</label>
+              <div class="seagm-sync-summary">يوقظ الإشعار عامل الطلبات فقط؛ الخادم يتحقق من الحالة الفعلية عبر Wamda /check.</div>
+              <small>توثيق ومضة الحالي لا يشرح توقيع Webhook أو بنية أحداثه.</small>
+            </div>
+          </div>
+          <div class="seagm-actions">
+            <button class="btn primary" type="button" id="saveWamdaBtn">حفظ API Token</button>
+            <button class="btn soft" type="button" id="testWamdaBtn">اختبار الحساب والرصيد</button>
+            <button class="btn soft" type="button" id="refreshWamdaCatalogBtn">جلب المنتجات من ومضة ↻</button>
+            <button class="btn soft" type="button" id="copyWamdaWebhookBtn">نسخ Webhook URL</button>
+            <label class="seagm-clear-secret"><input id="clearWamdaApiToken" type="checkbox"> حذف Token المحفوظ</label>
+          </div>
+          <div class="seagm-status-message" id="wamdaAccountStatus" role="status">أدخل API Token من ومضة ثم احفظه لاختبار الاتصال.</div>
+          <div class="notice info">المصادقة تتم بترويسة <bdi dir="ltr">api-token</bdi>. لا نضع المفتاح في المتصفح العام أو ملفات GitHub، ولا نحتاج إعداد IP حالياً.</div>
+        </section>
+        <section class="panel seagm-products-panel" id="wamdaProductsPanel">
+          <div class="panel-head">
+            <div>
+              <div class="section-caption">WAMDA LIVE CATALOG</div>
+              <h3>منتجات ومضة المستوردة</h3>
+              <p>حدّد سعر البيع بالليرة السورية الجديدة ثم انشر المنتج في كتالوج المتجر.</p>
+            </div>
+            <span class="status-pill" id="wamdaProductCount">0 منتج</span>
+          </div>
+          <div id="wamdaCatalogResults" class="seagm-catalog-results">
+            <div class="empty-api">احفظ API Token ثم اختبر الحساب واجلب المنتجات.</div>
+          </div>
+          <div class="notice">السعر القادم من ومضة بالدولار ويظهر كتكلفة مرجعية فقط. يجب تحديد سعر البيع المحلي قبل النشر، ولا يتم تأكيد التسليم إلا بعد أن تعيد ومضة حالة completed عند فحص الطلب.</div>
+        </section>
         <section class="panel seagm-connect-panel">
           <div class="panel-head">
             <div>
