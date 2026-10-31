@@ -694,7 +694,9 @@ async function serveStatic(req, res, pathname) {
   if (!abs.startsWith(ROOT + path.sep) && abs !== ROOT) return send(res,404,{error:'NOT_FOUND'});
   try {
     const data = await fs.readFile(abs);
-    res.writeHead(200, {'Content-Type':mime[path.extname(abs)] || 'application/octet-stream','X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin','X-Frame-Options':'DENY','Content-Security-Policy':"default-src 'self' data: blob: https:; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"});
+    const extension = path.extname(abs).toLowerCase();
+    const cacheControl = extension === '.html' ? 'no-store' : (extension === '.css' || extension === '.js') ? 'no-cache, must-revalidate' : 'public, max-age=3600';
+    res.writeHead(200, {'Content-Type':mime[extension] || 'application/octet-stream','Cache-Control':cacheControl,'X-Content-Type-Options':'nosniff','Referrer-Policy':'same-origin','X-Frame-Options':'DENY','Content-Security-Policy':"default-src 'self' data: blob: https:; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"});
     res.end(data);
   } catch { send(res,404,{error:'NOT_FOUND'}); }
 }

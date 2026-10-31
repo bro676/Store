@@ -43,6 +43,9 @@ test('product click targets are complete and wallet checkout controls are presen
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   assert.ok(store.includes("'data-browse-item=\"'+esc(product.id)+'\"'"), 'Category product tiles must close the product ID attribute');
   assert.ok(store.includes("'data-open-item=\"'+esc(i.id)+'\"'"), 'Search product tiles must close the product ID attribute');
+  assert.ok(store.includes('<article class="product-card" data-open-item="${esc(it.id)}" role="button" tabindex="0"'), 'Featured product cards open when clicked');
+  assert.ok(store.includes('<article class="product-card" data-open-item="${esc(id)}" role="button" tabindex="0"'), 'Saved product cards open when clicked');
+  assert.ok(store.includes("e.target.matches?.('.product-card[role=\"button\"][data-open-item]')"), 'Product cards support keyboard activation');
   assert.ok(store.includes('id="paymentMethod"'), 'Checkout must expose a payment method selector');
   assert.ok(store.includes('value="shamcash"') && store.includes('value="wallet"'), 'Checkout must offer direct and wallet payment');
   assert.ok(store.includes('id="customerWalletCard"') && store.includes('id="walletTopupForm"'), 'Wallet account and top-up interface must exist');
@@ -59,7 +62,26 @@ test('light mode overrides legacy dark panels across storefront and dashboard', 
     ':root[data-theme="light"] #app.shell .api-code',
     ':root[data-theme="light"] .menu-toggle',
     ':root[data-theme="light"] .toast',
+    ':root[data-theme="light"] #app.shell .side',
+    ':root[data-theme="light"] #app.shell .toast',
+    ':root[data-theme="light"] #loginScreen.login-screen',
+    ':root[data-theme="light"] .modal',
+    ':root[data-theme="light"] .assistant-messages',
+    ':root[data-theme="light"] .support-safety-panel',
+    ':root[data-theme="light"] .support-help-links',
+    ':root[data-theme="light"] .view[data-view="orders"] .data-table',
   ];
   for (const selector of lightRules) assert.ok(css.includes(selector), 'Missing light-mode override: ' + selector);
   assert.ok(css.includes(':root[data-theme="dark"] .wallet-api-side'), 'Dark mode retains its dark wallet panel');
+});
+
+
+test('Store and admin assets are revalidated instead of serving a stale theme', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
+  assert.ok(store.includes('nexa-luxury.css?v=20261031-03'), 'Store stylesheet uses the cache-busting version');
+  assert.ok(admin.includes('nexa-luxury.css?v=20261031-03'), 'Admin stylesheet uses the cache-busting version');
+  assert.ok(server.includes("const cacheControl = extension === '.html' ? 'no-store'"), 'HTML responses are not cached');
+  assert.ok(server.includes("'Cache-Control':cacheControl"), 'Static files send explicit cache policy');
 });
