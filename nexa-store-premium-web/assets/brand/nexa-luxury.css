@@ -1968,7 +1968,7 @@ html[data-theme="light"]{background:#f5f1e7!important;color-scheme:light!importa
 :root[data-theme="dark"] #app.shell .nexa-ai-panel .notice.info a{color:#f0d982!important}
 :root[data-theme="light"] #app.shell .nexa-ai-panel .notice.info a{color:#87651a!important}
 :root[data-theme="dark"] #app.shell .toast{background:#24200f!important;color:#f3f0e8!important}
-:root[data-theme="light"] #app.shell .toast{background:#24200f!important;color:#f3f0e8!important}
+:root[data-theme="light"] #app.shell .toast{background:#fffdf7!important;color:#181713!important;border-color:#e5dac0!important}
 
 /* Storefront content surfaces and remaining light patches. */
 :root[data-theme="dark"] .header,:root[data-theme="dark"] .header-search,
@@ -2554,3 +2554,93 @@ html[data-theme="light"],body:has(html[data-theme="light"]){
   background:linear-gradient(180deg,#eee6d4,#e7ddc8)!important;color:#48412f!important;
   border-top:1px solid #ded1b3!important;
 }
+
+
+/* FINAL VISUAL CASCADE AUDIT — outranks legacy dark selectors. */
+:root[data-theme="light"] #app.shell #adminSidebar,
+:root[data-theme="light"] #app.shell .side{background:linear-gradient(165deg,#fffdf7 0%,#f4eddb 72%,#eee4ce 100%)!important;color:#181713!important;border-color:#e5dac0!important;box-shadow:10px 0 32px rgba(81,62,19,.08)!important}
+:root[data-theme="light"] #app.shell #adminSidebar .brand strong,
+:root[data-theme="light"] #app.shell .side .brand strong{color:#181713!important}
+:root[data-theme="light"] #app.shell #adminSidebar .brand small,
+:root[data-theme="light"] #app.shell #adminSidebar .side-label,
+:root[data-theme="light"] #app.shell .side .brand small,
+:root[data-theme="light"] #app.shell .side .side-label{color:#87651a!important}
+:root[data-theme="light"] #app.shell #adminSidebar .nav button,
+:root[data-theme="light"] #app.shell #adminSidebar .side-foot,
+:root[data-theme="light"] #app.shell .side .nav button,
+:root[data-theme="light"] #app.shell .side .side-foot{color:#57503d!important}
+:root[data-theme="light"] #app.shell #adminSidebar .nav button:hover,
+:root[data-theme="light"] #app.shell #adminSidebar .nav button.active,
+:root[data-theme="light"] #app.shell .side .nav button:hover,
+:root[data-theme="light"] #app.shell .side .nav button.active{background:#f0e5c9!important;color:#6c4e10!important;border-color:#e2d1a4!important}
+:root[data-theme="light"] #app.shell #adminSidebar .nav .ico,
+:root[data-theme="light"] #app.shell .side .nav .ico{background:#efe5cf!important;color:#87651a!important;border-color:#e2d1a4!important}
+:root[data-theme="light"] #app.shell #adminSidebar .side-foot b,
+:root[data-theme="light"] #app.shell .side .side-foot b{color:#181713!important}
+
+/* Admin login ID selector had greater specificity than earlier light rules. */
+:root[data-theme="light"] #loginScreen.login-screen,
+:root[data-theme="light"] #app.shell .login-screen{background:radial-gradient(circle at 18% 18%,rgba(212,175,55,.13),transparent 30%),linear-gradient(135deg,#f5f1e7,#e9dfc9)!important;color:#181713!important}
+:root[data-theme="light"] #loginScreen.login-screen .login-card{background:#fffdf7!important;color:#181713!important;border-color:#e5dac0!important;box-shadow:0 18px 48px rgba(81,62,19,.10)!important}
+:root[data-theme="light"] #loginScreen.login-screen .login-card input{background:#fff!important;color:#181713!important;border-color:#ded2b5!important}
+:root[data-theme="light"] #app.shell .toast{background:#fffdf7!important;color:#181713!important;border:1px solid #e5dac0!important;box-shadow:0 12px 30px rgba(81,62,19,.12)!important}
+:root[data-theme="light"] #app.shell .toast strong{color:#181713!important}
+
+/* Checkout modal, assistant transcript and support safety surfaces. */
+:root[data-theme="light"] .modal,
+:root[data-theme="light"] .modal-content{background:#fffdf7!important;color:#181713!important;border-color:#e5dac0!important;box-shadow:0 18px 48px rgba(81,62,19,.12)!important}
+:root[data-theme="light"] .modal-head,
+:root[data-theme="light"] .modal-foot{background:#f2ecde!important;color:#181713!important;border-color:#e5dac0!important}
+:root[data-theme="light"] .modal-head h2,
+:root[data-theme="light"] .modal-product strong,
+:root[data-theme="light"] .modal-product b{color:#181713!important}
+:root[data-theme="light"] .modal-product{background:#f7f1e3!important;color:#302b20!important;border-color:#e5dac0!important}
+:root[data-theme="light"] .modal-close{background:#eee5d2!important;color:#76581b!important;border-color:#e2d1a4!important}
+:root[data-theme="light"] .assistant-messages{background:#f5f1e7!important;color:#181713!important;border-color:#e5dac0!important}
+:root[data-theme="light"] .assistant-message.bot-message{background:#fffdf7!important;color:#302b20!important;border-color:#e5dac0!important}
+:root[data-theme="light"] .assistant-message.user-message{background:#eee2c3!important;color:#302713!important;border-color:#e2d1a4!important}
+:root[data-theme="light"] .assistant-launcher-icon,
+:root[data-theme="light"] .assistant-launcher i{background:#fffdf7!important;color:#76581b!important;border-color:#e5dac0!important}
+:root[data-theme="light"] .support-safety-panel,
+:root[data-theme="light"] .support-help-links{background:#fffdf7!important;color:#403a2d!important;border:1px solid #e5dac0!important;box-shadow:0 10px 26px rgba(81,62,19,.06)!important}
+:root[data-theme="light"] .support-safety-panel strong,
+:root[data-theme="light"] .support-help-links h3{color:#76581b!important}
+:root[data-theme="light"] .support-safety-panel p,
+:root[data-theme="light"] .support-help-links button{color:#57503d!important}
+:root[data-theme="light"] .support-help-links button{background:#f7f1e3!important;border-color:#e5dac0!important}
+:root[data-theme="light"] .support-help-links button:hover{background:#eee2c3!important;color:#302713!important}
+
+/* Orders page had separate fixed charcoal surfaces and table rows. */
+:root[data-theme="light"] .view[data-view="orders"] .data-panel{background:#fffdf7!important;color:#181713!important;border:1px solid #e5dac0!important;box-shadow:0 14px 34px rgba(81,62,19,.07)!important}
+:root[data-theme="light"] .view[data-view="orders"] .data-table-wrap{background:#f7f1e3!important;border-color:#e5dac0!important;scrollbar-color:#cbb98d #f7f1e3!important}
+:root[data-theme="light"] .view[data-view="orders"] .data-table{background:#fffdf7!important;color:#302b20!important}
+:root[data-theme="light"] .view[data-view="orders"] .data-table th{background:#eee5d2!important;color:#76581b!important;border-color:#e5dac0!important}
+:root[data-theme="light"] .view[data-view="orders"] .data-table td{background:#fffdf7!important;color:#363124!important;border-color:#eee5d1!important}
+:root[data-theme="light"] .view[data-view="orders"] .data-table tbody tr:nth-child(even) td{background:#f7f1e3!important}
+:root[data-theme="light"] .view[data-view="orders"] .data-table tbody tr:hover td{background:#eee2c3!important;color:#181713!important}
+:root[data-theme="light"] .view[data-view="orders"] .data-panel .empty-state,
+:root[data-theme="light"] .view[data-view="orders"] .data-panel .empty{background:#fffdf7!important;color:#6e644f!important;border-color:#e5dac0!important}
+
+/* Wallet invoice metadata, supplier receipt cards and step indicators. */
+:root[data-theme="light"] .view[data-view="wallet"] .invoice-meta-item,
+:root[data-theme="light"] .receipt-card{background:#fffdf7!important;color:#302b20!important;border-color:#e5dac0!important}
+:root[data-theme="light"] .view[data-view="wallet"] .invoice-meta-item span,
+:root[data-theme="light"] .view[data-view="wallet"] .invoice-meta-item strong,
+:root[data-theme="light"] .receipt-card span,
+:root[data-theme="light"] .receipt-card strong{color:#302b20!important}
+:root[data-theme="light"] .catalog-steps{background:#f7f1e3!important;border-color:#e5dac0!important;color:#57503d!important}
+:root[data-theme="light"] .process-num{background:#f0e5c9!important;color:#76581b!important;border-color:#e2d1a4!important;box-shadow:0 0 0 7px #f5f1e7,0 0 0 8px rgba(135,101,26,.12)!important}
+
+/* Darker status text on pastel status backgrounds. */
+:root[data-theme="light"] .status-pill,
+:root[data-theme="light"] .support-live-pill,
+:root[data-theme="light"] .wallet-api-state.ready,
+:root[data-theme="light"] .wallet-payment-result.success{background:#e7f1f5!important;color:#1f627b!important;border-color:#c6dfe9!important}
+:root[data-theme="light"] .wallet-api-state.error{background:#f7e8e5!important;color:#963f3a!important;border-color:#e9c8c1!important}
+:root[data-theme="light"] .sidebar-nav a{color:#57503d!important}
+:root[data-theme="light"] .sidebar-nav a.active,
+:root[data-theme="light"] .sidebar-nav a:hover{background:#f0e5c9!important;color:#6c4e10!important;border-color:#e2d1a4!important}
+
+/* Whole featured and saved product cards are click and keyboard targets. */
+.product-card[data-open-item]{cursor:pointer!important}
+.product-card[data-open-item]:focus-visible{outline:3px solid #b88d43!important;outline-offset:3px!important}
