@@ -1023,7 +1023,7 @@ $('wamdaGlobalPricingMode').addEventListener('change',()=>{
 });
 $('wamdaApplyGlobalToAllBtn').addEventListener('click',async()=>{
   const available=state.wamdaCatalog.reduce((sum,category)=>sum+(category.products||[]).filter(product=>product.available===true).length,0);
-  if(!confirm('سيتم حفظ نسبة الربح الحالية، وإلغاء تخصيصات الأسعار للأقسام والمنتجات، ثم إعادة التسعير ونشر كل المنتجات المتاحة ذات السعر الصالح من آخر كتالوج محفوظ. قد تتجاوز العملية 3,000 منتج. هل تريد المتابعة؟'))return;
+  if(!confirm('يوجد '+available.toLocaleString('en-US')+' منتج متاح في آخر كتالوج محفوظ. سيتم حفظ سياسة الربح الحالية، وإلغاء تخصيصات الأسعار، ثم إعادة التسعير ونشر كل المنتجات المتاحة ذات السعر الصالح. قد تتجاوز العملية 3,000 منتج. هل تريد المتابعة؟'))return;
   const button=$('wamdaApplyGlobalToAllBtn');button.disabled=true;button.textContent='جارٍ تطبيق الأسعار والنشر…';
   $('wamdaAccountStatus').textContent='جارٍ حفظ سياسة الربح العامة ثم نشر المنتجات المؤهلة من آخر مزامنة محفوظة…';
   try{
