@@ -15,23 +15,16 @@ export function seagmBaseUrl(environment = 'sandbox') {
 }
 
 export function buildSeagmSignature(params, secretKey) {
-  if (typeof secretKey !== 'string' || secretKey.length < 1 || secretKey.length > 512) {
-    throw new Error('INVALID_SEAGM_SECRET_KEY');
-  }
-  if (!params || typeof params !== 'object' || Array.isArray(params)) {
-    throw new Error('INVALID_SEAGM_PARAMETERS');
-  }
+  if (typeof secretKey !== 'string' || secretKey.length < 1 || secretKey.length > 512) throw new Error('INVALID_SEAGM_SECRET_KEY');
+  if (!params || typeof params !== 'object' || Array.isArray(params)) throw new Error('INVALID_SEAGM_PARAMETERS');
   const keys = Object.keys(params).filter(key => params[key] !== undefined && params[key] !== null && key !== 'signature').sort();
-  const totalParams = keys.map(key => {
-    const value = String(params[key]);
-    return \`${encodeURIComponent(key)}=${encodeURIComponent(value)}\`;
-  }).join('&');
+  const totalParams = keys.map(key => encodeURIComponent(key) + '=' + encodeURIComponent(String(params[key]))).join('&');
   return crypto.createHmac('sha256', secretKey).update(totalParams, 'utf8').digest('hex');
 }
 
 function safeId(value, label) {
   const n = Number(value);
-  if (!Number.isSafeInteger(n) || n <= 0) throw new Error(\`${'INVALID_SEAGM_'}${label}\`);
+  if (!Number.isSafeInteger(n) || n <= 0) throw new Error('INVALID_SEAGM_' + label);
   return n;
 }
 function cleanText(value, max = 200) {
@@ -63,7 +56,7 @@ function arrayData(data, name) {
       if (Array.isArray(data[key])) return data[key];
     }
   }
-  throw new Error(\`${'SEAGM_'}${name}${'_NOT_ARRAY'}\`);
+  throw new Error('SEAGM_' + name + '_NOT_ARRAY');
 }
 function normalizeFields(fields) {
   if (!Array.isArray(fields)) return [];
@@ -101,14 +94,12 @@ function normalizeProduct(row, kind, category) {
   const id = safeId(row?.id ?? row?.type_id ?? row?.product_id, 'PRODUCT_ID');
   const unitPrice = Number(row?.unit_price ?? row?.unitPrice ?? 0);
   const originPrice = Number(row?.origin_price ?? row?.originPrice ?? unitPrice);
-  if (!Number.isFinite(unitPrice) || unitPrice < 0 || !Number.isFinite(originPrice) || originPrice < 0) {
-    throw new Error('SEAGM_INVALID_PRODUCT_PRICE');
-  }
+  if (!Number.isFinite(unitPrice) || unitPrice < 0 || !Number.isFinite(originPrice) || originPrice < 0) throw new Error('SEAGM_INVALID_PRODUCT_PRICE');
   const currency = cleanText(row?.currency || row?.par_value_currency || '', 12).toUpperCase();
   return {
     id,
     kind,
-    name: cleanText(row?.name || row?.product_name || row?.title || \`${'SEAGM product '}${id}\`, 160),
+    name: cleanText(row?.name || row?.product_name || row?.title || ('SEAGM product ' + id), 160),
     categoryId: category.id,
     categoryName: category.name,
     categoryCode: category.code,
@@ -140,7 +131,7 @@ export function createSeagmClient({ uid, secretKey, environment = 'sandbox', fet
     const query = new URLSearchParams();
     for (const key of Object.keys(params).sort()) query.set(key, String(params[key]));
     query.set('signature', signature);
-    const url = \`${base}${path}?${query.toString()}\`;
+    const url = base + path + '?' + query.toString();
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -151,7 +142,7 @@ export function createSeagmClient({ uid, secretKey, environment = 'sandbox', fet
         signal: controller.signal,
       });
       if (!response.ok) {
-        const error = new Error(\`${'SEAGM HTTP '}${response.status}\`);
+        const error = new Error('SEAGM HTTP ' + response.status);
         error.status = response.status;
         throw error;
       }
@@ -191,7 +182,7 @@ export function createSeagmClient({ uid, secretKey, environment = 'sandbox', fet
         kind: 'card',
         autoDelivery: raw?.auto_delivery === true,
       };
-      const rows = arrayData(await get(\`${'/v1/card-categories/'}${category.id}${'/card-types'}\`), 'CARD_TYPES');
+      const rows = arrayData(await get('/v1/card-categories/' + category.id + '/card-types'), 'CARD_TYPES');
       const products = rows.map(row => normalizeProduct(row, 'card', category));
       productCount += products.length;
       if (productCount > MAX_PRODUCTS) throw new Error('SEAGM_TOO_MANY_PRODUCTS');
@@ -206,7 +197,7 @@ export function createSeagmClient({ uid, secretKey, environment = 'sandbox', fet
         kind: 'recharge',
         autoDelivery: raw?.auto_delivery === true,
       };
-      const rows = arrayData(await get(\`${'/v1/recharge-categories/'}${category.id}${'/recharge-types'}\`), 'RECHARGE_TYPES');
+      const rows = arrayData(await get('/v1/recharge-categories/' + category.id + '/recharge-types'), 'RECHARGE_TYPES');
       const products = rows.map(row => normalizeProduct(row, 'recharge', category));
       productCount += products.length;
       if (productCount > MAX_PRODUCTS) throw new Error('SEAGM_TOO_MANY_PRODUCTS');
