@@ -213,7 +213,7 @@ test('supplier order is reconciled by the same merchant order ID before any crea
 test('delivered card data is encrypted at rest and only decrypted for the order receipt', async () => {
   const server = await readFile(new URL('../src/server.js', import.meta.url), 'utf8');
   assert.match(server, /resultEncrypted:encryptSecret\(JSON\.stringify\(decision\.result\),cfg\.settingsEncryptionKey\)/);
-  assert.match(server, /decryptSecret\(order\.supplier_result_encrypted,cfg\.settingsEncryptionKey\)/);
+  assert.match(server, /decryptSecret\(order\.supplier_result_encrypted,\s*cfg\.settingsEncryptionKey\)/);
   assert.match(server, /supplier_result_encrypted=CASE WHEN \$5<>'' THEN \$5 ELSE supplier_result_encrypted END/);
 });
 
