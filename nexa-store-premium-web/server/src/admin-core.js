@@ -137,10 +137,22 @@ export function mergeCatalog(existing, incoming, mode = 'merge') {
     const oldCategory = merged[categoryIndex];
     const oldProducts = new Map(oldCategory.items.map(product => [product.id, product]));
     const incomingIds = new Set(incomingCategory.items.map(product => product.id));
-    const items = incomingCategory.items.map(product => ({
-      ...(oldProducts.get(product.id) || {}),
-      ...JSON.parse(JSON.stringify(product)),
-    }));
+    const items = incomingCategory.items.map(product => {
+      const existingProduct=oldProducts.get(product.id);
+      const mergedProduct={
+        ...(existingProduct || {}),
+        ...JSON.parse(JSON.stringify(product)),
+      };
+      const manualOverrides=existingProduct?.manualOverrides;
+      if(manualOverrides&&typeof manualOverrides==='object'&&!Array.isArray(manualOverrides)){
+        for(const field of Object.keys(manualOverrides)){
+          if(!['name','desc','image','options','labels','badge','sortOrder'].includes(field))continue;
+          mergedProduct[field]=JSON.parse(JSON.stringify(manualOverrides[field]));
+        }
+        mergedProduct.manualOverrides=JSON.parse(JSON.stringify(manualOverrides));
+      }
+      return mergedProduct;
+    });
     for (const oldProduct of oldCategory.items) {
       if (!incomingIds.has(oldProduct.id)) items.push(oldProduct);
     }
