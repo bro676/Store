@@ -149,3 +149,16 @@ test('catalog merge preserves manually overridden product fields while refreshin
   assert.equal(product.options[0].id,'manual-option');
   assert.equal(product.wamda.productId,12345);
 });
+
+
+test('catalog merge ignores manual override metadata supplied by an external product API',()=>{
+  const original=[{...catalog[0],items:[]}];
+  const incoming=[{...catalog[0],items:[{
+    ...catalog[0].items[0],
+    name:'اسم مصدر API',
+    manualOverrides:{name:'اسم مزيف من مصدر خارجي',desc:'محاولة تجاوز الإدارة'},
+  }]}];
+  const merged=mergeCatalog(original,incoming);
+  assert.equal(merged[0].items[0].name,'اسم مصدر API');
+  assert.equal(merged[0].items[0].manualOverrides,undefined);
+});
