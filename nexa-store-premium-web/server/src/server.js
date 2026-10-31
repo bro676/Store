@@ -1763,7 +1763,7 @@ async function callNexaGeminiInteraction(history,{test=false}={}){
     for(let round=0;round<4;round++){
       const response=await fetch('https://generativelanguage.googleapis.com/v1beta/interactions',{
         method:'POST',headers:{'content-type':'application/json','x-goog-api-key':nexaAiApiKeyRuntime},
-        body:JSON.stringify({model,input,tools:test?[]:nexaAssistantTools,system_instruction:systemInstruction,store:false,generation_config:{temperature:0.25,max_output_tokens:700}}),
+        body:JSON.stringify({model,input,tools:test?[]:nexaAssistantTools,system_instruction:systemInstruction,store:false,generation_config:{temperature:0.25}}),
         signal:controller.signal,redirect:'error',
       });
       const raw=await response.text();
@@ -1958,7 +1958,13 @@ const server = http.createServer(async (req,res) => {
         const content=String(item?.content||'').replace(/[\\u0000-\\u001f]/g,' ').slice(0,500);
         return content?role+': '+content:'';
       }).filter(Boolean).join('\\n');
-      const prompt=(transcript?('سياق المحادثة السابقة:\\n'+transcript+'\\n\\n'):'')+'سؤال العميل الحالي:\\n'+message;
+      const redactAssistantText=value=>String(value||'')
+        .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}/gi,'[بريد محذوف]')
+        .replace(/\\bNX-[A-Z0-9-]{8,}\\b/gi,'[رقم طلب محذوف]')
+        .replace(/(?:\\+?\\d[\\d\\s().-]{7,}\\d)/g,'[رقم هاتف محذوف]');
+      const safeTranscript=redactAssistantText(transcript);
+      const safeMessage=redactAssistantText(message);
+      const prompt=(safeTranscript?('سياق المحادثة السابقة:\\n'+safeTranscript+'\\n\\n'):'')+'سؤال العميل الحالي:\\n'+safeMessage;
       const history=[{type:'user_input',content:[{type:'text',text:prompt}]}];
       try{
         const result=await callNexaGeminiInteraction(history);
