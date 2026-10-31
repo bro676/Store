@@ -184,44 +184,67 @@ function publicCatalog() {
   return catalog.map(category => ({
     ...category,
     items: category.items.map(product => {
-      const { seagm, ...publicProduct } = product;
-      if (!seagm || seagm.provider !== 'seagm') return publicProduct;
-      return {
-        ...publicProduct,
-        seagm: {
-          provider: 'seagm',
-          kind: seagm.kind === 'recharge' ? 'recharge' : 'card',
-          minimumQuantity: Number(seagm.minimumQuantity || 1),
-          maximumQuantity: Number(seagm.maximumQuantity || 1),
-          fields: Array.isArray(seagm.fields) ? seagm.fields.map(field => ({
-            name: String(field.name || ''),
-            submitField: String(field.submitField || field.name || ''),
-            label: String(field.label || field.name || ''),
-            type: String(field.type || 'input'),
-            placeholder: String(field.placeholder || ''),
-            prefix: String(field.prefix || ''),
-            tips: String(field.tips || ''),
-            required: field.required !== false,
-            multiline: field.multiline === true,
-            options: Array.isArray(field.options) ? field.options.map(option => ({
-              label: String(option.label || ''),
-              value: String(option.value || ''),
-              child: Array.isArray(option.child) ? option.child.map(child => ({
-                name: String(child.name || ''),
-                label: String(child.label || child.name || ''),
-                prefix: String(child.prefix || ''),
-                options: Array.isArray(child.options)
-                  ? child.options.filter(dependency => String(dependency.parent_value ?? '') === String(option.value ?? ''))
-                    .flatMap(dependency => Array.isArray(dependency.child_options) ? dependency.child_options : [])
-                    .map(childOption => ({ label:String(childOption.label || ''), value:String(childOption.value || '') }))
-                  : [],
+      const { seagm, wamda, ...publicProduct } = product;
+      if (seagm?.provider === 'seagm') {
+        return {
+          ...publicProduct,
+          seagm: {
+            provider:'seagm',kind:seagm.kind === 'recharge' ? 'recharge' : 'card',
+            minimumQuantity:Number(seagm.minimumQuantity || 1),maximumQuantity:Number(seagm.maximumQuantity || 1),
+            fields:Array.isArray(seagm.fields) ? seagm.fields.map(field=>({
+              name:String(field.name || ''),submitField:String(field.submitField || field.name || ''),label:String(field.label || field.name || ''),
+              type:String(field.type || 'input'),placeholder:String(field.placeholder || ''),prefix:String(field.prefix || ''),
+              tips:String(field.tips || ''),required:field.required !== false,multiline:field.multiline === true,
+              options:Array.isArray(field.options) ? field.options.map(option=>({
+                label:String(option.label || ''),value:String(option.value || ''),
+                child:Array.isArray(option.child) ? option.child.map(child=>({
+                  name:String(child.name || ''),label:String(child.label || child.name || ''),prefix:String(child.prefix || ''),
+                  options:Array.isArray(child.options) ? child.options.filter(dependency=>String(dependency.parent_value ?? '')===String(option.value ?? '')).flatMap(dependency=>Array.isArray(dependency.child_options)?dependency.child_options:[]).map(childOption=>({label:String(childOption.label || ''),value:String(childOption.value || '')})) : [],
+                })) : [],
               })) : [],
             })) : [],
-          })) : [],
-        },
-      };
+          },
+        };
+      }
+      if (wamda?.provider === 'wamda') {
+        return {...publicProduct,wamda:{
+          provider:'wamda',minimumQuantity:Number(wamda.minimumQuantity || 1),maximumQuantity:Number(wamda.maximumQuantity || 1),
+          fields:Array.isArray(wamda.fields)?wamda.fields.map(field=>({
+            name:String(field.key || ''),submitField:String(field.key || ''),label:String(field.label || field.key || ''),
+            type:String(field.type || 'text'),required:field.required !== false,
+            min:Number.isFinite(Number(field.min))?Number(field.min):null,max:Number.isFinite(Number(field.max))?Number(field.max):null,
+          })):[],
+        }};
+      }
+      return publicProduct;
     }),
   }));
+}
+function validateWamdaCustomerFields(product, rawFields) {
+  if(!rawFields||typeof rawFields!=='object'||Array.isArray(rawFields))throw Object.assign(new Error('بيانات الحقول المطلوبة للمنتج غير صالحة.'),{status:400});
+  const definitions=Array.isArray(product.wamda?.fields)?product.wamda.fields:[];
+  const output={},allowed=new Set(),reserved=new Set(['quantity','qty','order_uuid','api_token']);
+  for(const field of definitions){
+    const key=String(field?.key||'').trim();
+    if(!/^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(key)||reserved.has(key.toLowerCase()))throw Object.assign(new Error('إعدادات حقول منتج ومضة غير صالحة.'),{status:409});
+    allowed.add(key);
+    const value=String(rawFields[key]??'').trim();
+    if(!value&&field.required!==false)throw Object.assign(new Error('يرجى تعبئة الحقل: '+String(field.label||key)),{status:400});
+    if(!value)continue;
+    if(value.length>500||/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(value))throw Object.assign(new Error('إحدى بيانات المنتج أطول من المسموح أو تحتوي محارف غير صالحة.'),{status:400});
+    if(String(field.type||'text')==='number'){
+      const number=Number(value);
+      if(!Number.isFinite(number)||(Number.isFinite(Number(field.min))&&number<Number(field.min))||(Number.isFinite(Number(field.max))&&number>Number(field.max)))throw Object.assign(new Error('القيمة الرقمية للحقل '+String(field.label||key)+' خارج الحدود المسموحة.'),{status:400});
+    }
+    if(String(field.type||'')==='email'&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))throw Object.assign(new Error('البريد الإلكتروني في الحقل '+String(field.label||key)+' غير صالح.'),{status:400});
+    if(String(field.type||'')==='url'){
+      try{const u=new URL(value);if(!['http:','https:'].includes(u.protocol))throw new Error();}
+      catch{throw Object.assign(new Error('الرابط في الحقل '+String(field.label||key)+' غير صالح.'),{status:400});}
+    }
+    output[key]=value;
+  }
+  for(const key of Object.keys(rawFields))if(!allowed.has(key))throw Object.assign(new Error('تم إرسال حقل غير معروف لمنتج ومضة.'),{status:400});
+  return output;
 }
 
 function validateSeagmCustomerFields(product, rawFields) {
