@@ -11,7 +11,7 @@ test('calculates one shared percentage over USD API cost converted with the stor
   assert.equal(calculateWamdaSellPriceSyp({unitPriceUsd:10,fxRate:145,marginPercent:20}),1740);
 });
 test('rounds the retail price to two decimals',()=>{
-  assert.equal(calculateWamdaSellPriceSyp({unitPriceUsd:1.234,fxRate:145,marginPercent:10}),196.27);
+  assert.equal(calculateWamdaSellPriceSyp({unitPriceUsd:1.234,fxRate:145,marginPercent:10}),196.82);
 });
 test('rejects invalid profit margin and exchange rate',()=>{
   assert.throws(()=>normalizeWamdaMargin(-1),error=>error.status===400);
