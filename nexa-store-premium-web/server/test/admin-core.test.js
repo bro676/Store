@@ -138,7 +138,7 @@ test('catalog merge preserves manually overridden product fields while refreshin
   }]}];
   const incoming=[{...catalog[0],items:[{
     ...catalog[0].items[0],name:'اسم API',desc:'وصف API',image:'https://images.example/api.webp',
-    options:[{id:'api-option',name:'نسخة API',packs:[['API Price',25]]}],
+    options:[{id:'api-option',name:'نسخة API',desc:'وصف من المصدر',packs:[['API Price',25]]}],
     wamda:{provider:'wamda',productId:12345,available:true},
   }]}];
   const merged=mergeCatalog(original,incoming);
