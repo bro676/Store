@@ -1227,7 +1227,7 @@ async function createWalletTopup(event){
 $('accountLoginForm').addEventListener('submit',event=>{event.preventDefault();submitAccountForm(event.currentTarget,'/api/account/login',{phone:$('accountLoginPhone').value.trim(),password:$('accountLoginPassword').value});});
 $('accountRegisterForm').addEventListener('submit',event=>{event.preventDefault();submitAccountForm(event.currentTarget,'/api/account/register',{name:$('accountRegisterName').value.trim(),phone:$('accountRegisterPhone').value.trim(),password:$('accountRegisterPassword').value});});
 $('accountAuthSwitch').addEventListener('click',()=>{
- const isRegister=!$('accountRegisterForm').classList.contains('hidden');
+ const isRegister=$('accountRegisterForm').classList.contains('hidden');
  $('accountRegisterForm').classList.toggle('hidden',!isRegister);
  $('accountLoginForm').classList.toggle('hidden',isRegister);
  $('accountAuthSwitch').textContent=isRegister?'لديك حساب؟ سجّل الدخول':'ليس لديك حساب؟ أنشئ حساباً جديداً';
