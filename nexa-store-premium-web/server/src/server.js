@@ -212,7 +212,7 @@ function publicCatalog() {
           fields:Array.isArray(wamda.fields)?wamda.fields.map(field=>({
             name:String(field.key || ''),submitField:String(field.key || ''),label:String(field.label || field.key || ''),
             type:String(field.type || 'text'),required:field.required !== false,
-            min:Number.isFinite(Number(field.min))?Number(field.min):null,max:Number.isFinite(Number(field.max))?Number(field.max):null,
+            min:field.min!==null&&field.min!==undefined&&field.min!==''&&Number.isFinite(Number(field.min))?Number(field.min):null,max:field.max!==null&&field.max!==undefined&&field.max!==''&&Number.isFinite(Number(field.max))?Number(field.max):null,
           })):[],
         }};
       }
