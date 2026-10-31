@@ -69,7 +69,7 @@ let pool;
 if (cfg.databaseUrl) {
   pool = new Pool({ connectionString: cfg.databaseUrl, ssl: cfg.databaseSsl ? { rejectUnauthorized: true } : false,
     max: 10, idleTimeoutMillis: 30_000, connectionTimeoutMillis: 8_000 });
-  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql']) {
+  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
   }
 }
@@ -739,6 +739,41 @@ function readCookie(req, name) {
     if (key === name) return value.join('=');
   }
   return '';
+}
+function customerCookie(req, token, maxAge = 30 * 24 * 60 * 60) {
+  const secure = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https' || process.env.NODE_ENV === 'production';
+  return 'nexa_customer_session=' + token + '; HttpOnly; SameSite=Lax; Path=/api; Max-Age=' + maxAge + (secure ? '; Secure' : '');
+}
+function normalizeCustomerPhone(value) {
+  const raw=String(value||'').trim();
+  if(!/^\\+?[0-9\\s().-]{7,25}$/.test(raw))return '';
+  const normalized=raw.replace(/[\\s().-]/g,'');
+  return /^\\+?[0-9]{7,18}$/.test(normalized)?normalized:'';
+}
+function scryptPassword(password,salt) {
+  return new Promise((resolve,reject)=>crypto.scrypt(password,salt,64,{N:16384,r:8,p:1,maxmem:64*1024*1024},(error,key)=>error?reject(error):resolve(key)));
+}
+async function createCustomerSession(req,customerId) {
+  const token=crypto.randomBytes(32).toString('base64url');
+  const tokenHash=crypto.createHash('sha256').update(token).digest('hex');
+  const expiresAt=new Date(Date.now()+30*24*60*60_000);
+  await pool.query('INSERT INTO nexa_customer_sessions(token_hash,customer_id,expires_at) VALUES($1,$2,$3)',[tokenHash,customerId,expiresAt]);
+  return customerCookie(req,token);
+}
+async function getCustomerSession(req) {
+  const token=readCookie(req,'nexa_customer_session');
+  if(!token||token.length>100)return null;
+  const tokenHash=crypto.createHash('sha256').update(token).digest('hex');
+  const result=await pool.query('SELECT c.id,c.full_name,c.phone FROM nexa_customer_sessions s JOIN nexa_customers c ON c.id=s.customer_id WHERE s.token_hash=$1 AND s.expires_at>NOW() AND c.disabled_at IS NULL LIMIT 1',[tokenHash]);
+  return result.rows[0]||null;
+}
+async function customerWalletSnapshot(customer) {
+  const [balances,ledger]=await Promise.all([
+    pool.query('SELECT currency,balance_minor::text AS balance_minor FROM nexa_customer_wallets WHERE customer_id=$1 ORDER BY currency',[customer.id]),
+    pool.query('SELECT id,type,currency,amount_minor::text AS amount_minor,note,order_id,topup_id,created_at FROM nexa_wallet_ledger WHERE customer_id=$1 ORDER BY id DESC LIMIT 30',[customer.id]),
+  ]);
+  const balanceMap={SYP:'0',USD:'0'};for(const row of balances.rows)balanceMap[row.currency]=row.balance_minor;
+  return {authenticated:true,customer:{id:customer.id,name:customer.full_name,phone:customer.phone},balances:balanceMap,transactions:ledger.rows};
 }
 function adminAuthorized(req) {
   const supplied = Buffer.from(String(req.headers['x-admin-key'] || ''));
