@@ -2568,10 +2568,41 @@ const server = http.createServer(async (req,res) => {
       const result = await refreshAutomaticFx();
       return send(res,result.ok?200:422,result);
     }
+    if (req.method === 'GET' && url.pathname === '/api/admin/wallets') {
+      if (!pool) return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const [summary,customers,topups,ledger]=await Promise.all([
+        pool.query(`SELECT COUNT(*)::text AS customer_count,
+          COALESCE(SUM(balance_minor),0)::text AS total_balance_minor,
+          (SELECT COUNT(*) FROM nexa_wallet_topups WHERE status='pending')::text AS pending_topups,
+          (SELECT COUNT(*) FROM nexa_wallet_topups WHERE status='paid')::text AS paid_topups,
+          (SELECT COALESCE(SUM(amount_minor),0) FROM nexa_wallet_topups WHERE status='paid')::text AS total_topup_minor
+          FROM nexa_customer_wallets`),
+        pool.query(`SELECT c.id,c.customer_name,c.phone,w.balance_minor::text,w.currency,w.updated_at
+          FROM nexa_customers c JOIN nexa_customer_wallets w ON w.customer_id=c.id
+          ORDER BY w.updated_at DESC,c.created_at DESC LIMIT 100`),
+        pool.query(`SELECT t.id,t.amount_minor::text,t.currency,t.invoice_number,t.status,t.transaction_id,t.created_at,t.expires_at,t.paid_at,
+          c.customer_name,c.phone FROM nexa_wallet_topups t JOIN nexa_customers c ON c.id=t.customer_id
+          ORDER BY t.created_at DESC LIMIT 100`),
+        pool.query(`SELECT l.id,l.entry_type,l.direction,l.amount_minor::text,l.currency,l.source_type,l.source_id,
+          l.balance_after_minor::text,l.description,l.created_at,c.customer_name,c.phone
+          FROM nexa_wallet_ledger l JOIN nexa_customers c ON c.id=l.customer_id
+          ORDER BY l.created_at DESC,l.id DESC LIMIT 100`)
+      ]);
+      const stats=summary.rows[0]||{};
+      return send(res,200,{ok:true,summary:{customerCount:stats.customer_count||'0',
+        totalBalanceMinor:stats.total_balance_minor||'0',pendingTopups:stats.pending_topups||'0',
+        paidTopups:stats.paid_topups||'0',totalTopupMinor:stats.total_topup_minor||'0'},
+        customers:customers.rows.map(row=>({id:row.id,name:row.customer_name,phone:row.phone,balanceMinor:row.balance_minor,currency:row.currency,updatedAt:row.updated_at})),
+        topups:topups.rows.map(row=>({id:row.id,amountMinor:row.amount_minor,currency:row.currency,invoiceNumber:row.invoice_number,status:row.status,
+          transactionId:row.transaction_id,createdAt:row.created_at,expiresAt:row.expires_at,paidAt:row.paid_at,name:row.customer_name,phone:row.phone})),
+        ledger:ledger.rows.map(row=>({id:row.id,type:row.entry_type,direction:row.direction,amountMinor:row.amount_minor,currency:row.currency,
+          sourceType:row.source_type,sourceId:row.source_id,balanceAfterMinor:row.balance_after_minor,description:row.description,
+          createdAt:row.created_at,name:row.customer_name,phone:row.phone}))});
+    }
     if (req.method === 'GET' && url.pathname === '/api/admin/orders') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const limit = Math.min(200,Math.max(1,Number(url.searchParams.get('limit')||100)));
-      const result = await pool.query(`SELECT o.id,o.product_label,o.amount_minor::text,o.currency,o.status,o.customer_name,o.customer_phone,o.game_account,o.notes,o.invoice_number,o.invoice_identifier,o.wallet_label,o.created_at,o.expires_at,o.paid_at,o.supplier_provider,o.supplier_kind,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_mch_order_id,j.last_error AS supplier_error FROM nexa_orders o LEFT JOIN nexa_fulfillment_jobs j ON j.order_id=o.id ORDER BY o.created_at DESC LIMIT $1`,[limit]);
+      const result = await pool.query(`SELECT o.id,o.product_label,o.amount_minor::text,o.currency,o.status,o.payment_method,o.customer_id,o.customer_name,o.customer_phone,o.game_account,o.notes,o.invoice_number,o.invoice_identifier,o.wallet_label,o.created_at,o.expires_at,o.paid_at,o.supplier_provider,o.supplier_kind,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_mch_order_id,j.last_error AS supplier_error FROM nexa_orders o LEFT JOIN nexa_fulfillment_jobs j ON j.order_id=o.id ORDER BY o.created_at DESC LIMIT $1`,[limit]);
       return send(res,200,{ok:true,orders:result.rows.map(o=>({...o,amountMinor:o.amount_minor,createdAt:o.created_at,expiresAt:o.expires_at,paidAt:o.paid_at}))});
     }
     const adminFulfillmentRetry = url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/fulfillment\/retry$/);
