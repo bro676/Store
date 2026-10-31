@@ -1445,6 +1445,19 @@ const server = http.createServer(async (req,res) => {
   try {
     if (req.method === 'GET' && url.pathname === '/api/health') return send(res,200,{ok:true,service:'nexa-shamcash-gateway',paymentsReady,dbReady:Boolean(pool)});
 
+    const wamdaWebhookMatch=url.pathname.match(/^\\/api\\/webhooks\\/wamda\\/([A-Za-z0-9_-]{40,80})$/);
+    if(req.method==='POST'&&wamdaWebhookMatch){
+      if(!pool||!wamdaWebhookSecretRuntime)return sendText(res,503,'store webhook is not configured');
+      const supplied=Buffer.from(wamdaWebhookMatch[1]),expected=Buffer.from(wamdaWebhookSecretRuntime);
+      if(supplied.length!==expected.length||!crypto.timingSafeEqual(supplied,expected))return sendText(res,404,'not found');
+      try{await bodyText(req,32*1024);}catch(error){return sendText(res,Number(error?.status)===413?413:400,'invalid callback body');}
+      await pool.query(`UPDATE nexa_fulfillment_jobs j SET next_attempt_at=NOW(),updated_at=NOW()
+        FROM nexa_orders o WHERE j.order_id=o.id AND o.supplier_provider='wamda' AND o.status='paid'
+        AND j.status IN ('pending','retry','processing')`);
+      runSeagmFulfillmentWorker().catch(error=>console.error('Wamda callback worker wake failed',String(error?.code||error?.message||'unknown').slice(0,120)));
+      return sendText(res,200,'success');
+    }
+
     if (req.method === 'POST' && url.pathname === '/api/webhooks/seagm') {
       if (!pool) return sendText(res,503,'store database is not ready');
       if (!storeSettings?.seagmUid || !seagmSecretRuntime) return sendText(res,503,'SEAGM callback is not configured');
@@ -1773,7 +1786,8 @@ const server = http.createServer(async (req,res) => {
     return send(res,405,{error:'METHOD_NOT_ALLOWED'});
   } catch (error) {
     const statusCode = Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599 ? error.status : 500;
-    console.error(JSON.stringify({ event:'request_failed', method:req.method, path:url.pathname, code:error?.code || null, message:error?.message || 'unknown_error', status:statusCode }));
+    const logPath=url.pathname.startsWith('/api/webhooks/wamda/')?'/api/webhooks/wamda/[redacted]':url.pathname;
+    console.error(JSON.stringify({ event:'request_failed', method:req.method, path:logPath, code:error?.code || null, message:error?.message || 'unknown_error', status:statusCode }));
     return send(res,statusCode,{
       error:error?.message === 'BODY_TOO_LARGE' ? 'BODY_TOO_LARGE' : 'INTERNAL_ERROR',
       message:statusCode === 500 ? 'حدث خطأ داخلي. لم يتم تأكيد الدفع.' : 'تعذر معالجة الطلب.',
