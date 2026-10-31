@@ -2562,12 +2562,12 @@ const server = http.createServer(async (req,res) => {
     const orderLookup = url.pathname.match(/^\/api\/orders\/(NX-[A-F0-9]{20})$/);
     if (req.method === 'GET' && orderLookup) {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
-      const q = await pool.query(`SELECT o.id,o.product_label,o.amount_minor,o.currency,o.status,o.expires_at,o.invoice_number,o.invoice_identifier,o.wallet_label,o.wallet_address,o.customer_name,o.paid_at,p.transaction_id,o.supplier_provider,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_result_encrypted
+      const q = await pool.query(`SELECT o.id,o.product_label,o.amount_minor,o.currency,o.status,o.payment_method,o.expires_at,o.invoice_number,o.invoice_identifier,o.wallet_label,o.wallet_address,o.customer_name,o.paid_at,p.transaction_id,o.supplier_provider,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_result_encrypted
         FROM nexa_orders o LEFT JOIN nexa_payments p ON p.order_id=o.id WHERE o.id=$1`,[orderLookup[1]]);
       if (!q.rowCount) return send(res,404,{error:'ORDER_NOT_FOUND',message:'لم يتم العثور على الطلب.'});
       const o=q.rows[0];
       const delivery=o.status==='paid'?supplierDeliveryForOrder(o):null;
-      const receipt = o.status === 'paid' ? {orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,customerName:o.customer_name,invoiceNumber:o.invoice_number,transactionId:o.transaction_id,paidAt:o.paid_at ? new Date(o.paid_at).toISOString() : null,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier,...(delivery?{delivery}:{})} : null;
+      const receipt = o.status === 'paid' ? {orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,customerName:o.customer_name,paymentMethod:o.payment_method||'shamcash',invoiceNumber:o.invoice_number,transactionId:o.transaction_id,paidAt:o.paid_at ? new Date(o.paid_at).toISOString() : null,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier,...(delivery?{delivery}:{})} : null;
       return send(res,200,{ok:true,orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,status:o.status,expiresAt:new Date(o.expires_at).toISOString(),invoiceNumber:o.invoice_number,invoiceIdentifier:o.invoice_identifier,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier,delivery,receipt});
     }
     if (req.method === 'POST' && url.pathname === '/api/orders') {
