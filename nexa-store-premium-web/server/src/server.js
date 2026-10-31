@@ -1383,7 +1383,7 @@ async function processSeagmFulfillmentJob(job) {
   });
 }
 async function runSeagmFulfillmentWorker() {
-  if(!pool||seagmFulfillmentWorkerBusy||!storeSettings?.seagmUid||!seagmSecretRuntime)return;
+  if(!pool||seagmFulfillmentWorkerBusy||(!storeSettings?.seagmUid||!seagmSecretRuntime)&&!wamdaApiTokenRuntime)return;
   seagmFulfillmentWorkerBusy=true;
   let job=null;
   try {
@@ -1395,7 +1395,7 @@ async function runSeagmFulfillmentWorker() {
       console.error('SEAGM fulfillment worker failed to claim a job',String(error?.code||error?.message||'unknown').slice(0,120));
       return;
     }
-    const decision=classifySeagmFulfillmentError(error,Number(job.failure_count||0));
+    const decision=job.supplier_provider==='wamda'?classifyWamdaError(error,Number(job.failure_count||0)):classifySeagmFulfillmentError(error,Number(job.failure_count||0));
     if(decision.action==='retry') {
       await saveSeagmFulfillmentState(job,{
         jobStatus:'retry',orderStatus:'waiting',
