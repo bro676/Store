@@ -176,6 +176,16 @@ function publicCatalog() {
             options: Array.isArray(field.options) ? field.options.map(option => ({
               label: String(option.label || ''),
               value: String(option.value || ''),
+              child: Array.isArray(option.child) ? option.child.map(child => ({
+                name: String(child.name || ''),
+                label: String(child.label || child.name || ''),
+                prefix: String(child.prefix || ''),
+                options: Array.isArray(child.options)
+                  ? child.options.filter(dependency => String(dependency.parent_value ?? '') === String(option.value ?? ''))
+                    .flatMap(dependency => Array.isArray(dependency.child_options) ? dependency.child_options : [])
+                    .map(childOption => ({ label:String(childOption.label || ''), value:String(childOption.value || '') }))
+                  : [],
+              })) : [],
             })) : [],
           })) : [],
         },
@@ -214,6 +224,26 @@ function validateSeagmCustomerFields(product, rawFields) {
       throw Object.assign(new Error('القيمة المختارة للحقل ' + String(field.label || name) + ' غير موجودة ضمن الخيارات.'), { status:400 });
     }
     output[submitField] = value;
+    if (value) {
+      const selectedOption = choices.find(option => String(option?.value ?? '') === value);
+      for (const child of Array.isArray(selectedOption?.child) ? selectedOption.child : []) {
+        const childName = String(child?.name || '').trim();
+        if (!/^[A-Za-z][A-Za-z0-9_]{0,79}$/.test(childName) || reserved.has(childName)) {
+          throw Object.assign(new Error('إعدادات الحقول التابعة للمنتج غير صالحة.'), { status:409 });
+        }
+        allowedKeys.add(childName);
+        const childValue = String(rawFields[childName] ?? '').trim();
+        if (!childValue) throw Object.assign(new Error('يرجى تعبئة الحقل: ' + String(child.label || childName)), { status:400 });
+        if (childValue.length > 500 || /[\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F]/.test(childValue)) {
+          throw Object.assign(new Error('إحدى بيانات المنتج أطول من المسموح أو تحتوي محارف غير صالحة.'), { status:400 });
+        }
+        const childChoices = Array.isArray(child.options) ? child.options : [];
+        if (childChoices.length && !childChoices.some(option => String(option?.value ?? '') === childValue)) {
+          throw Object.assign(new Error('القيمة المختارة للحقل ' + String(child.label || childName) + ' غير موجودة ضمن الخيارات.'), { status:400 });
+        }
+        output[childName] = childValue;
+      }
+    }
   }
   for (const key of Object.keys(rawFields)) {
     if (!allowedKeys.has(key)) throw Object.assign(new Error('تم إرسال حقل غير معروف للمنتج.'), { status:400 });
