@@ -54,7 +54,7 @@ test('direct recharge completion stores the amount and a normalized sent time', 
     quantity: 1,
     providerOrder: {
       id: 88, mch_order_id: base.merchantOrderId, type_id: base.typeId, buy_amount: 1,
-      status_code: 10003, pay_status_code: 2, send_status_code: 4,
+      status_code: 10003, pay_status_code: 2, send_status_code: 3,
       sent_amount: '100', sent_time: 1799999999,
     },
   });
@@ -224,4 +224,13 @@ test('SEAGM retry failure counter is persisted separately from provider status p
   assert.match(server, /failure_count=COALESCE\(\$9,failure_count\)/);
   assert.match(server, /classifySeagmFulfillmentError\(error,Number\(job\.failure_count\|\|0\)\)/);
   assert.match(server, /failure_count=0,next_attempt_at=NOW\(\)/);
+});
+
+test('SEAGM delivery is not marked complete for a non-documented send status', () => {
+  const result = evaluateSeagmOrder({
+    ...base,
+    providerOrder: cardOrder({ send_status_code: 4 }),
+  });
+  assert.equal(result.action, 'manual_review');
+  assert.equal(result.errorText, 'SEAGM_UNEXPECTED_ORDER_STATUS');
 });
