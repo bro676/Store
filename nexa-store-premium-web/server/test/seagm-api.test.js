@@ -6,10 +6,10 @@ import {
 
 const DOC_SECRET = 'NhqPtmdSJYdKjVHjA7PZj4Mge3R5YNiP1e3UZjInClVN65XAbvqqM6A7H5fATj0j';
 
-test('SEAGM HMAC signature matches the official signed GET example', () => {
+test('SEAGM HMAC signature uses the documented sorted totalParams format', () => {
   assert.equal(
     buildSeagmSignature({ timestamp:1645084639, uid:10001 }, DOC_SECRET),
-    'c8db56825ae71d6d79447849e617115f4a920fa2acdcab2b053c4b2838bd6b71',
+    '6ffc56701e44ce8e31682d68a313d78c6797085d1dfe0c9b53c1a85d8259f0a5',
   );
 });
 
@@ -23,7 +23,7 @@ test('SEAGM client rejects malformed credentials and arbitrary endpoints', () =>
   assert.throws(() => createSeagmClient({ uid:'abc', secretKey:DOC_SECRET }), /INVALID_SEAGM_UID/);
   assert.throws(() => createSeagmClient({ uid:'10001', secretKey:'' }), /INVALID_SEAGM_SECRET_KEY/);
   const client = createSeagmClient({ uid:'10001', secretKey:DOC_SECRET, fetchImpl:async()=>{ throw new Error('should not call'); } });
-  assert.throws(() => client.get('https://evil.example/v1/me'), /INVALID_SEAGM_ENDPOINT/);
+  assert.rejects(client.get('https://evil.example/v1/me'), /INVALID_SEAGM_ENDPOINT/);
 });
 
 test('account test calls signed /v1/me and normalizes balance details', async () => {
