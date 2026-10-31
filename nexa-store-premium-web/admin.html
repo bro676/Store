@@ -551,6 +551,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
       <button data-page="catalog"><span class="ico">▦</span><span>المنتجات والأسعار</span></button>
       <button data-page="catalog-api"><span class="ico">↗</span><span>ربط المنتجات عبر API</span></button>
       <button data-page="orders"><span class="ico">▤</span><span>الطلبات والإيصالات</span></button>
+      <button data-page="wallets"><span class="ico">◉</span><span>أرصدة العملاء</span></button>
       <button data-page="payments"><span class="ico">◈</span><span>شام كاش والمحفظة</span></button>
       <button data-page="exchange"><span class="ico">⇄</span><span>سعر الصرف</span></button>
     </nav>
@@ -817,7 +818,25 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
       </section>
       <section class="page hidden" id="page-orders">
         <div class="page-head"><div><div class="eyebrow">ORDERS & RECEIPTS</div><h2>الطلبات والفواتير</h2><p>عرض حالة الدفع والتسليم من SEAGM. لا يمكن اعتماد الدفع يدوياً من لوحة الإدارة، ويمكن إعادة فحص طلب المورد عند الحاجة.</p></div><button class="btn soft" id="refreshOrdersBtn">تحديث القائمة ↻</button></div>
-        <section class="panel"><div class="toolbar"><input id="orderSearch" placeholder="ابحث برقم الطلب أو الاسم أو رقم الفاتورة"><select id="orderStatus" class="field" style="margin:0;width:145px"><option value="">كل الحالات</option><option value="paid">مدفوع</option><option value="pending_payment">بانتظار الدفع</option><option value="expired">منتهي</option><option value="cancelled">ملغي</option></select></div><div class="table-wrap"><table><thead><tr><th>رقم الطلب</th><th>المنتج</th><th>العميل</th><th>المبلغ</th><th>الحالة</th><th>الفاتورة</th><th>التاريخ</th><th>إجراء</th></tr></thead><tbody id="ordersBody"><tr><td colspan="8">جارٍ التحميل…</td></tr></tbody></table></div></section>
+        <section class="panel"><div class="toolbar"><input id="orderSearch" placeholder="ابحث برقم الطلب أو الاسم أو رقم الفاتورة"><select id="orderStatus" class="field" style="margin:0;width:145px"><option value="">كل الحالات</option><option value="paid">مدفوع</option><option value="pending_payment">بانتظار الدفع</option><option value="expired">منتهي</option><option value="cancelled">ملغي</option></select></div><div class="table-wrap"><table><thead><tr><th>رقم الطلب</th><th>المنتج</th><th>العميل</th><th>المبلغ</th><th>طريقة الدفع</th><th>الحالة</th><th>الفاتورة</th><th>التاريخ</th><th>إجراء</th></tr></thead><tbody id="ordersBody"><tr><td colspan="8">جارٍ التحميل…</td></tr></tbody></table></div></section>
+      </section>
+      <section class="page hidden" id="page-wallets">
+        <div class="page-head"><div><div class="eyebrow">CUSTOMER WALLETS</div><h2>أرصدة العملاء وحركات المحفظة</h2><p>عرض الأرصدة وشحنات شام كاش وعمليات الخصم. هذه الصفحة للمتابعة والتدقيق ولا تسمح بتعديل رصيد العميل يدوياً.</p></div><button class="btn soft" id="refreshWalletsBtn" type="button">تحديث البيانات ↻</button></div>
+        <div class="stats" id="walletStats">
+          <div class="stat"><div class="stat-top"><span>عدد الحسابات</span></div><strong>—</strong></div>
+          <div class="stat"><div class="stat-top"><span>إجمالي الأرصدة</span></div><strong>—</strong></div>
+          <div class="stat"><div class="stat-top"><span>فواتير معلقة</span></div><strong>—</strong></div>
+          <div class="stat"><div class="stat-top"><span>شحنات مؤكدة</span></div><strong>—</strong></div>
+        </div>
+        <section class="panel"><div class="panel-head"><div><div class="section-caption">CUSTOMER ACCOUNTS</div><h3>حسابات العملاء</h3><p>آخر 100 حساب بحسب آخر حركة على الرصيد.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>العميل</th><th>رقم الهاتف</th><th>الرصيد الحالي</th><th>آخر تحديث</th></tr></thead><tbody id="walletCustomersBody"><tr><td colspan="4">جارٍ التحميل…</td></tr></tbody></table></div>
+        </section>
+        <section class="panel" style="margin-top:14px"><div class="panel-head"><div><div class="section-caption">SHAM CASH TOPUPS</div><h3>فواتير شحن الرصيد</h3><p>الفاتورة لا تُعتبر شحناً إلا بعد التحقق الرسمي من عملية شام كاش.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>العميل</th><th>رقم الفاتورة</th><th>المبلغ</th><th>الحالة</th><th>رقم التحويل</th><th>التاريخ</th></tr></thead><tbody id="walletTopupsBody"><tr><td colspan="6">جارٍ التحميل…</td></tr></tbody></table></div>
+        </section>
+        <section class="panel" style="margin-top:14px"><div class="panel-head"><div><div class="section-caption">IMMUTABLE WALLET LEDGER</div><h3>سجل حركات الرصيد</h3><p>كل شحن أو شراء محفوظ كسجل مستقل مع الرصيد بعد الحركة.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>العميل</th><th>نوع الحركة</th><th>المبلغ</th><th>الرصيد بعدها</th><th>المرجع</th><th>التاريخ</th></tr></thead><tbody id="walletLedgerBody"><tr><td colspan="6">جارٍ التحميل…</td></tr></tbody></table></div>
+        </section>
       </section>
       <section class="page hidden" id="page-payments">
         <div class="page-head"><div><div class="eyebrow">SHAM CASH GATEWAY</div><h2>شام كاش والمحفظة</h2><p>إعدادات مزوّد الفوترة والتحقق من العمليات والمحفظة المستخدمة للاستلام.</p></div><span class="status-pill" id="paymentStatus">غير معروف</span></div>
@@ -886,8 +905,8 @@ function initializeAdminColorMode(){
  $('adminThemeToggle')?.addEventListener('click',()=>setAdminColorMode(document.documentElement.dataset.theme==='dark'?'light':'dark'));
 }
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={catalog:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',categoryIndex:0,page:'overview',busy:false};
-const pageTitles={overview:'نظرة عامة',catalog:'المنتجات والأسعار','catalog-api':'ربط المنتجات عبر API',orders:'الطلبات والإيصالات',payments:'شام كاش والمحفظة',exchange:'سعر الصرف'};
+const state={catalog:[],settings:{},orders:[],wallets:{summary:{},customers:[],topups:[],ledger:[]},seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',categoryIndex:0,page:'overview',busy:false};
+const pageTitles={overview:'نظرة عامة',catalog:'المنتجات والأسعار','catalog-api':'ربط المنتجات عبر API',orders:'الطلبات والإيصالات',wallets:'أرصدة العملاء',payments:'شام كاش والمحفظة',exchange:'سعر الصرف'};
 let toastTimer;
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2800)}
 async function api(path,options={}){const response=await fetch(path,{credentials:'same-origin',cache:'no-store',...options,headers:{...(options.headers||{}),...(options.body?{'Content-Type':'application/json'}:{})}});let data={};try{data=await response.json()}catch{}if(!response.ok){if(response.status===401&&path!=='/api/admin/session')showLogin();throw new Error(data.message||data.error||'تعذر تنفيذ العملية.')}return data}
@@ -895,7 +914,7 @@ function showLogin(){state.authed=false;$('app').classList.add('hidden');$('logi
 function showApp(){state.authed=true;$('loginScreen').classList.add('hidden');$('app').classList.remove('hidden')}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginError').textContent='';const key=$('adminKey').value;try{await api('/api/admin/session',{method:'POST',body:JSON.stringify({key})});$('adminKey').value='';showApp();await loadAll();toast('تم تسجيل الدخول بأمان.')}catch(err){$('loginError').textContent=err.message;$('adminKey').focus()}});
 $('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/session',{method:'DELETE'})}catch{}showLogin();toast('تم تسجيل الخروج.')});
-function setPage(name){state.page=name;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!=='page-'+name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('pageTitle').textContent=pageTitles[name]||'Nexa';if(name==='catalog')renderCatalog();if(name==='catalog-api'){loadSettings();loadWamdaCatalog();loadSeagmCatalog()}if(name==='orders')loadOrders();if(name==='payments')loadSettings();if(name==='exchange')loadSettings()}
+function setPage(name){state.page=name;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!=='page-'+name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('pageTitle').textContent=pageTitles[name]||'Nexa';if(name==='catalog')renderCatalog();if(name==='catalog-api'){loadSettings();loadWamdaCatalog();loadSeagmCatalog()}if(name==='orders')loadOrders();if(name==='wallets')loadWallets();if(name==='payments')loadSettings();if(name==='exchange')loadSettings()}
 document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.page)));
 document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.jump)));
 async function loadAll(){showApp();await Promise.all([loadOverview(),loadCatalog(),loadSettings(),loadOrders(),loadWamdaCatalog(),loadSeagmCatalog()]);}
@@ -1367,6 +1386,33 @@ $('copyApiEndpointBtn').addEventListener('click',async()=>{
  const value=location.origin+'/api/admin/catalog/products';
  try{await navigator.clipboard.writeText(value);toast('تم نسخ رابط إضافة المنتجات.')}catch{toast(value)}
 });
+
+async function loadWallets(){
+ const d=await api('/api/admin/wallets');
+ state.wallets={summary:d.summary||{},customers:d.customers||[],topups:d.topups||[],ledger:d.ledger||[]};
+ renderWallets();
+}
+function walletTopupStatus(status){
+ const values={pending:['بانتظار التحقق','orange'],paid:['مشحون','green'],expired:['منتهي','red'],cancelled:['ملغي','red']};
+ const [label,variant]=values[status]||[status||'غير معروف',''];
+ return '<span class="tag '+variant+'">'+esc(label)+'</span>';
+}
+function renderWallets(){
+ const data=state.wallets||{},summary=data.summary||{};
+ const cards=[
+  ['عدد الحسابات',Number(summary.customerCount||0).toLocaleString('en-US'),'◉','حساب عميل مسجّل'],
+  ['إجمالي الأرصدة',formatAmount(summary.totalBalanceMinor,'SYP'),'◈','مجموع الأرصدة الحالية'],
+  ['فواتير معلقة',Number(summary.pendingTopups||0).toLocaleString('en-US'),'◷','بانتظار تأكيد شام كاش'],
+  ['شحنات مؤكدة',Number(summary.paidTopups||0).toLocaleString('en-US'),'✓','إجمالي '+formatAmount(summary.totalTopupMinor,'SYP')],
+ ];
+ $('walletStats').innerHTML=cards.map(([title,value,icon,sub])=>'<article class="stat"><div class="stat-top"><span>'+title+'</span><i class="stat-icon">'+icon+'</i></div><strong>'+value+'</strong><small>'+sub+'</small></article>').join('');
+ $('walletCustomersBody').innerHTML=data.customers.length?data.customers.map(customer=>'<tr><td>'+esc(customer.name)+'</td><td class="ltr">'+esc(customer.phone)+'</td><td><strong>'+formatAmount(customer.balanceMinor,'SYP')+'</strong></td><td>'+new Date(customer.updatedAt).toLocaleString('ar-SY')+'</td></tr>').join(''):'<tr><td colspan="4"><div class="empty">لا توجد حسابات عملاء بعد.</div></td></tr>';
+ $('walletTopupsBody').innerHTML=data.topups.length?data.topups.map(topup=>'<tr><td>'+esc(topup.name)+'<small class="muted"> · '+esc(topup.phone)+'</small></td><td class="ltr">'+esc(topup.invoiceNumber)+'</td><td>'+formatAmount(topup.amountMinor,topup.currency)+'</td><td>'+walletTopupStatus(topup.status)+'</td><td class="ltr">'+esc(topup.transactionId||'—')+'</td><td>'+new Date(topup.paidAt||topup.createdAt).toLocaleString('ar-SY')+'</td></tr>').join(''):'<tr><td colspan="6"><div class="empty">لا توجد فواتير شحن بعد.</div></td></tr>';
+ const labels={topup:'شحن رصيد',purchase:'شراء',refund:'استرداد',adjustment:'تسوية إدارية'};
+ $('walletLedgerBody').innerHTML=data.ledger.length?data.ledger.map(entry=>'<tr><td>'+esc(entry.name)+'<small class="muted"> · '+esc(entry.phone)+'</small></td><td>'+esc(labels[entry.type]||entry.type)+'</td><td class="'+(entry.direction==='credit'?'green':'red')+'">'+(entry.direction==='credit'?'+':'−')+formatAmount(entry.amountMinor,entry.currency)+'</td><td>'+formatAmount(entry.balanceAfterMinor,entry.currency)+'</td><td class="ltr">'+esc(entry.sourceType+': '+entry.sourceId)+'</td><td>'+new Date(entry.createdAt).toLocaleString('ar-SY')+'</td></tr>').join(''):'<tr><td colspan="6"><div class="empty">لا توجد حركات رصيد بعد.</div></td></tr>';
+}
+$('refreshWalletsBtn').addEventListener('click',async event=>{const button=event.currentTarget;button.disabled=true;try{await loadWallets();toast('تم تحديث أرصدة العملاء.')}catch(error){toast(error.message)}finally{button.disabled=false}});
+
 async function loadOrders(){const d=await api('/api/admin/orders?limit=200');state.orders=d.orders||[];renderOrders()}
 function formatAmount(minor,currency){const amount=Number(BigInt(minor||0))/100;return currency==='USD'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(amount):new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(amount)+' ل.س جديدة'}
 function statusTag(status){const m={paid:['مدفوع','green'],pending_payment:['بانتظار الدفع','orange'],expired:['منتهي','red'],cancelled:['ملغي','red']};const [t,c]=m[status]||[status,''];return `<span class="tag ${c}">${t}</span>`}
@@ -1378,8 +1424,8 @@ function renderOrders(){
   const supplierLine=o.supplier_provider==='seagm'?'<small class="muted">SEAGM · '+esc(deliveryLabels[o.supplier_status]||o.supplier_status||'—')+'</small>':'';
   const retry=o.supplier_provider==='seagm'&&o.status==='paid'&&o.supplier_status!=='completed'&&['manual_review','waiting'].includes(o.supplier_status)
    ?'<button class="btn soft" data-retry-fulfillment="'+esc(o.id)+'">إعادة فحص المورد</button>':'';
-  return '<tr><td class="ltr">'+esc(o.id)+'</td><td>'+esc(o.product_label)+'</td><td>'+esc(o.customer_name)+'<small class="muted"> · '+esc(o.customer_phone||'')+'</small></td><td>'+formatAmount(o.amountMinor,o.currency)+'</td><td>'+statusTag(o.status)+supplierLine+'</td><td class="ltr">'+esc(o.invoice_number||'—')+'</td><td>'+new Date(o.createdAt).toLocaleString('ar-SY')+'</td><td><div class="table-actions">'+(o.status==='pending_payment'?'<button class="btn danger" data-cancel-order="'+esc(o.id)+'">إلغاء</button>':'')+retry+'<button class="btn soft" data-order-detail="'+esc(o.id)+'">تفاصيل</button></div></td></tr>';
- }).join(''):'<tr><td colspan="8"><div class="empty">لا توجد طلبات مطابقة.</div></td></tr>';
+  return '<tr><td class="ltr">'+esc(o.id)+'</td><td>'+esc(o.product_label)+'</td><td>'+esc(o.customer_name)+'<small class="muted"> · '+esc(o.customer_phone||'')+'</small></td><td>'+formatAmount(o.amountMinor,o.currency)+'</td><td><span class="tag">'+(o.payment_method==='wallet'?'رصيد Nexa':'شام كاش')+'</span></td><td>'+statusTag(o.status)+supplierLine+'</td><td class="ltr">'+esc(o.invoice_number||'—')+'</td><td>'+new Date(o.createdAt).toLocaleString('ar-SY')+'</td><td><div class="table-actions">'+(o.status==='pending_payment'?'<button class="btn danger" data-cancel-order="'+esc(o.id)+'">إلغاء</button>':'')+retry+'<button class="btn soft" data-order-detail="'+esc(o.id)+'">تفاصيل</button></div></td></tr>';
+ }).join(''):'<tr><td colspan="9"><div class="empty">لا توجد طلبات مطابقة.</div></td></tr>';
 }
 $('orderSearch').addEventListener('input',renderOrders);$('orderStatus').addEventListener('change',renderOrders);$('refreshOrdersBtn').addEventListener('click',loadOrders);
 $('ordersBody').addEventListener('click',async e=>{
@@ -1398,7 +1444,7 @@ $('ordersBody').addEventListener('click',async e=>{
   const o=state.orders.find(x=>x.id===detail.dataset.orderDetail);
   if(o)alert([
    'رقم الطلب: '+o.id,'المنتج: '+o.product_label,'العميل: '+o.customer_name,'الهاتف: '+o.customer_phone,
-   'المبلغ: '+formatAmount(o.amountMinor,o.currency),'الحالة: '+o.status,
+   'المبلغ: '+formatAmount(o.amountMinor,o.currency),'طريقة الدفع: '+(o.payment_method==='wallet'?'رصيد Nexa':'شام كاش'),'الحالة: '+o.status,
    'المورد: '+(o.supplier_provider||'—'),'حالة التسليم: '+(o.supplier_status||'—'),
    'رقم طلب المورد: '+(o.supplier_order_id||o.supplier_mch_order_id||'—'),
    'رسالة المورد: '+(o.supplier_message||'—'),'آخر خطأ: '+(o.supplier_error||'—'),
