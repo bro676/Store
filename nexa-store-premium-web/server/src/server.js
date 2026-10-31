@@ -1770,19 +1770,17 @@ async function callNexaGeminiInteraction(history,{test=false}={}){
       let payload;try{payload=JSON.parse(raw);}catch{throw new Error('تعذر قراءة استجابة Gemini API.');}
       if(!response.ok)throw Object.assign(new Error(String(payload?.error?.message||'تعذر الاتصال بخدمة الذكاء الاصطناعي.').slice(0,260)),{status:response.status>=500?502:422});
       const modelSteps=Array.isArray(payload.steps)?payload.steps:[];
-      let functionCount=0;
-      for(const step of modelSteps){
-        input.push(step);
-        if(step?.type!=='function_call')continue;
-        functionCount++;
-        const name=String(step.name||''),args=step.arguments&&typeof step.arguments==='object'?step.arguments:{};
-        const result=assistantToolResult(name,args);
-        input.push({type:'function_result',name,call_id:String(step.id||''),result:[{type:'text',text:JSON.stringify(result)}]});
-      }
-      if(!functionCount){
+      input.push(...modelSteps);
+      const functionCalls=modelSteps.filter(step=>step?.type==='function_call');
+      if(!functionCalls.length){
         const reply=assistantTextFromInteraction(payload);
         if(!reply)throw new Error('لم يُرجع المساعد إجابة نصية.');
         return {reply:reply.slice(0,3000),model};
+      }
+      for(const step of functionCalls){
+        const name=String(step.name||''),args=step.arguments&&typeof step.arguments==='object'?step.arguments:{};
+        const result=assistantToolResult(name,args);
+        input.push({type:'function_result',name,call_id:String(step.id||''),result:[{type:'text',text:JSON.stringify(result)}]});
       }
     }
     throw new Error('تجاوز المساعد الحد المسموح لاستدعاء أدوات المتجر.');
