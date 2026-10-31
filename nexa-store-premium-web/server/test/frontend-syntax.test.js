@@ -47,3 +47,19 @@ test('product click targets are complete and wallet checkout controls are presen
   assert.ok(store.includes('value="shamcash"') && store.includes('value="wallet"'), 'Checkout must offer direct and wallet payment');
   assert.ok(store.includes('id="customerWalletCard"') && store.includes('id="walletTopupForm"'), 'Wallet account and top-up interface must exist');
 });
+
+test('light mode overrides legacy dark panels across storefront and dashboard', async () => {
+  const css = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-luxury.css'), 'utf8');
+  const lightRules = [
+    ':root[data-theme="light"] .home-intro',
+    ':root[data-theme="light"] .category-card',
+    ':root[data-theme="light"] .wallet-api-side',
+    ':root[data-theme="light"] .assistant-head',
+    ':root[data-theme="light"] .modal-header',
+    ':root[data-theme="light"] #app.shell .api-code',
+    ':root[data-theme="light"] .menu-toggle',
+    ':root[data-theme="light"] .toast',
+  ];
+  for (const selector of lightRules) assert.ok(css.includes(selector), 'Missing light-mode override: ' + selector);
+  assert.ok(css.includes(':root[data-theme="dark"] .wallet-api-side'), 'Dark mode retains its dark wallet panel');
+});
