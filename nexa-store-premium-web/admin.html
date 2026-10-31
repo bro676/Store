@@ -515,13 +515,14 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
           </div>
           <div class="seagm-credential-grid" id="wamdaPricingControls">
             <div class="field">
-              <label for="wamdaGlobalPricingMode">سياسة الربح العامة لكل المنتجات</label>
+              <label for="wamdaGlobalPricingMode">سياسة التسعير الافتراضية لكل المنتجات</label>
               <select id="wamdaGlobalPricingMode">
                 <option value="percent">نسبة ربح من التكلفة (%)</option>
                 <option value="fixed_profit">مبلغ ربح ثابت يضاف للتكلفة (ل.س)</option>
+                <option value="fixed_price">سعر بيع ثابت لكل المنتجات (ل.س)</option>
               </select>
               <input id="wamdaGlobalPricingValue" type="number" min="0" max="1000000000" step="0.01" value="0" style="margin-top:8px">
-              <small id="wamdaGlobalPricingHelp">السعر = تكلفة ومضة بعد تحويلها لليرة + نسبة الربح المحددة.</small>
+              <small id="wamdaGlobalPricingHelp">اختر نسبة ربح أو مبلغاً ثابتاً يضاف لتكلفة كل منتج، أو سعراً نهائياً موحداً لكل المنتجات. السعر التلقائي يتحدث عند تغير تكلفة المورد.</small>
             </div>
             <div class="field">
               <label>سعر الصرف المعتمد</label>
@@ -541,7 +542,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
           </div>
           <div class="seagm-actions">
             <button class="btn primary" type="button" id="saveWamdaPricingBtn">حفظ سياسة التسعير العامة</button>
-            <button class="btn primary" type="button" id="wamdaApplyGlobalToAllBtn">تطبيق الربح ونشر كل المنتجات المتاحة</button>
+            <button class="btn primary" type="button" id="wamdaApplyGlobalToAllBtn">تطبيق سياسة المتجر على كل المنتجات</button>
             <button class="btn primary" type="button" id="saveWamdaBtn">حفظ API Token</button>
             <button class="btn soft" type="button" id="testWamdaBtn">اختبار الحساب والرصيد</button>
             <button class="btn soft" type="button" id="refreshWamdaCatalogBtn">جلب المنتجات من ومضة ↻</button>
@@ -842,7 +843,7 @@ $('testNexaAiBtn').addEventListener('click',async()=>{
  }finally{button.disabled=false;}
 });
 function renderSettings(d={}){const s=state.settings;$('storeName').value=s.storeName||'Nexa Store';$('announcement').value=s.announcement||'';$('storeLogo').value=s.storeLogo||'assets/brand/logo.svg';$('storeLogoPreview').src=s.storeLogo||'assets/brand/logo.svg';$('paymentEnabled').checked=!!s.paymentEnabled;$('shamApiBase').value=s.shamApiBase||'https://apis-shamcash.com/api';$('shamApiToken').value='';$('clearShamApiToken').checked=false;$('shamTokenState').textContent=s.shamApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لم يتم ضبط مفتاح بعد.';$('receiverLabel').value=s.receiverLabel||'';$('walletId').value=s.walletId||'';$('orderTtlMinutes').value=s.orderTtlMinutes??15;$('maxAgeMinutes').value=s.maxAgeMinutes??15;$('futureSkewSeconds').value=s.futureSkewSeconds??90;$('timezoneOffsetMinutes').value=s.timezoneOffsetMinutes??180;$('paymentStatus').textContent=d.paymentsReady?'الدفع مفعّل وجاهز':'الدفع غير جاهز';
- $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;renderCatalogApiKeys();$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';$('seagmEnvironment').value=s.seagmEnvironment||'sandbox';$('seagmUid').value=s.seagmUid||'';$('seagmSecret').value='';$('clearSeagmSecret').checked=false;$('seagmSecretState').textContent=s.seagmSecretConfigured?'يوجد Secret Key محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لا يوجد Secret Key محفوظ.';$('wamdaApiToken').value='';$('clearWamdaApiToken').checked=false;$('wamdaTokenState').textContent=s.wamdaApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';$('wamdaWebhookUrl').value=s.wamdaWebhookUrl||'';$('copyWamdaWebhookBtn').disabled=!s.wamdaWebhookUrl;const globalWamdaPolicy=s.wamdaPricingPolicy||{mode:'percent',value:s.wamdaProfitMarginPercent??0};$('wamdaGlobalPricingMode').value=globalWamdaPolicy.mode==='fixed_profit'?'fixed_profit':'percent';$('wamdaGlobalPricingValue').value=globalWamdaPolicy.value??0;$('wamdaAutoRefreshEnabled').checked=s.wamdaAutoRefreshEnabled!==false;$('wamdaRefreshIntervalMinutes').value=s.wamdaRefreshIntervalMinutes??15;$('wamdaFxRateDisplay').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س لكل 1 USD';}
+ $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;renderCatalogApiKeys();$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';$('seagmEnvironment').value=s.seagmEnvironment||'sandbox';$('seagmUid').value=s.seagmUid||'';$('seagmSecret').value='';$('clearSeagmSecret').checked=false;$('seagmSecretState').textContent=s.seagmSecretConfigured?'يوجد Secret Key محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لا يوجد Secret Key محفوظ.';$('wamdaApiToken').value='';$('clearWamdaApiToken').checked=false;$('wamdaTokenState').textContent=s.wamdaApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';$('wamdaWebhookUrl').value=s.wamdaWebhookUrl||'';$('copyWamdaWebhookBtn').disabled=!s.wamdaWebhookUrl;const globalWamdaPolicy=s.wamdaPricingPolicy||{mode:'percent',value:s.wamdaProfitMarginPercent??0};$('wamdaGlobalPricingMode').value=['percent','fixed_profit','fixed_price'].includes(globalWamdaPolicy.mode)?globalWamdaPolicy.mode:'percent';$('wamdaGlobalPricingValue').value=globalWamdaPolicy.value??0;$('wamdaAutoRefreshEnabled').checked=s.wamdaAutoRefreshEnabled!==false;$('wamdaRefreshIntervalMinutes').value=s.wamdaRefreshIntervalMinutes??15;$('wamdaFxRateDisplay').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س لكل 1 USD';}
 $('fxMode').addEventListener('change',()=>{$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api')});
 function paymentPayload(){return{paymentEnabled:$('paymentEnabled').checked,shamApiBase:$('shamApiBase').value.trim(),shamApiToken:$('shamApiToken').value,clearShamApiToken:$('clearShamApiToken').checked,walletId:$('walletId').value.trim(),receiverLabel:$('receiverLabel').value.trim(),orderTtlMinutes:Number($('orderTtlMinutes').value),maxAgeMinutes:Number($('maxAgeMinutes').value),futureSkewSeconds:Number($('futureSkewSeconds').value),timezoneOffsetMinutes:Number($('timezoneOffsetMinutes').value)}}
 $('savePaymentsBtn').addEventListener('click',async()=>{const b=$('savePaymentsBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(paymentPayload())});state.settings=d.settings;renderSettings(d);toast('تم حفظ إعدادات شام كاش والمحفظة.')}catch(e){toast(e.message)}finally{b.disabled=false}});
@@ -869,9 +870,9 @@ async function loadWamdaCatalog(){
     $('wamdaLastSync').textContent=d.lastSyncAt?'آخر مزامنة: '+new Date(d.lastSyncAt).toLocaleString('ar-SY'):'آخر مزامنة: —';
     const pricing=d.pricing||{};
     const globalPolicy=pricing.globalPolicy||state.settings.wamdaPricingPolicy||{mode:'percent',value:pricing.profitMarginPercent??state.settings.wamdaProfitMarginPercent??0};
-    $('wamdaGlobalPricingMode').value=globalPolicy.mode==='fixed_profit'?'fixed_profit':'percent';
+    $('wamdaGlobalPricingMode').value=['percent','fixed_profit','fixed_price'].includes(globalPolicy.mode)?globalPolicy.mode:'percent';
     $('wamdaGlobalPricingValue').value=globalPolicy.value??0;
-    $('wamdaGlobalPricingHelp').textContent=globalPolicy.mode==='fixed_profit'?'يُضاف هذا المبلغ الثابت إلى تكلفة المنتج بعد تحويلها إلى الليرة السورية.':'السعر = تكلفة المنتج بعد تحويلها إلى الليرة × (1 + نسبة الربح).';
+    $('wamdaGlobalPricingHelp').textContent=globalPolicy.mode==='fixed_profit'?'يُضاف مبلغ الربح الثابت إلى تكلفة كل منتج بعد تحويلها إلى الليرة، ويتغير سعر البيع تلقائياً مع تكلفة المورد.':globalPolicy.mode==='fixed_price'?'سيُطبّق سعر البيع نفسه على جميع المنتجات ولن يتغير مع تكلفة المورد. انتبه لاختلاف تكاليف المنتجات.':'السعر = تكلفة المنتج بعد تحويلها إلى الليرة × (1 + نسبة الربح)، ويتغير تلقائياً مع تكلفة المورد.';
     $('wamdaAutoRefreshEnabled').checked=pricing.autoRefreshEnabled??(state.settings.wamdaAutoRefreshEnabled!==false);
     $('wamdaRefreshIntervalMinutes').value=pricing.refreshIntervalMinutes??state.settings.wamdaRefreshIntervalMinutes??15;
     $('wamdaFxRateDisplay').textContent=Number(pricing.fxRate||state.settings.fxRate||145).toLocaleString('en-US')+' ل.س لكل 1 USD';
@@ -958,10 +959,10 @@ function renderWamdaCatalog(){
     }).join('');
     return '<section class="seagm-category-group" data-category-id="'+esc(category.id)+'">'+
       '<div class="seagm-category-heading"><div><strong>'+esc(category.name)+'</strong><small>'+((category.products||[]).length)+' منتج في القسم · '+products.length+' معروض</small></div>'+
-      '<div class="seagm-category-pricing-controls"><label>التسعير التلقائي لهذا القسم</label>'+
+      '<div class="seagm-category-pricing-controls"><label>سياسة التسعير لهذا القسم</label>'+
       '<select data-category-rule-mode><option value="inherit" '+(categoryRule.mode==='inherit'?'selected':'')+'>استخدام سياسة المتجر العامة</option>'+
       '<option value="percent" '+(categoryRule.mode==='percent'?'selected':'')+'>نسبة ربح (%)</option>'+
-      '<option value="fixed_profit" '+(categoryRule.mode==='fixed_profit'?'selected':'')+'>مبلغ ربح ثابت (ل.س)</option></select>'+
+      '<option value="fixed_profit" '+(categoryRule.mode==='fixed_profit'?'selected':'')+'>مبلغ ربح ثابت (ل.س)</option>'+\n      '<option value="fixed_price" '+(categoryRule.mode==='fixed_price'?'selected':'')+'>سعر بيع ثابت لكل منتجات القسم (ل.س)</option></select>'+
       '<input type="number" min="0" max="1000000000" step="0.01" data-category-rule-value value="'+esc(categoryValue)+'" placeholder="قيمة الربح">'+
       '<button class="btn soft" type="button" data-save-category-pricing>حفظ سياسة القسم</button></div></div>'+
       rows+'</section>';
@@ -997,7 +998,7 @@ $('refreshWamdaCatalogBtn').addEventListener('click',refreshWamdaProducts);
 $('copyWamdaWebhookBtn').addEventListener('click',async()=>{const value=$('wamdaWebhookUrl').value;if(!value)return;try{await navigator.clipboard.writeText(value);toast('تم نسخ رابط Webhook.');}catch{const field=$('wamdaWebhookUrl');field.focus();field.select();toast('حدّد الرابط وانسخه يدوياً.');}});
 async function saveWamdaPricingSettings({silent=false}={}){
   const value=Number($('wamdaGlobalPricingValue').value);
-  if(!Number.isFinite(value)||value<0||value>1000000000){throw new Error('أدخل قيمة ربح عامة صحيحة.');}
+  if(!Number.isFinite(value)||value<($('wamdaGlobalPricingMode').value==='fixed_price'?0.01:0)||value>1000000000){throw new Error('أدخل قيمة صحيحة لسياسة التسعير العامة.');}
   if($('wamdaGlobalPricingMode').value==='percent'&&value>1000)throw new Error('نسبة الربح لا يمكن أن تتجاوز 1000%.');
   const payload={
     wamdaPricingPolicy:{mode:$('wamdaGlobalPricingMode').value,value},
@@ -1017,15 +1018,18 @@ $('saveWamdaPricingBtn').addEventListener('click',async()=>{
   finally{button.disabled=false;}
 });
 $('wamdaGlobalPricingMode').addEventListener('change',()=>{
-  $('wamdaGlobalPricingHelp').textContent=$('wamdaGlobalPricingMode').value==='fixed_profit'
-    ?'يُضاف هذا المبلغ الثابت إلى تكلفة المنتج بعد تحويلها إلى الليرة السورية.'
-    :'السعر = تكلفة المنتج بعد تحويلها إلى الليرة × (1 + نسبة الربح).';
+  const mode=$('wamdaGlobalPricingMode').value;
+  $('wamdaGlobalPricingHelp').textContent=mode==='fixed_profit'
+    ?'يُضاف مبلغ الربح نفسه إلى تكلفة كل منتج بعد تحويلها إلى الليرة. يتغير سعر البيع تلقائياً عند تغير تكلفة المورد.'
+    :mode==='fixed_price'
+      ?'سيُطبّق سعر البيع نفسه على جميع المنتجات ولن يتغير بتغير تكلفة المورد. استخدمه فقط عندما تكون تكاليف المنتجات متقاربة.'
+      :'السعر = تكلفة المنتج بعد تحويلها إلى الليرة × (1 + نسبة الربح). يتغير سعر البيع تلقائياً عند تحديث تكلفة المورد.';
 });
 $('wamdaApplyGlobalToAllBtn').addEventListener('click',async()=>{
   const available=state.wamdaCatalog.reduce((sum,category)=>sum+(category.products||[]).filter(product=>product.available===true).length,0);
-  if(!confirm('يوجد '+available.toLocaleString('en-US')+' منتج متاح في آخر كتالوج محفوظ. سيتم حفظ سياسة الربح الحالية، وإلغاء تخصيصات الأسعار، ثم إعادة التسعير ونشر كل المنتجات المتاحة ذات السعر الصالح. قد تتجاوز العملية 3,000 منتج. هل تريد المتابعة؟'))return;
+  if(!confirm('سيتم تطبيق سياسة التسعير العامة الحالية على '+available.toLocaleString('en-US')+' منتج متاح، وإلغاء السياسات الخاصة بالأقسام والمنتجات، ثم إعادة حساب الأسعار ونشر كل المنتجات المتاحة ذات السعر الصالح. يمكنك لاحقاً تخصيص أي قسم أو منتج بشكل مستقل. هل تريد المتابعة؟'))return;
   const button=$('wamdaApplyGlobalToAllBtn');button.disabled=true;button.textContent='جارٍ تطبيق الأسعار والنشر…';
-  $('wamdaAccountStatus').textContent='جارٍ حفظ سياسة الربح العامة ثم نشر المنتجات المؤهلة من آخر مزامنة محفوظة…';
+  $('wamdaAccountStatus').textContent='جارٍ تطبيق سياسة المتجر العامة على المنتجات من آخر مزامنة محفوظة…';
   try{
     await saveWamdaPricingSettings({silent:true});
     const d=await api('/api/admin/wamda/catalog/pricing/apply-all',{method:'POST',body:'{}'});
@@ -1035,7 +1039,7 @@ $('wamdaApplyGlobalToAllBtn').addEventListener('click',async()=>{
     $('wamdaAccountStatus').textContent=summary;
     toast('تم تطبيق التسعير ونشر '+Number(x.publishedNew||0).toLocaleString('en-US')+' منتج جديد. '+Number(x.skippedInvalidPrice||0)+' منتج لم يُنشر بسبب السعر.');
   }catch(error){$('wamdaAccountStatus').textContent=error.message;toast(error.message);}
-  finally{button.disabled=false;button.textContent='تطبيق الربح ونشر كل المنتجات المتاحة';}
+  finally{button.disabled=false;button.textContent='تطبيق سياسة المتجر على كل المنتجات';}
 });
 $('wamdaCatalogResults').addEventListener('click',async event=>{
   const button=event.target.closest('[data-save-category-pricing],[data-save-product-pricing],[data-publish-wamda],[data-reset-wamda-price]');if(!button)return;
@@ -1046,7 +1050,7 @@ $('wamdaCatalogResults').addEventListener('click',async event=>{
     if(!categoryGroup)return;
     const mode=categoryGroup.querySelector('[data-category-rule-mode]')?.value||'inherit';
     const value=categoryGroup.querySelector('[data-category-rule-value]')?.value;
-    if(mode!=='inherit'&&(!value||!Number.isFinite(Number(value))||Number(value)<0)){toast('أدخل قيمة ربح صحيحة للقسم.');return;}
+    if(mode!=='inherit'&&(!value||!Number.isFinite(Number(value))||Number(value)<(mode==='fixed_price'?0.01:0))){toast('أدخل قيمة صحيحة لسياسة القسم.');return;}
     endpoint='/api/admin/wamda/catalog/category-pricing';
     payload={categoryId:Number(categoryGroup.dataset.categoryId),mode,value};
   }else{
