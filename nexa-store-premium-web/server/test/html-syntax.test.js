@@ -21,7 +21,7 @@ function checkJavaScript(source, label) {
 for (const page of pages) {
   test(page + ' inline scripts parse without syntax errors', async () => {
     const html = await readFile(new URL('../../' + page, import.meta.url), 'utf8');
-    const scripts = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script\\s*>/gi)]
+    const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)]
       .filter(match => !/\\bsrc\\s*=/i.test(match[1]))
       .map(match => match[2]);
     assert.ok(scripts.length > 0, 'Expected at least one inline script in ' + page);
