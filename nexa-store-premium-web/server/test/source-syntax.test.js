@@ -9,7 +9,7 @@ const serverPath = fileURLToPath(new URL('../src/server.js', import.meta.url));
 
 test('production server entrypoint parses without syntax errors', async () => {
   const source = await readFile(serverPath, 'utf8');
-  const result = spawnSync(process.execPath, ['--check'], {
+  const result = spawnSync(process.execPath, ['--check', '--input-type=module'], {
     input: source,
     encoding: 'utf8',
     cwd: serverDir,
