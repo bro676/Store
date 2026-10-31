@@ -211,6 +211,23 @@ SEAGM supplier orders are created **only after** Sham Cash verification succeeds
 
 The merchant account needs an available SEAGM Credits balance for the supplier's `pay_amount_credits`. The store's selling price is separate from SEAGM's supplier charge/currency; review your margin and supplier balance before enabling live catalogue products.
 
+### SEAGM order callback (Webhook)
+
+After the Render deployment includes the signed callback route, configure this URL in the SEAGM merchant account's **Payment Order Callback / Callback Address** setting:
+
+```text
+https://nexa-store-9st4.onrender.com/api/webhooks/seagm
+```
+
+- Method: `POST`.
+- The receiver accepts a flat JSON or `application/x-www-form-urlencoded` callback body.
+- Nexa verifies the callback HMAC-SHA256 signature using the same SEAGM Secret Key saved in Admin → SEAGM Supplier, and checks the signed timestamp (120-second window).
+- The callback must include the original `mch_order_id` created by Nexa. Nexa only accepts it for an already-paid Nexa order linked to SEAGM.
+- On acceptance, Nexa responds with the exact plain-text body `success`.
+- The callback is a wake-up notification only. Nexa re-queries SEAGM by the original merchant order ID and validates supplier status, product type and quantity before changing the local delivery state. It never trusts callback status/card fields as proof of delivery.
+
+**Important:** this URL is not an API-key generator and is not the catalogue API endpoint. Obtain the SEAGM UID and Secret Key from your SEAGM merchant/Open API account, then enter them under Admin → SEAGM Supplier. Keep the Secret Key in that password field only; never append it to the callback URL or send it to the browser.
+
 ### Purchase lifecycle
 
 1. The buyer places an order for a published SEAGM product. The server validates quantity, product type, and all provider-required customer fields.
