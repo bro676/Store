@@ -685,7 +685,6 @@ function applyStoreSettings() {
   try { wamdaApiTokenRuntime=storeSettings.wamdaApiTokenCleared?'':(storeSettings.wamdaApiTokenEncrypted?decryptSecret(storeSettings.wamdaApiTokenEncrypted,cfg.settingsEncryptionKey):''); } catch { wamdaApiTokenRuntime=''; }
   try { wamdaWebhookSecretRuntime=storeSettings.wamdaWebhookSecretEncrypted?decryptSecret(storeSettings.wamdaWebhookSecretEncrypted,cfg.settingsEncryptionKey):''; } catch { wamdaWebhookSecretRuntime=''; }
   try { nexaAiApiKeyRuntime=storeSettings.nexaAiApiKeyCleared?'':(storeSettings.nexaAiApiKeyEncrypted?decryptSecret(storeSettings.nexaAiApiKeyEncrypted,cfg.settingsEncryptionKey):''); } catch { nexaAiApiKeyRuntime=''; }
-  try { nexaAiApiKeyRuntime=storeSettings.nexaAiApiKeyCleared?'':(storeSettings.nexaAiApiKeyEncrypted?decryptSecret(storeSettings.nexaAiApiKeyEncrypted,cfg.settingsEncryptionKey):''); } catch { nexaAiApiKeyRuntime=''; }
   cachedShamWallet = null;
   cachedShamWalletAt = 0;
   refreshPaymentsReady();
@@ -1947,6 +1946,29 @@ const server = http.createServer(async (req,res) => {
     if (req.method === 'GET' && url.pathname === '/api/storefront-config') {
       return send(res,200,{ok:true,...publicSettings()});
     }
+    if(req.method==='POST'&&url.pathname==='/api/assistant/chat'){
+      if(rateLimit(req,res,'nexa-assistant:'+ip,12,60_000))return;
+      if(!nexaAiApiKeyRuntime)return send(res,503,{ok:false,error:'NEXA_AI_NOT_CONFIGURED',message:'مساعد Nexa الذكي لم يتم تفعيله بعد. يمكنك التواصل مع فريق الدعم حالياً.'});
+      const input=await bodyJson(req,12_000);
+      const message=String(input.message||'').trim();
+      if(!message||message.length>1000)return send(res,400,{ok:false,error:'INVALID_ASSISTANT_MESSAGE',message:'اكتب سؤالاً من 1 إلى 1000 حرف.'});
+      const prior=Array.isArray(input.history)?input.history.slice(-8):[];
+      const transcript=prior.map(item=>{
+        const role=item?.role==='assistant'?'المساعد':'العميل';
+        const content=String(item?.content||'').replace(/[\\u0000-\\u001f]/g,' ').slice(0,500);
+        return content?role+': '+content:'';
+      }).filter(Boolean).join('\\n');
+      const prompt=(transcript?('سياق المحادثة السابقة:\\n'+transcript+'\\n\\n'):'')+'سؤال العميل الحالي:\\n'+message;
+      const history=[{type:'user_input',content:[{type:'text',text:prompt}]}];
+      try{
+        const result=await callNexaGeminiInteraction(history);
+        return send(res,200,{ok:true,reply:result.reply,model:result.model});
+      }catch(error){
+        const status=error?.status||502;
+        return send(res,status,{ok:false,error:error?.code||'NEXA_AI_REQUEST_FAILED',
+          message:String(error?.message||'تعذر الحصول على رد من المساعد.').slice(0,260)});
+      }
+    }
     if (req.method === 'GET' && url.pathname === '/api/admin/overview') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const [orders,products] = await Promise.all([
@@ -2163,6 +2185,11 @@ const server = http.createServer(async (req,res) => {
       if (rateLimit(req,res,`catalog-sync:${ip}`,5,60_000)) return;
       try { const result = await syncCatalogFromApi(); return send(res,200,result); }
       catch (error) { return send(res,error?.status || 422,{ok:false,error:'CATALOG_API_SYNC_FAILED',message:String(error?.message || 'تعذرت مزامنة API المنتجات.')}); }
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/ai/test'){
+      if(rateLimit(req,res,'nexa-ai-test:'+ip,5,60_000))return;
+      try{return send(res,200,await testNexaAiConnection());}
+      catch(error){return send(res,error?.status||422,{ok:false,error:error?.code||'NEXA_AI_TEST_FAILED',message:String(error?.message||'تعذر اختبار الاتصال بالمساعد.').slice(0,260)});}
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/settings') {
       return send(res,200,{ok:true,settings:safeSettingsForAdmin(),paymentsReady,fxReady:fxRateReady()});
