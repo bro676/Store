@@ -650,6 +650,7 @@ body{
       <button class="icon-button menu-toggle" id="menuToggle" type="button" aria-label="فتح القائمة الجانبية" aria-expanded="false" aria-controls="sidebar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
       </button>
+      <button class="icon-button store-theme-toggle" id="storeThemeToggle" type="button" aria-label="التبديل إلى الوضع الفاتح" title="تبديل الوضع اللوني" aria-pressed="true">☀</button>
       <button class="icon-button" data-page="favorites" title="المفضلة" aria-label="المفضلة">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.5 8.8c0 5.2-8.5 10-8.5 10s-8.5-4.8-8.5-10A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8.5 2.8Z"/></svg>
       </button>
@@ -1000,47 +1001,22 @@ async function assistantAnswer(raw){
 }
 function sendAssistantPrompt(value){if(!value)return;return assistantAnswer(value)}
 function navigateHome(){navigate('home')}
-function nexaMixHex(a,b,t){
- const toRgb=h=>{const s=String(h||'').replace('#','');return [0,2,4].map(i=>parseInt(s.slice(i,i+2),16))};
- const x=toRgb(a),y=toRgb(b);return '#'+x.map((v,i)=>Math.round(v*(1-t)+y[i]*t).toString(16).padStart(2,'0')).join('');
+const NEXA_THEME_KEY='nexa-color-mode';
+function setStoreColorMode(mode,{persist=true}={}){
+ const selected=mode==='light'?'light':'dark';
+ document.documentElement.dataset.theme=selected;
+ if(persist){try{localStorage.setItem(NEXA_THEME_KEY,selected)}catch{}}
+ const button=$('storeThemeToggle');
+ if(button){button.textContent=selected==='dark'?'☀':'☾';button.title=selected==='dark'?'التبديل إلى الوضع الفاتح':'التبديل إلى الوضع الداكن';button.setAttribute('aria-label',button.title);button.setAttribute('aria-pressed',String(selected==='dark'));}
+ const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=selected==='dark'?'#0f0f0f':'#f5f1e7';
 }
-function applyStoreTheme(primary,secondary,accent){
- const p=/^#[0-9a-f]{6}$/i.test(String(primary||''))?primary:'#397fda';
- const s=/^#[0-9a-f]{6}$/i.test(String(secondary||''))?secondary:'#65b8d7';
- const a=/^#[0-9a-f]{6}$/i.test(String(accent||''))?accent:'#8076d6';
- const root=document.documentElement.style;
- root.setProperty('--nexa-primary',p);root.setProperty('--nexa-secondary',s);root.setProperty('--nexa-highlight',a);
- root.setProperty('--nexa-primary-strong',nexaMixHex(p,'#143454',.19));
- root.setProperty('--nexa-secondary-strong',nexaMixHex(s,'#143c55',.20));
- root.setProperty('--nexa-highlight-strong',nexaMixHex(a,'#332b68',.18));
- root.setProperty('--nexa-primary-soft',nexaMixHex(p,'#ffffff',.88));
- root.setProperty('--nexa-secondary-soft',nexaMixHex(s,'#ffffff',.87));
- root.setProperty('--nexa-highlight-soft',nexaMixHex(a,'#ffffff',.88));
- root.setProperty('--nexa-accent',p);root.setProperty('--nexa-accent-strong',nexaMixHex(p,'#143454',.19));
- root.setProperty('--nexa-accent-2',s);root.setProperty('--nexa-dark',nexaMixHex(p,'#10263f',.58));
- root.setProperty('--nexa-soft',nexaMixHex(s,'#ffffff',.82));root.setProperty('--nexa-pale',nexaMixHex(s,'#ffffff',.93));
- root.setProperty('--nexa-line',nexaMixHex(s,'#ffffff',.76));
- root.setProperty('--nexa-gradient','linear-gradient(118deg,'+p+' 0%,'+s+' 56%,'+a+' 100%)');
- root.setProperty('--nexa-primary-line',nexaMixHex(p,'#ffffff',.72));
- root.setProperty('--nexa-secondary-line',nexaMixHex(s,'#ffffff',.72));
- root.setProperty('--nexa-highlight-line',nexaMixHex(a,'#ffffff',.70));
- root.setProperty('--nexa-primary-ink',nexaMixHex(p,'#10263f',.34));
- root.setProperty('--nexa-secondary-ink',nexaMixHex(s,'#10263f',.36));
- root.setProperty('--nexa-highlight-ink',nexaMixHex(a,'#10263f',.36));
- root.setProperty('--nexa-surface-tint',nexaMixHex(s,'#ffffff',.95));
- root.setProperty('--nexa-surface-accent',nexaMixHex(a,'#ffffff',.94));
- root.setProperty('--nexa-status',nexaMixHex(s,'#143c55',.20));
- root.setProperty('--nexa-status-soft',nexaMixHex(s,'#ffffff',.87));
- root.setProperty('--green',nexaMixHex(s,'#143c55',.20));
- root.setProperty('--teal',nexaMixHex(s,'#143c55',.20));
- root.setProperty('--blue',p);
- root.setProperty('--purple',a);
- root.setProperty('--navy',nexaMixHex(p,'#10263f',.58));
- root.setProperty('--navy2',nexaMixHex(s,'#10263f',.56));
-
- const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=nexaMixHex(p,'#10263f',.58);
+function initializeStoreColorMode(){
+ let saved='dark';try{saved=localStorage.getItem(NEXA_THEME_KEY)||'dark'}catch{}
+ setStoreColorMode(saved,{persist:false});
+ $('storeThemeToggle')?.addEventListener('click',()=>setStoreColorMode(document.documentElement.dataset.theme==='dark'?'light':'dark'));
+ window.addEventListener('storage',event=>{if(event.key===NEXA_THEME_KEY&&event.newValue)setStoreColorMode(event.newValue,{persist:false});});
 }
-async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;const footerName=document.querySelector('.footer-brand strong');if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}applyStoreTheme(d.themePrimary||'#397fda',d.themeSecondary||'#65b8d7',d.themeAccent||'#8076d6');const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
+async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;const footerName=document.querySelector('.footer-brand strong');if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
 async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items)&&c.items.length);}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();loadPaymentConfig();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','favorites','wallet','support'].includes(hash))navigate(hash);$('sideYear').textContent=new Date().getFullYear();}
 // delegated interactions
  document.addEventListener('click',e=>{const el=e.target.closest('[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-open-item],[data-favorite],[data-reset-catalog],[data-scroll]');if(!el)return;
@@ -1062,6 +1038,7 @@ async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'})
 document.addEventListener('click',e=>{const copy=e.target.closest('[data-copy-value]');if(copy){const text=copy.dataset.copyValue||'';if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(()=>showToast('تم النسخ')).catch(()=>showToast('تعذر النسخ التلقائي'));else showToast('انسخ النص يدوياً من الحقل.');}});
 document.addEventListener('click',e=>{if(e.target.closest('[data-print-receipt]')){document.body.classList.add('printing-receipt');window.print();}});window.addEventListener('afterprint',()=>document.body.classList.remove('printing-receipt'));$('orderForm').addEventListener('submit',doOrder);$('orderCurrency').addEventListener('change',renderCurrencyPreview);
 $('orderQuantity').addEventListener('input',renderCurrencyPreview);$('shamCashPaymentForm').addEventListener('submit',verifyShamCashPayment);$('paymentOrderId').addEventListener('change',loadShamCashOrderSummary);$('paymentOrderId').addEventListener('blur',loadShamCashOrderSummary);$('supportForm').addEventListener('submit',submitSupportTicket);$('supportLookupForm').addEventListener('submit',lookupSupportOrder);$('assistantLauncher').addEventListener('click',openAssistant);$('assistantClose').addEventListener('click',closeAssistant);$('assistantForm').addEventListener('submit',e=>{e.preventDefault();const input=$('assistantInput');const value=input.value.trim();if(!value)return;input.value='';sendAssistantPrompt(value)});$('modalClose').addEventListener('click',closeModal);$('modalCancel').addEventListener('click',closeModal);$('orderModal').addEventListener('click',e=>{if(e.target===$('orderModal'))closeModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeMenu();closeAssistant()}});$('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){showSearchResults(e.currentTarget.value)}});$('globalSearch').addEventListener('search',e=>{if(!e.currentTarget.value){navigate('home')}});$('menuToggle').addEventListener('click',()=>{const opened=document.body.classList.toggle('sidebar-open');$('menuToggle').setAttribute('aria-expanded',String(opened))});$('sidebarBackdrop').addEventListener('click',closeMenu);
+initializeStoreColorMode();
 init();
 </script>
 </body>
