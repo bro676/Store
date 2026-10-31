@@ -187,7 +187,7 @@ function publicCatalog() {
   return catalog.map(category => ({
     ...category,
     items: category.items.map(product => {
-      const { seagm, wamda, ...publicProduct } = product;
+      const { seagm, wamda, manualOverrides, apiSource, ...publicProduct } = product;
       if (seagm?.provider === 'seagm') {
         return {
           ...publicProduct,
@@ -2286,15 +2286,54 @@ const server = http.createServer(async (req,res) => {
       catalogWriteApiTokenRuntime = '';
       return send(res,200,{ok:true,message:'تم إلغاء مفتاح كتابة المنتجات.'});
     }
+    const restoreProductApiMatch=url.pathname.match(/^\/api\/admin\/catalog\/([^/]+)\/([^/]+)\/restore-api$/);
+    if(req.method==='POST'&&restoreProductApiMatch){
+      if(!pool)return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const categoryId=decodeURIComponent(restoreProductApiMatch[1]),productId=decodeURIComponent(restoreProductApiMatch[2]);
+      let found=false;
+      const nextCatalog=catalog.map(category=>category.id!==categoryId?category:{
+        ...category,items:category.items.map(product=>{
+          if(product.id!==productId)return product;
+          found=true;
+          const source=product.apiSource;
+          if(!source)return product;
+          const restored={...product};
+          for(const key of ['name','desc','image','options'])if(Object.prototype.hasOwnProperty.call(source,key))restored[key]=source[key];
+          delete restored.manualOverrides;
+          return restored;
+        })
+      });
+      if(!found)return send(res,404,{ok:false,error:'PRODUCT_NOT_FOUND',message:'لم يتم العثور على المنتج.'});
+      const category=nextCatalog.find(item=>item.id===categoryId),product=category?.items.find(item=>item.id===productId);
+      if(!product?.apiSource)return send(res,409,{ok:false,error:'API_SOURCE_MISSING',message:'لا توجد نسخة مصدر محفوظة لهذا المنتج. أعد مزامنة المنتجات أولاً.'});
+      await persistCatalog(nextCatalog);
+      return send(res,200,{ok:true,message:'تمت استعادة بيانات المنتج من آخر نسخة API.',catalog});
+    }
     if (req.method === 'GET' && url.pathname === '/api/admin/catalog') {
       return send(res,200,{ok:true,catalog});
     }
     if (req.method === 'PUT' && url.pathname === '/api/admin/catalog') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const input = await bodyJson(req,4_000_000);
-      const nextCatalog = validateCatalog(input.catalog);
-      await persistCatalog(nextCatalog);
-      return send(res,200,{ok:true,message:'تم حفظ الكتالوج بنجاح.',catalog});
+      const requestedCatalog = validateCatalog(input.catalog);
+      const nextCatalog = requestedCatalog.map(category=>{
+        const previousCategory=catalog.find(item=>item.id===category.id);
+        return {...category,items:category.items.map(product=>{
+          const previous=previousCategory?.items.find(item=>item.id===product.id);
+          if(!previous)return product;
+          const apiSource=previous.apiSource||{name:previous.name,desc:previous.desc,image:previous.image,options:previous.options};
+          const overrides={...(previous.manualOverrides||{})};
+          for(const key of ['name','desc','image','options']){
+            if(JSON.stringify(product[key])!==JSON.stringify(previous[key]))overrides[key]=product[key];
+          }
+          const next={...product,apiSource};
+          if(Object.keys(overrides).length)next.manualOverrides=overrides;
+          else delete next.manualOverrides;
+          return next;
+        })};
+      });
+      await persistCatalog(validateCatalog(nextCatalog));
+      return send(res,200,{ok:true,message:'تم حفظ الكتالوج والتعديلات اليدوية مع الاحتفاظ ببيانات API.',catalog});
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/catalog/products') {
       if (rateLimit(req,res,`catalog-write:${ip}`,40,60_000)) return;
