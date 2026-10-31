@@ -963,7 +963,7 @@ function validateAndApplySettings(input) {
   }
   if(input.wamdaPricingPolicy!==undefined){
     const rule=normalizeWamdaPricingRule(input.wamdaPricingPolicy);
-    if(!['percent','fixed_profit'].includes(rule.mode))throw new Error('INVALID_WAMDA_GLOBAL_PRICING_MODE');
+    if(!['percent','fixed_profit','fixed_price'].includes(rule.mode))throw new Error('INVALID_WAMDA_GLOBAL_PRICING_MODE');
     next.wamdaPricingPolicy=rule;
     next.wamdaProfitMarginPercent=rule.mode==='percent'?rule.value:0;
   }
@@ -1097,7 +1097,7 @@ async function persistWamdaSettings(nextSettings){
 }
 function getWamdaPricingContext(settings=storeSettings){
   const stored=settings?.wamdaPricingPolicy;
-  const globalRule=stored&&['percent','fixed_profit'].includes(stored.mode)
+  const globalRule=stored&&['percent','fixed_profit','fixed_price'].includes(stored.mode)
     ?normalizeWamdaPricingRule(stored)
     :{mode:'percent',value:normalizeWamdaMargin(settings?.wamdaProfitMarginPercent??0)};
   return {
@@ -1360,14 +1360,14 @@ async function setWamdaCategoryPricing(input){
   const categoryId=Number(input.categoryId);
   if(!Number.isSafeInteger(categoryId)||categoryId<0)throw new Error('INVALID_WAMDA_CATEGORY_ID');
   const mode=String(input.mode||'');
-  if(!['inherit','percent','fixed_profit'].includes(mode))throw new Error('INVALID_WAMDA_CATEGORY_PRICING_MODE');
+  if(!['inherit','percent','fixed_profit','fixed_price'].includes(mode))throw new Error('INVALID_WAMDA_CATEGORY_PRICING_MODE');
   const rule=parseWamdaPricingOverride(mode,input.value);
   const policies={...(storeSettings?.wamdaCategoryPricingPolicies||{})};
   if(mode==='inherit')delete policies[String(categoryId)];
   else policies[String(categoryId)]=rule;
   const nextSettings={...storeSettings,wamdaCategoryPricingPolicies:policies};
   await repricePublishedWamdaProducts(nextSettings);
-  return {ok:true,categoryId,pricingPolicy:rule,message:mode==='inherit'?'القسم يستخدم تسعير المتجر العام الآن.':'تم حفظ سياسة التسعير التلقائي للقسم.'};
+  return {ok:true,categoryId,pricingPolicy:rule,message:mode==='inherit'?'القسم يستخدم تسعير المتجر العام الآن.':mode==='fixed_price'?'تم تثبيت سعر البيع نفسه لكل منتجات هذا القسم.':'تم حفظ سياسة التسعير التلقائي للقسم.'};
 }
 async function applyWamdaGlobalPricingToAll(){
   if(wamdaBulkPublishInProgress||wamdaCatalogSyncInProgress)
