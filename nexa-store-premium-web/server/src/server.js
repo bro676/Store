@@ -1569,6 +1569,7 @@ seagmFulfillmentTimer.unref?.();
 runSeagmFulfillmentWorker().catch(error=>console.error('initial SEAGM fulfillment run failed',String(error?.message||'unknown').slice(0,120)));
 if (storeSettings?.fxMode === 'api') refreshAutomaticFx().catch(error=>console.error('initial FX refresh failed',error.message));
 if (storeSettings?.catalogApiMode === 'auto') syncCatalogFromApi().catch(error=>console.error('initial catalogue API sync failed',error.message));
+if(storeSettings?.wamdaAutoRefreshEnabled!==false&&wamdaApiTokenRuntime)refreshWamdaCatalog({source:'startup'}).catch(error=>console.error('initial Wamda catalogue refresh failed',String(error?.code||error?.message||'unknown').slice(0,160)));
 const fxRefreshTimer = setInterval(()=>{ if (storeSettings?.fxMode === 'api') refreshAutomaticFx().catch(error=>console.error('scheduled FX refresh failed',error.message)); },5*60_000);
 fxRefreshTimer.unref?.();
 const catalogSyncTimer = setInterval(()=>{
@@ -1578,6 +1579,15 @@ const catalogSyncTimer = setInterval(()=>{
   if (!Number.isFinite(last) || Date.now()-last >= interval) syncCatalogFromApi().catch(error=>console.error('scheduled catalogue API sync failed',error.message));
 },60_000);
 catalogSyncTimer.unref?.();
+const wamdaCatalogRefreshTimer=setInterval(()=>{
+  if(storeSettings?.wamdaAutoRefreshEnabled===false||!wamdaApiTokenRuntime||wamdaCatalogSyncInProgress)return;
+  const last=new Date(storeSettings.wamdaLastRefreshAttemptAt||storeSettings.wamdaLastSyncAt||0).getTime();
+  const interval=Math.max(5,Number(storeSettings.wamdaRefreshIntervalMinutes||15))*60_000;
+  if(!Number.isFinite(last)||Date.now()-last>=interval){
+    refreshWamdaCatalog({source:'scheduled'}).catch(error=>console.error('scheduled Wamda refresh failed',String(error?.code||error?.message||'unknown').slice(0,160)));
+  }
+},60_000);
+wamdaCatalogRefreshTimer.unref?.();
 
 const server = http.createServer(async (req,res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
@@ -1778,8 +1788,17 @@ const server = http.createServer(async (req,res) => {
       return send(res,result.created?201:200,{ok:true,created:result.created,productId:result.productId,message:result.created?'تمت إضافة المنتج عبر API.':'تم تحديث المنتج عبر API.'});
     }
     if(req.method==='GET'&&url.pathname==='/api/admin/wamda/catalog'){
-      const categories=Array.isArray(storeSettings?.wamdaCatalogCache)?storeSettings.wamdaCatalogCache:[];
-      return send(res,200,{ok:true,configured:Boolean(wamdaApiTokenRuntime),account:storeSettings?.wamdaAccountInfo||null,lastSyncAt:storeSettings?.wamdaLastSyncAt||null,lastTestAt:storeSettings?.wamdaLastTestAt||null,lastError:storeSettings?.wamdaLastError||'',syncInProgress:wamdaCatalogSyncInProgress,webhookUrl:safeSettingsForAdmin().wamdaWebhookUrl,stats:{categories:categories.length,products:categories.reduce((sum,category)=>sum+(category.products||[]).length,0),available:categories.reduce((sum,category)=>sum+(category.products||[]).filter(product=>product.available).length,0)},categories});
+      const sourceCategories=Array.isArray(storeSettings?.wamdaCatalogCache)?storeSettings.wamdaCatalogCache:[];
+      const categories=buildWamdaAdminCategories(sourceCategories);
+      const stats={categories:categories.length,products:categories.reduce((sum,category)=>sum+(category.products||[]).length,0),
+        available:categories.reduce((sum,category)=>sum+(category.products||[]).filter(product=>product.available).length,0),
+        published:categories.reduce((sum,category)=>sum+(category.products||[]).filter(product=>product.published).length,0)};
+      return send(res,200,{ok:true,configured:Boolean(wamdaApiTokenRuntime),account:storeSettings?.wamdaAccountInfo||null,
+        lastSyncAt:storeSettings?.wamdaLastSyncAt||null,lastRefreshAttemptAt:storeSettings?.wamdaLastRefreshAttemptAt||null,
+        lastTestAt:storeSettings?.wamdaLastTestAt||null,lastError:storeSettings?.wamdaLastError||'',
+        syncInProgress:wamdaCatalogSyncInProgress,webhookUrl:safeSettingsForAdmin().wamdaWebhookUrl,stats,categories,
+        pricing:{profitMarginPercent:Number(storeSettings?.wamdaProfitMarginPercent??0),fxRate:Number(storeSettings?.fxRate||145),
+          autoRefreshEnabled:storeSettings?.wamdaAutoRefreshEnabled!==false,refreshIntervalMinutes:Number(storeSettings?.wamdaRefreshIntervalMinutes||15)}});
     }
     if(req.method==='POST'&&url.pathname==='/api/admin/wamda/test'){
       if(rateLimit(req,res,'wamda-test:'+ip,5,60_000))return;
@@ -1793,6 +1812,20 @@ const server = http.createServer(async (req,res) => {
       if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
       const input=await bodyJson(req,16_384);
       try{return send(res,200,await publishWamdaProduct(input));}catch(error){return send(res,error?.status||400,{ok:false,error:'WAMDA_PRODUCT_PUBLISH_FAILED',message:String(error?.message||'تعذر نشر منتج ومضة.').slice(0,300)});}
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/wamda/catalog/price'){
+      if(rateLimit(req,res,'wamda-price:'+ip,40,60_000))return;
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const input=await bodyJson(req,16_384);
+      try{return send(res,200,await publishWamdaProduct(input));}
+      catch(error){return send(res,error?.status||400,{ok:false,error:'WAMDA_MANUAL_PRICE_FAILED',message:String(error?.message||'تعذر تثبيت السعر اليدوي.').slice(0,300)});}
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/wamda/catalog/price/reset'){
+      if(rateLimit(req,res,'wamda-price-reset:'+ip,40,60_000))return;
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const input=await bodyJson(req,16_384);
+      try{return send(res,200,await publishWamdaProduct({...input,resetToAutomatic:true}));}
+      catch(error){return send(res,error?.status||400,{ok:false,error:'WAMDA_AUTO_PRICE_RESET_FAILED',message:String(error?.message||'تعذر إعادة التسعير التلقائي.').slice(0,300)});}
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/seagm/catalog') {
       const categories = Array.isArray(storeSettings?.seagmCatalogCache) ? storeSettings.seagmCatalogCache : [];
@@ -1857,11 +1890,15 @@ const server = http.createServer(async (req,res) => {
     }
     if (req.method === 'PATCH' && url.pathname === '/api/admin/settings') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const previousSettings=storeSettings;
       const input = await bodyJson(req,3_000_000);
       const nextSettings = validateAndApplySettings(input);
       await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
       storeSettings = nextSettings;
       applyStoreSettings();
+      if(previousSettings?.wamdaProfitMarginPercent!==nextSettings.wamdaProfitMarginPercent||previousSettings?.fxRate!==nextSettings.fxRate){
+        await repricePublishedWamdaProducts();
+      }
       return send(res,200,{ok:true,settings:safeSettingsForAdmin(),paymentsReady,fxReady:fxRateReady()});
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/fx/refresh') {
