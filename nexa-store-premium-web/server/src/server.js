@@ -14,6 +14,7 @@ import {
 import { createSeagmClient } from './seagm-api.js';
 import { createWamdaClient } from './wamda-api.js';
 import { wamdaOrderDecision, classifyWamdaError } from './wamda-fulfillment.js';
+import { normalizeWamdaMargin, calculateWamdaSellPriceSyp, updateWamdaPublishedProduct, markWamdaProductUnavailable } from './wamda-pricing.js';
 import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSignature } from './seagm-webhook.js';
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
 
@@ -642,7 +643,8 @@ function defaultStoreSettings() {
     seagmEnvironment:'sandbox', seagmUid:'', seagmSecretEncrypted:'', seagmSecretCleared:false,
     seagmCatalogCache:[], seagmAccountInfo:null, seagmLastSyncAt:null, seagmLastTestAt:null, seagmLastError:'',
     wamdaApiTokenEncrypted:'',wamdaApiTokenCleared:false,wamdaWebhookSecretEncrypted:'',
-    wamdaCatalogCache:[],wamdaAccountInfo:null,wamdaLastSyncAt:null,wamdaLastTestAt:null,wamdaLastError:'',
+    wamdaCatalogCache:[],wamdaAccountInfo:null,wamdaLastSyncAt:null,wamdaLastRefreshAttemptAt:null,wamdaLastTestAt:null,wamdaLastError:'',
+    wamdaProfitMarginPercent:0,wamdaAutoRefreshEnabled:true,wamdaRefreshIntervalMinutes:15,
     catalogWriteApiTokenEncrypted:'', catalogWriteApiTokenCleared:false, catalogWriteApiKeys:[],
     paymentEnabled:cfg.paymentsEnabled, shamApiBase:cfg.apiBase, walletId:cfg.walletId,
     receiverLabel:cfg.receiverLabel, timezoneOffsetMinutes:cfg.timezoneOffsetMinutes,
@@ -941,6 +943,16 @@ function validateAndApplySettings(input) {
     next.wamdaApiTokenEncrypted=encryptSecret(input.wamdaApiToken.trim(),cfg.settingsEncryptionKey);next.wamdaApiTokenCleared=false;
   }
   if(input.clearWamdaApiToken===true){next.wamdaApiTokenEncrypted='';next.wamdaApiTokenCleared=true;}
+  if(input.wamdaProfitMarginPercent!==undefined) next.wamdaProfitMarginPercent=normalizeWamdaMargin(input.wamdaProfitMarginPercent);
+  if(input.wamdaAutoRefreshEnabled!==undefined){
+    if(typeof input.wamdaAutoRefreshEnabled!=='boolean')throw new Error('INVALID_WAMDA_AUTO_REFRESH_ENABLED');
+    next.wamdaAutoRefreshEnabled=input.wamdaAutoRefreshEnabled;
+  }
+  if(input.wamdaRefreshIntervalMinutes!==undefined){
+    const minutes=Number(input.wamdaRefreshIntervalMinutes);
+    if(!Number.isInteger(minutes)||minutes<5||minutes>1440)throw new Error('INVALID_WAMDA_REFRESH_INTERVAL');
+    next.wamdaRefreshIntervalMinutes=minutes;
+  }
   return next;
 }
 
