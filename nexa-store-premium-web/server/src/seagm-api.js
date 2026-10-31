@@ -80,10 +80,13 @@ function normalizeFields(fields) {
     })) : [];
     return {
       name,
+      submitField: cleanText(field?.submitField || field?.submit_field || name, 80),
       label: cleanText(field?.label || field?.title || name, 100),
       type: cleanText(field?.type || 'input', 30).toLowerCase(),
       placeholder: cleanText(field?.placeholder, 160),
       prefix: cleanText(field?.prefix, 40),
+      tips: cleanText(field?.tips || field?.des || '', 240),
+      tipsImage: cleanText(field?.tipsImg || field?.tips_img || '', 300),
       multiline: field?.multiline === true,
       position: Number.isInteger(Number(field?.position)) ? Number(field.position) : index,
       options,
@@ -107,11 +110,11 @@ function normalizeProduct(row, kind, category) {
     unitPrice,
     originPrice,
     discountRate: Number.isFinite(Number(row?.discount_rate)) ? Number(row.discount_rate) : 0,
-    parValue: Number.isFinite(Number(row?.par_value)) ? Number(row.par_value) : null,
-    parValueCurrency: cleanText(row?.par_value_currency || '', 12).toUpperCase(),
-    minAmount: Number.isInteger(Number(row?.min_amount)) && Number(row?.min_amount) > 0 ? Number(row.min_amount) : 1,
-    maxAmount: Number.isInteger(Number(row?.max_amount)) && Number(row?.max_amount) > 0 ? Number(row.max_amount) : 1,
-    inStock: row?.has_stock !== false && row?.in_stock !== false,
+    parValue: Number.isFinite(Number(row?.par_value ?? row?.parValue)) ? Number(row?.par_value ?? row?.parValue) : null,
+    parValueCurrency: cleanText(row?.par_value_currency || row?.parValueCurrency || '', 12).toUpperCase(),
+    minAmount: Number.isInteger(Number(row?.min_amount ?? row?.minAmount)) && Number(row?.min_amount ?? row?.minAmount) > 0 ? Number(row?.min_amount ?? row?.minAmount) : 1,
+    maxAmount: Number.isInteger(Number(row?.max_amount ?? row?.maxAmount)) && Number(row?.max_amount ?? row?.maxAmount) > 0 ? Number(row?.max_amount ?? row?.maxAmount) : 1,
+    inStock: row?.has_stock !== false && row?.hasStock !== false && row?.in_stock !== false && row?.inStock !== false,
     autoDelivery: category.autoDelivery,
     fields: normalizeFields(row?.fields),
   };
@@ -144,6 +147,8 @@ export function createSeagmClient({ uid, secretKey, environment = 'sandbox', fet
       if (!response.ok) {
         const error = new Error('SEAGM HTTP ' + response.status);
         error.status = response.status;
+        error.retryAfter = Number(response.headers?.get?.('retry-after') || 0) || null;
+        if (response.status === 429 || response.status === 418) error.code = response.status === 429 ? 'SEAGM_RATE_LIMITED' : 'SEAGM_IP_BLOCKED';
         throw error;
       }
       return responseData(await readJsonLimited(response));
@@ -163,7 +168,7 @@ export function createSeagmClient({ uid, secretKey, environment = 'sandbox', fet
       username: cleanText(data.username, 100),
       email: cleanText(data.email, 160),
       currency: cleanText(data.currency, 12).toUpperCase(),
-      balance: cleanText(data.balance, 40),
+      balance: cleanText(data.balance ?? data.credits, 40),
     };
   }
 
