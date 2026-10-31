@@ -1189,7 +1189,7 @@ async function testWamdaConnection(){
   return {ok:true,account,testedAt};
 }
 async function refreshWamdaCatalog({source='manual'}={}){
-  if(wamdaCatalogSyncInProgress)throw Object.assign(new Error('WAMDA_SYNC_IN_PROGRESS'),{status:409});
+  if(wamdaCatalogSyncInProgress||wamdaBulkPublishInProgress)throw Object.assign(new Error('توجد عملية مزامنة أو نشر جماعي قيد التنفيذ.'),{status:409});
   if(!wamdaApiTokenRuntime)throw Object.assign(new Error('أدخل Wamda API Token من لوحة الإدارة أولاً.'),{status:400,code:'WAMDA_TOKEN_MISSING'});
   wamdaCatalogSyncInProgress=true;
   const attemptedAt=new Date().toISOString();
@@ -1267,6 +1267,7 @@ async function refreshWamdaCatalog({source='manual'}={}){
   }finally{wamdaCatalogSyncInProgress=false;}
 }
 async function publishWamdaProduct(input){
+  if(wamdaBulkPublishInProgress)throw Object.assign(new Error('انتظر انتهاء النشر الجماعي قبل تعديل منتج منفرد.'),{status:409});
   if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('INVALID_WAMDA_PUBLISH_REQUEST');
   const categoryId=Number(input.categoryId),productId=Number(input.productId);
   if(!Number.isSafeInteger(categoryId)||categoryId<0||!Number.isSafeInteger(productId)||productId<=0)throw new Error('INVALID_WAMDA_PRODUCT_ID');
@@ -1321,6 +1322,7 @@ function parseWamdaPricingOverride(mode,value){
   return normalizeWamdaPricingRule({mode,value});
 }
 async function setWamdaProductPricing(input){
+  if(wamdaBulkPublishInProgress)throw Object.assign(new Error('انتظر انتهاء النشر الجماعي قبل تعديل تسعير منتج.'),{status:409});
   if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('INVALID_WAMDA_PRODUCT_PRICING');
   const categoryId=Number(input.categoryId),productId=Number(input.productId);
   if(!Number.isSafeInteger(categoryId)||categoryId<0||!Number.isSafeInteger(productId)||productId<=0)throw new Error('INVALID_WAMDA_PRODUCT_ID');
@@ -1352,6 +1354,7 @@ async function setWamdaProductPricing(input){
     message:override.mode==='inherit'?'تم ربط المنتج بتسعير القسم أو المتجر.':override.mode==='fixed_price'?'تم تثبيت سعر البيع لهذا المنتج.':'تم حفظ قاعدة التسعير التلقائي الخاصة بالمنتج.'};
 }
 async function setWamdaCategoryPricing(input){
+  if(wamdaBulkPublishInProgress)throw Object.assign(new Error('انتظر انتهاء النشر الجماعي قبل تعديل سياسة قسم.'),{status:409});
   if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('INVALID_WAMDA_CATEGORY_PRICING');
   const categoryId=Number(input.categoryId);
   if(!Number.isSafeInteger(categoryId)||categoryId<0)throw new Error('INVALID_WAMDA_CATEGORY_ID');
@@ -2145,7 +2148,7 @@ const server = http.createServer(async (req,res) => {
       return send(res,200,{ok:true,configured:Boolean(wamdaApiTokenRuntime),account:storeSettings?.wamdaAccountInfo||null,
         lastSyncAt:storeSettings?.wamdaLastSyncAt||null,lastRefreshAttemptAt:storeSettings?.wamdaLastRefreshAttemptAt||null,
         lastTestAt:storeSettings?.wamdaLastTestAt||null,lastError:storeSettings?.wamdaLastError||'',
-        syncInProgress:wamdaCatalogSyncInProgress,webhookUrl:safeSettingsForAdmin().wamdaWebhookUrl,stats,categories,
+        syncInProgress:wamdaCatalogSyncInProgress||wamdaBulkPublishInProgress,bulkPublishInProgress:wamdaBulkPublishInProgress,webhookUrl:safeSettingsForAdmin().wamdaWebhookUrl,stats,categories,
         pricing:{profitMarginPercent:Number(storeSettings?.wamdaProfitMarginPercent??0),
           globalPolicy:getWamdaPricingContext().globalRule,categoryPolicies:getWamdaPricingContext().categoryPolicies,
           fxRate:Number(storeSettings?.fxRate||145),autoRefreshEnabled:storeSettings?.wamdaAutoRefreshEnabled!==false,
