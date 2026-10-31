@@ -93,7 +93,13 @@ test('normalizes current camelCase product fields and provider submitField names
           ? {code:200,data:[{id:12,name:'Direct Recharge',code:'recharge'}]}
           : path==='/v1/card-categories/11/card-types'
             ? {code:200,data:[{id:13,name:'Card',categoryId:11,unitPrice:'3.50',parValue:'5',parValueCurrency:'USD',maxAmount:4,hasStock:true}]}
-            : {code:200,data:[{id:14,name:'Topup',categoryId:12,unitPrice:'2.75',minAmount:1,maxAmount:8,fields:[{name:'player_id',submitField:'charge_account',type:'input',label:'Player ID',tips:'Enter your ID'}]}]};
+            : {code:200,data:[{id:14,name:'Topup',categoryId:12,unitPrice:'2.75',minAmount:1,maxAmount:8,fields:[{
+                name:'region',submitField:'region',type:'select',label:'Region',
+                options:[{label:'Asia',value:'asia',child:[{
+                  name:'server_id',label:'Server',prefix:'Choose a server',
+                  options:[{parent_value:'asia',child_options:[{label:'Alpha',value:'alpha'},{label:'Beta',value:'beta'}]}],
+                }]}],
+              }]}]};
       return new Response(JSON.stringify(payload),{status:200});
     },
   });
@@ -105,8 +111,9 @@ test('normalizes current camelCase product fields and provider submitField names
   assert.equal(card.maxAmount,4);
   assert.equal(recharge.minAmount,1);
   assert.equal(recharge.maxAmount,8);
-  assert.equal(recharge.fields[0].submitField,'charge_account');
-  assert.equal(recharge.fields[0].tips,'Enter your ID');
+  assert.equal(recharge.fields[0].submitField,'region');
+  assert.equal(recharge.fields[0].options[0].child[0].name,'server_id');
+  assert.equal(recharge.fields[0].options[0].child[0].options[0].child_options[1].value,'beta');
 });
 
 test('SEAGM stops on provider rate limits and exposes retry-after', async () => {
