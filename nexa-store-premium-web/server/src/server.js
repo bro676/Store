@@ -832,6 +832,7 @@ function safeSettingsForAdmin() {
 }
 function validateAndApplySettings(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('INVALID_SETTINGS');
+  if(wamdaBulkPublishInProgress&&['wamdaPricingPolicy','wamdaProfitMarginPercent','wamdaCategoryPricingPolicies','fxRate'].some(key=>input[key]!==undefined))throw Object.assign(new Error('لا يمكن تغيير سياسة الأسعار أو سعر الصرف أثناء النشر الجماعي.'),{status:409});
   const next = { ...storeSettings };
   const setText = (key, max, fallback = '') => {
     if (input[key] === undefined) return;
