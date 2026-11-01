@@ -2473,7 +2473,7 @@ const server = http.createServer(async (req,res) => {
       let reference;
       try{reference=resolveBestStoreWebhookReference(callback,url.searchParams);}
       catch{return send(res,400,{ok:false,error:'INVALID_ORDER_REFERENCE'});}
-      if(!reference)return send(res,400,{ok:false,error:'ORDER_REFERENCE_REQUIRED'});
+      if(!reference)return send(res,200,{ok:true,received:true,queued:false,reason:'no_supported_order_reference'});
       const matched=await pool.query(`SELECT o.id,o.status,o.supplier_status,j.status AS job_status
         FROM nexa_orders o LEFT JOIN nexa_fulfillment_jobs j ON j.order_id=o.id
         WHERE o.supplier_provider='beststore' AND (
