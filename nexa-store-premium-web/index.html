@@ -1249,7 +1249,7 @@ async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'})
  if(el.dataset.productPage){state.productPage=Number(el.dataset.productPage)||1;renderCatalog();return}
  if(el.dataset.searchPage){state.searchPage=Number(el.dataset.searchPage)||1;renderSearchResults();return}
 
- if(el.dataset.department){state.department=el.dataset.department;state.category=null;state.item=null;state.option=null;state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';renderCatalog();return}
+ if(el.dataset.department){state.department=el.dataset.department;state.category=null;state.item=null;state.option=null;state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';navigate('store');return}
  if(el.dataset.category){state.category=el.dataset.category;state.department=NexaCatalog.classifyCategory(getCategory(el.dataset.category));state.item=null;state.option=null;navigate('store');return}
  if(el.dataset.browseCategory){state.category=el.dataset.browseCategory;state.department=NexaCatalog.classifyCategory(getCategory(el.dataset.browseCategory));state.item=null;state.option=null;state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';renderCatalog();return}
  if(el.dataset.browseItem){state.item=el.dataset.browseItem;state.option=null;renderCatalog();return}
