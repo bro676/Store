@@ -43,7 +43,7 @@ test('product click targets are complete and wallet checkout controls are presen
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   assert.ok(store.includes("'data-open-item=\"'+esc(product.id)+'\" data-open-category=\"'+esc(cat.id)+'\"'"), 'Category product tiles must open through the canonical item handler and retain category context');
   assert.ok(store.includes("'data-open-item=\"'+esc(i.id)+'\" data-open-category=\"'+esc(c.id)+'\"'"), 'Search product tiles must retain their category context');
-  assert.ok(store.includes('<article class="product-card" data-open-item="${esc(it.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Featured product cards retain category context and open when clicked');
+  assert.ok(store.includes("return '<article class=\"product-card\" data-open-item=\"'+esc(it.id)+'\" data-open-category=\"'+esc(cat.id)+'\" role=\"button\" tabindex=\"0\""), 'Featured product cards retain category context and open when clicked');
   assert.ok(store.includes('<article class="product-card" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Saved product cards retain category context and open when clicked');
   assert.ok(store.includes("e.target.matches?.('.product-card[role=\"button\"][data-open-item]')"), 'Product cards support keyboard activation');
   assert.ok(store.includes("const productControl=target.closest('[data-open-item]')"), 'All product cards route through the central delegated click handler');
@@ -139,7 +139,7 @@ test('storefront product navigation normalizes ids and keeps the originating cat
   assert.match(store, /function getCategory\(id\)\{return categories\.find\(x=>String\(x\.id\)===String\(id\)\)\|\|null\}/, 'Category ids are normalized across DOM and API string values');
   assert.match(store, /function getItem\(id,categoryId=state\.category\)/, 'Product lookup is scoped to the active category where possible');
   assert.ok(store.includes('data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Featured product cards retain their category id');
-  assert.ok(store.includes('data-open-item="${esc(it.id)}" data-open-category="${esc(cat.id)}">استكشف'), 'Featured call-to-action retains its category id');
+  assert.ok(store.includes('data-open-item=\"\'+esc(it.id)+\'\" data-open-category=\"\'+esc(cat.id)+\'\">استكشف'), 'Featured call-to-action retains its category id');
   assert.match(store, /const productControl=target\.closest\('\[data-open-item\]'\)/, 'Product clicks use a dedicated delegated handler');
   assert.match(store, /openItem\(productControl\.dataset\.openItem,productControl\.dataset\.openCategory\|\|null\)/, 'Product handler passes both identifiers to the detail route');
   const openItem = store.slice(store.indexOf('function openItem'), store.indexOf('function resetCatalog'));
@@ -199,7 +199,7 @@ test('homepage departments link into the five-level product hierarchy', async ()
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   assert.ok(store.includes('function renderDepartmentCard(group)'), 'Homepage renders separate main department cards');
   assert.ok(store.includes('NexaCatalog.getDepartmentSummaries(categories)'), 'Main departments group the API catalogue instead of taking the first eight categories');
-  assert.ok(store.includes('data-department="'+esc(group.id)+'"'), 'Department cards have a dedicated navigation target');
+  assert.ok(store.includes("data-department=\"'+esc(group.id)+'\""), 'Department cards have a dedicated navigation target');
   assert.ok(store.includes("if(el.dataset.department){state.department=el.dataset.department"), 'Department selection updates the current hierarchy state');
   assert.ok(store.includes("navigate('store');return}"), 'A homepage department click opens the visible catalogue page');
   for (const selector of ['function renderCatalog(){','if(!department){','}else if(!cat){','}else if(!it){','}else if(!opt){']) {
