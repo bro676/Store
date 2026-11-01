@@ -119,23 +119,22 @@ curl https://YOUR-STORE.example/api/admin/shamcash/wallets \
 
 ## ملاحظات تشغيلية
 
-- الأسعار في `catalog.json` ما زالت أسعاراً توضيحية من النسخة السابقة؛ لا تشغّل الدفع قبل اعتمادها تجارياً.
-- مفتاح API لا يظهر في JavaScript ولا في الاستجابة العامة.
-- `PAYMENTS_ENABLED` افتراضياً false، ولا نملك بيانات اعتماد حساب التاجر في هذا المشروع؛ يجب إدخالها على الاستضافة بنفسك.
-- يتم تنفيذ دورة تسليم SEAGM بعد تأكيد الدفع كما هو موضح في قسم **SEAGM fulfillment** أدناه. لا يتم شراء أي منتج من المورد قبل نجاح التحقق من فاتورة Sham Cash وتسجيل الدفع في معاملة PostgreSQL.
-- لم تُنفّذ معاملة مالية فعلية من بيئة الاختبار؛ تحقق من حسابك الحقيقي بعد ضبط الأسرار والصلاحيات.
-
+- الكتالوج الفعلي يُحفظ في PostgreSQL، أما server/catalog.json فهو كتالوج seed للتثبيت الجديد. اعتمد أسعار وتكاليف كل مورد قبل البيع، ولا تفترض أن كل منتج يدوي يملك تكلفة مورد موثّقة.
+- مفاتيح Sham Cash وWAMDA وSEAGM لا تُرسل إلى JavaScript. مفاتيح الموردين المدخلة من لوحة الإدارة تُخزّن مشفّرة.
+- PAYMENTS_ENABLED=false هو الافتراضي في ملف البيئة المحلي. إعداد Render المنشور وإعدادات لوحة الإدارة هما اللذان يحددان تفعيل الدفع الفعلي.
+- ينفذ WAMDA وSEAGM دورة تسليم تلقائية بعد التحقق الناجح من الدفع فقط. لا يتم إنشاء عملية شراء لدى المورد لمجرد إنشاء طلب أو فاتورة.
+- اختبارات CI تستخدم استجابات موردين وهمية؛ لا تنفق أرصدة Sham Cash أو Credits لدى المورد ولا تثبت وحدها نجاح عملية تجارية حية. نفّذ اختبار Sandbox منخفض القيمة ومصرّحًا به قبل Production.
 
 ## Dual currency checkout
 
-The checkout supports SYP and USD. Product catalogue prices are stored in new Syrian pounds. USD is calculated on the server using a fixed store rate of 145 new SYP per 1 USD; the browser never supplies or controls the final price. The selected currency and exact amount are written into the Sham Cash invoice and PostgreSQL order, and verification must match both.
+The checkout supports SYP and USD. The database configuration observed on 2026-11-01 used manual FX at 145 new SYP per 1 USD; authorised admins can change this rate or configure an approved automatic source. USD is calculated on the server; the browser never supplies or controls the final price. The selected currency and exact amount are written into the Sham Cash invoice and PostgreSQL order, and verification must match both.
 
 
 ## العملة الجديدة وFX
 
-كتالوج الأسعار في هذا الإصدار صار بالليرة السورية الجديدة. تم تحويل كل القيم القديمة بنسبة 100 قديمة = 1 جديدة، مع الاحتفاظ بالقيمة الاقتصادية نفسها. السعر الأساسي يُرسل إلى Sham Cash بالعملة SYP الجديدة.
+أسعار الكتالوج الحالية تُخزّن وتُدار بالليرة السورية الجديدة (SYP). عند استيراد أي مصدر خارجي، تحقّق من وحدة السعر المعلنة في المصدر قبل المزامنة ولا تطبّق تحويل 100:1 مرة ثانية على بيانات محسوبة مسبقاً بالوحدة الجديدة. السعر الذي يرسله الخادم إلى Sham Cash يُحسب من سعر البيع المعتمد في قاعدة البيانات.
 
-سعر الصرف الافتراضي يدوي على 145 ليرة سورية جديدة لكل دولار واحد. يمكن اختيار وضع SP Today API V2 من لوحة الإدارة بتحديد رابط Endpoint ومسار حقل السعر وطريقة المصادقة والوحدة (قديمة أو جديدة). عند استخدام الوضع الآلي يمنع الخادم تسعير الدولار إذا تجاوز آخر تحديث 30 دقيقة. يحسب الخادم قيمة USD ولا يعتمد على السعر الذي يرسله المتصفح.
+إعداد قاعدة البيانات الذي روجع بتاريخ 1 نوفمبر 2026 كان على الوضع اليدوي بسعر 145 ليرة سورية جديدة لكل دولار. يمكن للإدارة تغيير السعر أو تهيئة مصدر SP Today API V2 من لوحة الإدارة. عند تفعيل المصدر الآلي يمنع الخادم تسعير الدولار إذا تجاوز آخر تحديث 30 دقيقة. قيمة التحويل الفعلية تُقرأ من إعدادات المتجر المحفوظة في PostgreSQL؛ لا يعتمد الخادم على متغير بيئة باسم SYP_PER_USD ولا على سعر يرسله المتصفح.
 
 ## Regression tests
 
@@ -194,6 +193,14 @@ Body:
 
 A matching product ID is updated; a new product ID is inserted into the selected existing category. The response returns HTTP 201 for creation and HTTP 200 for update. Pack prices are in new SYP and are validated server-side.
 
+
+## WAMDA fulfilment — automatic supplier delivery
+
+WAMDA uses the supplier api-token header. Admin setup tests the account profile, imports paginated categories/products, and stores the token encrypted at rest. Automatic catalogue refresh is configurable. Retail prices support global, category and product policies (percentage markup, fixed profit, or fixed final price), with product → category → global precedence.
+
+A WAMDA purchase is queued only after the Nexa order has been paid by verified Sham Cash or a completed internal-wallet debit. The worker uses a stable order UUID and checks the same supplier order before creating/retrying, preventing duplicate supplier charges after timeouts. Only a documented completed supplier status is treated as delivery; pending/processing statuses are polled again and rejected/unknown states go to manual review. Transient network/server failures use bounded retries.
+
+Configure the merchant's own WAMDA API token in Admin → WAMDA Supplier, test the account and review supplier balance and current retail price policy before publishing products. CI uses mocked API responses and does not spend supplier balance.
 
 ## SEAGM fulfillment — automatic supplier delivery
 

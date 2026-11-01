@@ -33,6 +33,22 @@
   return 'other';
  }
  function department(id){return byId.get(id)||byId.get('other')}
+ function normalizeId(value){return value===null||value===undefined?'':String(value).normalize('NFKC').trim()}
+ function findProduct(categories,productId,categoryId=null){
+  const rows=Array.isArray(categories)?categories:[];
+  const targetId=normalizeId(productId);
+  if(!targetId)return null;
+  if(categoryId!==null&&categoryId!==undefined&&normalizeId(categoryId)){
+   const scoped=rows.find(row=>normalizeId(row?.id)===normalizeId(categoryId));
+   const scopedProduct=(scoped?.items||[]).find(product=>normalizeId(product?.id)===targetId);
+   if(scopedProduct)return {category:scoped,item:scopedProduct};
+  }
+  for(const category of rows){
+   const item=(category?.items||[]).find(product=>normalizeId(product?.id)===targetId);
+   if(item)return {category,item};
+  }
+  return null;
+ }
  function getDepartmentSummaries(categories){
   const rows=new Map(DEPARTMENTS.map(row=>[row.id,{...row,categories:[],categoryCount:0,productCount:0}]));
   for(const category of Array.isArray(categories)?categories:[]){
@@ -82,5 +98,5 @@
   if(pack)parts.push('packs','pack-'+slugify(pack?.[0]||'offer'));
   return parts.join('/');
  }
- window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
+ window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,normalizeId,findProduct,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
 })();

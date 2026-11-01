@@ -17,6 +17,7 @@ import { wamdaOrderDecision, classifyWamdaError } from './wamda-fulfillment.js';
 import { normalizeWamdaMargin, normalizeWamdaPricingRule, resolveWamdaPricingRule, calculateWamdaSellPriceSyp, updateWamdaPublishedProduct, markWamdaProductUnavailable } from './wamda-pricing.js';
 import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSignature } from './seagm-webhook.js';
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
+import { expirePendingOrders } from './order-expiry.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -69,7 +70,7 @@ let pool;
 if (cfg.databaseUrl) {
   pool = new Pool({ connectionString: cfg.databaseUrl, ssl: cfg.databaseSsl ? { rejectUnauthorized: true } : false,
     max: 10, idleTimeoutMillis: 30_000, connectionTimeoutMillis: 8_000 });
-  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql']) {
+  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
   }
 }
@@ -345,6 +346,7 @@ async function shamApi(method, route, body) {
 }
 async function getWallet(forceRefresh = false) {
   if (!forceRefresh && cachedShamWallet && Date.now() - cachedShamWalletAt < 20_000) return cachedShamWallet;
+  if(forceRefresh){cachedShamWallet=null;cachedShamWalletAt=0;}
   const payload = await shamApi('GET', '/v1/wallets');
   const wallets = Array.isArray(payload) ? payload : Array.isArray(payload?.data) ? payload.data : null;
   if (!wallets) throw new ProviderError(502, { error:'INVALID_WALLETS_RESPONSE', message:'صيغة قائمة المحافظ غير مطابقة للتوثيق.' });
@@ -2001,6 +2003,18 @@ if(legacyItemsRemoved>0){
   await persistCatalog(migratedCatalog);
   console.log('Removed '+legacyItemsRemoved+' legacy sample products from the live catalogue; supplier products and order records were preserved.');
 }
+async function runOrderExpirySweep(){
+  if(!pool)return;
+  try{
+    const expiredCount=await expirePendingOrders(pool);
+    if(expiredCount>0)console.info(JSON.stringify({event:'pending_orders_expired',count:expiredCount}));
+  }catch(error){
+    console.error('pending order expiry sweep failed',String(error?.message||'unknown').slice(0,160));
+  }
+}
+runOrderExpirySweep().catch(error=>console.error('initial order expiry sweep failed',String(error?.message||'unknown').slice(0,160)));
+const orderExpiryTimer=setInterval(()=>runOrderExpirySweep(),60_000);
+orderExpiryTimer.unref?.();
 const seagmFulfillmentTimer=setInterval(()=>runSeagmFulfillmentWorker().catch(error=>console.error('SEAGM worker loop failed',String(error?.message||'unknown').slice(0,120))),5_000);
 seagmFulfillmentTimer.unref?.();
 runSeagmFulfillmentWorker().catch(error=>console.error('initial SEAGM fulfillment run failed',String(error?.message||'unknown').slice(0,120)));
@@ -2030,7 +2044,12 @@ const server = http.createServer(async (req,res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const ip = String(process.env.TRUST_PROXY === 'true' ? (req.headers['x-forwarded-for'] || req.socket.remoteAddress) : req.socket.remoteAddress || 'unknown').split(',')[0].trim();
   try {
-    if (req.method === 'GET' && url.pathname === '/api/health') return send(res,200,{ok:true,service:'nexa-shamcash-gateway',paymentsReady,dbReady:Boolean(pool),walletReady:Boolean(pool)});
+    if (req.method === 'GET' && url.pathname === '/api/health') return send(res,200,{
+      ok:true,service:'nexa-shamcash-gateway',paymentsReady,dbReady:Boolean(pool),
+      walletConfigured:Boolean(cfg.apiToken&&cfg.walletId),
+      walletReady:Boolean(cachedShamWallet&&Date.now()-cachedShamWalletAt<20_000),
+      walletVerifiedAt:cachedShamWalletAt?new Date(cachedShamWalletAt).toISOString():null,
+    });
 
     if(req.method==='POST'&&url.pathname==='/api/account/register'){
       if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED',message:'خدمة الحسابات غير جاهزة حالياً.'});
@@ -2253,8 +2272,8 @@ const server = http.createServer(async (req,res) => {
       const [orders,products] = await Promise.all([
         pool.query(`SELECT COUNT(*)::int AS total,
           COUNT(*) FILTER (WHERE status='paid')::int AS paid,
-          COUNT(*) FILTER (WHERE status='pending_payment')::int AS pending,
-          COUNT(*) FILTER (WHERE status='expired')::int AS expired,
+          COUNT(*) FILTER (WHERE status='pending_payment' AND expires_at>NOW())::int AS pending,
+          COUNT(*) FILTER (WHERE status='expired' OR (status='pending_payment' AND expires_at<=NOW()))::int AS expired,
           COALESCE(SUM(amount_minor) FILTER (WHERE status='paid' AND currency='SYP'),0)::text AS paid_syp_minor,
           COALESCE(SUM(amount_minor) FILTER (WHERE status='paid' AND currency='USD'),0)::text AS paid_usd_minor
           FROM nexa_orders`),

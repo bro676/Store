@@ -909,12 +909,10 @@ function renderSearchResults(){
  $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,NexaCatalog.productImage(i,c),c.name,'data-open-item="'+esc(i.id)+'" data-open-category="'+esc(c.id)+'"',i.wamda?.available===false?'غير متوفر حالياً':'عرض الخيارات',false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
 }
 function openItem(itemId,categoryId=null){
- const requestedCategory=categoryId==null?null:getCategory(categoryId);
- const category=(requestedCategory&&(requestedCategory.items||[]).some(x=>String(x.id)===String(itemId))?requestedCategory:null)
-  ||categories.find(c=>(c.items||[]).some(x=>String(x.id)===String(itemId)));
- const it=category?.items?.find(x=>String(x.id)===String(itemId));
- if(!category||!it){showToast('لم يتم العثور على المنتج أو أن القسم المرتبط به تغيّر. ارجع إلى الأقسام الداخلية وحدده من جديد.');return;}
- state.department=NexaCatalog.classifyCategory(category);state.category=category.id;state.item=it.id;state.option=null;state.categoryQuery='';state.productPage=1;state.productQuery='';navigate('store');
+ const match=NexaCatalog.findProduct(categories,itemId,categoryId);
+ const category=match?.category,it=match?.item;
+ if(!category||!it){showToast('لم يتم العثور على المنتج أو أن القسم المرتبط به تغيّر. حدّث قائمة المنتجات وحاول مجدداً.');return false;}
+ state.department=NexaCatalog.classifyCategory(category);state.category=category.id;state.item=it.id;state.option=null;state.categoryQuery='';state.productPage=1;state.productQuery='';navigate('store');return true;
 }
 function resetCatalog(){state.department=null;state.category=null;state.item=null;state.option=null;state.catalogPage=1;state.catalogQuery='';state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';}
 function openOrder(packIndex){
@@ -1236,9 +1234,15 @@ function initializeStoreColorMode(){
 async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;const footerName=document.querySelector('.footer-brand strong');if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
 async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items)&&c.items.length);}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();loadPaymentConfig();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','favorites','wallet','support'].includes(hash)){if(hash==='store')resetCatalog();navigate(hash);}$('sideYear').textContent=new Date().getFullYear();await refreshCustomerAccount();}
 // delegated interactions
- document.addEventListener('click',e=>{const target=e.target instanceof Element?e.target:null;if(!target)return;const favoriteControl=target.closest('[data-favorite]');if(favoriteControl){toggleFavorite(favoriteControl.dataset.favorite);return;}
- const productControl=target.closest('[data-open-item]');if(productControl){e.preventDefault();openItem(productControl.dataset.openItem,productControl.dataset.openCategory||null);return;}
- const el=target.closest('[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-department],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-reset-catalog],[data-scroll],[data-catalog-page],[data-category-page],[data-product-page],[data-search-page]');if(!el)return;
+ function eventElement(event,selector){
+  const eventPath=typeof event.composedPath==='function'?event.composedPath():[];
+  for(const node of eventPath){if(node instanceof Element&&node.matches(selector))return node;}
+  const target=event.target instanceof Element?event.target:event.target?.parentElement;
+  return target?.closest(selector)||null;
+ }
+ document.addEventListener('click',e=>{const favoriteControl=eventElement(e,'[data-favorite]');if(favoriteControl){toggleFavorite(favoriteControl.dataset.favorite);return;}
+ const productControl=eventElement(e,'[data-open-item]');if(productControl){e.preventDefault();openItem(productControl.dataset.openItem,productControl.dataset.openCategory||null);return;}
+ const el=eventElement(e,'[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-department],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-reset-catalog],[data-scroll],[data-catalog-page],[data-category-page],[data-product-page],[data-search-page]');if(!el)return;
  if(el.dataset.openAssistant!==undefined){openAssistant();return}
  if(el.dataset.assistantPrompt){sendAssistantPrompt(el.dataset.assistantPrompt);return}
  if(el.dataset.page){e.preventDefault();if(el.dataset.page==='store')resetCatalog();navigate(el.dataset.page);return}
@@ -1258,7 +1262,14 @@ async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'})
  if(el.dataset.selectPack!==undefined){openOrder(Number(el.dataset.selectPack));return}
  if(el.dataset.resetCatalog){resetCatalog();renderCatalog();return}
  },true);
-document.addEventListener('input',event=>{
+ document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  if(eventElement(e,'[data-favorite]'))return;
+  const productControl=eventElement(e,'.product-card[role="button"][data-open-item]');
+  if(!productControl)return;
+  e.preventDefault();openItem(productControl.dataset.openItem,productControl.dataset.openCategory||null);
+ });
+ document.addEventListener('input',event=>{
  const id=event.target?.id;
  if(!['storeCatalogSearch','storeCategorySearch','storeProductSearch'].includes(id))return;
  const value=event.target.value;
