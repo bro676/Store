@@ -140,7 +140,7 @@ test('storefront product navigation normalizes ids and keeps the originating cat
   assert.match(store, /function getItem\(id,categoryId=state\.category\)/, 'Product lookup is scoped to the active category where possible');
   assert.ok(store.includes('data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Featured product cards retain their category id');
   assert.ok(store.includes('data-open-item="${esc(it.id)}" data-open-category="${esc(cat.id)}">استكشف'), 'Featured call-to-action retains its category id');
-  assert.match(store, /const productControl=e\.target\.closest\('\[data-open-item\]'\)/, 'Product clicks use a dedicated delegated handler');
+  assert.match(store, /const productControl=target\.closest\('\[data-open-item\]'\)/, 'Product clicks use a dedicated delegated handler');
   assert.match(store, /openItem\(productControl\.dataset\.openItem,productControl\.dataset\.openCategory\|\|null\)/, 'Product handler passes both identifiers to the detail route');
   const openItem = store.slice(store.indexOf('function openItem'), store.indexOf('function resetCatalog'));
   assert.ok(openItem.includes("state.category=category.id;state.item=it.id"), 'Product selection stores canonical API identifiers');
