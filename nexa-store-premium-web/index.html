@@ -1294,14 +1294,7 @@ async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'})
  if(el.dataset.selectPack!==undefined){openOrder(Number(el.dataset.selectPack));return}
  if(el.dataset.resetCatalog){resetCatalog();renderCatalog();return}
  },true);
- document.addEventListener('keydown',e=>{
-  if(e.key!=='Enter'&&e.key!==' ')return;
-  if(eventElement(e,'[data-favorite]'))return;
-  const productControl=eventElement(e,'.product-card[role="button"][data-open-item]');
-  if(!productControl)return;
-  e.preventDefault();openItem(productControl.dataset.openItem,productControl.dataset.openCategory||null);
- });
- document.addEventListener('input',event=>{
+  document.addEventListener('input',event=>{
  const id=event.target?.id;
  if(!['storeCatalogSearch','storeCategorySearch','storeProductSearch'].includes(id))return;
  const value=event.target.value;
