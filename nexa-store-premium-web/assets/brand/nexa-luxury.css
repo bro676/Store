@@ -2644,3 +2644,511 @@ html[data-theme="light"],body:has(html[data-theme="light"]){
 /* Whole featured and saved product cards are click and keyboard targets. */
 .product-card[data-open-item]{cursor:pointer!important}
 .product-card[data-open-item]:focus-visible{outline:3px solid #b88d43!important;outline-offset:3px!important}
+
+
+/* NEXA THEME CONTRACT 2026-11-01
+   The storefront (.app-shell) and admin (#app.shell) share a theme attribute,
+   but every surface is explicitly assigned a readable surface/text pair per mode. */
+:root[data-theme="dark"]{
+  color-scheme:dark!important;
+  --lux-bg:#0b1016;--lux-panel:#151d25;--lux-panel-2:#1c2731;--lux-panel-3:#263440;
+  --lux-pearl:#f2f6fa;--lux-pearl-2:#d9e3ec;--lux-muted:#9aabba;
+  --lux-line:rgba(190,207,222,.18);--lux-line-soft:rgba(190,207,222,.12);
+  --nexa-theme-bg:#0b1016;--nexa-theme-surface:#151d25;--nexa-theme-surface-2:#1c2731;
+  --nexa-theme-surface-3:#263440;--nexa-theme-ink:#f2f6fa;--nexa-theme-muted:#a9b8c6;
+  --nexa-theme-line:#344451;--nexa-theme-soft:#202d39;--nexa-theme-soft-2:#293746;
+  --nexa-primary-soft:#1b2c3b;--nexa-secondary-soft:#1b302e;--nexa-highlight-soft:#29263b;
+  --nexa-primary-line:#344b60;--nexa-secondary-line:#35564e;--nexa-highlight-line:#4a4260;
+  --nexa-surface-tint:#1a2630;--nexa-surface-accent:#242b38;
+}
+:root[data-theme="light"]{
+  color-scheme:light!important;
+  --lux-bg:#f1f5f8;--lux-panel:#fff;--lux-panel-2:#eaf0f5;--lux-panel-3:#dfe8ef;
+  --lux-pearl:#233548;--lux-pearl-2:#3d5266;--lux-muted:#6e8294;
+  --lux-line:rgba(46,75,99,.18);--lux-line-soft:rgba(46,75,99,.12);
+  --nexa-theme-bg:#f1f5f8;--nexa-theme-surface:#fff;--nexa-theme-surface-2:#eaf0f5;
+  --nexa-theme-surface-3:#dfe8ef;--nexa-theme-ink:#233548;--nexa-theme-muted:#6e8294;
+  --nexa-theme-line:#d4e0e9;--nexa-theme-soft:#e7eff5;--nexa-theme-soft-2:#dce8f0;
+  --nexa-primary-soft:#e5eef7;--nexa-secondary-soft:#e4f0ec;--nexa-highlight-soft:#eeeaf6;
+  --nexa-primary-line:#cbdceb;--nexa-secondary-line:#cde2d9;--nexa-highlight-line:#ddd5ec;
+  --nexa-surface-tint:#edf3f7;--nexa-surface-accent:#e9eff4;
+}
+
+/* ADMIN DASHBOARD — dark mode */
+:root[data-theme="dark"] #app.shell{background:transparent!important;color:#edf4fa!important}
+:root[data-theme="dark"] #app.shell .side{
+  background:linear-gradient(160deg,#111a23,#17232e 68%,#202b37)!important;
+  color:#edf4fa!important;border-color:#344451!important;box-shadow:-12px 0 36px rgba(0,0,0,.28)!important;
+}
+:root[data-theme="dark"] #app.shell .brand,
+:root[data-theme="dark"] #app.shell .side-foot{border-color:#344451!important}
+:root[data-theme="dark"] #app.shell .brand strong,
+:root[data-theme="dark"] #app.shell .side-foot b,
+:root[data-theme="dark"] #app.shell .topbar h1,
+:root[data-theme="dark"] #app.shell .panel h3,
+:root[data-theme="dark"] #app.shell .page-head h2,
+:root[data-theme="dark"] #app.shell .stat strong,
+:root[data-theme="dark"] #app.shell .product-editor summary strong{color:#f2f6fa!important}
+:root[data-theme="dark"] #app.shell .brand small,
+:root[data-theme="dark"] #app.shell .side-label,
+:root[data-theme="dark"] #app.shell .side-foot,
+:root[data-theme="dark"] #app.shell .topbar p,
+:root[data-theme="dark"] #app.shell .page-head p,
+:root[data-theme="dark"] #app.shell .muted,
+:root[data-theme="dark"] #app.shell .panel-head p,
+:root[data-theme="dark"] #app.shell .stat small,
+:root[data-theme="dark"] #app.shell .stat-top,
+:root[data-theme="dark"] #app.shell .product-editor summary small,
+:root[data-theme="dark"] #app.shell .field label,
+:root[data-theme="dark"] #app.shell .field small{color:#a9bac9!important}
+:root[data-theme="dark"] #app.shell .nav button{color:#c4d1dd!important}
+:root[data-theme="dark"] #app.shell .nav button:hover,
+:root[data-theme="dark"] #app.shell .nav button.active{background:#253747!important;color:#fff!important;border-color:#496071!important}
+:root[data-theme="dark"] #app.shell .nav .ico{background:#263744!important;color:#cbd8e3!important}
+:root[data-theme="dark"] #app.shell .topbar{
+  background:rgba(18,28,38,.96)!important;color:#edf4fa!important;border-color:#344451!important;
+  box-shadow:0 5px 22px rgba(0,0,0,.18)!important;
+}
+:root[data-theme="dark"] #app.shell .panel,
+:root[data-theme="dark"] #app.shell .stat,
+:root[data-theme="dark"] #app.shell .login-card{
+  background:#151f29!important;color:#edf4fa!important;border-color:#344451!important;
+  box-shadow:0 12px 30px rgba(0,0,0,.2)!important;
+}
+:root[data-theme="dark"] #app.shell .quick-actions button,
+:root[data-theme="dark"] #app.shell .category-choice,
+:root[data-theme="dark"] #app.shell .product-editor,
+:root[data-theme="dark"] #app.shell .seagm-category-group,
+:root[data-theme="dark"] #app.shell .api-source-row,
+:root[data-theme="dark"] #app.shell .api-endpoint-row,
+:root[data-theme="dark"] #app.shell .api-key-reveal{
+  background:#1c2934!important;color:#eaf1f7!important;border-color:#3b4e5e!important;
+}
+:root[data-theme="dark"] #app.shell .product-editor>summary,
+:root[data-theme="dark"] #app.shell .product-editor[open]>summary,
+:root[data-theme="dark"] #app.shell .category-choice.active,
+:root[data-theme="dark"] #app.shell .quick-actions button:hover{
+  background:#263642!important;color:#f2f6fa!important;border-color:#526878!important;
+}
+:root[data-theme="dark"] #app.shell .product-body,
+:root[data-theme="dark"] #app.shell .option-editor,
+:root[data-theme="dark"] #app.shell .seagm-product-row,
+:root[data-theme="dark"] #app.shell .api-code,
+:root[data-theme="dark"] #app.shell .secret-box,
+:root[data-theme="dark"] #app.shell .notice,
+:root[data-theme="dark"] #app.shell .notice.info,
+:root[data-theme="dark"] #app.shell .fx-preview,
+:root[data-theme="dark"] #app.shell .theme-preview,
+:root[data-theme="dark"] #app.shell .catalog-editor{
+  background:#202d38!important;color:#e7eef5!important;border-color:#405462!important;
+}
+:root[data-theme="dark"] #app.shell input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="dark"] #app.shell textarea,
+:root[data-theme="dark"] #app.shell select,
+:root[data-theme="dark"] #app.shell .toolbar input,
+:root[data-theme="dark"] #app.shell .pack-row input{
+  background:#111b24!important;color:#f1f5f8!important;border-color:#465967!important;
+}
+:root[data-theme="dark"] #app.shell input::placeholder,
+:root[data-theme="dark"] #app.shell textarea::placeholder{color:#8294a4!important}
+:root[data-theme="dark"] #app.shell .image-preview,
+:root[data-theme="dark"] #app.shell .product-thumb,
+:root[data-theme="dark"] #app.shell .stat-icon,
+:root[data-theme="dark"] #app.shell .avatar,
+:root[data-theme="dark"] #app.shell .bar-track{
+  background:#293744!important;color:#dce7f0!important;border-color:#455968!important;
+}
+:root[data-theme="dark"] #app.shell .tabs button,
+:root[data-theme="dark"] #app.shell .soft,
+:root[data-theme="dark"] #app.shell .icon-btn,
+:root[data-theme="dark"] #app.shell .add-row{
+  background:#202e39!important;color:#dce7ef!important;border-color:#455968!important;
+}
+:root[data-theme="dark"] #app.shell .tabs button.active,
+:root[data-theme="dark"] #app.shell .add-row:hover{background:#314657!important;color:#fff!important;border-color:#668096!important}
+:root[data-theme="dark"] #app.shell .danger{background:#3a252b!important;color:#ffc0c9!important;border-color:#71414a!important}
+:root[data-theme="dark"] #app.shell .table-wrap{background:#151f29!important;border-color:#344451!important}
+:root[data-theme="dark"] #app.shell table,
+:root[data-theme="dark"] #app.shell th,
+:root[data-theme="dark"] #app.shell td{background:#18232d!important;color:#e5edf4!important;border-color:#344451!important}
+:root[data-theme="dark"] #app.shell th{background:#223340!important;color:#c7d7e4!important}
+:root[data-theme="dark"] #app.shell tbody tr:nth-child(even) td{background:#1d2a35!important}
+:root[data-theme="dark"] #app.shell tbody tr:hover td{background:#2a3b48!important}
+:root[data-theme="dark"] #app.shell .tag{background:#2a3945!important;color:#dce7f0!important}
+:root[data-theme="dark"] #app.shell .tag.green{background:#1c3a32!important;color:#a9e5cd!important}
+:root[data-theme="dark"] #app.shell .tag.orange{background:#44351f!important;color:#f2d4a0!important}
+:root[data-theme="dark"] #app.shell .tag.red{background:#45272e!important;color:#ffc0c9!important}
+:root[data-theme="dark"] #app.shell .status-pill{background:#1d3a33!important;color:#b6ead4!important}
+:root[data-theme="dark"] #app.shell .toast{background:#263744!important;color:#f2f6fa!important;border-color:#526878!important}
+:root[data-theme="dark"] #app.shell .login-screen{background:linear-gradient(135deg,#0b1219,#162431 68%,#252b3c)!important}
+:root[data-theme="dark"] #app.shell .login-card h1,
+:root[data-theme="dark"] #app.shell .login-card p,
+:root[data-theme="dark"] #app.shell .login-card label{color:#edf4fa!important}
+:root[data-theme="dark"] #app.shell .login-card input{background:#101a23!important;color:#f2f6fa!important;border-color:#445868!important}
+:root[data-theme="dark"] #app.shell .empty,
+:root[data-theme="dark"] #app.shell .loading{background:#1c2934!important;color:#a9bac9!important;border-color:#405462!important}
+:root[data-theme="dark"] #app.shell .api-code{background:#111b24!important;color:#c5d8e8!important}
+
+/* ADMIN DASHBOARD — light mode: no charcoal-only panels inside a light page */
+:root[data-theme="light"] #app.shell{background:transparent!important;color:#263b4f!important}
+:root[data-theme="light"] #app.shell .side{
+  background:linear-gradient(160deg,#fff 0%,#edf3f7 72%,#e5edf3 100%)!important;
+  color:#263b4f!important;border-color:#d3e0e9!important;box-shadow:10px 0 30px rgba(43,69,90,.08)!important;
+}
+:root[data-theme="light"] #app.shell .brand,
+:root[data-theme="light"] #app.shell .side-foot{border-color:#d4e0e9!important}
+:root[data-theme="light"] #app.shell .brand strong,
+:root[data-theme="light"] #app.shell .side-foot b,
+:root[data-theme="light"] #app.shell .topbar h1,
+:root[data-theme="light"] #app.shell .panel h3,
+:root[data-theme="light"] #app.shell .page-head h2,
+:root[data-theme="light"] #app.shell .stat strong,
+:root[data-theme="light"] #app.shell .product-editor summary strong{color:#263b4f!important}
+:root[data-theme="light"] #app.shell .brand small,
+:root[data-theme="light"] #app.shell .side-label,
+:root[data-theme="light"] #app.shell .side-foot,
+:root[data-theme="light"] #app.shell .topbar p,
+:root[data-theme="light"] #app.shell .page-head p,
+:root[data-theme="light"] #app.shell .muted,
+:root[data-theme="light"] #app.shell .panel-head p,
+:root[data-theme="light"] #app.shell .stat small,
+:root[data-theme="light"] #app.shell .stat-top,
+:root[data-theme="light"] #app.shell .product-editor summary small,
+:root[data-theme="light"] #app.shell .field label,
+:root[data-theme="light"] #app.shell .field small{color:#6e8294!important}
+:root[data-theme="light"] #app.shell .nav button{color:#526a7d!important}
+:root[data-theme="light"] #app.shell .nav button:hover,
+:root[data-theme="light"] #app.shell .nav button.active{background:#dce8f0!important;color:#294f6c!important;border-color:#c4d6e3!important}
+:root[data-theme="light"] #app.shell .nav .ico{background:#e2ebf1!important;color:#45657e!important}
+:root[data-theme="light"] #app.shell .topbar{
+  background:rgba(255,255,255,.96)!important;color:#263b4f!important;border-color:#d4e0e9!important;
+  box-shadow:0 5px 20px rgba(43,69,90,.06)!important;
+}
+:root[data-theme="light"] #app.shell .panel,
+:root[data-theme="light"] #app.shell .stat,
+:root[data-theme="light"] #app.shell .login-card{
+  background:#fff!important;color:#263b4f!important;border-color:#d4e0e9!important;
+  box-shadow:0 10px 26px rgba(43,69,90,.055)!important;
+}
+:root[data-theme="light"] #app.shell .quick-actions button,
+:root[data-theme="light"] #app.shell .category-choice,
+:root[data-theme="light"] #app.shell .product-editor,
+:root[data-theme="light"] #app.shell .seagm-category-group,
+:root[data-theme="light"] #app.shell .api-source-row,
+:root[data-theme="light"] #app.shell .api-endpoint-row,
+:root[data-theme="light"] #app.shell .api-key-reveal{
+  background:#edf3f7!important;color:#2b4053!important;border-color:#d4e0e9!important;
+}
+:root[data-theme="light"] #app.shell .product-editor>summary,
+:root[data-theme="light"] #app.shell .product-editor[open]>summary,
+:root[data-theme="light"] #app.shell .category-choice.active,
+:root[data-theme="light"] #app.shell .quick-actions button:hover{
+  background:#e2ebf1!important;color:#294f6c!important;border-color:#c5d8e5!important;
+}
+:root[data-theme="light"] #app.shell .product-body,
+:root[data-theme="light"] #app.shell .option-editor,
+:root[data-theme="light"] #app.shell .seagm-product-row,
+:root[data-theme="light"] #app.shell .api-code,
+:root[data-theme="light"] #app.shell .secret-box,
+:root[data-theme="light"] #app.shell .notice,
+:root[data-theme="light"] #app.shell .notice.info,
+:root[data-theme="light"] #app.shell .fx-preview,
+:root[data-theme="light"] #app.shell .theme-preview,
+:root[data-theme="light"] #app.shell .catalog-editor{
+  background:#f7fafc!important;color:#344c60!important;border-color:#dce6ed!important;
+}
+:root[data-theme="light"] #app.shell input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="light"] #app.shell textarea,
+:root[data-theme="light"] #app.shell select,
+:root[data-theme="light"] #app.shell .toolbar input,
+:root[data-theme="light"] #app.shell .pack-row input{
+  background:#fff!important;color:#263b4f!important;border-color:#cedce6!important;
+}
+:root[data-theme="light"] #app.shell input::placeholder,
+:root[data-theme="light"] #app.shell textarea::placeholder{color:#8a9baa!important}
+:root[data-theme="light"] #app.shell .image-preview,
+:root[data-theme="light"] #app.shell .product-thumb,
+:root[data-theme="light"] #app.shell .stat-icon,
+:root[data-theme="light"] #app.shell .avatar,
+:root[data-theme="light"] #app.shell .bar-track{
+  background:#e8eff4!important;color:#456178!important;border-color:#d4e0e9!important;
+}
+:root[data-theme="light"] #app.shell .tabs button,
+:root[data-theme="light"] #app.shell .soft,
+:root[data-theme="light"] #app.shell .icon-btn,
+:root[data-theme="light"] #app.shell .add-row{
+  background:#fff!important;color:#456178!important;border-color:#d0dde6!important;
+}
+:root[data-theme="light"] #app.shell .tabs button.active,
+:root[data-theme="light"] #app.shell .add-row:hover{background:#e1edf4!important;color:#294f6c!important;border-color:#bfd2df!important}
+:root[data-theme="light"] #app.shell .danger{background:#fff0f1!important;color:#9d3946!important;border-color:#f0c9ce!important}
+:root[data-theme="light"] #app.shell .table-wrap{background:#fff!important;border-color:#d4e0e9!important}
+:root[data-theme="light"] #app.shell table,
+:root[data-theme="light"] #app.shell td{background:#fff!important;color:#344c60!important;border-color:#e1e9ef!important}
+:root[data-theme="light"] #app.shell th{background:#eaf1f5!important;color:#526c81!important;border-color:#d6e2ea!important}
+:root[data-theme="light"] #app.shell tbody tr:nth-child(even) td{background:#f4f7fa!important}
+:root[data-theme="light"] #app.shell tbody tr:hover td{background:#e8f0f5!important;color:#263b4f!important}
+:root[data-theme="light"] #app.shell .tag{background:#eaf0f4!important;color:#526b7e!important}
+:root[data-theme="light"] #app.shell .tag.green{background:#e1f1e9!important;color:#286b51!important}
+:root[data-theme="light"] #app.shell .tag.orange{background:#f7eedf!important;color:#8a6225!important}
+:root[data-theme="light"] #app.shell .tag.red{background:#f8e9eb!important;color:#9d3946!important}
+:root[data-theme="light"] #app.shell .status-pill{background:#e4f1ea!important;color:#286b51!important}
+:root[data-theme="light"] #app.shell .toast{background:#eaf1f5!important;color:#263b4f!important;border-color:#d4e0e9!important}
+:root[data-theme="light"] #app.shell .login-screen{background:linear-gradient(135deg,#edf3f7,#dfe9f0 68%,#e7eaf3)!important}
+:root[data-theme="light"] #app.shell .login-card h1,
+:root[data-theme="light"] #app.shell .login-card p,
+:root[data-theme="light"] #app.shell .login-card label{color:#263b4f!important}
+:root[data-theme="light"] #app.shell .login-card input{background:#fff!important;color:#263b4f!important;border-color:#cedce6!important}
+:root[data-theme="light"] #app.shell .empty,
+:root[data-theme="light"] #app.shell .loading{background:#edf3f7!important;color:#6e8294!important;border-color:#d4e0e9!important}
+:root[data-theme="light"] #app.shell .api-code{background:#eaf1f5!important;color:#34536d!important}
+
+/* STOREFRONT — dark surfaces have three distinct levels, never white-on-cream. */
+:root[data-theme="dark"] .app-shell{color:#f2f6fa!important}
+:root[data-theme="dark"] .app-shell .header,
+:root[data-theme="dark"] .app-shell .header-main,
+:root[data-theme="dark"] .app-shell .wallet-api-main,
+:root[data-theme="dark"] .app-shell .data-panel,
+:root[data-theme="dark"] .app-shell .customer-wallet-card,
+:root[data-theme="dark"] .app-shell .catalog-shell,
+:root[data-theme="dark"] .app-shell .support-form-panel,
+:root[data-theme="dark"] .app-shell .support-lookup-panel,
+:root[data-theme="dark"] .app-shell .support-channel,
+:root[data-theme="dark"] .app-shell .faq-item,
+:root[data-theme="dark"] .app-shell .trust-item,
+:root[data-theme="dark"] .app-shell .process-card,
+:root[data-theme="dark"] .app-shell .product-card,
+:root[data-theme="dark"] .app-shell .pack-card,
+:root[data-theme="dark"] .app-shell .option-card,
+:root[data-theme="dark"] .app-shell .assistant-panel,
+:root[data-theme="dark"] .app-shell .modal,
+:root[data-theme="dark"] .app-shell .modal-content{
+  background:#151d25!important;color:#edf3f8!important;border-color:#344451!important;
+}
+:root[data-theme="dark"] .app-shell .sidebar,
+:root[data-theme="dark"] .app-shell .footer,
+:root[data-theme="dark"] .app-shell .hero,
+:root[data-theme="dark"] .app-shell .wallet-api-side,
+:root[data-theme="dark"] .app-shell .assistant-head,
+:root[data-theme="dark"] .app-shell .modal-header,
+:root[data-theme="dark"] .app-shell .assistant-header{
+  background:linear-gradient(145deg,#111a23,#182530 68%,#222b36)!important;color:#f2f6fa!important;border-color:#344451!important;
+}
+:root[data-theme="dark"] .app-shell .catalog-steps,
+:root[data-theme="dark"] .app-shell .catalog-note,
+:root[data-theme="dark"] .app-shell .step-summary,
+:root[data-theme="dark"] .app-shell .wallet-receiver,
+:root[data-theme="dark"] .app-shell .wallet-order-summary,
+:root[data-theme="dark"] .app-shell .wallet-invoice-meta,
+:root[data-theme="dark"] .app-shell .wallet-payment-form,
+:root[data-theme="dark"] .app-shell .wallet-api-note,
+:root[data-theme="dark"] .app-shell .wallet-api-security,
+:root[data-theme="dark"] .app-shell .receipt-field,
+:root[data-theme="dark"] .app-shell .receipt-card,
+:root[data-theme="dark"] .app-shell .invoice-meta-item,
+:root[data-theme="dark"] .app-shell .support-welcome,
+:root[data-theme="dark"] .app-shell .support-safety-panel,
+:root[data-theme="dark"] .app-shell .support-help-links,
+:root[data-theme="dark"] .app-shell .assistant-messages,
+:root[data-theme="dark"] .app-shell .assistant-compose,
+:root[data-theme="dark"] .app-shell .modal-head,
+:root[data-theme="dark"] .app-shell .modal-foot{
+  background:#1c2731!important;color:#e7eef5!important;border-color:#3b4c59!important;
+}
+:root[data-theme="dark"] .app-shell .product-image,
+:root[data-theme="dark"] .app-shell .catalog-tile-image,
+:root[data-theme="dark"] .app-shell .pack-image,
+:root[data-theme="dark"] .app-shell .header-search,
+:root[data-theme="dark"] .app-shell .assistant-message.bot-message,
+:root[data-theme="dark"] .app-shell .assistant-message.user-message,
+:root[data-theme="dark"] .app-shell .wallet-order-summary,
+:root[data-theme="dark"] .app-shell .invoice-meta-item,
+:root[data-theme="dark"] .app-shell .wallet-invoice-meta{
+  background:#263440!important;color:#eaf1f7!important;border-color:#435563!important;
+}
+:root[data-theme="dark"] .app-shell input,
+:root[data-theme="dark"] .app-shell textarea,
+:root[data-theme="dark"] .app-shell select,
+:root[data-theme="dark"] .app-shell .header-search input,
+:root[data-theme="dark"] .app-shell .assistant-compose input,
+:root[data-theme="dark"] .app-shell .lookup-input-row input{
+  background:#101820!important;color:#f2f6fa!important;border-color:#455968!important;
+}
+:root[data-theme="dark"] .app-shell input::placeholder,
+:root[data-theme="dark"] .app-shell textarea::placeholder{color:#92a3b1!important}
+:root[data-theme="dark"] .app-shell h1,
+:root[data-theme="dark"] .app-shell h2,
+:root[data-theme="dark"] .app-shell h3,
+:root[data-theme="dark"] .app-shell h4,
+:root[data-theme="dark"] .app-shell .section-title,
+:root[data-theme="dark"] .app-shell .catalog-header h2,
+:root[data-theme="dark"] .app-shell .product-info h3,
+:root[data-theme="dark"] .app-shell .wallet-receiver strong,
+:root[data-theme="dark"] .app-shell .wallet-order-summary strong,
+:root[data-theme="dark"] .app-shell .receipt-field strong{color:#f2f6fa!important}
+:root[data-theme="dark"] .app-shell p,
+:root[data-theme="dark"] .app-shell small,
+:root[data-theme="dark"] .app-shell .section-sub,
+:root[data-theme="dark"] .app-shell .catalog-header p,
+:root[data-theme="dark"] .app-shell .product-info p,
+:root[data-theme="dark"] .app-shell .wallet-receiver small,
+:root[data-theme="dark"] .app-shell .wallet-api-side li span,
+:root[data-theme="dark"] .app-shell .footer-note{color:#a9b8c6!important}
+:root[data-theme="dark"] .app-shell .btn-soft,
+:root[data-theme="dark"] .app-shell .icon-button,
+:root[data-theme="dark"] .app-shell .back-button,
+:root[data-theme="dark"] .app-shell .home-assistant-link,
+:root[data-theme="dark"] .app-shell .crumb,
+:root[data-theme="dark"] .app-shell .assistant-quick-prompts button{
+  background:#263440!important;color:#e5edf4!important;border-color:#455968!important;
+}
+:root[data-theme="dark"] .app-shell .btn-soft:hover,
+:root[data-theme="dark"] .app-shell .icon-button:hover,
+:root[data-theme="dark"] .app-shell .back-button:hover,
+:root[data-theme="dark"] .app-shell .option-card:hover,
+:root[data-theme="dark"] .app-shell .pack-card:hover{background:#31424f!important;color:#fff!important}
+:root[data-theme="dark"] .app-shell .data-table,
+:root[data-theme="dark"] .app-shell .data-table th,
+:root[data-theme="dark"] .app-shell .data-table td{background:#18232d!important;color:#e5edf4!important;border-color:#344451!important}
+:root[data-theme="dark"] .app-shell .data-table th{background:#243440!important;color:#c9d7e2!important}
+:root[data-theme="dark"] .app-shell .data-table tbody tr:nth-child(even) td{background:#1e2a34!important}
+:root[data-theme="dark"] .app-shell .data-table tbody tr:hover td{background:#2a3b48!important}
+:root[data-theme="dark"] .app-shell .toast{background:#263744!important;color:#f2f6fa!important;border:1px solid #526878!important}
+:root[data-theme="dark"] .app-shell .payment-receipt{background:#151d25!important;color:#edf3f8!important;border-color:#344451!important}
+:root[data-theme="dark"] .app-shell .receipt-top{background:#202e39!important;color:#f2f6fa!important}
+:root[data-theme="dark"] .app-shell .wallet-api-side li b,
+:root[data-theme="dark"] .app-shell .secure-lock{background:#2b473f!important;color:#b8e7d1!important;border-color:#456c60!important}
+
+/* STOREFRONT — light mode uses warm white cards on a cool, clearly different page surface. */
+:root[data-theme="light"] .app-shell{color:#263b4f!important}
+:root[data-theme="light"] .app-shell .header,
+:root[data-theme="light"] .app-shell .header-main,
+:root[data-theme="light"] .app-shell .wallet-api-main,
+:root[data-theme="light"] .app-shell .data-panel,
+:root[data-theme="light"] .app-shell .customer-wallet-card,
+:root[data-theme="light"] .app-shell .catalog-shell,
+:root[data-theme="light"] .app-shell .support-form-panel,
+:root[data-theme="light"] .app-shell .support-lookup-panel,
+:root[data-theme="light"] .app-shell .support-channel,
+:root[data-theme="light"] .app-shell .faq-item,
+:root[data-theme="light"] .app-shell .trust-item,
+:root[data-theme="light"] .app-shell .process-card,
+:root[data-theme="light"] .app-shell .product-card,
+:root[data-theme="light"] .app-shell .pack-card,
+:root[data-theme="light"] .app-shell .option-card,
+:root[data-theme="light"] .app-shell .assistant-panel,
+:root[data-theme="light"] .app-shell .modal,
+:root[data-theme="light"] .app-shell .modal-content{
+  background:#fff!important;color:#263b4f!important;border-color:#d4e0e9!important;
+}
+:root[data-theme="light"] .app-shell .sidebar,
+:root[data-theme="light"] .app-shell .footer,
+:root[data-theme="light"] .app-shell .wallet-api-side,
+:root[data-theme="light"] .app-shell .assistant-head,
+:root[data-theme="light"] .app-shell .modal-header,
+:root[data-theme="light"] .app-shell .assistant-header{
+  background:linear-gradient(145deg,#fff,#edf3f7 72%,#e5edf3)!important;color:#263b4f!important;border-color:#d4e0e9!important;
+}
+:root[data-theme="light"] .app-shell .hero{
+  background:linear-gradient(115deg,#edf3f7,#e6eff5 58%,#eeeaf6)!important;color:#263b4f!important;border:1px solid #d6e2ea!important;
+}
+:root[data-theme="light"] .app-shell .catalog-steps,
+:root[data-theme="light"] .app-shell .catalog-note,
+:root[data-theme="light"] .app-shell .step-summary,
+:root[data-theme="light"] .app-shell .wallet-receiver,
+:root[data-theme="light"] .app-shell .wallet-order-summary,
+:root[data-theme="light"] .app-shell .wallet-invoice-meta,
+:root[data-theme="light"] .app-shell .wallet-payment-form,
+:root[data-theme="light"] .app-shell .wallet-api-note,
+:root[data-theme="light"] .app-shell .wallet-api-security,
+:root[data-theme="light"] .app-shell .receipt-field,
+:root[data-theme="light"] .app-shell .receipt-card,
+:root[data-theme="light"] .app-shell .invoice-meta-item,
+:root[data-theme="light"] .app-shell .support-welcome,
+:root[data-theme="light"] .app-shell .support-safety-panel,
+:root[data-theme="light"] .app-shell .support-help-links,
+:root[data-theme="light"] .app-shell .assistant-messages,
+:root[data-theme="light"] .app-shell .assistant-compose,
+:root[data-theme="light"] .app-shell .modal-head,
+:root[data-theme="light"] .app-shell .modal-foot{
+  background:#eaf0f5!important;color:#344c60!important;border-color:#d4e0e9!important;
+}
+:root[data-theme="light"] .app-shell .product-image,
+:root[data-theme="light"] .app-shell .catalog-tile-image,
+:root[data-theme="light"] .app-shell .pack-image,
+:root[data-theme="light"] .app-shell .header-search,
+:root[data-theme="light"] .app-shell .assistant-message.bot-message,
+:root[data-theme="light"] .app-shell .assistant-message.user-message,
+:root[data-theme="light"] .app-shell .wallet-order-summary,
+:root[data-theme="light"] .app-shell .invoice-meta-item,
+:root[data-theme="light"] .app-shell .wallet-invoice-meta{
+  background:#f3f6f9!important;color:#344c60!important;border-color:#dbe5ec!important;
+}
+:root[data-theme="light"] .app-shell input,
+:root[data-theme="light"] .app-shell textarea,
+:root[data-theme="light"] .app-shell select,
+:root[data-theme="light"] .app-shell .header-search input,
+:root[data-theme="light"] .app-shell .assistant-compose input,
+:root[data-theme="light"] .app-shell .lookup-input-row input{
+  background:#fff!important;color:#263b4f!important;border-color:#cbd9e3!important;
+}
+:root[data-theme="light"] .app-shell input::placeholder,
+:root[data-theme="light"] .app-shell textarea::placeholder{color:#8497a7!important}
+:root[data-theme="light"] .app-shell h1,
+:root[data-theme="light"] .app-shell h2,
+:root[data-theme="light"] .app-shell h3,
+:root[data-theme="light"] .app-shell h4,
+:root[data-theme="light"] .app-shell .section-title,
+:root[data-theme="light"] .app-shell .catalog-header h2,
+:root[data-theme="light"] .app-shell .product-info h3,
+:root[data-theme="light"] .app-shell .wallet-receiver strong,
+:root[data-theme="light"] .app-shell .wallet-order-summary strong,
+:root[data-theme="light"] .app-shell .receipt-field strong{color:#263b4f!important}
+:root[data-theme="light"] .app-shell p,
+:root[data-theme="light"] .app-shell small,
+:root[data-theme="light"] .app-shell .section-sub,
+:root[data-theme="light"] .app-shell .catalog-header p,
+:root[data-theme="light"] .app-shell .product-info p,
+:root[data-theme="light"] .app-shell .wallet-receiver small,
+:root[data-theme="light"] .app-shell .wallet-api-side li span,
+:root[data-theme="light"] .app-shell .footer-note{color:#6e8294!important}
+:root[data-theme="light"] .app-shell .btn-soft,
+:root[data-theme="light"] .app-shell .icon-button,
+:root[data-theme="light"] .app-shell .back-button,
+:root[data-theme="light"] .app-shell .home-assistant-link,
+:root[data-theme="light"] .app-shell .crumb,
+:root[data-theme="light"] .app-shell .assistant-quick-prompts button{
+  background:#f3f6f9!important;color:#456178!important;border-color:#d4e0e9!important;
+}
+:root[data-theme="light"] .app-shell .btn-soft:hover,
+:root[data-theme="light"] .app-shell .icon-button:hover,
+:root[data-theme="light"] .app-shell .back-button:hover,
+:root[data-theme="light"] .app-shell .option-card:hover,
+:root[data-theme="light"] .app-shell .pack-card:hover{background:#e4edf3!important;color:#294f6c!important}
+:root[data-theme="light"] .app-shell .data-table,
+:root[data-theme="light"] .app-shell .data-table th,
+:root[data-theme="light"] .app-shell .data-table td{background:#fff!important;color:#344c60!important;border-color:#e1e9ef!important}
+:root[data-theme="light"] .app-shell .data-table th{background:#eaf1f5!important;color:#526c81!important}
+:root[data-theme="light"] .app-shell .data-table tbody tr:nth-child(even) td{background:#f4f7fa!important}
+:root[data-theme="light"] .app-shell .data-table tbody tr:hover td{background:#e8f0f5!important}
+:root[data-theme="light"] .app-shell .toast{background:#edf3f7!important;color:#263b4f!important;border:1px solid #d4e0e9!important}
+:root[data-theme="light"] .app-shell .payment-receipt{background:#fff!important;color:#263b4f!important;border-color:#d4e0e9!important}
+:root[data-theme="light"] .app-shell .receipt-top{background:#eaf1f5!important;color:#263b4f!important}
+:root[data-theme="light"] .app-shell .wallet-api-side li b,
+:root[data-theme="light"] .app-shell .secure-lock{background:#dcebe5!important;color:#286b51!important;border-color:#c4ddd2!important}
+
+/* Sham Cash receiver address — readable in both themes and easy to copy. */
+.app-shell .wallet-receiver-address{display:grid;gap:7px;margin-top:10px;padding-top:10px;border-top:1px solid currentColor;border-color:var(--lux-line-soft)!important}
+.app-shell .wallet-receiver-address>span{font-size:11px;font-weight:800}
+.app-shell .wallet-receiver-address-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
+.app-shell .wallet-receiver-address code{display:block;flex:1 1 220px;min-width:0;overflow-wrap:anywhere;word-break:break-word;font:600 13px/1.65 "Segoe UI",Tahoma,sans-serif;letter-spacing:.02em}
+.app-shell .wallet-copy-address{flex:none;min-height:34px;padding:6px 10px;border:1px solid var(--lux-line);border-radius:9px;cursor:pointer}
+:root[data-theme="dark"] .app-shell .wallet-copy-address{background:#2b3c49!important;color:#edf4fa!important;border-color:#526777!important}
+:root[data-theme="light"] .app-shell .wallet-copy-address{background:#fff!important;color:#365a73!important;border-color:#cadbe6!important}
+
+/* Admin product editor uses the native summary disclosure — do not nest a button in summary. */
+#app.shell .product-editor>summary{cursor:pointer;outline-offset:3px}
+#app.shell .product-editor>summary:focus-visible{outline:3px solid #6e9bc0}
+#app.shell .product-editor-chevron{flex:none;pointer-events:none}
+:root[data-theme="dark"] #app.shell .product-editor-chevron{background:#314452!important;color:#e8f0f6!important;border-color:#526777!important}
+:root[data-theme="light"] #app.shell .product-editor-chevron{background:#fff!important;color:#456178!important;border-color:#cadbe6!important}
