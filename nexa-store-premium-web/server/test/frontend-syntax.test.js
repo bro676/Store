@@ -93,9 +93,11 @@ test('admin catalog product disclosures use a valid native summary without neste
   assert.ok(productRenderer, 'Admin product renderer is present');
   assert.match(productRenderer[1], /<details class="product-editor"><summary>/, 'Each catalog product uses native details/summary');
   assert.match(productRenderer[1], /<span class="icon-btn product-editor-chevron" aria-hidden="true">⌄<\/span>/, 'Disclosure indicator is decorative, not a nested button');
-  const summaries = [...productRenderer[1].matchAll(/<summary\\b[^>]*>([\\s\\S]*?)<\\/summary>/g)];
-  assert.ok(summaries.length > 0, 'Product summary exists');
-  for (const summary of summaries) assert.doesNotMatch(summary[1], /<button\\b/, 'A button must not be nested inside summary');
+  const summaryStart = productRenderer[1].indexOf('<summary>');
+  const summaryEnd = productRenderer[1].indexOf('</summary>', summaryStart);
+  assert.ok(summaryStart >= 0 && summaryEnd > summaryStart, 'Product summary exists');
+  const summaryContent = productRenderer[1].slice(summaryStart, summaryEnd);
+  assert.ok(!summaryContent.includes('<button'), 'A button must not be nested inside summary');
 });
 
 test('invoice receiver details renderer is defined and shows a copyable wallet address', async () => {
