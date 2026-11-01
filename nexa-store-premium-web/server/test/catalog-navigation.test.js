@@ -55,7 +55,7 @@ test('single-option products advance directly to the pack step and invalid optio
     { id:'global', packs:[['باقة',1]] },
     { id:'region', packs:[['باقة',2]] },
   ] };
-  const empty = { options:[{ id:'broken', packs:[] }, { id:'missing-id', packs:[['باقة',3]] }] };
+  const empty = { options:[{ id:'broken', packs:[] }, { name:'missing option id', packs:[['باقة',3]] }] };
   assert.equal(catalog.initialOptionId(single), 'default');
   assert.equal(catalog.initialOptionId(multi), null);
   assert.equal(catalog.initialOptionId(empty), null);
