@@ -43,8 +43,8 @@ test('product click targets are complete and wallet checkout controls are presen
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   assert.ok(store.includes("'data-open-item=\"'+esc(product.id)+'\" data-open-category=\"'+esc(cat.id)+'\"'"), 'Category product tiles must open through the canonical item handler and retain category context');
   assert.ok(store.includes("'data-open-item=\"'+esc(i.id)+'\" data-open-category=\"'+esc(c.id)+'\"'"), 'Search product tiles must retain their category context');
-  assert.ok(store.includes('<article class="product-card" data-open-item="${esc(it.id)}" role="button" tabindex="0"'), 'Featured product cards open when clicked');
-  assert.ok(store.includes('<article class="product-card" data-open-item="${esc(id)}" role="button" tabindex="0"'), 'Saved product cards open when clicked');
+  assert.ok(store.includes('<article class="product-card" data-open-item="${esc(it.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Featured product cards retain category context and open when clicked');
+  assert.ok(store.includes('<article class="product-card" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Saved product cards retain category context and open when clicked');
   assert.ok(store.includes("e.target.matches?.('.product-card[role=\"button\"][data-open-item]')"), 'Product cards support keyboard activation');
   assert.ok(store.includes('id="paymentMethod"'), 'Checkout must expose a payment method selector');
   assert.ok(store.includes('value="shamcash"') && store.includes('value="wallet"'), 'Checkout must offer direct and wallet payment');
@@ -165,4 +165,13 @@ test('storefront light and dark themes override high-specificity form fields and
     ':root[data-theme="light"] .app-shell .home-intro-note',
     ':root[data-theme="light"] .app-shell .home-assistant-link'
   ]) assert.ok(css.includes(selector), 'Missing storefront theme override: ' + selector);
+});
+
+
+test('favorite product cards resolve category ids consistently and retain click context', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const renderer = store.slice(store.indexOf('function renderFavorites'), store.indexOf('function toggleFavorite'));
+  assert.ok(renderer.includes('String(i.id)===String(id)&&i===item'), 'Favorite category lookup uses normalized IDs and the matched product object');
+  assert.ok(renderer.includes('data-open-category="${esc(cat.id)}"'), 'Favorite cards pass their category identifier to product navigation');
+  assert.ok(renderer.includes('data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}">استكشف'), 'Favorite call-to-action passes both item and category identifiers');
 });
