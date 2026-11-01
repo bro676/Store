@@ -150,7 +150,7 @@ test('storefront product navigation normalizes ids and keeps the originating cat
 
 test('unavailable products open for details but cannot be purchased', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
-  assert.ok(store.includes("(product.wamda||product.bestStore)?.available===false?'غير متوفر حالياً':'عرض المنتج',false"), 'Unavailable products remain clickable from either supplier');
+  assert.ok(store.includes("(product.wamda||product.bestStore)?.available===false?'غير متوفر حالياً':(NexaCatalog.getProductOptions(product).length===1?'عرض الباقات':'عرض المنتج'),false"), 'Unavailable products remain clickable from either supplier and single-option products lead to packs');
   assert.ok(store.includes("(it.wamda||it.bestStore)?.available===false?'disabled aria-disabled=\"true\"':''"), 'Unavailable pack buttons are disabled for either supplier');
   assert.ok(store.includes('لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد'), 'The detail view explains the availability restriction');
 });
