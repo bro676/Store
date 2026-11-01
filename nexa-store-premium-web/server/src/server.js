@@ -1346,9 +1346,10 @@ async function refreshWamdaCatalog({source='manual'}={}){
           return next;
         }
         try{
-          const next=updateWamdaPublishedProduct(existing,current,{
+          const nextBase=updateWamdaPublishedProduct(existing,current,{
             fxRate,globalRule,categoryRule:categoryPolicies[String(current.categoryId)]||null,syncedAt,
           });
+          const next={...nextBase,apiSource:{...(nextBase.apiSource||{}),name:current.name||nextBase.apiSource?.name||nextBase.name,desc:current.description||nextBase.apiSource?.desc||nextBase.desc,image:current.image||nextBase.apiSource?.image||nextBase.image}};
           updatedPublished++;
           if(next.wamda.priceMode==='manual')manualOverrides++;
           if(!next.wamda.available)unavailablePublished++;
@@ -1410,13 +1411,14 @@ async function publishWamdaProduct(input){
     desc:String(sourceProduct.description||'منتج رقمي مرتبط بمصدر ومضة.').slice(0,700),image:sourceProduct.image||existing?.image||'assets/products/_shared/product-placeholder.svg',
     options:[{id:'wamda-default',name:'الخيار الأساسي',desc:'منتج مرتبط بمصدر ومضة',flag:'⚡',packs:[['سعر البيع',1]]}],
   };
-  const updated=updateWamdaPublishedProduct({...base,wamda:{...(base.wamda||{}),provider:'wamda',pricingOverride}},
+  const updatedBase=updateWamdaPublishedProduct({...base,wamda:{...(base.wamda||{}),provider:'wamda',pricingOverride}},
     updatedSource,{
       fxRate:Number(nextSettings.fxRate||145),
       globalRule:getWamdaPricingContext(nextSettings).globalRule,
       categoryRule:getWamdaPricingContext(nextSettings).categoryPolicies[String(categoryId)]||null,
       forceAutomatic:input.resetToAutomatic===true,
     });
+  const updated={...updatedBase,apiSource:{...(updatedBase.apiSource||{}),name:updatedSource.name||updatedBase.apiSource?.name||updatedBase.name,desc:updatedSource.description||updatedBase.apiSource?.desc||updatedBase.desc,image:updatedSource.image||updatedBase.apiSource?.image||updatedBase.image}};
   const result=upsertCatalogProduct(workingCatalog,localCategoryId,updated);
   await persistWamdaSnapshot(result.catalog,nextSettings);
   const finalPrice=updated.options?.[0]?.packs?.[0]?.[1]??null;
@@ -1524,6 +1526,7 @@ async function applyWamdaGlobalPricingToAll(){
             fxRate:context.fxRate,globalRule:context.globalRule,categoryRule:null,
             syncedAt,forceAutomatic:true,
           });
+          updated={...updated,apiSource:{...(updated.apiSource||{}),name:source.name||updated.apiSource?.name||updated.name,desc:source.description||updated.apiSource?.desc||updated.desc,image:source.image||updated.apiSource?.image||updated.image}};
           const calculated=Number(updated?.wamda?.calculatedPriceSyp);
           const actual=Number(updated?.options?.[0]?.packs?.[0]?.[1]);
           if(!Number.isFinite(calculated)||calculated<=0||!Number.isFinite(actual)||actual<=0)throw new Error('INVALID_WAMDA_CALCULATED_PRICE');
