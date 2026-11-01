@@ -1,3 +1,5 @@
+import { timingSafeEqual } from 'node:crypto';
+
 const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SAFE_PROVIDER_ID = /^[A-Za-z0-9_-]{1,120}$/;
 export const BEST_STORE_WEBHOOK_MAX_BYTES = 32 * 1024;
@@ -5,14 +7,9 @@ export const BEST_STORE_WEBHOOK_MAX_BYTES = 32 * 1024;
 export function verifyBestStoreWebhookSecret(supplied, expected) {
   const left = Buffer.from(String(supplied || ''), 'utf8');
   const right = Buffer.from(String(expected || ''), 'utf8');
-  return right.length >= 32 && left.length === right.length && cryptoTimingSafeEqual(left, right);
+  return right.length >= 32 && left.length === right.length && timingSafeEqual(left, right);
 }
 
-function cryptoTimingSafeEqual(left, right) {
-  // Keep this module dependency-free apart from Node's built-in crypto.
-  return timingSafeEqual(left, right);
-}
-import { timingSafeEqual } from 'node:crypto';
 
 export function parseBestStoreWebhookBody(rawBody, contentType = '') {
   const body = String(rawBody ?? '');
