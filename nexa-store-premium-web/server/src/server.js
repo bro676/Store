@@ -1625,7 +1625,7 @@ async function publishSeagmProduct(input) {
       id:localCategoryId,
       name:String(sourceCategory.name || (kind === 'card' ? 'بطاقات SEAGM' : 'شحن SEAGM')).slice(0,100),
       desc:'منتجات مستوردة من مورد SEAGM. حدّد سعر البيع المحلي من لوحة الإدارة.',
-      image:'assets/brand/logo.svg',
+      image:sourceCategory.image||'assets/products/_shared/category-placeholder.svg',
       icon:kind === 'card' ? '▣' : '◈',
       items:[],
     }]);
@@ -1642,9 +1642,9 @@ async function publishSeagmProduct(input) {
     id:localProductId,
     name:String(manualOverrides.name??sourceName).slice(0,120),
     desc:String(manualOverrides.desc??sourceDescription).slice(0,700),
-    image:String(manualOverrides.image??'assets/brand/logo.svg'),
+    image:String(manualOverrides.image??sourceProduct.image??existingPublishedProduct?.image??'assets/products/_shared/product-placeholder.svg'),
     options:Array.isArray(manualOverrides.options)?manualOverrides.options:sourceOptions,
-    apiSource:{name:sourceName,desc:sourceDescription,image:'assets/brand/logo.svg',options:sourceOptions},
+    apiSource:{name:sourceName,desc:sourceDescription,image:sourceProduct.image||'assets/products/_shared/product-placeholder.svg',options:sourceOptions},
     ...(Object.keys(manualOverrides).length?{manualOverrides}:{}),
     seagm:{
       provider:'seagm',
