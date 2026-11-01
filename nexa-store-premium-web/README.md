@@ -85,3 +85,10 @@ Best Store's API docs do not explicitly state the currency for `base_price` or `
 - The callback is only a wake-up signal. Nexa never trusts a callback status as proof of delivery. It rechecks the UUID through Best Store's authenticated check endpoint and applies the existing order-state machine; duplicate callbacks are safe.
 - Best Store's public API reference documents profile, catalog, new order and order-check endpoints but does not describe the webhook event schema or a signature. Treat the generated URL as a secret and do not publish it in logs or source code.
 - Best Store API credentials are entered only in the Nexa Admin UI and encrypted at rest. Confirm the supplier's price currency before importing/publishing or enabling automated comparisons.
+
+
+## Best Store settings and product navigation recovery
+
+- Settings updates always persist the validated settings object after supplier repricing and refresh runtime credentials before returning success. Best Store's API token field remains populated in the admin form until the server confirms the encrypted credential is configured.
+- If a previous save returned success while the token was not actually persisted, enter the token again in Nexa Admin → Catalog API → Best Store after this fix is deployed. Never place the token in source control or chat.
+- Storefront product cards use direct capture listeners on the stable Home, Catalog/Search, and Favorites roots. Product navigation resolves the product and category IDs from the live catalogue and jumps directly to the pack step only when one valid option is available.
