@@ -72,3 +72,17 @@ test('Best Store top-level API errors are rejected instead of treated as empty p
   })});
   await assert.rejects(()=>client.getProducts(),/Token error|رفض Best Store/);
 });
+
+test('Best Store accepts documented root arrays and wrapped product arrays without masking invalid responses', async () => {
+  const wrapped=createBestStoreClient({apiToken:'secret-token',fetchImpl:async()=>({
+    ok:true,status:200,headers:{get:()=>null},text:async()=>JSON.stringify({status:'OK',data:{products:[{id:88,name:'Wrapped UC',price:2}]}})
+  })});
+  const products=await wrapped.getProducts();
+  assert.equal(products.length,1);
+  assert.equal(products[0].id,88);
+
+  const malformed=createBestStoreClient({apiToken:'secret-token',fetchImpl:async()=>({
+    ok:true,status:200,headers:{get:()=>null},text:async()=>JSON.stringify({status:'OK',data:{message:'unexpected'}})
+  })});
+  await assert.rejects(()=>malformed.getProducts(),/صيغة قائمة منتجات Best Store غير معروفة/);
+});

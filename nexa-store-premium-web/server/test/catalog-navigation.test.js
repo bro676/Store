@@ -47,3 +47,19 @@ test('product resolver returns null for empty and unknown IDs', async () => {
   assert.equal(catalog.findProduct(categories, ''), null);
   assert.equal(catalog.findProduct(categories, 'missing-product'), null);
 });
+
+test('single-option products advance directly to the pack step and invalid options are hidden', async () => {
+  const catalog = await loadCatalogHelper();
+  const single = { options:[{ id:'default', name:'الخيار الأساسي', packs:[['باقة واحدة',2]] }] };
+  const multi = { options:[
+    { id:'global', packs:[['باقة',1]] },
+    { id:'region', packs:[['باقة',2]] },
+  ] };
+  const empty = { options:[{ id:'broken', packs:[] }, { name:'missing option id', packs:[['باقة',3]] }] };
+  assert.equal(catalog.initialOptionId(single), 'default');
+  assert.equal(catalog.initialOptionId(multi), null);
+  assert.equal(catalog.initialOptionId(empty), null);
+  assert.equal(catalog.getProductOptions(empty).length, 0);
+  assert.equal(catalog.isValidPack(['باقة', 3]), true);
+  assert.equal(catalog.isValidPack(['باقة', 0]), false);
+});

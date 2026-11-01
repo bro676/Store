@@ -20,7 +20,7 @@ for (const page of pages) {
     }
   });
 }
-const backendFiles = ['../src/server.js','../src/admin-core.js','../src/exchange-rate.js','../src/order-expiry.js','../src/best-store-api.js','../src/best-store-fulfillment.js','../src/supplier-comparison.js'];
+const backendFiles = ['../src/server.js','../src/admin-core.js','../src/exchange-rate.js','../src/order-expiry.js','../src/best-store-api.js','../src/best-store-webhook.js','../src/best-store-fulfillment.js','../src/supplier-comparison.js'];
 for (const relativePath of backendFiles) {
   test(relativePath + ' backend JavaScript parses without syntax errors', () => {
     const absolutePath = path.resolve(here, relativePath);
@@ -150,7 +150,7 @@ test('storefront product navigation normalizes ids and keeps the originating cat
 
 test('unavailable products open for details but cannot be purchased', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
-  assert.ok(store.includes("(product.wamda||product.bestStore)?.available===false?'غير متوفر حالياً':'عرض المنتج',false"), 'Unavailable products remain clickable from either supplier');
+  assert.ok(store.includes("(product.wamda||product.bestStore)?.available===false?'غير متوفر حالياً':(NexaCatalog.getProductOptions(product).length===1?'عرض الباقات':'عرض المنتج'),false"), 'Unavailable products remain clickable from either supplier and single-option products lead to packs');
   assert.ok(store.includes("(it.wamda||it.bestStore)?.available===false?'disabled aria-disabled=\"true\"':''"), 'Unavailable pack buttons are disabled for either supplier');
   assert.ok(store.includes('لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد'), 'The detail view explains the availability restriction');
 });
@@ -248,4 +248,27 @@ test('Best Store publication requires an explicit source-currency confirmation',
   assert.ok(admin.includes("bestStoreCurrencyConfirmed:$('bestStoreCurrencyConfirmed').checked"), 'The currency confirmation is persisted from the UI');
   assert.ok(server.includes("storeSettings?.bestStoreCurrencyConfirmed!==true"), 'Supplier comparisons are rejected until the currency is confirmed');
   assert.ok(server.includes("available:bestStore.available!==false&&Boolean(bestStoreApiTokenRuntime)&&storeSettings?.bestStoreCurrencyConfirmed===true"), 'Best Store products remain unavailable to customers until a valid token and currency are confirmed');
+});
+
+test('Best Store webhook URL is shown only in the admin integration panel with a copy action', async () => {
+  const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
+  assert.ok(admin.includes('id="bestStoreWebhookUrl"'), 'Admin shows the webhook URL field');
+  assert.ok(admin.includes('id="copyBestStoreWebhookBtn"'), 'Admin provides a copy action');
+  assert.ok(admin.includes("$('bestStoreWebhookUrl').value=s.bestStoreWebhookUrl||''"), 'Admin loads the generated URL from safe settings');
+  assert.ok(server.includes("'/api/webhooks/best-store/'"), 'Server publishes a path-scoped Best Store callback endpoint');
+  assert.ok(server.includes('bestStoreWebhookUrl:'), 'Only the generated URL is exposed in admin settings');
+  assert.ok(server.includes('bestStoreWebhookSecretEncrypted'), 'Webhook secret is stored encrypted');
+  assert.ok(server.includes('resolveBestStoreWebhookReference'), 'Webhook maps callback to a known supplier order');
+  assert.ok(server.includes('client.checkOrder(orderUuid)'), 'Best Store status is rechecked through its API worker rather than trusting callback status');
+});
+
+test('single-option products bypass the redundant option screen and invalid packs are not offered', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const catalogHelper = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-catalog.js'), 'utf8');
+  assert.ok(store.includes('state.option=NexaCatalog.initialOptionId(it)'), 'One-option products automatically open the option/pack step');
+  assert.ok(store.includes('NexaCatalog.getProductOptions(it)'), 'Only valid options are displayed');
+  assert.ok(store.includes('NexaCatalog.isValidPack(p)'), 'Only valid priced packs are shown');
+  assert.ok(store.includes("const productOptions=NexaCatalog.getProductOptions(it),backToProducts=productOptions.length===1;"), 'Single-option pack pages return directly to the product list');
+  assert.ok(catalogHelper.includes('function initialOptionId(product)'), 'The navigation helper detects a single selectable option');
 });
