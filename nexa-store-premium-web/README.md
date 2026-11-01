@@ -81,7 +81,7 @@ Best Store's API docs do not explicitly state the currency for `base_price` or `
 
 - On first boot, the server creates a random callback secret and stores it encrypted in the existing nexa_store_state.settings; no additional database migration or Render secret is required.
 - Open the Nexa Admin dashboard → Catalog API → Best Store. Copy the generated Best Store Webhook URL, paste it into the Best Store account's API → webhook url field, and save it in the Best Store portal.
-- The receiver accepts JSON and application/x-www-form-urlencoded callback bodies. It resolves an existing order using order_uuid, a Nexa merchant order ID, or a Best Store supplier order ID; a callback without a supported order reference is rejected.
+- The receiver accepts JSON and application/x-www-form-urlencoded callback bodies. It resolves an existing order using order_uuid, a Nexa merchant order ID, or a Best Store supplier order ID. A callback without a supported reference is acknowledged as a no-op and never changes any order.
 - The callback is only a wake-up signal. Nexa never trusts a callback status as proof of delivery. It rechecks the UUID through Best Store's authenticated check endpoint and applies the existing order-state machine; duplicate callbacks are safe.
 - Best Store's public API reference documents profile, catalog, new order and order-check endpoints but does not describe the webhook event schema or a signature. Treat the generated URL as a secret and do not publish it in logs or source code.
 - Best Store API credentials are entered only in the Nexa Admin UI and encrypted at rest. Confirm the supplier's price currency before importing/publishing or enabling automated comparisons.
