@@ -584,6 +584,35 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
           </div>
           <div class="notice">الأولوية: تخصيص المنتج ثم سياسة القسم ثم السياسة العامة. الربح التلقائي إما نسبة مئوية أو مبلغ ثابت بالليرة يضاف إلى تكلفة ومضة بعد تحويلها بسعر الصرف. «سعر بيع ثابت» للمنتج لا يتغير مع تحديث التكلفة. زر التطبيق الجماعي يحفظ نسبة الربح الحالية، ويعيد كل المنتجات والأقسام إلى السياسة العامة، ثم يعيد حساب السعر وينشر كل المنتجات المتاحة ذات السعر الصالح. المنتجات غير المتوفرة أو التي لا تنتج سعراً موجباً تُستثنى مع إظهار العدد.</div>
         </section>
+        
+        <section class="panel seagm-connect-panel" id="bestStoreConnectPanel">
+          <div class="panel-head"><div><div class="section-caption">BEST STORE · SUPPLIER API</div><h3>ربط Best Store</h3><p>أضف API Token. يحفظه الخادم مشفّراً ويجلب المنتجات والتوفر والتصنيفات، ثم يقارن التكلفة الأساسية مع ومضة.</p></div><span class="status-pill" id="bestStoreConnectionBadge">غير متصل</span></div>
+          <div class="seagm-credential-grid">
+            <div class="field"><label for="bestStoreApiToken">Best Store API Token</label><input id="bestStoreApiToken" type="password" autocomplete="new-password" maxlength="1024" placeholder="ألصق API Token الخاص بحساب Best Store" dir="ltr"><small id="bestStoreTokenState">لم يتم حفظ مفتاح Best Store بعد.</small></div>
+            <div class="field"><label for="bestStoreCurrency">عملة سعر المورد القادم من Best Store</label><select id="bestStoreCurrency"><option value="USD">USD · دولار أمريكي</option><option value="SYP">SYP · ليرة سورية جديدة</option></select><label class="seagm-clear-secret"><input id="bestStoreCurrencyConfirmed" type="checkbox"> أؤكد أن هذه هي العملة الفعلية لأسعار Best Store</label><small>التوثيق لا يحدد العملة. لا تُفعّل المقارنة أو النشر التلقائي قبل التأكد من العملة في حساب المورد.</small></div>
+            <div class="field"><label>بيانات الحساب</label><div class="seagm-sync-summary" id="bestStoreAccountSummary">لم يتم اختبار الاتصال بعد.</div><small id="bestStoreLastSync">آخر مزامنة: —</small></div>
+            <div class="field"><label for="bestStorePricingMode">سياسة الربح الافتراضية</label><select id="bestStorePricingMode"><option value="percent">نسبة ربح من التكلفة (%)</option><option value="fixed_profit">ربح ثابت يضاف للتكلفة (ل.س)</option><option value="fixed_price">سعر بيع ثابت (ل.س)</option></select><input id="bestStorePricingValue" type="number" min="0" max="1000000000" step="0.01" value="0" style="margin-top:8px"><small id="bestStorePricingHelp">تُطبّق سياسة الربح بعد اختيار المورد الأقل تكلفة، وليس قبل المقارنة.</small></div>
+            <div class="field"><label>سعر الصرف المستخدم</label><div class="seagm-sync-summary" id="bestStoreFxRateDisplay">145 ل.س لكل 1 USD</div><small>مشترك مع سعر الصرف العام للمتجر.</small></div>
+            <div class="field"><label for="bestStoreRefreshIntervalMinutes">تحديث المنتجات والأسعار كل (دقيقة)</label><input id="bestStoreRefreshIntervalMinutes" type="number" min="5" max="1440" step="1" value="15"><small>من 5 دقائق إلى 24 ساعة.</small></div>
+            <div class="field"><label>التحديث التلقائي</label><label class="seagm-clear-secret"><input id="bestStoreAutoRefreshEnabled" type="checkbox" checked> جلب الموردين ومقارنة الأسعار والنشر تلقائياً</label><small>عند التفعيل يقارن الخادم ومضة وBest Store بشكل دوري وينشر الأرخص.</small></div>
+          </div>
+          <div class="seagm-actions">
+            <button class="btn primary" type="button" id="saveBestStoreBtn">حفظ إعدادات Best Store</button>
+            <button class="btn soft" type="button" id="testBestStoreBtn">اختبار الحساب والرصيد</button>
+            <button class="btn soft" type="button" id="refreshBestStoreCatalogBtn">جلب منتجات Best Store ↻</button>
+            <button class="btn soft" type="button" id="comparePublishSuppliersBtn">مقارنة الموردين ونشر الأرخص للجميع</button>
+            <label class="seagm-clear-secret"><input id="clearBestStoreApiToken" type="checkbox"> حذف Token المحفوظ</label>
+          </div>
+          <div class="seagm-status-message" id="bestStoreAccountStatus" role="status">أدخل API Token ثم احفظه لاختبار الاتصال.</div>
+          <div class="notice info">المصادقة تتم بترويسة <bdi dir="ltr">api-token</bdi> على الخادم فقط. يعتمد النظام base_price عند وجوده، وإلا يستخدم price للمقارنة. لا يتم شراء أي منتج عند الجلب أو النشر؛ الشراء يحدث بعد تحقق دفع العميل فقط.</div>
+        </section>
+        <section class="panel seagm-products-panel" id="bestStoreProductsPanel">
+          <div class="panel-head"><div><div class="section-caption">BEST STORE LIVE CATALOG</div><h3>منتجات Best Store المستوردة</h3><p>المنتجات المطابقة لمنتجات ومضة تُقارن بالتكلفة الأساسية بعد توحيد العملة. المنتجات غير الموجودة بالمورد الآخر تبقى متاحة للنشر بشكل مستقل.</p></div><span class="status-pill" id="bestStoreProductCount">0 منتج</span></div>
+          <div class="wamda-catalog-toolbar"><input id="bestStoreCatalogSearch" type="search" placeholder="ابحث باسم المنتج أو رقمه أو القسم..." aria-label="بحث في كتالوج Best Store"><select id="bestStoreCatalogFilter" aria-label="تصفية منتجات Best Store"><option value="all">كل المنتجات</option><option value="available">المتاحة فقط</option><option value="unavailable">غير المتاحة</option><option value="published">المنشورة</option><option value="unpublished">غير المنشورة</option></select><span id="bestStoreCatalogResultCount" class="wamda-result-count">0 منتج</span></div>
+          <div id="bestStoreCatalogResults" class="seagm-catalog-results"><div class="empty-api">احفظ API Token ثم اختبر الاتصال واجلب المنتجات.</div></div>
+          <div class="notice">ترتيب التسعير: تخصيص المنتج ثم سياسة القسم ثم سياسة المورد العامة. زر «مقارنة الموردين ونشر الأرخص للجميع» يجلب أحدث كتالوج من الموردين المربوطين، يقارن تكلفة المنتج قبل الربح، ثم ينشر أو يحدّث النسخة الأقل تكلفة مع الحفاظ على التعديلات اليدوية.</div>
+        </section>
+
         <section class="panel seagm-connect-panel">
           <div class="panel-head">
             <div>
@@ -732,7 +761,7 @@ function initializeAdminColorMode(){
  window.addEventListener('storage',event=>{if(event.key===ADMIN_THEME_KEY&&event.newValue)setAdminColorMode(event.newValue,{persist:false});});
 }
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={catalog:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',categoryIndex:0,page:'overview',busy:false};
+const state={catalog:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},bestStoreCatalog:[],bestStoreMeta:{},bestStoreCatalogQuery:'',bestStoreCatalogFilter:'all',wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',categoryIndex:0,page:'overview',busy:false};
 const pageTitles={overview:'نظرة عامة',catalog:'المنتجات والأسعار','catalog-api':'ربط المنتجات عبر API',orders:'الطلبات والإيصالات',payments:'شام كاش والمحفظة',exchange:'سعر الصرف'};
 let toastTimer;
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2800)}
@@ -741,10 +770,10 @@ function showLogin(){state.authed=false;$('app').classList.add('hidden');$('logi
 function showApp(){state.authed=true;$('loginScreen').classList.add('hidden');$('app').classList.remove('hidden')}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginError').textContent='';const key=$('adminKey').value;try{await api('/api/admin/session',{method:'POST',body:JSON.stringify({key})});$('adminKey').value='';showApp();await loadAll();toast('تم تسجيل الدخول بأمان.')}catch(err){$('loginError').textContent=err.message;$('adminKey').focus()}});
 $('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/session',{method:'DELETE'})}catch{}showLogin();toast('تم تسجيل الخروج.')});
-function setPage(name){state.page=name;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!=='page-'+name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('pageTitle').textContent=pageTitles[name]||'Nexa';if(name==='catalog')renderCatalog();if(name==='catalog-api'){loadSettings();loadWamdaCatalog();loadSeagmCatalog()}if(name==='orders')loadOrders();if(name==='payments')loadSettings();if(name==='exchange')loadSettings()}
+function setPage(name){state.page=name;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!=='page-'+name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('pageTitle').textContent=pageTitles[name]||'Nexa';if(name==='catalog')renderCatalog();if(name==='catalog-api'){loadSettings();loadWamdaCatalog();loadSeagmCatalog();loadBestStoreCatalog()}if(name==='orders')loadOrders();if(name==='payments')loadSettings();if(name==='exchange')loadSettings()}
 document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.page)));
 document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.jump)));
-async function loadAll(){showApp();await Promise.all([loadOverview(),loadCatalog(),loadSettings(),loadOrders(),loadWamdaCatalog(),loadSeagmCatalog()]);}
+async function loadAll(){showApp();await Promise.all([loadOverview(),loadCatalog(),loadSettings(),loadOrders(),loadWamdaCatalog(),loadSeagmCatalog(),loadBestStoreCatalog()]);}
 async function loadOverview(){const d=await api('/api/admin/overview');const o=d.orders||{};const cards=[['إجمالي الطلبات',o.total||0,'▤','كل الطلبات المسجلة'],['مدفوع ومتحقق',o.paid||0,'✓','دفعات أكدها API'],['بانتظار الدفع',o.pending||0,'◷','فواتير فعالة أو قيد المتابعة'],['عدد المنتجات',d.products||0,'▦',`${d.categories||0} أقسام`]];$('stats').innerHTML=cards.map(([t,v,ico,sub])=>`<article class="stat"><div class="stat-top"><span>${t}</span><i class="stat-icon">${ico}</i></div><strong>${Number(v).toLocaleString('en-US')}</strong><small>${sub}</small></article>`).join('');const max=Math.max(1,o.total||0);$('orderBars').innerHTML=[['مدفوع',o.paid||0],['بانتظار الدفع',o.pending||0],['منتهي',o.expired||0],['ملغي',(o.total||0)-(o.paid||0)-(o.pending||0)-(o.expired||0)]].map(([label,v])=>`<div class="bar-row"><span>${label}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Number(v)/max*100)}%"></div></div><b>${v}</b></div>`).join('');$('topStatus').textContent=d.paymentsReady?'الدفع جاهز':'تحقق من الدفع';}
 async function loadCatalog(){const d=await api('/api/admin/catalog');state.catalog=d.catalog||[];state.categoryIndex=Math.min(state.categoryIndex,Math.max(0,state.catalog.length-1));renderCatalog()}
 function activeCategory(){return state.catalog[state.categoryIndex]||null}
@@ -854,7 +883,18 @@ $('testNexaAiBtn').addEventListener('click',async()=>{
  }finally{button.disabled=false;}
 });
 function renderSettings(d={}){const s=state.settings;$('storeName').value=s.storeName||'Nexa Store';$('announcement').value=s.announcement||'';$('storeLogo').value=s.storeLogo||'assets/brand/logo.svg';$('storeLogoPreview').src=s.storeLogo||'assets/brand/logo.svg';$('paymentEnabled').checked=!!s.paymentEnabled;$('shamApiBase').value=s.shamApiBase||'https://apis-shamcash.com/api';$('shamApiToken').value='';$('clearShamApiToken').checked=false;$('shamTokenState').textContent=s.shamApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لم يتم ضبط مفتاح بعد.';$('receiverLabel').value=s.receiverLabel||'';$('walletId').value=s.walletId||'';$('orderTtlMinutes').value=s.orderTtlMinutes??15;$('maxAgeMinutes').value=s.maxAgeMinutes??15;$('futureSkewSeconds').value=s.futureSkewSeconds??90;$('timezoneOffsetMinutes').value=s.timezoneOffsetMinutes??180;$('paymentStatus').textContent=d.paymentsReady?'الدفع مفعّل وجاهز':'الدفع غير جاهز';
- $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;renderCatalogApiKeys();$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';$('seagmEnvironment').value=s.seagmEnvironment||'sandbox';$('seagmUid').value=s.seagmUid||'';$('seagmSecret').value='';$('clearSeagmSecret').checked=false;$('seagmSecretState').textContent=s.seagmSecretConfigured?'يوجد Secret Key محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لا يوجد Secret Key محفوظ.';$('wamdaApiToken').value='';$('clearWamdaApiToken').checked=false;$('wamdaTokenState').textContent=s.wamdaApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';$('wamdaWebhookUrl').value=s.wamdaWebhookUrl||'';$('copyWamdaWebhookBtn').disabled=!s.wamdaWebhookUrl;const globalWamdaPolicy=s.wamdaPricingPolicy||{mode:'percent',value:s.wamdaProfitMarginPercent??0};$('wamdaGlobalPricingMode').value=['percent','fixed_profit','fixed_price'].includes(globalWamdaPolicy.mode)?globalWamdaPolicy.mode:'percent';$('wamdaGlobalPricingValue').value=globalWamdaPolicy.value??0;$('wamdaAutoRefreshEnabled').checked=s.wamdaAutoRefreshEnabled!==false;$('wamdaRefreshIntervalMinutes').value=s.wamdaRefreshIntervalMinutes??15;$('wamdaFxRateDisplay').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س لكل 1 USD';}
+ $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;renderCatalogApiKeys();$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';$('seagmEnvironment').value=s.seagmEnvironment||'sandbox';$('seagmUid').value=s.seagmUid||'';$('seagmSecret').value='';$('clearSeagmSecret').checked=false;$('seagmSecretState').textContent=s.seagmSecretConfigured?'يوجد Secret Key محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لا يوجد Secret Key محفوظ.';$('wamdaApiToken').value='';$('clearWamdaApiToken').checked=false;$('wamdaTokenState').textContent=s.wamdaApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';$('wamdaWebhookUrl').value=s.wamdaWebhookUrl||'';$('copyWamdaWebhookBtn').disabled=!s.wamdaWebhookUrl;const globalWamdaPolicy=s.wamdaPricingPolicy||{mode:'percent',value:s.wamdaProfitMarginPercent??0};$('wamdaGlobalPricingMode').value=['percent','fixed_profit','fixed_price'].includes(globalWamdaPolicy.mode)?globalWamdaPolicy.mode:'percent';$('wamdaGlobalPricingValue').value=globalWamdaPolicy.value??0;$('wamdaAutoRefreshEnabled').checked=s.wamdaAutoRefreshEnabled!==false;$('wamdaRefreshIntervalMinutes').value=s.wamdaRefreshIntervalMinutes??15;$('wamdaFxRateDisplay').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س لكل 1 USD';
+  $('bestStoreApiToken').value='';$('clearBestStoreApiToken').checked=false;
+  $('bestStoreTokenState').textContent=s.bestStoreApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';
+  $('bestStoreCurrency').value=s.bestStoreCurrency||'USD';
+  $('bestStoreCurrency').onchange=()=>{$('bestStoreCurrencyConfirmed').checked=false;};
+  $('bestStoreCurrencyConfirmed').checked=s.bestStoreCurrencyConfirmed===true;
+  const bestPolicy=s.bestStorePricingPolicy||{mode:'percent',value:0};
+  $('bestStorePricingMode').value=['percent','fixed_profit','fixed_price'].includes(bestPolicy.mode)?bestPolicy.mode:'percent';
+  $('bestStorePricingValue').value=bestPolicy.value??0;
+  $('bestStoreAutoRefreshEnabled').checked=s.bestStoreAutoRefreshEnabled!==false;
+  $('bestStoreRefreshIntervalMinutes').value=s.bestStoreRefreshIntervalMinutes??15;
+  $('bestStoreFxRateDisplay').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س لكل 1 USD';}
 $('fxMode').addEventListener('change',()=>{$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api')});
 function paymentPayload(){return{paymentEnabled:$('paymentEnabled').checked,shamApiBase:$('shamApiBase').value.trim(),shamApiToken:$('shamApiToken').value,clearShamApiToken:$('clearShamApiToken').checked,walletId:$('walletId').value.trim(),receiverLabel:$('receiverLabel').value.trim(),orderTtlMinutes:Number($('orderTtlMinutes').value),maxAgeMinutes:Number($('maxAgeMinutes').value),futureSkewSeconds:Number($('futureSkewSeconds').value),timezoneOffsetMinutes:Number($('timezoneOffsetMinutes').value)}}
 $('savePaymentsBtn').addEventListener('click',async()=>{const b=$('savePaymentsBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(paymentPayload())});state.settings=d.settings;renderSettings(d);toast('تم حفظ إعدادات شام كاش والمحفظة.')}catch(e){toast(e.message)}finally{b.disabled=false}});
@@ -950,7 +990,7 @@ function renderWamdaCatalog(){
       const fields=(product.fields||[]).map(field=>field.label||field.key).join('، ');
       const status=unavailable?'غير متوفر لدى المورد':(published?'منشور':'غير منشور')+' · '+(mode==='inherit'?'تسعير عام':pricingModeLabel(mode));
       const canPublish=!unavailable&&Number(current)>0;
-      const publishButton=!published?'<button class="btn primary" type="button" data-publish-wamda '+(!canPublish?'disabled':'')+'>نشر المنتج</button>':'';
+      const publishButton=!published?'<button class="btn primary" type="button" data-publish-wamda '+(!canPublish?'disabled':'')+'>مقارنة ونشر الأرخص</button>':'';
       const resetButton=mode!=='inherit'?'<button class="btn soft" type="button" data-reset-wamda-price>إلغاء تخصيص المنتج</button>':'';
       return '<article class="seagm-product-row" data-category-id="'+esc(category.id)+'" data-product-id="'+esc(product.id)+'">'+
         '<div class="seagm-product-main"><strong>'+esc(product.name)+'</strong>'+
@@ -1076,7 +1116,7 @@ $('wamdaCatalogResults').addEventListener('click',async event=>{
     }else if(button.hasAttribute('data-reset-wamda-price')){
       endpoint='/api/admin/wamda/catalog/product-pricing';payload={categoryId,productId,mode:'inherit'};
     }else if(button.hasAttribute('data-publish-wamda')){
-      endpoint='/api/admin/wamda/catalog/publish';payload={categoryId,productId};
+      endpoint='/api/admin/suppliers/publish-cheapest';payload={provider:'wamda',categoryId,productId};
     }
   }
   if(!endpoint)return;
@@ -1087,6 +1127,194 @@ $('wamdaCatalogResults').addEventListener('click',async event=>{
   }catch(error){toast(error.message);button.disabled=false;}
 });
 
+
+
+async function loadBestStoreCatalog(){
+  try{
+    const d=await api('/api/admin/best-store/catalog');
+    state.bestStoreCatalog=Array.isArray(d.categories)?d.categories:[];
+    state.bestStoreMeta=d;
+    renderBestStoreCatalog();
+    $('bestStoreConnectionBadge').textContent=d.configured?'API Token محفوظ':'غير متصل';
+    $('bestStoreTokenState').textContent=state.settings.bestStoreApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';
+    $('bestStoreProductCount').textContent=Number(d.stats?.products||0).toLocaleString('en-US')+' منتج';
+    $('bestStoreLastSync').textContent=d.lastSyncAt?'آخر مزامنة: '+new Date(d.lastSyncAt).toLocaleString('ar-SY'):'آخر مزامنة: —';
+    $('bestStoreFxRateDisplay').textContent=Number(d.pricing?.fxRate||state.settings.fxRate||145).toLocaleString('en-US')+' ل.س لكل 1 USD';
+    $('bestStoreCurrencyConfirmed').checked=d.pricing?.currencyConfirmed===true;
+    if(d.account){
+      const balance=d.account.balance??d.account.amount??'—';
+      const currency=d.account.currency||d.account.currency_code||'';
+      $('bestStoreAccountSummary').textContent='الحساب: '+(d.account.username||d.account.email||d.account.id||'Best Store')+' · الرصيد '+balance+' '+currency;
+    }else $('bestStoreAccountSummary').textContent=d.configured?'المفتاح محفوظ؛ اختبر الاتصال لعرض بيانات الحساب.':'لم يتم اختبار الاتصال بعد.';
+    if(d.lastError)$('bestStoreAccountStatus').textContent='آخر خطأ: '+d.lastError;
+    else if(!d.configured)$('bestStoreAccountStatus').textContent='أدخل API Token من Best Store واحفظه لاختبار الاتصال.';
+    else if(d.pricing?.currencyConfirmed!==true)$('bestStoreAccountStatus').textContent='المفتاح محفوظ، لكن يجب تأكيد عملة الأسعار قبل المقارنة أو التحديث التلقائي.';
+    else if(d.syncInProgress)$('bestStoreAccountStatus').textContent='المزامنة أو مقارنة الموردين قيد التنفيذ…';
+  }catch(error){$('bestStoreAccountStatus').textContent=error.message;}
+}
+function renderBestStoreCatalog(){
+  const list=$('bestStoreCatalogResults');if(!list)return;
+  const query=String(state.bestStoreCatalogQuery||'').trim().toLowerCase();
+  const filter=state.bestStoreCatalogFilter||'all';
+  const total=state.bestStoreCatalog.reduce((sum,category)=>sum+(category.products||[]).length,0);
+  $('bestStoreProductCount').textContent=total.toLocaleString('en-US')+' منتج';
+  const groups=state.bestStoreCatalog.map(category=>{
+    const all=category.products||[];
+    const products=all.filter(product=>{
+      const published=!!product.published,available=product.available!==false;
+      if(filter==='available'&&!available)return false;
+      if(filter==='unavailable'&&available)return false;
+      if(filter==='published'&&!published)return false;
+      if(filter==='unpublished'&&published)return false;
+      if(query&&!([product.name,product.id,category.name,product.description,product.productType].join(' ').toLowerCase().includes(query)))return false;
+      return true;
+    });
+    if(!products.length)return '';
+    const policy=category.pricingPolicy||{mode:'inherit',value:0};
+    const mode=policy.mode||'inherit',value=policy.value??0;
+    const rows=products.map(product=>{
+      const override=product.pricingOverride||{mode:'inherit',value:0};
+      const productMode=override.mode||'inherit',productValue=override.value??0;
+      const unavailable=product.available===false;
+      const priceBasis=product.costBasis==='base_price'?'base_price · التكلفة الأساسية':'price · السعر';
+      const cost=product.sourceCost??product.basePrice??product.price??'—';
+      const currency=product.currency||state.bestStoreMeta?.pricing?.currency||'USD';
+      const qty=Number(product.minimumQuantity||1)+'–'+Number(product.maximumQuantity||1);
+      const fields=(product.fields||[]).map(field=>field.label||field.submitField).filter(Boolean).join('، ');
+      const publishLabel=product.published?'تحديث ومقارنة الأرخص':'مقارنة ونشر الأرخص';
+      return '<article class="seagm-product-row" data-beststore-row data-category-id="'+esc(category.id)+'" data-product-id="'+esc(product.id)+'">'+
+        '<div class="seagm-product-main"><strong>'+esc(product.name)+'</strong>'+
+        '<small>ID '+esc(product.id)+' · '+esc(product.productType||'package')+' · '+esc(priceBasis)+'</small>'+
+        '<small>تكلفة المورد: '+esc(cost)+' '+esc(currency)+' · سعر البيع المتوقع: '+Number(product.calculatedSellPriceSyp||0).toLocaleString('en-US')+' ل.س</small>'+
+        '<small>الكمية '+esc(qty)+(fields?' · الحقول: '+esc(fields):'')+'</small>'+
+        '<small>'+esc(unavailable?'غير متوفر لدى Best Store':(product.published?'منشور في المتجر':'غير منشور'))+'</small></div>'+
+        '<div class="seagm-product-price"><label>سياسة هذا المنتج</label>'+
+        '<select data-beststore-product-mode><option value="inherit" '+(productMode==='inherit'?'selected':'')+'>حسب سياسة القسم أو المورد</option>'+
+        '<option value="percent" '+(productMode==='percent'?'selected':'')+'>نسبة ربح خاصة (%)</option>'+
+        '<option value="fixed_profit" '+(productMode==='fixed_profit'?'selected':'')+'>ربح ثابت خاص (ل.س)</option>'+
+        '<option value="fixed_price" '+(productMode==='fixed_price'?'selected':'')+'>سعر بيع ثابت (ل.س)</option></select>'+
+        '<input type="number" min="0" max="1000000000" step="0.01" data-beststore-product-value value="'+esc(productValue)+'" placeholder="قيمة سياسة المنتج">'+
+        '<button class="btn soft" type="button" data-save-beststore-product-pricing>حفظ تسعير المنتج</button></div>'+
+        '<div class="seagm-actions"><button class="btn primary" type="button" data-publish-beststore '+(unavailable?'disabled':'')+'>'+publishLabel+'</button></div>'+
+        (unavailable?'<span class="seagm-unavailable">غير متوفر لدى المورد</span>':'')+'</article>';
+    }).join('');
+    return '<section class="seagm-category-group" data-beststore-category data-category-id="'+esc(category.id)+'">'+
+      '<div class="seagm-category-heading"><div><strong>'+esc(category.name)+'</strong><small>'+all.length+' منتج في القسم · '+products.length+' معروض</small></div>'+
+      '<div class="seagm-category-pricing-controls"><label>سياسة التسعير لهذا القسم</label>'+
+      '<select data-beststore-category-mode><option value="inherit" '+(mode==='inherit'?'selected':'')+'>استخدام سياسة المورد العامة</option>'+
+      '<option value="percent" '+(mode==='percent'?'selected':'')+'>نسبة ربح (%)</option>'+
+      '<option value="fixed_profit" '+(mode==='fixed_profit'?'selected':'')+'>ربح ثابت (ل.س)</option>'+
+      '<option value="fixed_price" '+(mode==='fixed_price'?'selected':'')+'>سعر بيع ثابت للقسم (ل.س)</option></select>'+
+      '<input type="number" min="0" max="1000000000" step="0.01" data-beststore-category-value value="'+esc(value)+'" placeholder="قيمة السياسة">'+
+      '<button class="btn soft" type="button" data-save-beststore-category-pricing>حفظ سياسة القسم</button></div></div>'+
+      rows+'</section>';
+  }).filter(Boolean);
+  const visible=groups.join('');
+  $('bestStoreCatalogResultCount').textContent=visible?groups.length+' أقسام':'0 قسم';
+  list.innerHTML=visible||'<div class="empty-api">لا توجد منتجات تطابق البحث أو التصفية الحالية.</div>';
+}
+async function saveBestStoreSettings({silent=false}={}){
+  const mode=$('bestStorePricingMode').value,value=Number($('bestStorePricingValue').value),interval=Number($('bestStoreRefreshIntervalMinutes').value);
+  if(!Number.isFinite(value)||value<(mode==='fixed_price'?0.01:0)||value>1000000000)throw new Error('أدخل قيمة صحيحة لسياسة ربح Best Store.');
+  if(mode==='percent'&&value>1000)throw new Error('نسبة ربح Best Store لا يمكن أن تتجاوز 1000%.');
+  if(!Number.isInteger(interval)||interval<5||interval>1440)throw new Error('فترة التحديث يجب أن تكون بين 5 و1440 دقيقة.');
+  const payload={
+    bestStoreApiToken:$('bestStoreApiToken').value.trim(),
+    clearBestStoreApiToken:$('clearBestStoreApiToken').checked,
+    bestStoreCurrency:$('bestStoreCurrency').value,
+    bestStoreCurrencyConfirmed:$('bestStoreCurrencyConfirmed').checked,
+    bestStorePricingPolicy:{mode,value},
+    bestStoreAutoRefreshEnabled:$('bestStoreAutoRefreshEnabled').checked,
+    bestStoreRefreshIntervalMinutes:interval,
+  };
+  const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(payload)});
+  state.settings=d.settings||state.settings;
+  $('bestStoreApiToken').value='';$('clearBestStoreApiToken').checked=false;
+  $('bestStoreTokenState').textContent=state.settings.bestStoreApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';
+  if(!silent)toast('تم حفظ إعدادات Best Store وسياسة التسعير.');
+  return d;
+}
+async function testBestStore(){
+  const button=$('testBestStoreBtn');button.disabled=true;
+  $('bestStoreAccountStatus').textContent='جارٍ اختبار الاتصال بحساب Best Store…';
+  try{
+    await saveBestStoreSettings({silent:true});
+    const d=await api('/api/admin/best-store/test',{method:'POST',body:'{}'});
+    const account=d.account||{};
+    $('bestStoreConnectionBadge').textContent='متصل';
+    $('bestStoreAccountSummary').textContent='الحساب: '+(account.username||account.email||account.id||'Best Store')+' · الرصيد '+(account.balance??account.amount??'—')+' '+(account.currency||account.currency_code||'');
+    $('bestStoreAccountStatus').textContent='تم اختبار الاتصال بنجاح.';
+    await loadSettings();toast('نجح اختبار Best Store API.');
+  }catch(error){$('bestStoreConnectionBadge').textContent='فشل الاتصال';$('bestStoreAccountStatus').textContent=error.message;toast(error.message);}
+  finally{button.disabled=false;}
+}
+async function refreshBestStoreProducts(){
+  const button=$('refreshBestStoreCatalogBtn');button.disabled=true;
+  $('bestStoreAccountStatus').textContent='جارٍ جلب المنتجات من Best Store…';
+  try{
+    await saveBestStoreSettings({silent:true});
+    const d=await api('/api/admin/best-store/catalog/refresh',{method:'POST',body:'{}'});
+    state.bestStoreCatalog=d.categories||[];state.bestStoreMeta=d;renderBestStoreCatalog();
+    $('bestStoreConnectionBadge').textContent='متصل';
+    $('bestStoreProductCount').textContent=Number(d.stats.products||0).toLocaleString('en-US')+' منتج';
+    $('bestStoreLastSync').textContent='آخر مزامنة: '+new Date(d.syncedAt).toLocaleString('ar-SY');
+    $('bestStoreAccountSummary').textContent='تم الاتصال بالحساب وجلب بيانات الرصيد.';
+    $('bestStoreAccountStatus').textContent='تم جلب '+Number(d.stats.products||0).toLocaleString('en-US')+' منتج من Best Store.';
+    toast('تم جلب منتجات Best Store.');
+  }catch(error){$('bestStoreAccountStatus').textContent=error.message;toast(error.message);}
+  finally{button.disabled=false;}
+}
+async function compareAndPublishAllSuppliers(){
+  const button=$('comparePublishSuppliersBtn');
+  if(!confirm('سيتم جلب أحدث المنتجات من كل مورد تم ربطه، ومقارنة تكلفة المنتجات المتطابقة قبل هامش الربح، ثم نشر أو تحديث أرخص مصدر لكل منتج متاح. لن يتم شراء منتجات أو خصم رصيد الموردين. هل تريد المتابعة؟'))return;
+  button.disabled=true;button.textContent='جارٍ جلب المنتجات والمقارنة والنشر…';
+  $('bestStoreAccountStatus').textContent='جارٍ مزامنة الموردين ومقارنة أقل تكلفة أساسية لكل منتج…';
+  try{
+    await saveBestStoreSettings({silent:true});
+    const d=await api('/api/admin/suppliers/compare-publish',{method:'POST',body:'{}'});
+    const x=d.stats||{};
+    $('bestStoreAccountStatus').textContent='تم الجلب: '+Number(x.productsFetched||0)+' · منتجات بعد الدمج: '+Number(x.uniqueProducts||0)+' · مجموعات تمت مقارنتها: '+Number(x.comparedGroups||0)+' · فاز Best Store: '+Number(x.bestStoreWins||0)+' · فازت ومضة: '+Number(x.wamdaWins||0)+' · نشر جديد: '+Number(x.publishedNew||0)+' · تحديث: '+Number(x.updatedExisting||0);
+    await Promise.all([loadCatalog(),loadBestStoreCatalog(),loadWamdaCatalog()]);
+    toast('اكتملت مقارنة الموردين ونشر الأرخص قبل الربح.');
+  }catch(error){$('bestStoreAccountStatus').textContent=error.message;toast(error.message);}
+  finally{button.disabled=false;button.textContent='مقارنة الموردين ونشر الأرخص للجميع';}
+}
+$('bestStoreCatalogSearch').addEventListener('input',event=>{state.bestStoreCatalogQuery=event.target.value;renderBestStoreCatalog();});
+$('bestStoreCatalogFilter').addEventListener('change',event=>{state.bestStoreCatalogFilter=event.target.value;renderBestStoreCatalog();});
+$('bestStoreCatalogResults').addEventListener('click',async event=>{
+  const button=event.target.closest('[data-save-beststore-category-pricing],[data-save-beststore-product-pricing],[data-publish-beststore]');
+  if(!button)return;
+  const category=button.closest('[data-beststore-category]'),row=button.closest('[data-beststore-row]');
+  let endpoint='',payload={};
+  if(button.hasAttribute('data-save-beststore-category-pricing')){
+    if(!category)return;
+    const mode=category.querySelector('[data-beststore-category-mode]')?.value||'inherit',value=category.querySelector('[data-beststore-category-value]')?.value;
+    if(mode!=='inherit'&&(!value||!Number.isFinite(Number(value))||Number(value)<(mode==='fixed_price'?0.01:0))){toast('أدخل قيمة صحيحة لسياسة قسم Best Store.');return;}
+    endpoint='/api/admin/best-store/catalog/category-pricing';payload={categoryId:category.dataset.categoryId,mode,value};
+  }else{
+    if(!row)return;
+    const productId=Number(row.dataset.productId),categoryId=row.dataset.categoryId;
+    if(button.hasAttribute('data-save-beststore-product-pricing')){
+      const mode=row.querySelector('[data-beststore-product-mode]')?.value||'inherit',value=row.querySelector('[data-beststore-product-value]')?.value;
+      if(mode!=='inherit'&&(!value||!Number.isFinite(Number(value))||Number(value)<(mode==='fixed_price'?0.01:0))){toast('أدخل قيمة صحيحة لسياسة المنتج.');return;}
+      endpoint='/api/admin/best-store/catalog/product-pricing';payload={productId,categoryId,mode,value};
+    }else if(button.hasAttribute('data-publish-beststore')){
+      endpoint='/api/admin/suppliers/publish-cheapest';payload={provider:'beststore',categoryId,productId};
+    }
+  }
+  if(!endpoint)return;
+  button.disabled=true;
+  try{
+    const d=await api(endpoint,{method:'POST',body:JSON.stringify(payload)});
+    await Promise.all([loadCatalog(),loadBestStoreCatalog()]);
+    toast(d.message||'تم تحديث المنتج ومقارنة سعر المورد.');
+  }catch(error){toast(error.message);button.disabled=false;}
+});
+$('saveBestStoreBtn').addEventListener('click',async()=>{const button=$('saveBestStoreBtn');button.disabled=true;try{await saveBestStoreSettings();await loadSettings();}catch(error){toast(error.message);}finally{button.disabled=false;}});
+$('testBestStoreBtn').addEventListener('click',testBestStore);
+$('refreshBestStoreCatalogBtn').addEventListener('click',refreshBestStoreProducts);
+$('comparePublishSuppliersBtn').addEventListener('click',compareAndPublishAllSuppliers);
+$('bestStorePricingMode').addEventListener('change',()=>{const mode=$('bestStorePricingMode').value;$('bestStorePricingHelp').textContent=mode==='fixed_profit'?'يُضاف مبلغ الربح الثابت إلى التكلفة بعد تحويلها إلى الليرة السورية.':mode==='fixed_price'?'يُستخدم سعر بيع ثابت لكل منتجات Best Store.':'السعر النهائي = أقل تكلفة مورد بعد توحيد العملة × (1 + نسبة الربح).'});
 
 async function loadSeagmCatalog(){
   try{

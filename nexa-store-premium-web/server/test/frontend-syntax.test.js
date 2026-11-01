@@ -20,7 +20,7 @@ for (const page of pages) {
     }
   });
 }
-const backendFiles = ['../src/server.js','../src/admin-core.js','../src/exchange-rate.js','../src/order-expiry.js'];
+const backendFiles = ['../src/server.js','../src/admin-core.js','../src/exchange-rate.js','../src/order-expiry.js','../src/best-store-api.js','../src/best-store-fulfillment.js','../src/supplier-comparison.js'];
 for (const relativePath of backendFiles) {
   test(relativePath + ' backend JavaScript parses without syntax errors', () => {
     const absolutePath = path.resolve(here, relativePath);
@@ -150,8 +150,8 @@ test('storefront product navigation normalizes ids and keeps the originating cat
 
 test('unavailable products open for details but cannot be purchased', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
-  assert.ok(store.includes("product.wamda?.available===false?'غير متوفر حالياً':'عرض المنتج',false"), 'Unavailable products remain clickable from the category list');
-  assert.ok(store.includes("it.wamda?.available===false?'disabled aria-disabled=\"true\"':''"), 'Unavailable pack buttons are disabled');
+  assert.ok(store.includes("(product.wamda||product.bestStore)?.available===false?'غير متوفر حالياً':'عرض المنتج',false"), 'Unavailable products remain clickable from either supplier');
+  assert.ok(store.includes("(it.wamda||it.bestStore)?.available===false?'disabled aria-disabled=\"true\"':''"), 'Unavailable pack buttons are disabled for either supplier');
   assert.ok(store.includes('لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد'), 'The detail view explains the availability restriction');
 });
 
@@ -238,4 +238,14 @@ test('storefront image lookup replaces the old logo placeholder in every primary
   assert.ok(store.includes('NexaCatalog.productImage(product,cat)'), 'Product tiles use product-specific images');
   assert.ok(store.includes('NexaCatalog.optionImage(o,it,cat)'), 'Option tiles use option artwork or the product fallback');
   assert.ok(store.includes('NexaCatalog.productImage(it,getCategory(state.category))'), 'Order modal receives the selected product image');
+});
+
+
+test('Best Store publication requires an explicit source-currency confirmation', async () => {
+  const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
+  assert.ok(admin.includes('id="bestStoreCurrencyConfirmed"'), 'Admin exposes an explicit supplier-currency confirmation');
+  assert.ok(admin.includes("bestStoreCurrencyConfirmed:$('bestStoreCurrencyConfirmed').checked"), 'The currency confirmation is persisted from the UI');
+  assert.ok(server.includes("storeSettings?.bestStoreCurrencyConfirmed!==true"), 'Supplier comparisons are rejected until the currency is confirmed');
+  assert.ok(server.includes("available:bestStore.available!==false&&Boolean(bestStoreApiTokenRuntime)&&storeSettings?.bestStoreCurrencyConfirmed===true"), 'Best Store products remain unavailable to customers until a valid token and currency are confirmed');
 });
