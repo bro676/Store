@@ -41,8 +41,8 @@ test('store and admin themes use independent persisted preferences', async () =>
 
 test('product click targets are complete and wallet checkout controls are present', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
-  assert.ok(store.includes("'data-browse-item=\"'+esc(product.id)+'\"'"), 'Category product tiles must close the product ID attribute');
-  assert.ok(store.includes("'data-open-item=\"'+esc(i.id)+'\"'"), 'Search product tiles must close the product ID attribute');
+  assert.ok(store.includes("'data-open-item=\"'+esc(product.id)+'\" data-open-category=\"'+esc(cat.id)+'\"'"), 'Category product tiles must open through the canonical item handler and retain category context');
+  assert.ok(store.includes("'data-open-item=\"'+esc(i.id)+'\" data-open-category=\"'+esc(c.id)+'\"'"), 'Search product tiles must retain their category context');
   assert.ok(store.includes('<article class="product-card" data-open-item="${esc(it.id)}" role="button" tabindex="0"'), 'Featured product cards open when clicked');
   assert.ok(store.includes('<article class="product-card" data-open-item="${esc(id)}" role="button" tabindex="0"'), 'Saved product cards open when clicked');
   assert.ok(store.includes("e.target.matches?.('.product-card[role=\"button\"][data-open-item]')"), 'Product cards support keyboard activation');
@@ -80,8 +80,49 @@ test('Store and admin assets are revalidated instead of serving a stale theme', 
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
-  assert.ok(store.includes('nexa-luxury.css?v=20261031-03'), 'Store stylesheet uses the cache-busting version');
-  assert.ok(admin.includes('nexa-luxury.css?v=20261031-03'), 'Admin stylesheet uses the cache-busting version');
+  assert.ok(store.includes('nexa-luxury.css?v=20261101-04'), 'Store stylesheet uses the cache-busting version');
+  assert.ok(admin.includes('nexa-luxury.css?v=20261101-04'), 'Admin stylesheet uses the cache-busting version');
   assert.ok(server.includes("const cacheControl = extension === '.html' ? 'no-store'"), 'HTML responses are not cached');
   assert.ok(server.includes("'Cache-Control':cacheControl"), 'Static files send explicit cache policy');
+});
+
+
+test('admin catalog product disclosures use a valid native summary without nested buttons', async () => {
+  const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  const productRenderer = admin.match(/function renderProduct\(p,ci,pi\)\{([\s\S]*?)\nfunction renderOption/);
+  assert.ok(productRenderer, 'Admin product renderer is present');
+  assert.match(productRenderer[1], /<details class="product-editor"><summary>/, 'Each catalog product uses native details/summary');
+  assert.match(productRenderer[1], /<span class="icon-btn product-editor-chevron" aria-hidden="true">⌄<\/span>/, 'Disclosure indicator is decorative, not a nested button');
+  assert.doesNotMatch(productRenderer[1], /<summary>[\s\S]*?<button\b/, 'A button must not be nested inside summary');
+});
+
+test('invoice receiver details renderer is defined and shows a copyable wallet address', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  assert.match(store, /function renderInvoiceDetails\(order=\{\}\)/, 'Invoice rendering function exists before use');
+  assert.match(store, /order\.receiverAddress\|\|order\.invoiceIdentifier/, 'Invoice renderer accepts the address returned by the API');
+  assert.match(store, /function renderShamCashReceiver\(info=\{\}\)/, 'Wallet receiver panel renderer exists');
+  assert.match(store, /data-copy-value="\$\{esc\(receiverAddress\)\}"/, 'Wallet address can be copied without exposing secrets');
+  assert.match(store, /renderShamCashReceiver\(d\)/, 'Initial payment config populates receiver address');
+});
+
+test('payments config resolves receiver wallet even when checkout is disabled', async () => {
+  const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
+  const route = server.slice(server.indexOf("url.pathname === '/api/payments/config'"), server.indexOf("const orderLookup", server.indexOf("url.pathname === '/api/payments/config'")));
+  assert.match(route, /if \(cfg\.apiToken && cfg\.walletId\)/, 'Wallet lookup runs whenever stored API credentials exist');
+  assert.match(route, /const wallet = await getWallet\(\)/, 'Receiver address comes from the provider wallet response');
+  assert.match(route, /receiverAddress,/, 'Receiver address is part of public payment config');
+});
+
+test('theme contract assigns readable dark and light surfaces to store and admin content', async () => {
+  const css = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-luxury.css'), 'utf8');
+  for (const selector of [
+    ':root[data-theme="dark"] #app.shell .product-editor',
+    ':root[data-theme="light"] #app.shell .product-editor',
+    ':root[data-theme="dark"] .app-shell .wallet-api-side',
+    ':root[data-theme="light"] .app-shell .wallet-api-side',
+    ':root[data-theme="dark"] .app-shell .payment-receipt',
+    ':root[data-theme="light"] .app-shell .payment-receipt',
+    ':root[data-theme="dark"] .app-shell .data-table td',
+    ':root[data-theme="light"] .app-shell .data-table td'
+  ]) assert.ok(css.includes(selector), 'Missing explicit theme surface rule: ' + selector);
 });
