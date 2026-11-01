@@ -272,3 +272,45 @@ test('single-option products bypass the redundant option screen and invalid pack
   assert.ok(store.includes("const productOptions=NexaCatalog.getProductOptions(it),backToProducts=productOptions.length===1;"), 'Single-option pack pages return directly to the product list');
   assert.ok(catalogHelper.includes('function initialOptionId(product)'), 'The navigation helper detects a single selectable option');
 });
+
+test('Best Store settings are persisted after repricing and runtime credentials are refreshed before success', async () => {
+  const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
+  const start = server.indexOf("if (req.method === 'PATCH' && url.pathname === '/api/admin/settings')");
+  const end = server.indexOf("if (req.method === 'POST' && url.pathname === '/api/admin/fx/refresh')", start);
+  assert.ok(start >= 0 && end > start, 'Admin settings PATCH route exists');
+  const route = server.slice(start, end);
+  const repriceWamda = route.indexOf('if(pricingChanged)await repricePublishedWamdaProducts(nextSettings)');
+  const repriceBestStore = route.indexOf('if(bestStorePricingChanged)await repricePublishedBestStoreProducts(nextSettings)');
+  const persist = route.indexOf('await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)])');
+  const apply = route.indexOf('storeSettings=nextSettings;');
+  const success = route.indexOf("return send(res,200,{ok:true,settings:safeSettingsForAdmin()");
+  assert.ok(repriceWamda >= 0 && repriceBestStore > repriceWamda, 'Both supplier reprice operations run before settings persistence');
+  assert.ok(persist > repriceBestStore, 'Validated settings are persisted even when repricing ran');
+  assert.ok(apply > persist && success > apply, 'Runtime secrets are reloaded before the success response');
+  assert.ok(!route.includes('if(!pricingChanged&&!bestStorePricingChanged)'), 'Pricing changes must not bypass settings persistence');
+});
+
+test('Best Store token input remains visible until the server confirms the encrypted credential was saved', async () => {
+  const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  const start = admin.indexOf('async function saveBestStoreSettings');
+  const end = admin.indexOf('async function testBestStore', start);
+  assert.ok(start >= 0 && end > start, 'Best Store save function exists');
+  const save = admin.slice(start, end);
+  assert.ok(save.includes('if(payload.bestStoreApiToken&&!savedSettings.bestStoreApiTokenConfigured)'), 'A submitted token must be confirmed by the server');
+  assert.ok(save.indexOf('if(payload.bestStoreApiToken&&!savedSettings.bestStoreApiTokenConfigured)') < save.indexOf("  $('bestStoreApiToken').value='';"), 'Token input is cleared only after the server confirms persistence');
+  assert.ok(save.includes('state.settings={...state.settings,...savedSettings}'), 'Admin preserves the rest of the loaded settings');
+});
+
+test('storefront product cards have direct click handlers on each dynamic rendering root', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const helper = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-catalog.js'), 'utf8');
+  assert.ok(helper.includes('function resolveProductNavigation(categories,productId,categoryId=null)'), 'Catalog helper resolves the selected product and its canonical step state');
+  assert.ok(store.includes('NexaCatalog.resolveProductNavigation(categories,itemId,categoryId)'), 'Storefront uses the canonical product resolver');
+  assert.ok(store.includes("for(const rootId of ['homeView','catalogContent','favoritesGrid'])"), 'Home, catalogue/search, and favourites each have a stable click root');
+  assert.ok(store.includes("root?.addEventListener('click',handleStoreProductActivation,true)"), 'Dynamic product cards are opened from a direct root capture listener');
+  assert.ok(store.includes('function handleStoreProductActivation(event)'), 'Product activation has a dedicated event handler');
+  assert.ok(store.includes('function closestStoreTarget(event,selector)'), 'Product event targets use robust closest() lookup without realm-dependent Element checks');
+  const delegated = store.slice(store.indexOf("document.addEventListener('click',e=>{const favoriteControl"), store.indexOf("document.addEventListener('keydown',e=>{", store.indexOf("document.addEventListener('click',e=>{const favoriteControl")));
+  assert.ok(!delegated.includes("const productControl=eventElement(e,'[data-open-item]')"), 'The product flow no longer depends on the general document delegate');
+  assert.ok(store.includes('nexa-catalog.js?v=20261102-02'), 'Updated product navigation helper bypasses stale browser assets');
+});
