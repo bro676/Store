@@ -604,7 +604,7 @@ body{
 @media(max-width:820px){.sidebar{background:linear-gradient(155deg,var(--nexa-dark),color-mix(in srgb,var(--nexa-primary) 32%,var(--nexa-dark)),color-mix(in srgb,var(--nexa-highlight) 28%,var(--nexa-dark)))}}
 
 </style>
-<link rel="stylesheet" href="/assets/brand/nexa-luxury.css?v=20261031-03">
+<link rel="stylesheet" href="/assets/brand/nexa-luxury.css?v=20261101-04">
 </head>
 <body>
 <div class="app-shell">
@@ -834,7 +834,7 @@ function renderCatalog(){
   $('catalogCount').textContent=filtered.length.toLocaleString('en-US')+' من '+all.length.toLocaleString('en-US')+' منتج';
   html='<div class="back-row"><button class="back-button" data-bc="root">← كل الأقسام</button><span class="catalog-count">'+filtered.length+' منتجات</span></div>'+
    '<div class="store-catalog-toolbar"><input id="storeProductSearch" type="search" value="'+esc(state.productQuery)+'" placeholder="ابحث داخل '+esc(cat.name)+'..." aria-label="بحث في منتجات القسم"><span>'+filtered.length.toLocaleString('en-US')+' نتيجة</span></div>'+
-   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(product=>tile(product.name,product.desc,product.image,'منتج رقمي','data-browse-item="'+esc(product.id)+'"',product.wamda?.available===false?'غير متوفر حالياً':'اختيار المنتج',product.wamda?.available===false)).join('')+'</div>':'<div class="empty-state"><strong>لا توجد منتجات مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
+   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(product=>tile(product.name,product.desc,product.image,'منتج رقمي','data-open-item="'+esc(product.id)+'" data-open-category="'+esc(cat.id)+'"',product.wamda?.available===false?'غير متوفر حالياً':'اختيار المنتج',product.wamda?.available===false)).join('')+'</div>':'<div class="empty-state"><strong>لا توجد منتجات مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
    storeCatalogPager(state.productPage,pageCount,'product-page');
  }else if(!opt){
   html='<div class="back-row"><button class="back-button" data-bc="category">← العودة إلى '+esc(cat.name)+'</button><span class="catalog-count">'+it.options.length+' خيارات</span></div><div class="step-summary"><img src="'+esc(it.image)+'" alt=""><span><strong>'+esc(it.name)+'</strong><p>'+esc(it.desc)+' · اختر المنطقة أو النسخة أو الخطة.</p></span></div><div class="option-list">'+it.options.map(o=>'<button class="option-card" data-browse-option="'+esc(o.id)+'"><img src="'+esc(o.image||it.image)+'" alt=""><span><strong>'+esc(o.name)+'</strong><small>'+esc(o.desc)+'</small></span><span class="option-flag">'+esc(o.flag||'›')+'</span></button>').join('')+'</div>';
@@ -850,9 +850,16 @@ function renderSearchResults(){
  $('catalogTitle').textContent='نتائج البحث';$('catalogDescription').textContent='نتائج مطابقة لعبارة: '+state.searchQuery;
  $('catalogCount').textContent=matches.length.toLocaleString('en-US')+' نتيجة';
  $('catalogSteps').innerHTML=renderSteps(1);$('breadcrumbs').innerHTML='<span class="crumb current">نتائج البحث</span>';
- $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,i.image,c.name,'data-open-item="'+esc(i.id)+'"',i.wamda?.available===false?'غير متوفر حالياً':'عرض الخيارات',i.wamda?.available===false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
+ $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,i.image,c.name,'data-open-item="'+esc(i.id)+'" data-open-category="'+esc(c.id)+'"',i.wamda?.available===false?'غير متوفر حالياً':'عرض الخيارات',i.wamda?.available===false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
 }
-function openItem(itemId){const it=getItem(itemId);if(!it)return;if(it.wamda?.available===false){showToast('هذا المنتج غير متوفر حالياً لدى ومضة.');return;}state.category=categories.find(c=>c.items.some(x=>x.id===itemId)).id;state.item=itemId;state.option=null;navigate('store');}
+function openItem(itemId,categoryId=null){
+ const category=(categoryId?categories.find(c=>String(c.id)===String(categoryId)&&(c.items||[]).some(x=>String(x.id)===String(itemId))):null)
+  ||categories.find(c=>(c.items||[]).some(x=>String(x.id)===String(itemId)));
+ const it=category?.items?.find(x=>String(x.id)===String(itemId));
+ if(!category||!it){showToast('تعذر العثور على هذا المنتج في الكتالوج الحالي. حدّث الصفحة وحاول مجدداً.');return;}
+ if(it.wamda?.available===false){showToast('هذا المنتج غير متوفر حالياً لدى ومضة.');return;}
+ state.category=category.id;state.item=it.id;state.option=null;state.productPage=1;state.productQuery='';navigate('store');
+}
 function resetCatalog(){state.category=null;state.item=null;state.option=null;state.catalogPage=1;state.catalogQuery='';state.productPage=1;state.productQuery='';}
 function openOrder(packIndex){
  const it=getItem(state.item),op=getOption(state.option),p=op.packs[packIndex],supplier=it.wamda||it.seagm||null;
@@ -988,7 +995,49 @@ async function doOrder(e){
  }catch(err){showToast(err.message||'تعذر الاتصال بالخادم. لم يتم إنشاء الفاتورة.')}
  finally{button.disabled=false;button.textContent=originalText}
 }
-async function loadPaymentConfig(){try{const r=await fetch('/api/payments/config',{cache:'no-store'});const d=await r.json();const badge=$('shamCashStatusBadge'),status=$('shamCashServiceStatus');if(!r.ok)throw new Error('تعذر فحص بوابة الدفع.');paymentConfigEnabled=!!d.enabled;sypPerUsd=Number(d.sypPerUsd)||145;const usdOption=$('orderCurrency')?.querySelector('option[value="USD"]');if(usdOption)usdOption.disabled=!d.fxReady;if(!d.fxReady&&$('orderCurrency')?.value==='USD')$('orderCurrency').value='SYP';renderCurrencyPreview();badge.textContent=d.enabled?'بوابة API جاهزة':'بانتظار إعداد الخادم';status.textContent=d.message||'حالة بوابة الدفع غير معروفة.';status.classList.toggle('ready',!!d.enabled);status.classList.toggle('error',!d.enabled);if(d.enabled){$('shamCashReceiverInfo').innerHTML=`<span>محفظة الاستلام</span><strong>${esc(d.receiverLabel||'محفظة Nexa Store')}</strong><small>عنوان الاستلام الدقيق يظهر داخل كل فاتورة رسمية.</small>`;}else{$('shamCashReceiverInfo').innerHTML='<span>محفظة الاستلام</span><strong>لم يتم تفعيل بوابة الدفع بعد</strong><small>لا تحوّل أي مبلغ قبل ظهور تفاصيل الفاتورة الرسمية.</small>';}}catch(e){$('shamCashStatusBadge').textContent='الخادم غير متصل';$('shamCashServiceStatus').textContent='تعذر الوصول إلى خادم الدفع. شغّل الموقع عبر خادم Nexa وليس بفتح ملف HTML مباشرة.';$('shamCashServiceStatus').classList.add('error');}}
+function renderShamCashReceiver(info={}){
+ const box=$('shamCashReceiverInfo');if(!box)return;
+ const label=String(info.receiverLabel||'Sham Cash — Nexa Store');
+ const address=String(info.receiverAddress||info.invoiceIdentifier||'').trim();
+ const addressMarkup=address
+  ? `<div class="wallet-receiver-address"><span>عنوان محفظة الاستلام</span><div class="wallet-receiver-address-row"><code dir="ltr">${esc(address)}</code><button class="wallet-copy-address" type="button" data-copy-value="${esc(address)}" aria-label="نسخ عنوان محفظة شام كاش">نسخ العنوان</button></div></div>`
+  : `<div class="wallet-receiver-address"><span>عنوان محفظة الاستلام</span><small>${esc(info.message||'لم يُرجع مزوّد شام كاش عنوان المحفظة بعد. سيظهر هنا بمجرد نجاح الاتصال.')}</small></div>`;
+ box.innerHTML=`<span>محفظة الاستلام</span><strong>${esc(label)}</strong>${addressMarkup}<small>${info.enabled?'حوّل حصراً إلى هذا العنوان، وتأكد من مطابقة مبلغ الفاتورة.':esc(info.message||'بيانات المحفظة محفوظة هنا للرجوع إليها عند تفعيل الدفع.')}</small>`;
+}
+function renderInvoiceDetails(order={}){
+ const box=$('paymentInvoiceMeta');if(!box)return;
+ const invoiceNumber=String(order.invoiceNumber||'—');
+ const receiverAddress=String(order.receiverAddress||order.invoiceIdentifier||'').trim();
+ const receiverLabel=String(order.receiverLabel||'Sham Cash — Nexa Store');
+ const expiresAt=order.expiresAt?new Date(order.expiresAt).toLocaleString('ar-SY'):'—';
+ renderShamCashReceiver({receiverLabel,receiverAddress,enabled:paymentConfigEnabled,message:'عنوان الاستلام مرتبط بهذه الفاتورة ويجب استخدامه لهذا الطلب فقط.'});
+ const addressMarkup=receiverAddress
+  ? `<div class="invoice-address-row"><span>عنوان محفظة الاستلام</span><code class="ltr">${esc(receiverAddress)}</code><button class="wallet-copy-address" type="button" data-copy-value="${esc(receiverAddress)}">نسخ العنوان</button></div>`
+  : `<div class="invoice-address-row"><span>عنوان محفظة الاستلام</span><strong>لم يرد عنوان المحفظة مع الفاتورة.</strong></div>`;
+ box.innerHTML=`<div class="invoice-empty-mark">ش</div><div class="invoice-detail-copy"><strong>فاتورة شام كاش الرسمية</strong><small>رقم الفاتورة: <bdi dir="ltr">${esc(invoiceNumber)}</bdi> · تنتهي: ${esc(expiresAt)}</small></div><div class="invoice-detail-address">${addressMarkup}</div>`;
+ box.classList.add('invoice-ready');
+}
+async function loadPaymentConfig(){
+ try{
+  const r=await fetch('/api/payments/config',{cache:'no-store'}),d=await r.json();
+  const badge=$('shamCashStatusBadge'),status=$('shamCashServiceStatus');
+  if(!r.ok)throw new Error('تعذر فحص بوابة الدفع.');
+  paymentConfigEnabled=!!d.enabled;sypPerUsd=Number(d.sypPerUsd)||145;
+  const usdOption=$('orderCurrency')?.querySelector('option[value="USD"]');
+  if(usdOption)usdOption.disabled=!d.fxReady;
+  if(!d.fxReady&&$('orderCurrency')?.value==='USD')$('orderCurrency').value='SYP';
+  renderCurrencyPreview();
+  badge.textContent=d.enabled?'بوابة API جاهزة':'بانتظار إعداد الخادم';
+  status.textContent=d.message||'حالة بوابة الدفع غير معروفة.';
+  status.classList.toggle('ready',!!d.enabled);status.classList.toggle('error',!d.enabled);
+  renderShamCashReceiver(d);
+ }catch(e){
+  $('shamCashStatusBadge').textContent='الخادم غير متصل';
+  $('shamCashServiceStatus').textContent='تعذر الوصول إلى خادم الدفع. شغّل الموقع عبر خادم Nexa وليس بفتح ملف HTML مباشرة.';
+  $('shamCashServiceStatus').classList.add('error');
+  renderShamCashReceiver({receiverLabel:'Sham Cash — Nexa Store',message:'تعذر تحميل عنوان المحفظة. تحقق من اتصال الخادم ثم أعد تحميل الصفحة.'});
+ }
+}
 async function loadShamCashOrderSummary(){
  const orderId=$('paymentOrderId').value.trim().toUpperCase(),summary=$('paymentOrderSummary');
  if(!/^NX-[A-F0-9]{20}$/.test(orderId))return;
@@ -1145,7 +1194,7 @@ async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'})
  if(el.dataset.browseOption){state.option=el.dataset.browseOption;renderCatalog();return}
  if(el.dataset.bc){if(el.dataset.bc==='root')resetCatalog();if(el.dataset.bc==='category'){state.item=null;state.option=null}if(el.dataset.bc==='item')state.option=null;renderCatalog();return}
  if(el.dataset.selectPack!==undefined){openOrder(Number(el.dataset.selectPack));return}
- if(el.dataset.openItem){e.preventDefault();openItem(el.dataset.openItem);return}
+ if(el.dataset.openItem){e.preventDefault();openItem(el.dataset.openItem,el.dataset.openCategory||null);return}
  if(el.dataset.favorite){toggleFavorite(el.dataset.favorite);return}
  if(el.dataset.resetCatalog){resetCatalog();renderCatalog();return}
  });
@@ -1160,7 +1209,7 @@ document.addEventListener('input',event=>{
 });
 document.addEventListener('click',e=>{const copy=e.target.closest('[data-copy-value]');if(copy){const text=copy.dataset.copyValue||'';if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(()=>showToast('تم النسخ')).catch(()=>showToast('تعذر النسخ التلقائي'));else showToast('انسخ النص يدوياً من الحقل.');}});
 document.addEventListener('click',e=>{if(e.target.closest('[data-print-receipt]')){document.body.classList.add('printing-receipt');window.print();}});window.addEventListener('afterprint',()=>document.body.classList.remove('printing-receipt'));$('orderForm').addEventListener('submit',doOrder);$('orderCurrency').addEventListener('change',renderCurrencyPreview);
-$('orderQuantity').addEventListener('input',renderCurrencyPreview);$('shamCashPaymentForm').addEventListener('submit',verifyShamCashPayment);$('paymentOrderId').addEventListener('change',loadShamCashOrderSummary);$('paymentOrderId').addEventListener('blur',loadShamCashOrderSummary);$('supportForm').addEventListener('submit',submitSupportTicket);$('supportLookupForm').addEventListener('submit',lookupSupportOrder);$('assistantLauncher').addEventListener('click',openAssistant);$('assistantClose').addEventListener('click',closeAssistant);$('assistantForm').addEventListener('submit',e=>{e.preventDefault();const input=$('assistantInput');const value=input.value.trim();if(!value)return;input.value='';sendAssistantPrompt(value)});$('modalClose').addEventListener('click',closeModal);$('modalCancel').addEventListener('click',closeModal);$('orderModal').addEventListener('click',e=>{if(e.target===$('orderModal'))closeModal()});document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches?.('.product-card[role="button"][data-open-item]')){e.preventDefault();openItem(e.target.dataset.openItem);return}if(e.key==='Escape'){closeModal();closeMenu();closeAssistant()}});$('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){showSearchResults(e.currentTarget.value)}});$('globalSearch').addEventListener('search',e=>{if(!e.currentTarget.value){navigate('home')}});$('menuToggle').addEventListener('click',()=>{const opened=document.body.classList.toggle('sidebar-open');$('menuToggle').setAttribute('aria-expanded',String(opened))});$('sidebarBackdrop').addEventListener('click',closeMenu);
+$('orderQuantity').addEventListener('input',renderCurrencyPreview);$('shamCashPaymentForm').addEventListener('submit',verifyShamCashPayment);$('paymentOrderId').addEventListener('change',loadShamCashOrderSummary);$('paymentOrderId').addEventListener('blur',loadShamCashOrderSummary);$('supportForm').addEventListener('submit',submitSupportTicket);$('supportLookupForm').addEventListener('submit',lookupSupportOrder);$('assistantLauncher').addEventListener('click',openAssistant);$('assistantClose').addEventListener('click',closeAssistant);$('assistantForm').addEventListener('submit',e=>{e.preventDefault();const input=$('assistantInput');const value=input.value.trim();if(!value)return;input.value='';sendAssistantPrompt(value)});$('modalClose').addEventListener('click',closeModal);$('modalCancel').addEventListener('click',closeModal);$('orderModal').addEventListener('click',e=>{if(e.target===$('orderModal'))closeModal()});document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches?.('.product-card[role="button"][data-open-item]')){e.preventDefault();openItem(e.target.dataset.openItem,e.target.dataset.openCategory||null);return}if(e.key==='Escape'){closeModal();closeMenu();closeAssistant()}});$('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){showSearchResults(e.currentTarget.value)}});$('globalSearch').addEventListener('search',e=>{if(!e.currentTarget.value){navigate('home')}});$('menuToggle').addEventListener('click',()=>{const opened=document.body.classList.toggle('sidebar-open');$('menuToggle').setAttribute('aria-expanded',String(opened))});$('sidebarBackdrop').addEventListener('click',closeMenu);
 
 async function refreshCustomerAccount(){
  const guest=$('customerGuestPanel'),signed=$('customerSignedPanel'),status=$('walletAccountStatus');
