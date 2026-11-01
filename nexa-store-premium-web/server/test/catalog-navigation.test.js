@@ -63,3 +63,35 @@ test('single-option products advance directly to the pack step and invalid optio
   assert.equal(catalog.isValidPack(['باقة', 3]), true);
   assert.equal(catalog.isValidPack(['باقة', 0]), false);
 });
+
+test('product navigation resolver returns canonical identifiers and skips the redundant single-option step', async () => {
+  const catalog = await loadCatalogHelper();
+  const categories = [
+    { id:'games-1', name:'قسم الألعاب', items:[
+      { id:'single-product', name:'Single pack', options:[{id:'default',packs:[['باقة',5]]}] },
+      { id:'multi-product', name:'Multi option', options:[
+        {id:'global',packs:[['Global',3]]},
+        {id:'turkey',packs:[['Turkey',4]]},
+      ] },
+      { id:'invalid-product', name:'No valid pack', options:[{id:'broken',packs:[['باقة',0]]}] },
+    ]},
+  ];
+  const single = catalog.resolveProductNavigation(categories, 'single-product', 'stale-category');
+  assert.equal(single.categoryId, 'games-1');
+  assert.equal(single.itemId, 'single-product');
+  assert.equal(single.departmentId, 'games');
+  assert.equal(single.optionId, 'default');
+  assert.equal(single.optionCount, 1);
+  assert.equal(single.packCount, 1);
+
+  const multi = catalog.resolveProductNavigation(categories, 'multi-product', 'games-1');
+  assert.equal(multi.optionId, null);
+  assert.equal(multi.optionCount, 2);
+  assert.equal(multi.packCount, 2);
+
+  const invalid = catalog.resolveProductNavigation(categories, 'invalid-product', 'games-1');
+  assert.equal(invalid.optionId, null);
+  assert.equal(invalid.optionCount, 0);
+  assert.equal(invalid.packCount, 0);
+  assert.equal(catalog.resolveProductNavigation(categories, 'unknown-product'), null);
+});
