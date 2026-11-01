@@ -19,6 +19,7 @@ import { compareSupplierCandidates, supplierProductMatchKey, supplierCategoryMat
 import { wamdaOrderDecision, classifyWamdaError } from './wamda-fulfillment.js';
 import { normalizeWamdaMargin, normalizeWamdaPricingRule, resolveWamdaPricingRule, calculateWamdaSellPriceSyp, updateWamdaPublishedProduct, markWamdaProductUnavailable } from './wamda-pricing.js';
 import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSignature } from './seagm-webhook.js';
+import { verifyBestStoreWebhookSecret, parseBestStoreWebhookBody, isBestStoreWebhookTest, resolveBestStoreWebhookReference } from './best-store-webhook.js';
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
 import { expirePendingOrders } from './order-expiry.js';
 
@@ -33,6 +34,7 @@ let catalogApiSyncInProgress = false;
 let seagmSecretRuntime = '';
 let wamdaApiTokenRuntime = '';
 let wamdaWebhookSecretRuntime = '';
+let bestStoreWebhookSecretRuntime = '';
 let nexaAiApiKeyRuntime = '';
 let wamdaCatalogSyncInProgress = false;
 let wamdaBulkPublishInProgress = false;
@@ -745,7 +747,7 @@ function defaultStoreSettings() {
     wamdaApiTokenEncrypted:'',wamdaApiTokenCleared:false,wamdaWebhookSecretEncrypted:'',
     wamdaCatalogCache:[],wamdaAccountInfo:null,wamdaLastSyncAt:null,wamdaLastRefreshAttemptAt:null,wamdaLastTestAt:null,wamdaLastError:'',
     wamdaProfitMarginPercent:0,wamdaPricingPolicy:{mode:'percent',value:0},wamdaCategoryPricingPolicies:{},wamdaAutoRefreshEnabled:true,wamdaRefreshIntervalMinutes:15,
-    bestStoreApiTokenEncrypted:'',bestStoreApiTokenCleared:false,bestStoreCatalogCache:[],bestStoreAccountInfo:null,bestStoreLastSyncAt:null,bestStoreLastTestAt:null,bestStoreLastAttemptAt:null,bestStoreLastError:'',
+    bestStoreApiTokenEncrypted:'',bestStoreApiTokenCleared:false,bestStoreWebhookSecretEncrypted:'',bestStoreCatalogCache:[],bestStoreAccountInfo:null,bestStoreLastSyncAt:null,bestStoreLastTestAt:null,bestStoreLastAttemptAt:null,bestStoreLastError:'',
     bestStoreCurrency:'USD',bestStoreCurrencyConfirmed:false,bestStorePricingPolicy:{mode:'percent',value:0},bestStoreCategoryPricingPolicies:{},bestStoreProductPricingPolicies:{},bestStoreAutoRefreshEnabled:true,bestStoreRefreshIntervalMinutes:15,
     nexaAiProvider:'gemini',nexaAiModel:'gemini-3.6-flash',nexaAiApiKeyEncrypted:'',nexaAiApiKeyCleared:false,
     catalogWriteApiTokenEncrypted:'', catalogWriteApiTokenCleared:false, catalogWriteApiKeys:[],
@@ -785,6 +787,7 @@ function applyStoreSettings() {
   try { wamdaApiTokenRuntime=storeSettings.wamdaApiTokenCleared?'':(storeSettings.wamdaApiTokenEncrypted?decryptSecret(storeSettings.wamdaApiTokenEncrypted,cfg.settingsEncryptionKey):''); } catch { wamdaApiTokenRuntime=''; }
   try { bestStoreApiTokenRuntime=storeSettings.bestStoreApiTokenCleared?'':(storeSettings.bestStoreApiTokenEncrypted?decryptSecret(storeSettings.bestStoreApiTokenEncrypted,cfg.settingsEncryptionKey):''); } catch { bestStoreApiTokenRuntime=''; }
   try { wamdaWebhookSecretRuntime=storeSettings.wamdaWebhookSecretEncrypted?decryptSecret(storeSettings.wamdaWebhookSecretEncrypted,cfg.settingsEncryptionKey):''; } catch { wamdaWebhookSecretRuntime=''; }
+  try { bestStoreWebhookSecretRuntime=storeSettings.bestStoreWebhookSecretEncrypted?decryptSecret(storeSettings.bestStoreWebhookSecretEncrypted,cfg.settingsEncryptionKey):''; } catch { bestStoreWebhookSecretRuntime=''; }
   try { nexaAiApiKeyRuntime=storeSettings.nexaAiApiKeyCleared?'':(storeSettings.nexaAiApiKeyEncrypted?decryptSecret(storeSettings.nexaAiApiKeyEncrypted,cfg.settingsEncryptionKey):''); } catch { nexaAiApiKeyRuntime=''; }
   cachedShamWallet = null;
   cachedShamWalletAt = 0;
@@ -822,10 +825,16 @@ async function initializeStoreState() {
       await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(storeSettings)]);
     }
   }
+  let webhookSecretsMigrated=false;
   if(!storeSettings.wamdaWebhookSecretEncrypted){
     storeSettings.wamdaWebhookSecretEncrypted=encryptSecret(crypto.randomBytes(36).toString('base64url'),cfg.settingsEncryptionKey);
-    await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(storeSettings)]);
+    webhookSecretsMigrated=true;
   }
+  if(!storeSettings.bestStoreWebhookSecretEncrypted){
+    storeSettings.bestStoreWebhookSecretEncrypted=encryptSecret(crypto.randomBytes(36).toString('base64url'),cfg.settingsEncryptionKey);
+    webhookSecretsMigrated=true;
+  }
+  if(webhookSecretsMigrated)await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(storeSettings)]);
   applyStoreSettings();
 }
 function adminCookie(req, token, maxAge = 8 * 60 * 60) {
@@ -943,7 +952,7 @@ async function refreshAutomaticFx() {
   }
 }
 function safeSettingsForAdmin() {
-  const {shamApiTokenEncrypted,fxApiTokenEncrypted,catalogApiTokenEncrypted,catalogWriteApiTokenEncrypted,seagmSecretEncrypted,seagmCatalogCache=[],catalogWriteApiKeys=[],wamdaApiTokenEncrypted,wamdaWebhookSecretEncrypted,wamdaCatalogCache=[],bestStoreApiTokenEncrypted,bestStoreCatalogCache=[],nexaAiApiKeyEncrypted,...settings}=storeSettings||{};
+  const {shamApiTokenEncrypted,fxApiTokenEncrypted,catalogApiTokenEncrypted,catalogWriteApiTokenEncrypted,seagmSecretEncrypted,seagmCatalogCache=[],catalogWriteApiKeys=[],wamdaApiTokenEncrypted,wamdaWebhookSecretEncrypted,wamdaCatalogCache=[],bestStoreApiTokenEncrypted,bestStoreWebhookSecretEncrypted,bestStoreCatalogCache=[],nexaAiApiKeyEncrypted,...settings}=storeSettings||{};
   const publicBase=String(process.env.PUBLIC_BASE_URL||'https://nexa-store-9st4.onrender.com').replace(/\/+$/,'');
   return {...settings,catalogWriteApiKeys:catalogWriteApiKeys.map(({id,name,createdAt})=>({id,name,createdAt})),
     shamApiTokenConfigured:Boolean(cfg.apiToken),fxApiTokenConfigured:Boolean(fxApiTokenRuntime),catalogApiTokenConfigured:Boolean(catalogApiTokenRuntime),
@@ -951,6 +960,8 @@ function safeSettingsForAdmin() {
     seagmProductCount:seagmCatalogCache.reduce((sum,category)=>sum+(category.products||[]).length,0),
     wamdaApiTokenConfigured:Boolean(wamdaApiTokenRuntime),wamdaWebhookConfigured:Boolean(wamdaWebhookSecretRuntime),bestStoreApiTokenConfigured:Boolean(bestStoreApiTokenRuntime),bestStoreProductCount:bestStoreCatalogCache.reduce((sum,category)=>sum+(category.products||[]).length,0),
     wamdaWebhookUrl:wamdaWebhookSecretRuntime?publicBase+'/api/webhooks/wamda/'+encodeURIComponent(wamdaWebhookSecretRuntime):'',
+    bestStoreWebhookConfigured:Boolean(bestStoreWebhookSecretRuntime),
+    bestStoreWebhookUrl:bestStoreWebhookSecretRuntime?publicBase+'/api/webhooks/best-store/'+encodeURIComponent(bestStoreWebhookSecretRuntime):'',
     wamdaProductCount:wamdaCatalogCache.reduce((sum,category)=>sum+(category.products||[]).length,0),
     nexaAiConfigured:Boolean(nexaAiApiKeyRuntime),
   };
@@ -2444,6 +2455,46 @@ const server = http.createServer(async (req,res) => {
       return sendText(res,200,'success');
     }
 
+    const bestStoreWebhookMatch=url.pathname.match(/^\/api\/webhooks\/best-store\/([A-Za-z0-9_-]{40,80})$/);
+    if(bestStoreWebhookMatch&&(req.method==='GET'||req.method==='POST')){
+      if(!pool||!bestStoreWebhookSecretRuntime)return sendText(res,503,'Best Store webhook is not configured');
+      if(!verifyBestStoreWebhookSecret(bestStoreWebhookMatch[1],bestStoreWebhookSecretRuntime))return sendText(res,404,'not found');
+      if(req.method==='GET')return sendText(res,200,'Nexa Best Store webhook is ready');
+      if(rateLimit(req,res,'best-store-webhook:'+ip,60,60_000))return;
+      let callback;
+      try{
+        const raw=await bodyText(req,32*1024);
+        callback=parseBestStoreWebhookBody(raw,req.headers['content-type']||'');
+      }catch(error){
+        const status=Number(error?.status)===413?413:(Number(error?.status)===415?415:400);
+        return sendText(res,status,'invalid Best Store callback payload');
+      }
+      if(isBestStoreWebhookTest(callback))return send(res,200,{ok:true,test:true,received:true});
+      let reference;
+      try{reference=resolveBestStoreWebhookReference(callback,url.searchParams);}
+      catch{return send(res,400,{ok:false,error:'INVALID_ORDER_REFERENCE'});}
+      if(!reference)return send(res,400,{ok:false,error:'ORDER_REFERENCE_REQUIRED'});
+      const matched=await pool.query(`SELECT o.id,o.status,o.supplier_status,j.status AS job_status
+        FROM nexa_orders o LEFT JOIN nexa_fulfillment_jobs j ON j.order_id=o.id
+        WHERE o.supplier_provider='beststore' AND (
+          ($1='uuid' AND lower(COALESCE(o.supplier_mch_order_id,''))=lower($2))
+          OR ($1='provider' AND COALESCE(o.supplier_order_id::text,'')=$2)
+          OR ($1='merchant' AND o.id=$2)
+        ) LIMIT 1`,[reference.kind,reference.value]);
+      if(!matched.rowCount)return send(res,404,{ok:false,error:'BEST_STORE_ORDER_NOT_FOUND'});
+      const order=matched.rows[0];
+      if(String(order.status||'').toLowerCase()!=='paid')return send(res,200,{ok:true,received:true,queued:false,reason:'customer_payment_not_confirmed'});
+      if(String(order.supplier_status||'').toLowerCase()==='completed'||order.job_status==='completed')
+        return send(res,200,{ok:true,received:true,queued:false,reason:'already_completed'});
+      if(order.job_status==='manual_review')return send(res,200,{ok:true,received:true,queued:false,reason:'manual_review_required'});
+      if(!['pending','retry'].includes(String(order.job_status||'')))
+        return send(res,200,{ok:true,received:true,queued:false,reason:order.job_status==='processing'?'already_processing':'no_pending_fulfillment'});
+      await pool.query(`UPDATE nexa_fulfillment_jobs SET next_attempt_at=NOW(),updated_at=NOW()
+        WHERE order_id=$1 AND status IN ('pending','retry')`,[order.id]);
+      runSeagmFulfillmentWorker().catch(error=>console.error('Best Store callback worker wake failed',String(error?.code||error?.message||'unknown').slice(0,120)));
+      return send(res,200,{ok:true,received:true,queued:true});
+    }
+
     if (req.method === 'POST' && url.pathname === '/api/webhooks/seagm') {
       if (!pool) return sendText(res,503,'store database is not ready');
       if (!storeSettings?.seagmUid || !seagmSecretRuntime) return sendText(res,503,'SEAGM callback is not configured');
@@ -2991,7 +3042,7 @@ const server = http.createServer(async (req,res) => {
     return send(res,405,{error:'METHOD_NOT_ALLOWED'});
   } catch (error) {
     const statusCode = Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599 ? error.status : 500;
-    const logPath=url.pathname.startsWith('/api/webhooks/wamda/')?'/api/webhooks/wamda/[redacted]':url.pathname;
+    const logPath=url.pathname.startsWith('/api/webhooks/wamda/')?'/api/webhooks/wamda/[redacted]':(url.pathname.startsWith('/api/webhooks/best-store/')?'/api/webhooks/best-store/[redacted]':url.pathname);
     console.error(JSON.stringify({ event:'request_failed', method:req.method, path:logPath, code:error?.code || null, message:error?.message || 'unknown_error', status:statusCode }));
     return send(res,statusCode,{
       error:error?.message === 'BODY_TOO_LARGE' ? 'BODY_TOO_LARGE' : 'INTERNAL_ERROR',
