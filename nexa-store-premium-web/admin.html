@@ -604,6 +604,15 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
             <label class="seagm-clear-secret"><input id="clearBestStoreApiToken" type="checkbox"> حذف Token المحفوظ</label>
           </div>
           <div class="seagm-status-message" id="bestStoreAccountStatus" role="status">أدخل API Token ثم احفظه لاختبار الاتصال.</div>
+          <div class="field" style="margin-top:14px">
+            <label for="bestStoreWebhookUrl">Best Store Webhook URL</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <input id="bestStoreWebhookUrl" type="url" readonly dir="ltr" autocomplete="off" placeholder="يظهر رابط Webhook بعد تحميل الإعدادات" style="flex:1;min-width:240px">
+              <button class="btn soft" type="button" id="copyBestStoreWebhookBtn" disabled>نسخ رابط Webhook</button>
+            </div>
+            <small id="bestStoreWebhookStatus">سيظهر الرابط السري بعد فتح إعدادات Best Store.</small>
+            <small>انسخ الرابط إلى حساب Best Store ← API ← webhook url ثم اضغط حفظ. هذا الرابط سرّي ولا تشاركه علناً.</small>
+          </div>
           <div class="notice info">المصادقة تتم بترويسة <bdi dir="ltr">api-token</bdi> على الخادم فقط. يعتمد النظام base_price عند وجوده، وإلا يستخدم price للمقارنة. لا يتم شراء أي منتج عند الجلب أو النشر؛ الشراء يحدث بعد تحقق دفع العميل فقط.</div>
         </section>
         <section class="panel seagm-products-panel" id="bestStoreProductsPanel">
@@ -886,6 +895,9 @@ function renderSettings(d={}){const s=state.settings;$('storeName').value=s.stor
  $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;renderCatalogApiKeys();$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';$('seagmEnvironment').value=s.seagmEnvironment||'sandbox';$('seagmUid').value=s.seagmUid||'';$('seagmSecret').value='';$('clearSeagmSecret').checked=false;$('seagmSecretState').textContent=s.seagmSecretConfigured?'يوجد Secret Key محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لا يوجد Secret Key محفوظ.';$('wamdaApiToken').value='';$('clearWamdaApiToken').checked=false;$('wamdaTokenState').textContent=s.wamdaApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';$('wamdaWebhookUrl').value=s.wamdaWebhookUrl||'';$('copyWamdaWebhookBtn').disabled=!s.wamdaWebhookUrl;const globalWamdaPolicy=s.wamdaPricingPolicy||{mode:'percent',value:s.wamdaProfitMarginPercent??0};$('wamdaGlobalPricingMode').value=['percent','fixed_profit','fixed_price'].includes(globalWamdaPolicy.mode)?globalWamdaPolicy.mode:'percent';$('wamdaGlobalPricingValue').value=globalWamdaPolicy.value??0;$('wamdaAutoRefreshEnabled').checked=s.wamdaAutoRefreshEnabled!==false;$('wamdaRefreshIntervalMinutes').value=s.wamdaRefreshIntervalMinutes??15;$('wamdaFxRateDisplay').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س لكل 1 USD';
   $('bestStoreApiToken').value='';$('clearBestStoreApiToken').checked=false;
   $('bestStoreTokenState').textContent=s.bestStoreApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';
+  $('bestStoreWebhookUrl').value=s.bestStoreWebhookUrl||'';
+  $('copyBestStoreWebhookBtn').disabled=!s.bestStoreWebhookUrl;
+  $('bestStoreWebhookStatus').textContent=s.bestStoreWebhookConfigured?'الرابط السري جاهز — انسخه إلى حساب Best Store واحفظه.':'رابط Webhook غير مهيأ بعد.';
   $('bestStoreCurrency').value=s.bestStoreCurrency||'USD';
   $('bestStoreCurrency').onchange=()=>{$('bestStoreCurrencyConfirmed').checked=false;};
   $('bestStoreCurrencyConfirmed').checked=s.bestStoreCurrencyConfirmed===true;
@@ -1048,6 +1060,11 @@ $('saveWamdaBtn').addEventListener('click',async()=>{const b=$('saveWamdaBtn');b
 $('testWamdaBtn').addEventListener('click',testWamda);
 $('refreshWamdaCatalogBtn').addEventListener('click',refreshWamdaProducts);
 $('copyWamdaWebhookBtn').addEventListener('click',async()=>{const value=$('wamdaWebhookUrl').value;if(!value)return;try{await navigator.clipboard.writeText(value);toast('تم نسخ رابط Webhook.');}catch{const field=$('wamdaWebhookUrl');field.focus();field.select();toast('حدّد الرابط وانسخه يدوياً.');}});
+$('copyBestStoreWebhookBtn').addEventListener('click',async()=>{
+ const value=$('bestStoreWebhookUrl').value;if(!value)return;
+ try{await navigator.clipboard.writeText(value);toast('تم نسخ رابط Best Store Webhook.');}
+ catch{const field=$('bestStoreWebhookUrl');field.focus();field.select();toast('حدّد الرابط وانسخه يدوياً.');}
+});
 async function saveWamdaPricingSettings({silent=false}={}){
   const value=Number($('wamdaGlobalPricingValue').value);
   if(!Number.isFinite(value)||value<($('wamdaGlobalPricingMode').value==='fixed_price'?0.01:0)||value>1000000000){throw new Error('أدخل قيمة صحيحة لسياسة التسعير العامة.');}
