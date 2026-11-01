@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "pathTemplate": "assets/products/{department}/{category-slug}--{category-id}/{internal-product-slug}[--source-{external-product-slug}]--{product-id}/options/{option-slug}--{option-id}/packs/{pack-slug}",
+  "namingOrder": [
+    "main-department",
+    "supplier-category",
+    "internal-product-name",
+    "external-source-name-if-different",
+    "product-id",
+    "option-or-region",
+    "option-id",
+    "pack"
+  ],
+  "departments": [
+    {
+      "id": "games",
+      "name": "قسم الألعاب",
+      "folder": "01-games"
+    },
+    {
+      "id": "balance",
+      "name": "خدمات الرصيد",
+      "folder": "02-balance-services"
+    },
+    {
+      "id": "apps",
+      "name": "قسم التطبيقات",
+      "folder": "03-apps"
+    },
+    {
+      "id": "numbers",
+      "name": "أرقام افتراضية",
+      "folder": "04-virtual-numbers"
+    },
+    {
+      "id": "cards",
+      "name": "بطاقات إلكترونية",
+      "folder": "05-digital-cards"
+    },
+    {
+      "id": "vpn",
+      "name": "قسم VPN",
+      "folder": "06-vpn"
+    },
+    {
+      "id": "verification",
+      "name": "توثيق الحسابات",
+      "folder": "07-account-verification"
+    },
+    {
+      "id": "ai",
+      "name": "الذكاء الاصطناعي",
+      "folder": "08-ai"
+    },
+    {
+      "id": "social",
+      "name": "التسويق والخدمات الاجتماعية",
+      "folder": "09-social-marketing"
+    },
+    {
+      "id": "web",
+      "name": "المواقع والبرمجة",
+      "folder": "10-websites-programming"
+    },
+    {
+      "id": "other",
+      "name": "خدمات رقمية متنوعة",
+      "folder": "11-other-services"
+    }
+  ],
+  "canonicalHelper": "NexaCatalog.folderFor(category, product, option, pack)",
+  "dynamicCatalogueLocation": "PostgreSQL nexa_store_state.catalog",
+  "note": "Static artwork lives in nested asset folders. Live category/product/option/pack records remain in PostgreSQL and retain their supplier IDs; this manifest does not create empty folders for every live item."
+}

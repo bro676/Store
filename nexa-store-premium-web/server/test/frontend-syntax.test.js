@@ -43,9 +43,11 @@ test('product click targets are complete and wallet checkout controls are presen
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   assert.ok(store.includes("'data-open-item=\"'+esc(product.id)+'\" data-open-category=\"'+esc(cat.id)+'\"'"), 'Category product tiles must open through the canonical item handler and retain category context');
   assert.ok(store.includes("'data-open-item=\"'+esc(i.id)+'\" data-open-category=\"'+esc(c.id)+'\"'"), 'Search product tiles must retain their category context');
-  assert.ok(store.includes('<article class="product-card" data-open-item="${esc(it.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Featured product cards retain category context and open when clicked');
+  assert.ok(store.includes("return '<article class=\"product-card\" data-open-item=\"'+esc(it.id)+'\" data-open-category=\"'+esc(cat.id)+'\" role=\"button\" tabindex=\"0\""), 'Featured product cards retain category context and open when clicked');
   assert.ok(store.includes('<article class="product-card" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Saved product cards retain category context and open when clicked');
   assert.ok(store.includes("e.target.matches?.('.product-card[role=\"button\"][data-open-item]')"), 'Product cards support keyboard activation');
+  assert.ok(store.includes("const productControl=target.closest('[data-open-item]')"), 'All product cards route through the central delegated click handler');
+  assert.ok(store.includes(" },true);\ndocument.addEventListener('input',event=>"), 'Product and pack selection handlers run in capture phase');
   assert.ok(store.includes('id="paymentMethod"'), 'Checkout must expose a payment method selector');
   assert.ok(store.includes('value="shamcash"') && store.includes('value="wallet"'), 'Checkout must offer direct and wallet payment');
   assert.ok(store.includes('id="customerWalletCard"') && store.includes('id="walletTopupForm"'), 'Wallet account and top-up interface must exist');
@@ -80,8 +82,8 @@ test('Store and admin assets are revalidated instead of serving a stale theme', 
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
-  assert.ok(store.includes('nexa-luxury.css?v=20261101-05'), 'Store stylesheet uses the cache-busting version');
-  assert.ok(admin.includes('nexa-luxury.css?v=20261101-05'), 'Admin stylesheet uses the cache-busting version');
+  assert.ok(store.includes('nexa-luxury.css?v=20261102-01'), 'Store stylesheet uses the cache-busting version');
+  assert.ok(admin.includes('nexa-luxury.css?v=20261102-01'), 'Admin stylesheet uses the cache-busting version');
   assert.ok(server.includes("const cacheControl = extension === '.html' ? 'no-store'"), 'HTML responses are not cached');
   assert.ok(server.includes("'Cache-Control':cacheControl"), 'Static files send explicit cache policy');
 });
@@ -137,8 +139,8 @@ test('storefront product navigation normalizes ids and keeps the originating cat
   assert.match(store, /function getCategory\(id\)\{return categories\.find\(x=>String\(x\.id\)===String\(id\)\)\|\|null\}/, 'Category ids are normalized across DOM and API string values');
   assert.match(store, /function getItem\(id,categoryId=state\.category\)/, 'Product lookup is scoped to the active category where possible');
   assert.ok(store.includes('data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Featured product cards retain their category id');
-  assert.ok(store.includes('data-open-item="${esc(it.id)}" data-open-category="${esc(cat.id)}">استكشف'), 'Featured call-to-action retains its category id');
-  assert.match(store, /const productControl=e\.target\.closest\('\[data-open-item\]'\)/, 'Product clicks use a dedicated delegated handler');
+  assert.ok(store.includes('data-open-item=\"\'+esc(it.id)+\'\" data-open-category=\"\'+esc(cat.id)+\'\">استكشف'), 'Featured call-to-action retains its category id');
+  assert.match(store, /const productControl=target\.closest\('\[data-open-item\]'\)/, 'Product clicks use a dedicated delegated handler');
   assert.match(store, /openItem\(productControl\.dataset\.openItem,productControl\.dataset\.openCategory\|\|null\)/, 'Product handler passes both identifiers to the detail route');
   const openItem = store.slice(store.indexOf('function openItem'), store.indexOf('function resetCatalog'));
   assert.ok(openItem.includes("state.category=category.id;state.item=it.id"), 'Product selection stores canonical API identifiers');
@@ -147,7 +149,7 @@ test('storefront product navigation normalizes ids and keeps the originating cat
 
 test('unavailable products open for details but cannot be purchased', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
-  assert.ok(store.includes("product.wamda?.available===false?'غير متوفر حالياً':'اختيار المنتج',false"), 'Unavailable products remain clickable from the category list');
+  assert.ok(store.includes("product.wamda?.available===false?'غير متوفر حالياً':'عرض المنتج',false"), 'Unavailable products remain clickable from the category list');
   assert.ok(store.includes("it.wamda?.available===false?'disabled aria-disabled=\"true\"':''"), 'Unavailable pack buttons are disabled');
   assert.ok(store.includes('لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد'), 'The detail view explains the availability restriction');
 });
@@ -174,4 +176,65 @@ test('favorite product cards resolve category ids consistently and retain click 
   assert.ok(renderer.includes('String(i.id)===String(id)&&i===item'), 'Favorite category lookup uses normalized IDs and the matched product object');
   assert.ok(renderer.includes('data-open-category="${esc(cat.id)}"'), 'Favorite cards pass their category identifier to product navigation');
   assert.ok(renderer.includes('data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}">استكشف'), 'Favorite call-to-action passes both item and category identifiers');
+});
+
+
+test('checkout modal fields have direct dark and light overrides outside the app wrapper', async () => {
+  const css = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-luxury.css'), 'utf8');
+  for (const selector of [
+    ':root[data-theme="light"] #orderModal .modal',
+    ':root[data-theme="light"] #orderModal .modal-body',
+    ':root[data-theme="light"] #orderModal input:not([type="checkbox"]):not([type="radio"])',
+    ':root[data-theme="light"] #orderModal select',
+    ':root[data-theme="light"] #orderModal textarea',
+    ':root[data-theme="light"] #orderModal input:-webkit-autofill',
+    ':root[data-theme="dark"] #orderModal .modal',
+    ':root[data-theme="dark"] #orderModal input:not([type="checkbox"]):not([type="radio"])',
+    ':root[data-theme="dark"] #orderModal select',
+    ':root[data-theme="dark"] #orderModal textarea'
+  ]) assert.ok(css.includes(selector), 'Missing checkout modal theme rule: ' + selector);
+});
+
+test('homepage departments link into the five-level product hierarchy', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  assert.ok(store.includes('function renderDepartmentCard(group)'), 'Homepage renders separate main department cards');
+  assert.ok(store.includes('NexaCatalog.getDepartmentSummaries(categories)'), 'Main departments group the API catalogue instead of taking the first eight categories');
+  assert.ok(store.includes("data-department=\"'+esc(group.id)+'\""), 'Department cards have a dedicated navigation target');
+  assert.ok(store.includes("if(el.dataset.department){state.department=el.dataset.department"), 'Department selection updates the current hierarchy state');
+  assert.ok(store.includes("navigate('store');return}"), 'A homepage department click opens the visible catalogue page');
+  for (const selector of ['function renderCatalog(){','if(!department){','}else if(!cat){','}else if(!it){','}else if(!opt){']) {
+    assert.ok(store.includes(selector), 'Missing hierarchy stage: ' + selector);
+  }
+  assert.ok(store.includes("const steps=['القسم الرئيسي','قسم المورد','المنتج','الخيار / المنطقة','الباقة والسعر']"), 'Breadcrumb progress identifies all five steps');
+});
+
+test('product images and canonical folders use category-specific paths and preserve source names', async () => {
+  const source = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-catalog.js'), 'utf8');
+  assert.doesNotThrow(() => new vm.Script(source, {filename:'nexa-catalog.js'}));
+  const context = {window:{}, URL};
+  vm.runInNewContext(source, context);
+  const catalog = context.window.NexaCatalog;
+  assert.equal(catalog.classifyCategory({name:'قسم الألعاب'}), 'games');
+  assert.equal(catalog.classifyCategory({name:'ChatGPT Plus'}), 'ai');
+  assert.equal(catalog.categoryImage({name:'قسم الألعاب',image:'assets/brand/logo.svg'}), 'assets/products/01-games/cover.svg');
+  assert.equal(catalog.productImage({name:'PUBG UC',image:'assets/brand/logo.svg'}, {name:'قسم الألعاب'}), 'assets/products/01-games/pubg/cover.svg');
+  const pathName = catalog.folderFor(
+    {id:'wamda-category-12',name:'قسم الألعاب'},
+    {id:'wamda-44',name:'اسم المنتج الداخلي',apiSource:{name:'اسم المنتج الخارجي'}},
+    {id:'region-sg',name:'المنطقة السنغافورية'},
+    ['9999 Silver',4]
+  );
+  assert.ok(pathName.startsWith('assets/products/01-games/'), 'Product directory starts under the main department');
+  assert.ok(pathName.includes('قسم-الألعاب--wamda-category-12'), 'Folder preserves supplier category name and ID');
+  assert.ok(pathName.includes('اسم-المنتج-الداخلي--source-اسم-المنتج-الخارجي--wamda-44'), 'Folder preserves internal and external product names and product ID');
+  assert.ok(pathName.includes('options/المنطقة-السنغافورية--region-sg/packs/pack-9999-silver'), 'Option and pack names appear beneath the product folder');
+});
+
+test('storefront image lookup replaces the old logo placeholder in every primary surface', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  assert.ok(store.includes('/assets/brand/nexa-catalog.js?v=20261102-01'), 'Image and hierarchy helper loads before page scripts');
+  assert.ok(store.includes('NexaCatalog.categoryImage(c)'), 'Homepage and catalog use department/category covers');
+  assert.ok(store.includes('NexaCatalog.productImage(product,cat)'), 'Product tiles use product-specific images');
+  assert.ok(store.includes('NexaCatalog.optionImage(o,it,cat)'), 'Option tiles use option artwork or the product fallback');
+  assert.ok(store.includes('NexaCatalog.productImage(it,getCategory(state.category))'), 'Order modal receives the selected product image');
 });

@@ -16,10 +16,12 @@ test('uses api-token header and reads profile',async()=>{
 });
 test('loads all product pages and normalizes Wamda fields',async()=>{
   const seen=[];
-  const client=createWamdaClient({apiToken:token,fetchImpl:async(url)=>{const u=new URL(url);seen.push(Number(u.searchParams.get('page')));return response({status:'OK',data:u.searchParams.get('page')==='1'?[{id:44,name:'Test',price:2,price_per_quantity:10,unit_price:.2,min:1,max:20,category_id:3,category:'Games',available:true,fields:[{key:'playerId',label:'Player ID',type:'text',required:true}]}]:[],pagination:{page:Number(u.searchParams.get('page')),has_more:u.searchParams.get('page')==='1'}})}});
+  const client=createWamdaClient({apiToken:token,fetchImpl:async(url)=>{const u=new URL(url);seen.push(Number(u.searchParams.get('page')));return response({status:'OK',data:u.searchParams.get('page')==='1'?[{id:44,name:'Test',price:2,price_per_quantity:10,unit_price:.2,min:1,max:20,category_id:3,category:'Games',image:'https://cdn.wamda.test/products/44.webp',category_image:'https://cdn.wamda.test/categories/games.webp',available:true,fields:[{key:'playerId',label:'Player ID',type:'text',required:true}]}]:[],pagination:{page:Number(u.searchParams.get('page')),has_more:u.searchParams.get('page')==='1'}})}});
   const result=await client.getProducts({limit:1});
   assert.deepEqual(seen,[1,2]);
   assert.equal(result.products[0].unitPrice,.2);
+  assert.equal(result.products[0].image,'https://cdn.wamda.test/products/44.webp');
+  assert.equal(result.products[0].categoryImage,'https://cdn.wamda.test/categories/games.webp');
   assert.equal(result.products[0].fields[0].key,'playerId');
   assert.equal(result.products[0].fields[0].min,null);
   assert.equal(result.products[0].fields[0].max,null);
@@ -41,4 +43,17 @@ test('checks a UUID without treating not-found as a fatal error',async()=>{
 test('rejects app-level errors even with HTTP 200',async()=>{
   const client=createWamdaClient({apiToken:token,fetchImpl:async()=>response({status:'ERROR',code:100,message:'Insufficient balance.',request_id:'abc'})});
   await assert.rejects(client.getProfile(),error=>error.code===100&&error.requestId==='abc');
+});
+
+
+test('normalizes only safe HTTPS or local WAMDA category image paths', async () => {
+  const client=createWamdaClient({apiToken:token,fetchImpl:async()=>response({status:'OK',data:[
+    {id:3,name:'Games',image:'https://cdn.wamda.test/categories/games.webp',available:true},
+    {id:4,name:'Unsafe',image:'javascript:alert(1)',available:true},
+    {id:5,name:'Local',image:'assets/products/01-games/cover.svg',available:true}
+  ]})});
+  const categories=await client.getCategories();
+  assert.equal(categories[0].image,'https://cdn.wamda.test/categories/games.webp');
+  assert.equal(categories[1].image,'');
+  assert.equal(categories[2].image,'assets/products/01-games/cover.svg');
 });

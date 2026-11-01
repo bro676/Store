@@ -1291,19 +1291,32 @@ async function refreshWamdaCatalog({source='manual'}={}){
     await persistWamdaSettings({...storeSettings,wamdaLastRefreshAttemptAt:attemptedAt,wamdaLastError:''});
     const client=wamdaClient();
     const [account,snapshot]=await Promise.all([client.getProfile(),client.getProducts({limit:1000})]);
+    const previous=Array.isArray(storeSettings?.wamdaCatalogCache)?storeSettings.wamdaCatalogCache:[];
+    const previousProducts=new Map(previous.flatMap(category=>(category.products||[]).map(product=>[Number(product.id),product])));
+    const previousCategories=new Map(previous.map(category=>[Number(category.id),category]));
     const groups=new Map(),remoteIds=new Set();
     for(const product of snapshot.products){
       const categoryId=Number(product.categoryId||0);
       remoteIds.add(Number(product.id));
-      if(!groups.has(categoryId))groups.set(categoryId,{id:categoryId,name:product.categoryName||'متفرقات',products:[]});
+      const oldCategory=previousCategories.get(categoryId);
+      if(!groups.has(categoryId))groups.set(categoryId,{
+        id:categoryId,
+        name:product.categoryName||oldCategory?.name||'متفرقات',
+        image:product.categoryImage||oldCategory?.image||'assets/products/_shared/category-placeholder.svg',
+        products:[],
+      });
       groups.get(categoryId).products.push(product);
     }
     const categories=Array.from(groups.values()).sort((a,b)=>a.name.localeCompare(b.name,'ar'));
-    const previous=Array.isArray(storeSettings?.wamdaCatalogCache)?storeSettings.wamdaCatalogCache:[];
-    const previousProducts=new Map(previous.flatMap(category=>(category.products||[]).map(product=>[Number(product.id),product])));
-    for(const category of categories)category.products=category.products.map(product=>({
-      ...product,...(previousProducts.get(Number(product.id))?.pricingOverride?{pricingOverride:previousProducts.get(Number(product.id)).pricingOverride}:{ }),
-    }));
+    for(const category of categories)category.products=category.products.map(product=>{
+      const previousProduct=previousProducts.get(Number(product.id));
+      return {
+        ...product,
+        image:product.image||previousProduct?.image||'assets/products/_shared/product-placeholder.svg',
+        categoryImage:product.categoryImage||category.image,
+        ...(previousProduct?.pricingOverride?{pricingOverride:previousProduct.pricingOverride}:{}),
+      };
+    });
     const categoryById=new Map(categories.map(category=>[Number(category.id),category]));
     for(const oldCategory of previous){
       for(const oldProduct of oldCategory.products||[]){
@@ -1333,9 +1346,10 @@ async function refreshWamdaCatalog({source='manual'}={}){
           return next;
         }
         try{
-          const next=updateWamdaPublishedProduct(existing,current,{
+          const nextBase=updateWamdaPublishedProduct(existing,current,{
             fxRate,globalRule,categoryRule:categoryPolicies[String(current.categoryId)]||null,syncedAt,
           });
+          const next={...nextBase,apiSource:{...(nextBase.apiSource||{}),name:current.name||nextBase.apiSource?.name||nextBase.name,desc:current.description||nextBase.apiSource?.desc||nextBase.desc,image:current.image||nextBase.apiSource?.image||nextBase.image}};
           updatedPublished++;
           if(next.wamda.priceMode==='manual')manualOverrides++;
           if(!next.wamda.available)unavailablePublished++;
@@ -1380,7 +1394,7 @@ async function publishWamdaProduct(input){
   }
   const localCategoryId='wamda-category-'+categoryId,localProductId='wamda-'+productId;
   let workingCatalog=catalog;
-  if(!workingCatalog.some(row=>row.id===localCategoryId))workingCatalog=validateCatalog([...workingCatalog,{id:localCategoryId,name:String(sourceCategory.name||'منتجات ومضة').slice(0,100),desc:'منتجات رقمية متزامنة مع ومضة ستور.',image:'assets/brand/logo.svg',icon:'⚡',items:[]}]);
+  if(!workingCatalog.some(row=>row.id===localCategoryId))workingCatalog=validateCatalog([...workingCatalog,{id:localCategoryId,name:String(sourceCategory.name||'منتجات ومضة').slice(0,100),desc:'منتجات رقمية متزامنة مع ومضة ستور.',image:sourceCategory.image||'assets/products/_shared/category-placeholder.svg',icon:'⚡',items:[]}]);
   const existing=workingCatalog.flatMap(category=>category.items||[]).find(product=>product.id===localProductId);
   const previousOverride=getWamdaProductOverride(sourceProduct,existing);
   const pricingOverride=hasManualPrice?{mode:'fixed_price',value:manualPriceSyp}
@@ -1394,16 +1408,17 @@ async function publishWamdaProduct(input){
   };
   const base=existing||{
     id:localProductId,name:String(sourceProduct.name||('Wamda product '+productId)).slice(0,120),
-    desc:String(sourceProduct.description||'منتج رقمي مرتبط بمصدر ومضة.').slice(0,700),image:'assets/brand/logo.svg',
+    desc:String(sourceProduct.description||'منتج رقمي مرتبط بمصدر ومضة.').slice(0,700),image:sourceProduct.image||existing?.image||'assets/products/_shared/product-placeholder.svg',
     options:[{id:'wamda-default',name:'الخيار الأساسي',desc:'منتج مرتبط بمصدر ومضة',flag:'⚡',packs:[['سعر البيع',1]]}],
   };
-  const updated=updateWamdaPublishedProduct({...base,wamda:{...(base.wamda||{}),provider:'wamda',pricingOverride}},
+  const updatedBase=updateWamdaPublishedProduct({...base,wamda:{...(base.wamda||{}),provider:'wamda',pricingOverride}},
     updatedSource,{
       fxRate:Number(nextSettings.fxRate||145),
       globalRule:getWamdaPricingContext(nextSettings).globalRule,
       categoryRule:getWamdaPricingContext(nextSettings).categoryPolicies[String(categoryId)]||null,
       forceAutomatic:input.resetToAutomatic===true,
     });
+  const updated={...updatedBase,apiSource:{...(updatedBase.apiSource||{}),name:updatedSource.name||updatedBase.apiSource?.name||updatedBase.name,desc:updatedSource.description||updatedBase.apiSource?.desc||updatedBase.desc,image:updatedSource.image||updatedBase.apiSource?.image||updatedBase.image}};
   const result=upsertCatalogProduct(workingCatalog,localCategoryId,updated);
   await persistWamdaSnapshot(result.catalog,nextSettings);
   const finalPrice=updated.options?.[0]?.packs?.[0]?.[1]??null;
@@ -1502,7 +1517,7 @@ async function applyWamdaGlobalPricingToAll(){
           id:localProductId,
           name:String(source.name||('Wamda product '+productId)).slice(0,120),
           desc:String(source.description||'منتج رقمي متزامن مع مورد ومضة.').slice(0,700),
-          image:'assets/brand/logo.svg',
+          image:source.image||'assets/products/_shared/product-placeholder.svg',
           options:[{id:'wamda-default',name:'الخيار الأساسي',desc:'منتج مرتبط بمصدر ومضة',flag:'⚡',packs:[['سعر البيع',1]]}],
         };
         let updated;
@@ -1511,6 +1526,7 @@ async function applyWamdaGlobalPricingToAll(){
             fxRate:context.fxRate,globalRule:context.globalRule,categoryRule:null,
             syncedAt,forceAutomatic:true,
           });
+          updated={...updated,apiSource:{...(updated.apiSource||{}),name:source.name||updated.apiSource?.name||updated.name,desc:source.description||updated.apiSource?.desc||updated.desc,image:source.image||updated.apiSource?.image||updated.image}};
           const calculated=Number(updated?.wamda?.calculatedPriceSyp);
           const actual=Number(updated?.options?.[0]?.packs?.[0]?.[1]);
           if(!Number.isFinite(calculated)||calculated<=0||!Number.isFinite(actual)||actual<=0)throw new Error('INVALID_WAMDA_CALCULATED_PRICE');
@@ -1525,7 +1541,7 @@ async function applyWamdaGlobalPricingToAll(){
           let categoryIndex=categoryIndexes.get(localCategoryId);
           if(categoryIndex===undefined){
             const displayName=String(sourceCategory.name||'منتجات ومضة').slice(0,100)||'منتجات ومضة';
-            nextCatalog.push({id:localCategoryId,name:displayName,desc:'منتجات رقمية متزامنة مع ومضة ستور.',image:'assets/brand/logo.svg',icon:'⚡',items:[]});
+            nextCatalog.push({id:localCategoryId,name:displayName,desc:'منتجات رقمية متزامنة مع ومضة ستور.',image:sourceCategory.image||'assets/products/_shared/category-placeholder.svg',icon:'⚡',items:[]});
             categoryIndex=nextCatalog.length-1;
             categoryIndexes.set(localCategoryId,categoryIndex);
           }
@@ -1612,7 +1628,7 @@ async function publishSeagmProduct(input) {
       id:localCategoryId,
       name:String(sourceCategory.name || (kind === 'card' ? 'بطاقات SEAGM' : 'شحن SEAGM')).slice(0,100),
       desc:'منتجات مستوردة من مورد SEAGM. حدّد سعر البيع المحلي من لوحة الإدارة.',
-      image:'assets/brand/logo.svg',
+      image:sourceCategory.image||'assets/products/_shared/category-placeholder.svg',
       icon:kind === 'card' ? '▣' : '◈',
       items:[],
     }]);
@@ -1629,9 +1645,9 @@ async function publishSeagmProduct(input) {
     id:localProductId,
     name:String(manualOverrides.name??sourceName).slice(0,120),
     desc:String(manualOverrides.desc??sourceDescription).slice(0,700),
-    image:String(manualOverrides.image??'assets/brand/logo.svg'),
+    image:String(manualOverrides.image??sourceProduct.image??existingPublishedProduct?.image??'assets/products/_shared/product-placeholder.svg'),
     options:Array.isArray(manualOverrides.options)?manualOverrides.options:sourceOptions,
-    apiSource:{name:sourceName,desc:sourceDescription,image:'assets/brand/logo.svg',options:sourceOptions},
+    apiSource:{name:sourceName,desc:sourceDescription,image:sourceProduct.image||'assets/products/_shared/product-placeholder.svg',options:sourceOptions},
     ...(Object.keys(manualOverrides).length?{manualOverrides}:{}),
     seagm:{
       provider:'seagm',
@@ -2348,13 +2364,13 @@ const server = http.createServer(async (req,res) => {
         const categoryInput = input.category && typeof input.category === 'object' ? input.category : null;
         const categoryId = String(input.categoryId || categoryInput?.id || '');
         if (categoryInput && !workingCatalog.some(category=>category.id===categoryId)) {
-          const category = { id:categoryId,name:String(categoryInput.name || ''),desc:String(categoryInput.desc || ''),image:categoryInput.image || 'assets/brand/logo.svg',items:[] };
+          const category = { id:categoryId,name:String(categoryInput.name || ''),desc:String(categoryInput.desc || ''),image:categoryInput.image || 'assets/products/_shared/category-placeholder.svg',items:[] };
           if (categoryInput.icon !== undefined) category.icon = categoryInput.icon;
           workingCatalog = validateCatalog([...workingCatalog,category]);
         }
         const productInput = { ...(input.product || {}) };
         if (productInput.desc === undefined) productInput.desc = String(productInput.description || '');
-        if (!productInput.image) productInput.image = 'assets/brand/logo.svg';
+        if (!productInput.image) productInput.image = 'assets/products/_shared/product-placeholder.svg';
         if (!Array.isArray(productInput.options) && productInput.price !== undefined) {
           const price = Number(productInput.price);
           if (!Number.isFinite(price) || price < 0 || price > 1_000_000_000 || !/^[0-9]+([.][0-9]{1,2})?$/.test(String(productInput.price))) {
