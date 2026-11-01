@@ -20,7 +20,7 @@ for (const page of pages) {
     }
   });
 }
-const backendFiles = ['../src/server.js','../src/admin-core.js','../src/exchange-rate.js'];
+const backendFiles = ['../src/server.js','../src/admin-core.js','../src/exchange-rate.js','../src/order-expiry.js'];
 for (const relativePath of backendFiles) {
   test(relativePath + ' backend JavaScript parses without syntax errors', () => {
     const absolutePath = path.resolve(here, relativePath);
