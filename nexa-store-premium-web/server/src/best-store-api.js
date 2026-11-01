@@ -134,8 +134,21 @@ export function createBestStoreClient({ apiToken, fetchImpl = globalThis.fetch, 
     },
     async getProducts() {
       const payload = await request('/client/api/products');
-      const rows = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload?.products) ? payload.products : []));
-      if (!Array.isArray(rows)) throw apiError('صيغة قائمة منتجات Best Store غير معروفة.', 502, 'BEST_STORE_PRODUCTS_INVALID');
+      const candidates = [
+        payload,
+        payload?.data,
+        payload?.products,
+        payload?.items,
+        payload?.data?.products,
+        payload?.data?.items,
+        payload?.data?.data,
+        payload?.result?.products,
+        payload?.result?.data,
+      ];
+      const rows = candidates.find(Array.isArray);
+      if (!rows || !rows.every(row => row && typeof row === 'object' && !Array.isArray(row))) {
+        throw apiError('صيغة قائمة منتجات Best Store غير معروفة؛ لم نحفظ مزامنة فارغة حتى لا تختفي المنتجات الحالية.', 502, 'BEST_STORE_PRODUCTS_INVALID');
+      }
       return rows;
     },
     async createOrder(productId, { quantity = 1, fields = {}, orderUuid } = {}) {
