@@ -2553,9 +2553,24 @@ const server = http.createServer(async (req,res) => {
     if (req.method === 'GET' && url.pathname === '/api/payments/config') {
       let enabled = paymentsReady, receiverLabel = cfg.receiverLabel, receiverAddress = cfg.receiverAddress;
       let message = 'الدفع بانتظار ضبط مفاتيح API والمحفظة وقاعدة البيانات على الخادم.';
-      if (enabled) {
-        try { const wallet = await getWallet(); receiverLabel = String(wallet.label || receiverLabel); receiverAddress = String(wallet.walletAddress || receiverAddress); message = 'تم التحقق من وجود محفظة شام كاش نشطة. كل طلب ينشئ فاتورة رسمية ويُتحقق من العملية عبر API.'; }
-        catch (error) { enabled = false; message = error instanceof ProviderError ? providerMessage(error) : 'تعذر التحقق من محفظة الاستلام حالياً.'; }
+      // Fetch the receiver wallet whenever its credentials exist, even when new checkout is disabled.
+      // This keeps the real receiving address visible in the wallet information panel.
+      if (cfg.apiToken && cfg.walletId) {
+        try {
+          const wallet = await getWallet();
+          receiverLabel = String(wallet.label || receiverLabel);
+          receiverAddress = String(wallet.walletAddress || receiverAddress);
+          message = enabled
+            ? 'تم التحقق من وجود محفظة شام كاش نشطة. كل طلب ينشئ فاتورة رسمية ويُتحقق من العملية عبر API.'
+            : 'تم تحميل عنوان محفظة الاستلام، لكن إنشاء طلبات دفع جديدة متوقف حالياً.';
+        } catch (error) {
+          if (enabled) {
+            enabled = false;
+            message = error instanceof ProviderError ? providerMessage(error) : 'تعذر التحقق من محفظة الاستلام حالياً.';
+          } else {
+            message = 'الدفع متوقف حالياً وتعذر تحديث عنوان محفظة الاستلام من المزوّد.';
+          }
+        }
       }
       return send(res,200,{enabled,provider:'Sham Cash',currency:'SYP',currencies:['SYP','USD'],sypPerUsd:Number(storeSettings?.fxRate || 145),fxReady:fxRateReady(),fxMode:storeSettings?.fxMode || 'manual',fxUpdatedAt:storeSettings?.fxUpdatedAt || null,fxSource:storeSettings?.fxMode === 'api' ? 'SP Today API V2' : 'سعر يدوي في لوحة Nexa',receiverLabel,receiverAddress,orderTtlMinutes:cfg.orderTtlMinutes,maxTransactionAgeMinutes:Math.round(cfg.maxAgeMs/60_000),message});
     }
