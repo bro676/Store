@@ -1245,9 +1245,21 @@ async function saveBestStoreSettings({silent=false}={}){
     bestStoreRefreshIntervalMinutes:interval,
   };
   const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(payload)});
-  state.settings=d.settings||state.settings;
-  $('bestStoreApiToken').value='';$('clearBestStoreApiToken').checked=false;
-  $('bestStoreTokenState').textContent=state.settings.bestStoreApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';
+  const savedSettings=d.settings||{};
+  // Never clear the secret input or display a success state unless the server
+  // confirms the encrypted credential is available in its active runtime.
+  if(payload.bestStoreApiToken&&!savedSettings.bestStoreApiTokenConfigured){
+    throw new Error('لم يؤكد الخادم حفظ API Token. بقي المفتاح في الحقل؛ حاول الحفظ مرة أخرى.');
+  }
+  if(payload.clearBestStoreApiToken&&savedSettings.bestStoreApiTokenConfigured){
+    throw new Error('لم يؤكد الخادم حذف API Token المحفوظ.');
+  }
+  state.settings={...state.settings,...savedSettings};
+  $('bestStoreApiToken').value='';
+  $('clearBestStoreApiToken').checked=false;
+  $('bestStoreTokenState').textContent=state.settings.bestStoreApiTokenConfigured
+    ?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.'
+    :'لم يتم حفظ API Token بعد.';
   if(!silent)toast('تم حفظ إعدادات Best Store وسياسة التسعير.');
   return d;
 }
