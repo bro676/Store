@@ -2361,13 +2361,13 @@ const server = http.createServer(async (req,res) => {
         const categoryInput = input.category && typeof input.category === 'object' ? input.category : null;
         const categoryId = String(input.categoryId || categoryInput?.id || '');
         if (categoryInput && !workingCatalog.some(category=>category.id===categoryId)) {
-          const category = { id:categoryId,name:String(categoryInput.name || ''),desc:String(categoryInput.desc || ''),image:categoryInput.image || 'assets/brand/logo.svg',items:[] };
+          const category = { id:categoryId,name:String(categoryInput.name || ''),desc:String(categoryInput.desc || ''),image:categoryInput.image || 'assets/products/_shared/category-placeholder.svg',items:[] };
           if (categoryInput.icon !== undefined) category.icon = categoryInput.icon;
           workingCatalog = validateCatalog([...workingCatalog,category]);
         }
         const productInput = { ...(input.product || {}) };
         if (productInput.desc === undefined) productInput.desc = String(productInput.description || '');
-        if (!productInput.image) productInput.image = 'assets/brand/logo.svg';
+        if (!productInput.image) productInput.image = 'assets/products/_shared/product-placeholder.svg';
         if (!Array.isArray(productInput.options) && productInput.price !== undefined) {
           const price = Number(productInput.price);
           if (!Number.isFinite(price) || price < 0 || price > 1_000_000_000 || !/^[0-9]+([.][0-9]{1,2})?$/.test(String(productInput.price))) {
