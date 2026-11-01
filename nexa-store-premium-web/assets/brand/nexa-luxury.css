@@ -3279,3 +3279,196 @@ html[data-theme="light"],body:has(html[data-theme="light"]){
 :root[data-theme="light"] .app-shell input:-webkit-autofill:focus{
   -webkit-text-fill-color:#263b4f!important;-webkit-box-shadow:0 0 0 1000px #fff inset!important;
 }
+
+
+/* NEXA 2026-11-02 — homepage departments, hierarchy cards and checkout modal.
+   The order modal is rendered outside .app-shell, so its theme rules must be
+   rooted at #orderModal rather than the storefront wrapper. */
+.app-shell .department-grid{
+ display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+ gap:18px!important;align-items:stretch;
+}
+.app-shell .department-card{
+ display:flex!important;flex-direction:column!important;min-width:0!important;
+ padding:0!important;overflow:hidden!important;text-align:right!important;
+ border:1px solid var(--lux-line-soft)!important;border-radius:18px!important;
+ background:var(--lux-panel)!important;color:var(--lux-pearl)!important;
+ box-shadow:0 12px 28px rgba(0,0,0,.08)!important;cursor:pointer!important;
+ transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease!important;
+}
+.app-shell .department-card:hover{
+ transform:translateY(-4px)!important;border-color:var(--lux-gold)!important;
+ box-shadow:0 18px 35px rgba(0,0,0,.13)!important;
+}
+.app-shell .department-card-art{position:relative;display:block;overflow:hidden;aspect-ratio:1.45;width:100%;background:#07110d}
+.app-shell .department-card-art img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .35s ease}
+.app-shell .department-card:hover .department-card-art img{transform:scale(1.035)}
+.app-shell .department-card-art:after{content:"";position:absolute;inset:auto 0 0;height:24%;background:linear-gradient(transparent,rgba(0,0,0,.42));pointer-events:none}
+.app-shell .department-card-art i{position:absolute;z-index:1;top:10px;left:11px;width:35px;height:35px;display:grid;place-items:center;border-radius:11px;background:rgba(5,19,13,.78);border:1px solid rgba(68,222,168,.35);font-style:normal;font-size:17px;box-shadow:0 5px 16px rgba(0,0,0,.2)}
+.app-shell .department-card-copy{display:grid;gap:5px;padding:13px 14px 15px;min-width:0}
+.app-shell .department-card-copy strong{font-size:14px;font-weight:900;line-height:1.5}
+.app-shell .department-card-copy small{font-size:10px;line-height:1.7;color:var(--lux-muted)!important}
+.app-shell .department-card-meta{font-size:9px;color:var(--lux-gold-soft)!important;font-weight:800}
+.app-shell .department-card-arrow{position:absolute;display:none}
+.app-shell .catalog-department-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+:root[data-theme="light"] .app-shell .department-card{
+ background:#fffdf7!important;color:#26352d!important;border-color:#dce7dc!important;
+ box-shadow:0 12px 28px rgba(44,75,52,.07)!important;
+}
+:root[data-theme="light"] .app-shell .department-card-copy strong{color:#263b30!important}
+:root[data-theme="light"] .app-shell .department-card-copy small{color:#748278!important}
+:root[data-theme="light"] .app-shell .department-card-meta{color:#567d64!important}
+:root[data-theme="dark"] .app-shell .department-card{
+ background:#151c20!important;color:#edf5ef!important;border-color:#33463c!important;
+ box-shadow:0 12px 28px rgba(0,0,0,.22)!important;
+}
+:root[data-theme="dark"] .app-shell .department-card-copy strong{color:#f0f5ef!important}
+:root[data-theme="dark"] .app-shell .department-card-copy small{color:#a9b7ad!important}
+:root[data-theme="dark"] .app-shell .department-card-meta{color:#d2bd80!important}
+@media(max-width:1050px){
+ .app-shell .department-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media(max-width:720px){
+ .app-shell .department-grid,.app-shell .catalog-department-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}
+ .app-shell .department-card-copy{padding:10px 11px 12px}
+ .app-shell .department-card-copy strong{font-size:12px}
+}
+@media(max-width:430px){
+ .app-shell .department-grid,.app-shell .catalog-department-grid{grid-template-columns:1fr!important}
+ .app-shell .department-card-art{aspect-ratio:1.6}
+}
+
+/* Homepage light mode: warm readable surfaces, clear section separation. */
+:root[data-theme="light"] .app-shell .home-intro{
+ background:radial-gradient(circle at 87% 14%,rgba(37,140,98,.12),transparent 32%),linear-gradient(120deg,#fffefa 0%,#f0f5ed 58%,#e5efe5 100%)!important;
+ border-color:#d9e6da!important;color:#263b30!important;
+ box-shadow:0 18px 44px rgba(45,83,56,.09)!important;
+}
+:root[data-theme="light"] .app-shell .home-intro h1,
+:root[data-theme="light"] .app-shell .home-intro-copy h1{color:#263b30!important}
+:root[data-theme="light"] .app-shell .home-intro h1 span,
+:root[data-theme="light"] .app-shell .home-intro-copy h1 span{color:#2d7956!important;background:none!important;-webkit-text-fill-color:#2d7956!important}
+:root[data-theme="light"] .app-shell .home-intro-kicker{color:#487558!important}
+:root[data-theme="light"] .app-shell .home-intro p{color:#637568!important}
+:root[data-theme="light"] .app-shell .home-intro-note{color:#637568!important}
+:root[data-theme="light"] .app-shell .home-intro-note b{color:#2c805a!important}
+:root[data-theme="light"] .app-shell .home-assistant-link{background:#fff!important;color:#456b53!important;border-color:#d5e3d5!important}
+:root[data-theme="light"] .app-shell .trust-item{background:#fff!important;border-color:#e0e9df!important}
+:root[data-theme="light"] .app-shell .section-title{color:#2a3d31!important}
+:root[data-theme="light"] .app-shell .section-sub{color:#748177!important}
+:root[data-theme="light"] .app-shell .section-kicker{color:#4b8362!important}
+:root[data-theme="dark"] .app-shell .home-intro{
+ background:radial-gradient(circle at 87% 14%,rgba(30,181,133,.12),transparent 32%),linear-gradient(120deg,#121c19 0%,#101916 58%,#17221b 100%)!important;
+ border-color:#30483b!important;color:#edf4ed!important;
+}
+:root[data-theme="dark"] .app-shell .home-intro h1,
+:root[data-theme="dark"] .app-shell .home-intro-copy h1{color:#edf4ed!important}
+:root[data-theme="dark"] .app-shell .home-intro p{color:#a8b9ac!important}
+:root[data-theme="dark"] .app-shell .home-intro-kicker{color:#9cdbb8!important}
+:root[data-theme="dark"] .app-shell .home-intro-note{color:#bac8bd!important}
+:root[data-theme="dark"] .app-shell .section-title{color:#eef5ef!important}
+:root[data-theme="dark"] .app-shell .section-sub{color:#a5b3a9!important}
+
+/* Modal fields in the light theme. These selectors deliberately do not depend
+   on .app-shell because #orderModal is a sibling of the storefront wrapper. */
+:root[data-theme="light"] #orderModal{color-scheme:light!important}
+:root[data-theme="light"] #orderModal .modal{
+ background:#fff!important;color:#263b4f!important;border:1px solid #dbe5e8!important;
+ box-shadow:0 28px 90px rgba(29,55,46,.24)!important;
+}
+:root[data-theme="light"] #orderModal .modal-head{
+ background:linear-gradient(110deg,#fffefa,#eef5ef)!important;color:#263b4f!important;border-color:#e1e9e3!important;
+}
+:root[data-theme="light"] #orderModal .modal-head h2{color:#263b4f!important}
+:root[data-theme="light"] #orderModal .modal-body{background:#fff!important;color:#344d40!important}
+:root[data-theme="light"] #orderModal .modal-product{
+ background:linear-gradient(115deg,#eef6ef,#f7f9f5)!important;color:#2b4236!important;border-color:#dce8dc!important;
+}
+:root[data-theme="light"] #orderModal .modal-product strong{color:#293e33!important}
+:root[data-theme="light"] #orderModal .modal-product small{color:#738477!important}
+:root[data-theme="light"] #orderModal .modal-product b{color:#28694c!important}
+:root[data-theme="light"] #orderModal .field{background:transparent!important;color:#344d40!important}
+:root[data-theme="light"] #orderModal .field label{color:#40594b!important}
+:root[data-theme="light"] #orderModal .field small,
+:root[data-theme="light"] #orderModal form>p{color:#74847a!important}
+:root[data-theme="light"] #orderModal input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="light"] #orderModal textarea,
+:root[data-theme="light"] #orderModal select,
+:root[data-theme="light"] #orderModal [data-seagm-field]{
+ background:#fff!important;color:#263b4f!important;border:1px solid #cbdad0!important;
+ color-scheme:light!important;-webkit-text-fill-color:#263b4f!important;caret-color:#263b4f!important;
+ box-shadow:none!important;
+}
+:root[data-theme="light"] #orderModal input::placeholder,
+:root[data-theme="light"] #orderModal textarea::placeholder{color:#91a096!important;opacity:1!important}
+:root[data-theme="light"] #orderModal input:focus,
+:root[data-theme="light"] #orderModal textarea:focus,
+:root[data-theme="light"] #orderModal select:focus,
+:root[data-theme="light"] #orderModal [data-seagm-field]:focus{
+ background:#fff!important;color:#263b4f!important;border-color:#4a9b71!important;
+ box-shadow:0 0 0 3px rgba(58,143,99,.14)!important;outline:0!important;
+}
+:root[data-theme="light"] #orderModal input:disabled,
+:root[data-theme="light"] #orderModal select:disabled{background:#eef3ed!important;color:#69786e!important;-webkit-text-fill-color:#69786e!important}
+:root[data-theme="light"] #orderModal input:-webkit-autofill,
+:root[data-theme="light"] #orderModal input:-webkit-autofill:hover,
+:root[data-theme="light"] #orderModal input:-webkit-autofill:focus{
+ -webkit-text-fill-color:#263b4f!important;-webkit-box-shadow:0 0 0 1000px #fff inset!important;
+}
+:root[data-theme="light"] #orderModal .btn-soft{
+ background:#f3f7f2!important;color:#41624e!important;border-color:#d8e4d8!important;
+}
+:root[data-theme="light"] #orderModal .modal-close{
+ background:#fff!important;color:#536d5b!important;border-color:#d8e4d8!important;
+}
+:root[data-theme="light"] #orderModal .modal-actions .btn-primary{
+ background:linear-gradient(120deg,#26885d,#236f57)!important;color:#fff!important;
+}
+:root[data-theme="dark"] #orderModal{color-scheme:dark!important}
+:root[data-theme="dark"] #orderModal .modal{
+ background:#151e22!important;color:#ecf3ee!important;border:1px solid #34483e!important;
+ box-shadow:0 28px 90px rgba(0,0,0,.48)!important;
+}
+:root[data-theme="dark"] #orderModal .modal-head{background:#1b2925!important;color:#f0f5f0!important;border-color:#36483e!important}
+:root[data-theme="dark"] #orderModal .modal-head h2{color:#f0f5f0!important}
+:root[data-theme="dark"] #orderModal .modal-body{background:#151e22!important;color:#dce8df!important}
+:root[data-theme="dark"] #orderModal .modal-product{background:#22342c!important;color:#eaf3ec!important;border-color:#40594a!important}
+:root[data-theme="dark"] #orderModal .modal-product strong{color:#eff5ef!important}
+:root[data-theme="dark"] #orderModal .modal-product small{color:#aebfb2!important}
+:root[data-theme="dark"] #orderModal .modal-product b{color:#d5c17c!important}
+:root[data-theme="dark"] #orderModal .field{background:transparent!important;color:#e0ebe3!important}
+:root[data-theme="dark"] #orderModal .field label{color:#d5e3d8!important}
+:root[data-theme="dark"] #orderModal .field small,
+:root[data-theme="dark"] #orderModal form>p{color:#9faea3!important}
+:root[data-theme="dark"] #orderModal input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="dark"] #orderModal textarea,
+:root[data-theme="dark"] #orderModal select,
+:root[data-theme="dark"] #orderModal [data-seagm-field]{
+ background:#0e1714!important;color:#eef5ef!important;border:1px solid #40584a!important;
+ color-scheme:dark!important;-webkit-text-fill-color:#eef5ef!important;caret-color:#eef5ef!important;
+}
+:root[data-theme="dark"] #orderModal input::placeholder,
+:root[data-theme="dark"] #orderModal textarea::placeholder{color:#87998c!important;opacity:1!important}
+:root[data-theme="dark"] #orderModal input:focus,
+:root[data-theme="dark"] #orderModal textarea:focus,
+:root[data-theme="dark"] #orderModal select:focus,
+:root[data-theme="dark"] #orderModal [data-seagm-field]:focus{
+ background:#111d18!important;color:#f3f8f3!important;border-color:#4ea47b!important;
+ box-shadow:0 0 0 3px rgba(62,166,115,.16)!important;outline:0!important;
+}
+:root[data-theme="dark"] #orderModal input:disabled,
+:root[data-theme="dark"] #orderModal select:disabled{background:#1d2a24!important;color:#a7b8aa!important;-webkit-text-fill-color:#a7b8aa!important}
+:root[data-theme="dark"] #orderModal input:-webkit-autofill,
+:root[data-theme="dark"] #orderModal input:-webkit-autofill:hover,
+:root[data-theme="dark"] #orderModal input:-webkit-autofill:focus{
+ -webkit-text-fill-color:#eef5ef!important;-webkit-box-shadow:0 0 0 1000px #0e1714 inset!important;
+}
+:root[data-theme="dark"] #orderModal .btn-soft{background:#26372e!important;color:#e0ebe2!important;border-color:#435a4a!important}
+:root[data-theme="dark"] #orderModal .modal-close{background:#26372e!important;color:#eff5ef!important;border-color:#435a4a!important}
+:root[data-theme="dark"] #orderModal .modal-actions .btn-primary{background:linear-gradient(120deg,#237d58,#1a654d)!important;color:#fff!important}
+@media(max-width:640px){
+ .app-shell .department-grid,.app-shell .catalog-department-grid{gap:10px!important}
+ #orderModal .modal{width:min(100% - 18px,560px)!important;max-height:calc(100dvh - 18px)!important;border-radius:17px!important}
+ #orderModal .modal-body{max-height:calc(100dvh - 112px)!important;overflow:auto!important}
+ #orderModal .form-grid{grid-template-columns:1fr!important}
+}
