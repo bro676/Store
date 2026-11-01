@@ -42,6 +42,13 @@ async function readJson(response) {
   try { return JSON.parse(raw); }
   catch { throw Object.assign(new Error('WAMDA_INVALID_JSON_RESPONSE'), { code:'WAMDA_INVALID_JSON_RESPONSE', status:502 }); }
 }
+function normalizeImage(value) {
+  const candidate=typeof value==='string'?value:(value?.url||value?.src||value?.original_url||'');
+  const image=cleanText(candidate,500);
+  if(/^https:\/\//i.test(image))return image;
+  if(/^assets\/[A-Za-z0-9_./-]+$/i.test(image)&&!image.includes('..'))return image;
+  return '';
+}
 function normalizeProduct(row) {
   const id = positiveInteger(row?.id);
   if (!id) throw new Error('WAMDA_INVALID_PRODUCT_ID');
@@ -76,6 +83,8 @@ function normalizeProduct(row) {
     id,
     name:cleanText(row?.name || ('Wamda product ' + id), 160),
     description:cleanText(row?.description || row?.desc || row?.note || '', 700),
+    image:normalizeImage(row?.image || row?.image_url || row?.imageUrl || row?.thumbnail_url || row?.thumbnail),
+    categoryImage:normalizeImage(row?.category_image || row?.categoryImage || row?.category_image_url),
     categoryId,
     categoryName:cleanText(row?.category || 'متفرقات', 120),
     sourcePrice:Number.isFinite(price) && price >= 0 ? price : unitPrice,
@@ -157,7 +166,7 @@ export function createWamdaClient({ apiToken, fetchImpl = globalThis.fetch, time
       id:positiveInteger(row?.id,0),
       name:cleanText(row?.name || 'قسم',120),
       parentId:positiveInteger(row?.parent_id,0),
-      image:cleanText(row?.image || '',500),
+      image:normalizeImage(row?.image || row?.image_url || row?.imageUrl || row?.thumbnail_url || row?.thumbnail),
       available:row?.available !== false && Number(row?.is_active ?? 1)!==0,
       apiOnly:row?.api_only===true,
     }));
