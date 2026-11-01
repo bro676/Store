@@ -262,3 +262,19 @@ Admin → Orders shows the supplier state and has a manual retry action for elig
 The CI suite uses mocked SEAGM responses; it tests request signing, card/recharge payloads, order lookup by `mch_order_id`, paid/done status evaluation, encrypted delivery-result storage, retry/backoff, and the no-duplicate enqueue/reconciliation rules. It does not spend SEAGM Credits or create a real supplier order.
 
 Once you add your own credentials, run the connection test in Sandbox and place one low-value end-to-end test order. Only then switch the environment to Production.
+
+
+## Dual supplier catalog: WAMDA + Best Store
+
+Nexa can use WAMDA and Best Store as two sources for one storefront catalog.
+
+- Configure the Best Store API token under Admin → Catalog API → Best Store. The token is encrypted using the existing server-side settings key and is never included in public catalog responses.
+- The integration uses `https://api.best-store.app`, authenticates with the `api-token` request header, and reads the profile and product catalog from the documented client endpoints.
+- Best Store's published API examples expose both `base_price` and `price`. Nexa compares `base_price` when it is a positive number and falls back to `price`; the API documentation does not explicitly identify the currency. The admin must therefore select USD or SYP to match the supplier account before comparing. Values are converted to the store's SYP pricing basis before comparison.
+- Product matching normalizes Arabic/English game aliases (for example PUBG/UC) and retains denomination, region, currency and package qualifiers. Ambiguous or unmatched SKUs are not merged: they remain independent products. Matching products use the lower available supplier cost first; the winning provider's configured margin is applied only after the supplier has been selected.
+- The bulk action refreshes every configured source, compares the latest catalog, publishes new SKUs and updates matching ones. It does not create supplier orders or spend provider balance. The scheduled refresh uses the Best Store interval (5–1440 minutes) when Best Store is configured and enabled.
+- Existing manual product edits (name, description, image and option/price data) are retained when the source catalog is refreshed. Product, category and supplier-level Best Store pricing policies can be configured independently.
+- Product images and descriptions are copied only when the supplier response actually provides them. When Best Store returns only a category image, Nexa may use that image as the product's fallback; otherwise the existing image or storefront placeholder is retained.
+- Checkout validates Best Store quantity limits and required customer parameters. Supplier delivery is queued only after Nexa verifies the customer's payment. The worker checks the original `order_uuid` before creating an order and reuses that same UUID for status checks/retries. An unknown or rejected supplier status is sent to manual review instead of being blindly purchased again.
+
+The Best Store API token and account are not preconfigured in this repository. After deployment, enter the account token and the correct source currency in the admin page, explicitly confirm that the selected currency matches the supplier account, use the profile test, refresh the catalog, and then run the bulk supplier comparison. A real supplier purchase is not part of the connection test. Changing the currency selection clears that confirmation and blocks comparisons, automatic publication and customer checkout until it is confirmed again.

@@ -805,13 +805,13 @@ function renderHomeCategories(){
 function renderFeatured(){
  const list=[],seen=new Set();
  for(const group of NexaCatalog.getDepartmentSummaries(categories)){
-  const found=group.categories.flatMap(cat=>(cat.items||[]).map(it=>({cat,it}))).find(row=>row.it.wamda?.available!==false);
+  const found=group.categories.flatMap(cat=>(cat.items||[]).map(it=>({cat,it}))).find(row=>(row.it.wamda||row.it.bestStore)?.available!==false);
   if(found&&!seen.has(String(found.it.id))){list.push(found);seen.add(String(found.it.id));}
   if(list.length>=4)break;
  }
  if(list.length<4){
   for(const cat of categories)for(const it of cat.items||[]){
-   if(it.wamda?.available===false||seen.has(String(it.id)))continue;
+   if((it.wamda||it.bestStore)?.available===false||seen.has(String(it.id)))continue;
    list.push({cat,it});seen.add(String(it.id));if(list.length>=4)break;
   }
  }
@@ -885,7 +885,7 @@ function renderCatalog(){
   $('catalogCount').textContent=filtered.length.toLocaleString('en-US')+' من '+all.length.toLocaleString('en-US')+' منتج';
   html='<div class="back-row"><button type="button" class="back-button" data-bc="department">← '+esc(department.name)+'</button><span class="catalog-count">'+filtered.length+' منتجات</span></div>'+
    '<div class="store-catalog-toolbar"><input id="storeProductSearch" type="search" value="'+esc(state.productQuery)+'" placeholder="ابحث داخل '+esc(cat.name)+'..." aria-label="بحث في منتجات القسم"><span>'+filtered.length.toLocaleString('en-US')+' نتيجة</span></div>'+
-   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(product=>tile(product.name,product.desc,NexaCatalog.productImage(product,cat),'منتج رقمي','data-open-item="'+esc(product.id)+'" data-open-category="'+esc(cat.id)+'"',product.wamda?.available===false?'غير متوفر حالياً':'عرض المنتج',false)).join('')+'</div>':'<div class="empty-state"><strong>لا توجد منتجات مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
+   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(product=>tile(product.name,product.desc,NexaCatalog.productImage(product,cat),'منتج رقمي','data-open-item="'+esc(product.id)+'" data-open-category="'+esc(cat.id)+'"',(product.wamda||product.bestStore)?.available===false?'غير متوفر حالياً':'عرض المنتج',false)).join('')+'</div>':'<div class="empty-state"><strong>لا توجد منتجات مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
    storeCatalogPager(state.productPage,pageCount,'product-page');
  }else if(!opt){
   html='<div class="back-row"><button type="button" class="back-button" data-bc="category">← العودة إلى '+esc(cat.name)+'</button><span class="catalog-count">'+(it.options||[]).length+' خيارات</span></div>'+
@@ -894,9 +894,9 @@ function renderCatalog(){
  }else{
   html='<div class="back-row"><button type="button" class="back-button" data-bc="item">← العودة إلى الخيارات</button><span class="catalog-count">'+(opt.packs||[]).length+' باقات</span></div>'+
    '<div class="step-summary"><img src="'+esc(NexaCatalog.productImage(it,cat))+'" alt=""><span><strong>'+esc(it.name)+' · '+esc(opt.name)+'</strong><p>'+esc(opt.desc)+'</p></span></div>'+
-   '<div class="pack-grid">'+(opt.packs||[]).map((p,n)=>'<article class="pack-card"><div class="pack-image"><img src="'+esc(NexaCatalog.optionImage(opt,it,cat))+'" alt="" loading="lazy"><span class="pack-label">'+(it.wamda?.available===false?'غير متوفر حالياً':'متاح للطلب')+'</span></div><div class="pack-body"><h3>'+esc(p[0])+'</h3><p>'+(it.wamda?'سعر البيع المعتمد من المتجر، ويظهر المبلغ النهائي في الفاتورة.':'السعر المعروض هو سعر البيع المحدد لهذا الخيار.')+'</p><div class="pack-price">'+money(p[1])+'<small>السعر المعتمد</small></div><button type="button" class="btn btn-primary" data-select-pack="'+n+'" '+(it.wamda?.available===false?'disabled aria-disabled="true"':'')+'>'+(it.wamda?.available===false?'غير متوفر حالياً':'اختيار الباقة ←')+'</button></div></article>').join('')+'</div>';
+   '<div class="pack-grid">'+(opt.packs||[]).map((p,n)=>'<article class="pack-card"><div class="pack-image"><img src="'+esc(NexaCatalog.optionImage(opt,it,cat))+'" alt="" loading="lazy"><span class="pack-label">'+((it.wamda||it.bestStore)?.available===false?'غير متوفر حالياً':'متاح للطلب')+'</span></div><div class="pack-body"><h3>'+esc(p[0])+'</h3><p>'+((it.wamda||it.bestStore)?'سعر البيع المعتمد من المتجر، ويظهر المبلغ النهائي في الفاتورة.':'السعر المعروض هو سعر البيع المحدد لهذا الخيار.')+'</p><div class="pack-price">'+money(p[1])+'<small>السعر المعتمد</small></div><button type="button" class="btn btn-primary" data-select-pack="'+n+'" '+((it.wamda||it.bestStore)?.available===false?'disabled aria-disabled="true"':'')+'>'+(it.wamda?.available===false?'غير متوفر حالياً':'اختيار الباقة ←')+'</button></div></article>').join('')+'</div>';
  }
- if(it?.wamda?.available===false)html+='<div class="catalog-note"><strong>تنبيه التوفر:</strong> هذا المنتج ظاهر للتفاصيل فقط؛ لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد.</div>';
+ if((it?.wamda||it?.bestStore)?.available===false)html+='<div class="catalog-note"><strong>تنبيه التوفر:</strong> هذا المنتج ظاهر للتفاصيل فقط؛ لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد.</div>';
  target.innerHTML=html;
 }
 function renderSearchResults(){
@@ -906,7 +906,7 @@ function renderSearchResults(){
  $('catalogTitle').textContent='نتائج البحث';$('catalogDescription').textContent='نتائج مطابقة لعبارة: '+state.searchQuery;
  $('catalogCount').textContent=matches.length.toLocaleString('en-US')+' نتيجة';
  $('catalogSteps').innerHTML=renderSteps(1);$('breadcrumbs').innerHTML='<span class="crumb current">نتائج البحث</span>';
- $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,NexaCatalog.productImage(i,c),c.name,'data-open-item="'+esc(i.id)+'" data-open-category="'+esc(c.id)+'"',i.wamda?.available===false?'غير متوفر حالياً':'عرض الخيارات',false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
+ $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,NexaCatalog.productImage(i,c),c.name,'data-open-item="'+esc(i.id)+'" data-open-category="'+esc(c.id)+'"',(i.wamda||i.bestStore)?.available===false?'غير متوفر حالياً':'عرض الخيارات',false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
 }
 function openItem(itemId,categoryId=null){
  const match=NexaCatalog.findProduct(categories,itemId,categoryId);
@@ -916,9 +916,9 @@ function openItem(itemId,categoryId=null){
 }
 function resetCatalog(){state.department=null;state.category=null;state.item=null;state.option=null;state.catalogPage=1;state.catalogQuery='';state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';}
 function openOrder(packIndex){
- const it=getItem(state.item,state.category),op=getOption(state.option),p=op?.packs?.[packIndex],supplier=it?.wamda||it?.seagm||null;
+ const it=getItem(state.item,state.category),op=getOption(state.option),p=op?.packs?.[packIndex],supplier=it?.wamda||it?.seagm||it?.bestStore||null;
  if(!it||!op||!p){showToast('تعذر تحميل تفاصيل الباقة. حدّث الكتالوج وحاول مجدداً.');return;}
- if(it.wamda?.available===false){showToast('هذا المنتج غير متوفر حالياً لدى المورد.');return;}
+ if(supplier?.available===false){showToast('هذا المنتج غير متوفر حالياً لدى المورد.');return;}
  state.selectedPack={category:state.category,item:state.item,option:state.option,index:packIndex,name:`${it.name} — ${op.name} — ${p[0]}`,price:p[1],image:NexaCatalog.productImage(it,getCategory(state.category)),supplier:!!supplier};
  const image=NexaCatalog.productImage(it,getCategory(state.category));
  $('modalProduct').textContent=it.name+' — '+p[0];$('modalOption').textContent=op.name+' · باقة مختارة';$('modalImage').src=image;$('modalPrice').textContent=money(p[1]);
@@ -926,10 +926,11 @@ function openOrder(packIndex){
  $('paymentMethod').value='shamcash';
  if(customerAccount){$('customerName').value=customerAccount.full_name||'';$('customerPhone').value=customerAccount.phone||'';}
  const min=supplier?Math.max(1,Number(supplier.minimumQuantity||1)):1;
- const max=supplier?Math.max(min,Math.min(1000,Number(supplier.maximumQuantity||1))):1;
- $('orderQuantity').min=String(min);$('orderQuantity').max=String(max);$('orderQuantity').value=String(min);
- $('seagmQuantityContainer').classList.toggle('hidden',!supplier||max<=1);
- $('seagmQuantityHint').textContent=supplier?'السعر المعروض لكل وحدة؛ يتم ضربه بالكمية قبل إنشاء فاتورة الدفع.':'';
+ const max=supplier?Math.max(min,Math.min(supplier.provider==='beststore'?1000000:1000,Number(supplier.maximumQuantity||1))):1;
+ const allowedQuantities=Array.isArray(supplier?.allowedQuantities)?[...new Set(supplier.allowedQuantities.map(Number).filter(value=>Number.isSafeInteger(value)&&value>=min&&value<=max))].sort((a,b)=>a-b):[];
+ $('orderQuantity').min=String(min);$('orderQuantity').max=String(max);$('orderQuantity').step='1';$('orderQuantity').value=String(allowedQuantities[0]||min);
+ $('seagmQuantityContainer').classList.toggle('hidden',!supplier||(max<=1&&allowedQuantities.length===0));
+ $('seagmQuantityHint').textContent=!supplier?'':(allowedQuantities.length?'الكميات المسموحة: '+allowedQuantities.join('، '):'السعر المعروض لكل وحدة؛ يتم ضربه بالكمية قبل إنشاء فاتورة الدفع.');
  const fieldBox=$('seagmFieldsContainer');
  const definitions=Array.isArray(supplier?.fields)?supplier.fields:[];
  const makeSupplierControl=(field,key,rawOptions,parentField=false)=>{
@@ -1016,14 +1017,14 @@ async function doOrder(e){
  const button=form.querySelector('button[type="submit"]');if(!button||button.disabled)return;
  const originalText=button.textContent;button.disabled=true;button.textContent='جارٍ إنشاء فاتورة شام كاش…';
  try{
-  const pack=state.selectedPack,product=getItem(pack.item),supplier=product?.wamda||product?.seagm||null;
+  const pack=state.selectedPack,product=getItem(pack.item),supplier=product?.wamda||product?.seagm||product?.bestStore||null;
   const paymentMethod=$('paymentMethod').value||'shamcash';
   if(paymentMethod==='wallet'&&!customerAccount){closeModal();navigate('wallet');showToast('سجّل الدخول أو أنشئ حساباً قبل الدفع من الرصيد.');return;}
   const quantity=supplier?Number($('orderQuantity').value||1):1,supplierFields={};
   if(supplier){
    for(const control of document.querySelectorAll('[data-seagm-field]'))supplierFields[control.dataset.seagmField]=control.value;
-   const min=Number(supplier.minimumQuantity||1),max=Number(supplier.maximumQuantity||1);
-   if(!Number.isInteger(quantity)||quantity<min||quantity>max)throw new Error('الكمية المختارة خارج الحدود المسموحة.');
+   const min=Number(supplier.minimumQuantity||1),max=Number(supplier.maximumQuantity||1),allowed=Array.isArray(supplier.allowedQuantities)?supplier.allowedQuantities.map(Number):[];
+   if(!Number.isInteger(quantity)||quantity<min||quantity>max||(allowed.length&&!allowed.includes(quantity)))throw new Error(allowed.length?'اختر إحدى الكميات المتاحة لهذا المنتج.':'الكمية المختارة خارج الحدود المسموحة.');
   }
   const response=await fetch('/api/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
    categoryId:pack.category,productId:pack.item,optionId:pack.option,packIndex:pack.index,

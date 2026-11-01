@@ -13,6 +13,9 @@ import {
 } from './admin-core.js';
 import { createSeagmClient } from './seagm-api.js';
 import { createWamdaClient } from './wamda-api.js';
+import { createBestStoreClient, normalizeBestStoreProduct } from './best-store-api.js';
+import { bestStoreOrderDecision, classifyBestStoreError } from './best-store-fulfillment.js';
+import { compareSupplierCandidates, supplierProductMatchKey, supplierCategoryMatchKey, normalizeSupplierText } from './supplier-comparison.js';
 import { wamdaOrderDecision, classifyWamdaError } from './wamda-fulfillment.js';
 import { normalizeWamdaMargin, normalizeWamdaPricingRule, resolveWamdaPricingRule, calculateWamdaSellPriceSyp, updateWamdaPublishedProduct, markWamdaProductUnavailable } from './wamda-pricing.js';
 import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSignature } from './seagm-webhook.js';
@@ -34,6 +37,9 @@ let nexaAiApiKeyRuntime = '';
 let wamdaCatalogSyncInProgress = false;
 let wamdaBulkPublishInProgress = false;
 let seagmCatalogSyncInProgress = false;
+let bestStoreApiTokenRuntime = '';
+let bestStoreCatalogSyncInProgress = false;
+let supplierCompareSyncInProgress = false;
 let seagmFulfillmentWorkerBusy = false;
 const { Pool } = pg;
 const cfg = {
@@ -188,7 +194,7 @@ function publicCatalog() {
   return catalog.map(category => ({
     ...category,
     items: category.items.map(product => {
-      const { seagm, wamda, manualOverrides, apiSource, ...publicProduct } = product;
+      const { seagm, wamda, bestStore, manualOverrides, apiSource, ...publicProduct } = product;
       if (seagm?.provider === 'seagm') {
         return {
           ...publicProduct,
@@ -217,6 +223,18 @@ function publicCatalog() {
             name:String(field.key || ''),submitField:String(field.key || ''),label:String(field.label || field.key || ''),
             type:String(field.type || 'text'),required:field.required !== false,
             min:field.min!==null&&field.min!==undefined&&field.min!==''&&Number.isFinite(Number(field.min))?Number(field.min):null,max:field.max!==null&&field.max!==undefined&&field.max!==''&&Number.isFinite(Number(field.max))?Number(field.max):null,
+          })):[],
+        }};
+      }
+      if(bestStore?.provider==='beststore'){
+        return {...publicProduct,bestStore:{
+          provider:'beststore',productId:Number(bestStore.productId),available:bestStore.available!==false&&Boolean(bestStoreApiTokenRuntime)&&storeSettings?.bestStoreCurrencyConfirmed===true,
+          minimumQuantity:Number(bestStore.minimumQuantity||1),maximumQuantity:Number(bestStore.maximumQuantity||1),
+          allowedQuantities:Array.isArray(bestStore.allowedQuantities)?bestStore.allowedQuantities.map(Number).filter(value=>Number.isSafeInteger(value)&&value>0):[],
+          fields:Array.isArray(bestStore.fields)?bestStore.fields.map(field=>({
+            name:String(field.submitField||''),submitField:String(field.submitField||''),label:String(field.label||field.submitField||''),
+            type:['number','email','url'].includes(String(field.type||'').toLowerCase())?String(field.type).toLowerCase():'text',
+            placeholder:String(field.placeholder||''),required:field.required!==false,
           })):[],
         }};
       }
@@ -414,7 +432,7 @@ async function createOrder(input, customer = null) {
   if (!pack) return { error:'INVALID_PRODUCT', status:400, message:'الباقة غير متاحة أو سعرها غير محدد.' };
   const sourceCategory = catalog.find(category => category.id === input.categoryId);
   const sourceProduct = sourceCategory?.items?.find(product => product.id === input.productId);
-  const supplier = sourceProduct?.wamda?.provider === 'wamda' ? sourceProduct.wamda : (sourceProduct?.seagm?.provider === 'seagm' ? sourceProduct.seagm : null);
+  const supplier = sourceProduct?.wamda?.provider === 'wamda' ? sourceProduct.wamda : (sourceProduct?.seagm?.provider === 'seagm' ? sourceProduct.seagm : (sourceProduct?.bestStore?.provider === 'beststore' ? sourceProduct.bestStore : null));
   const supplierProvider=supplier?.provider||'';
   let quantity=1,supplierFields={};
   if(supplierProvider==='wamda'){
@@ -434,6 +452,15 @@ async function createOrder(input, customer = null) {
     if(!Number.isSafeInteger(quantity)||quantity<min||quantity>max) return {error:'INVALID_QUANTITY',status:400,message:`الكمية يجب أن تكون بين ${min} و${max}.`};
     try{supplierFields=validateSeagmCustomerFields(sourceProduct,input.supplierFields||{});}
     catch(error){return {error:'INVALID_SUPPLIER_FIELDS',status:error.status||400,message:error.message};}
+  } else if(supplierProvider==='beststore'){
+    if(!Number.isSafeInteger(Number(supplier.productId))||Number(supplier.productId)<=0)return {error:'INVALID_BEST_STORE_PRODUCT',status:409,message:'بيانات ربط المنتج مع Best Store غير مكتملة. أعد مزامنته ونشره من لوحة الإدارة.'};
+    if(supplier.available===false)return {error:'BEST_STORE_PRODUCT_UNAVAILABLE',status:409,message:'هذا المنتج غير متوفر حالياً لدى Best Store. حدّث الكتالوج واختر منتجاً متاحاً.'};
+    if(!bestStoreApiTokenRuntime||storeSettings?.bestStoreCurrencyConfirmed!==true)return {error:'BEST_STORE_NOT_CONFIGURED',status:503,message:'أدخل Best Store API Token وحدد عملة المورد وأكّدها من لوحة الإدارة قبل إتاحة الشراء.'};
+    const min=Math.max(1,Number(supplier.minimumQuantity||1)),max=Math.min(1000000,Math.max(min,Number(supplier.maximumQuantity||1)));
+    quantity=Number(input.quantity??1);const allowed=Array.isArray(supplier.allowedQuantities)?supplier.allowedQuantities.map(Number):[];
+    if(!Number.isSafeInteger(quantity)||quantity<min||quantity>max||(allowed.length&&!allowed.includes(quantity)))return {error:'INVALID_QUANTITY',status:400,message:allowed.length?'اختر إحدى الكميات المتاحة لهذا المنتج.':`الكمية يجب أن تكون بين ${min} و${max}.`};
+    try{supplierFields={};for(const field of Array.isArray(supplier.fields)?supplier.fields:[]){const key=String(field.submitField||'').trim();if(!/^[A-Za-z][A-Za-z0-9_]{0,39}$/.test(key))continue;const value=String(input.supplierFields?.[key]??'').trim();if(field.required!==false&&!value)throw Object.assign(new Error('يرجى إدخال '+String(field.label||key)+'.'),{status:400});if(value.length>500)throw Object.assign(new Error('إحدى بيانات المنتج أطول من الحد المسموح.'),{status:400});if(value)supplierFields[key]=value;}}
+    catch(error){return {error:'INVALID_SUPPLIER_FIELDS',status:error.status||400,message:error.message};}
   }
   const currency = String(input.currency || 'SYP').trim().toUpperCase();
   if (!['SYP','USD'].includes(currency)) return { error:'INVALID_CURRENCY', status:400, message:'اختر الليرة السورية أو الدولار الأمريكي.' };
@@ -449,7 +476,7 @@ async function createOrder(input, customer = null) {
     if(currency!=='SYP')return {error:'WALLET_CURRENCY_UNSUPPORTED',status:400,message:'الرصيد الداخلي حالياً بالليرة السورية الجديدة فقط. اختر SYP للدفع من الرصيد.'};
     const client=await pool.connect();
     const id=`NX-${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
-    const supplierOrderUuid=supplierProvider==='wamda'?crypto.randomUUID():id;
+    const supplierOrderUuid=['wamda','beststore'].includes(supplierProvider)?crypto.randomUUID():id;
     try{
       await client.query('BEGIN');
       const locked=await client.query('SELECT balance_minor::text FROM nexa_customers WHERE id=$1 FOR UPDATE',[customer.id]);
@@ -459,7 +486,7 @@ async function createOrder(input, customer = null) {
       const debited=await client.query('UPDATE nexa_customers SET balance_minor=balance_minor-$2 WHERE id=$1 RETURNING balance_minor::text',[customer.id,pricedPack.amountMinor.toString()]);
       const nextBalance=String(debited.rows[0].balance_minor);
       const supplierStatus=supplier?'pending':'not_applicable';
-      const supplierMessage=supplierProvider==='wamda'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى ومضة.':(supplierProvider==='seagm'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى SEAGM.':'');
+      const supplierMessage=supplierProvider==='wamda'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى ومضة.':(supplierProvider==='seagm'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى SEAGM.':(supplierProvider==='beststore'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى Best Store.':''));
       await client.query(`INSERT INTO nexa_orders (
         id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,
         customer_name,customer_phone,game_account,notes,status,expires_at,paid_at,
@@ -470,24 +497,24 @@ async function createOrder(input, customer = null) {
         $12,$13,$14,$15,$16,$17::jsonb,$18,$19,$20,$21,'wallet'
       )`,[
         id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pricedPack.label,pricedPack.amountMinor.toString(),
-        name,phone,gameAccount,notes,supplierProvider,supplier?.kind||'',supplier?Number(supplier.categoryId):null,
+        name,phone,gameAccount,notes,supplierProvider,supplier?.kind||'',supplier?(supplierProvider==='beststore'?null:Number(supplier.categoryId)):null,
         supplier?Number(supplier.typeId||supplier.productId):null,quantity,JSON.stringify(supplierFields),
         supplier?supplierOrderUuid:null,supplierStatus,supplierMessage,customer.id
       ]);
       await client.query(`INSERT INTO nexa_wallet_ledger(customer_id,kind,amount_minor,balance_after_minor,reference_order_id,note)
         VALUES($1,'purchase',$2,$3,$4,$5)`,[customer.id,pricedPack.amountMinor.toString(),nextBalance,id,pricedPack.label]);
-      if(['seagm','wamda'].includes(supplierProvider)){
+      if(['seagm','wamda','beststore'].includes(supplierProvider)){
         await client.query(`INSERT INTO nexa_fulfillment_jobs(order_id,status,next_attempt_at)
           VALUES($1,'pending',NOW()) ON CONFLICT(order_id) DO NOTHING`,[id]);
       }
       await client.query('COMMIT');
-      if(['seagm','wamda'].includes(supplierProvider))runSeagmFulfillmentWorker().catch(error=>console.error('wallet purchase fulfillment failed',String(error?.message||'unknown').slice(0,120)));
+      if(['seagm','wamda','beststore'].includes(supplierProvider))runSeagmFulfillmentWorker().catch(error=>console.error('wallet purchase fulfillment failed',String(error?.message||'unknown').slice(0,120)));
       return {
         orderId:id,product:pricedPack.label,amountMinor:pricedPack.amountMinor.toString(),currency:'SYP',
         status:'paid',paymentMethod:'wallet',walletBalanceMinor:nextBalance,
-        deliveryProvider:supplierProvider==='wamda'?'WAMDA':(supplier?'SEAGM':null),
+        deliveryProvider:supplierProvider==='wamda'?'WAMDA':(supplierProvider==='beststore'?'BEST_STORE':(supplier?'SEAGM':null)),
         deliveryStatus:supplier?'pending':null,
-        receipt:{orderId:id,product:pricedPack.label,amountMinor:pricedPack.amountMinor.toString(),currency:'SYP',customerName:name,paymentMethod:'wallet',paidAt:new Date().toISOString(),...(supplier?{delivery:{provider:supplierProvider==='wamda'?'WAMDA':'SEAGM',status:'pending',message:supplierMessage}}:{})}
+        receipt:{orderId:id,product:pricedPack.label,amountMinor:pricedPack.amountMinor.toString(),currency:'SYP',customerName:name,paymentMethod:'wallet',paidAt:new Date().toISOString(),...(supplier?{delivery:{provider:supplierProvider==='wamda'?'WAMDA':(supplierProvider==='beststore'?'BEST_STORE':'SEAGM'),status:'pending',message:supplierMessage}}:{})}
       };
     }catch(error){
       await client.query('ROLLBACK').catch(()=>{});
@@ -499,7 +526,7 @@ async function createOrder(input, customer = null) {
   try {
     wallet = await getWallet(true);
     id = `NX-${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
-    const supplierOrderUuid=supplierProvider==='wamda'?crypto.randomUUID():id;
+    const supplierOrderUuid=['wamda','beststore'].includes(supplierProvider)?crypto.randomUUID():id;
     invoice = await createShamInvoice(id, pricedPack, wallet);
     await pool.query(`INSERT INTO nexa_orders (
       id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,
@@ -514,10 +541,10 @@ async function createOrder(input, customer = null) {
       id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pricedPack.label,
       pricedPack.amountMinor.toString(),pricedPack.currency,name,phone,gameAccount,notes,
       invoice.expiresAt,invoice.invoiceNumber,invoice.identifier,invoice.walletLabel,invoice.walletAddress,
-      supplierProvider,supplier?.kind || '',supplier ? Number(supplier.categoryId) : null,
+      supplierProvider,supplier?.kind || '',supplier ? (supplierProvider==='beststore'?null:Number(supplier.categoryId)) : null,
       supplier ? Number(supplier.typeId || supplier.productId) : null,quantity,JSON.stringify(supplierFields),
       supplier ? supplierOrderUuid : null,supplier ? 'pending_payment' : 'not_applicable',
-      supplierProvider==='wamda'?'بانتظار تأكيد الدفع من شام كاش؛ سيتم إرسال الطلب إلى ومضة بعد التحقق.':(supplier?'بانتظار تأكيد الدفع من شام كاش.':''),
+      supplierProvider==='wamda'?'بانتظار تأكيد الدفع من شام كاش؛ سيتم إرسال الطلب إلى ومضة بعد التحقق.':(supplierProvider==='beststore'?'بانتظار تأكيد الدفع من شام كاش؛ سيتم إرسال الطلب إلى Best Store بعد التحقق.':(supplier?'بانتظار تأكيد الدفع من شام كاش.':'')),
       customer?.id || null,'shamcash',
     ]);
     persisted = true;
@@ -525,7 +552,7 @@ async function createOrder(input, customer = null) {
       orderId:id, product:pricedPack.label, amountMinor:pricedPack.amountMinor.toString(), currency:pricedPack.currency,
       expiresAt:invoice.expiresAt.toISOString(),invoiceNumber:invoice.invoiceNumber,invoiceIdentifier:invoice.identifier,
       receiverLabel:invoice.walletLabel,receiverAddress:invoice.identifier,status:'pending_payment',
-      deliveryProvider:supplierProvider==='wamda'?'WAMDA':(supplier?'SEAGM':null),deliveryStatus:supplier?'queued_after_payment':null,
+      deliveryProvider:supplierProvider==='wamda'?'WAMDA':(supplierProvider==='beststore'?'BEST_STORE':(supplier?'SEAGM':null)),deliveryStatus:supplier?'queued_after_payment':null,
     };
   } catch (error) {
     if (invoice?.invoiceNumber && !persisted) {
@@ -580,13 +607,13 @@ async function verifyProviderInvoice(order, transactionRef) {
 }
 
 function supplierDeliveryForOrder(order) {
-  if (!['seagm','wamda'].includes(order?.supplier_provider)) return null;
+  if (!['seagm','wamda','beststore'].includes(order?.supplier_provider)) return null;
   let result = null;
   if (order.supplier_status === 'completed' && order.supplier_result_encrypted) {
     try { result = JSON.parse(decryptSecret(order.supplier_result_encrypted, cfg.settingsEncryptionKey)); } catch {}
   }
   return {
-    provider:order.supplier_provider==='wamda'?'WAMDA':'SEAGM',status:String(order.supplier_status || 'pending'),
+    provider:order.supplier_provider==='wamda'?'WAMDA':(order.supplier_provider==='beststore'?'BEST_STORE':'SEAGM'),status:String(order.supplier_status || 'pending'),
     message:String(order.supplier_message || ''),
     orderId:order.supplier_order_id ? String(order.supplier_order_id) : null,
     ...(result || {}),
@@ -608,7 +635,7 @@ async function verifyPayment(input) {
     if (order.status === 'paid') {
       const used = await client.query('SELECT transaction_id FROM nexa_payments WHERE order_id=$1',[orderId]);
       await client.query('COMMIT');
-      if (used.rowCount && used.rows[0].transaction_id === transactionRef) return {ok:true,alreadyPaid:true,orderId,transactionId:transactionRef,status:'paid',receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:order.paid_at ? new Date(order.paid_at).toISOString() : new Date().toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,...(['seagm','wamda'].includes(order.supplier_provider)?{delivery:supplierDeliveryForOrder(order)}:{})}};
+      if (used.rowCount && used.rows[0].transaction_id === transactionRef) return {ok:true,alreadyPaid:true,orderId,transactionId:transactionRef,status:'paid',receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:order.paid_at ? new Date(order.paid_at).toISOString() : new Date().toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,...(['seagm','wamda','beststore'].includes(order.supplier_provider)?{delivery:supplierDeliveryForOrder(order)}:{})}};
       return {error:'ORDER_ALREADY_PAID',status:409,message:'هذا الطلب مدفوع مسبقاً ولا يقبل رقم عملية آخر.'};
     }
     if (order.status !== 'pending_payment' || new Date(order.expires_at).getTime() <= Date.now()) {
@@ -662,7 +689,7 @@ async function verifyPayment(input) {
       VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING RETURNING id`,
       [transactionRef,orderId,tx.amountMinor.toString(),tx.currency,String(wallet.id),tx.occurredAt,JSON.stringify({invoiceNumber:order.invoice_number,transactionId:transactionRef,amountMinor:tx.amountMinor.toString(),currency:tx.currency,receiverAddress:tx.receiverAddress,type:tx.type,occurredAt:tx.occurredAt.toISOString(),paidAt:paidAt.toISOString()})]);
     if (!inserted.rowCount) { await client.query('ROLLBACK'); return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'}; }
-    await client.query("UPDATE nexa_orders SET status='paid',paid_at=$2,supplier_status=CASE WHEN supplier_provider IN ('seagm','wamda') THEN 'pending' ELSE supplier_status END,supplier_message=CASE WHEN supplier_provider='wamda' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.' WHEN supplier_provider='seagm' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.' ELSE supplier_message END WHERE id=$1",[orderId,paidAt]);
+    await client.query("UPDATE nexa_orders SET status='paid',paid_at=$2,supplier_status=CASE WHEN supplier_provider IN ('seagm','wamda','beststore') THEN 'pending' ELSE supplier_status END,supplier_message=CASE WHEN supplier_provider='wamda' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.' WHEN supplier_provider='seagm' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.' WHEN supplier_provider='beststore' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى Best Store.' ELSE supplier_message END WHERE id=$1",[orderId,paidAt]);
     let walletBalanceMinor=null;
     if(order.wallet_topup_customer_id){
       const credited=await client.query('UPDATE nexa_customers SET balance_minor=balance_minor+$2 WHERE id=$1 RETURNING balance_minor::text',[order.wallet_topup_customer_id,String(order.amount_minor)]);
@@ -671,7 +698,7 @@ async function verifyPayment(input) {
       await client.query(`INSERT INTO nexa_wallet_ledger(customer_id,kind,amount_minor,balance_after_minor,reference_order_id,note)
         VALUES($1,'topup',$2,$3,$4,'شحن رصيد عبر شام كاش')`,[order.wallet_topup_customer_id,String(order.amount_minor),walletBalanceMinor,orderId]);
     }
-    if (['seagm','wamda'].includes(order.supplier_provider)) {
+    if (['seagm','wamda','beststore'].includes(order.supplier_provider)) {
       await client.query(`INSERT INTO nexa_fulfillment_jobs(order_id,status,next_attempt_at)
         VALUES($1,'pending',NOW()) ON CONFLICT(order_id) DO NOTHING`,[orderId]);
     }
@@ -682,7 +709,7 @@ async function verifyPayment(input) {
         paymentMethod:order.wallet_topup_customer_id?'shamcash_topup':'shamcash',
         ...(walletBalanceMinor!==null?{walletBalanceMinor}:{}),
         invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:paidAt.toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,
-        ...(order.supplier_provider==='wamda'?{delivery:{provider:'WAMDA',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.'}}:(order.supplier_provider==='seagm'?{delivery:{provider:'SEAGM',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.'}}:{}))}};
+        ...(order.supplier_provider==='wamda'?{delivery:{provider:'WAMDA',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.'}}:(order.supplier_provider==='beststore'?{delivery:{provider:'BEST_STORE',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى Best Store.'}}:(order.supplier_provider==='seagm'?{delivery:{provider:'SEAGM',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.'}}:{})))}};
   } catch (error) {
     await client.query('ROLLBACK').catch(()=>{});
     if (error.code === '23505') return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'};
@@ -718,6 +745,8 @@ function defaultStoreSettings() {
     wamdaApiTokenEncrypted:'',wamdaApiTokenCleared:false,wamdaWebhookSecretEncrypted:'',
     wamdaCatalogCache:[],wamdaAccountInfo:null,wamdaLastSyncAt:null,wamdaLastRefreshAttemptAt:null,wamdaLastTestAt:null,wamdaLastError:'',
     wamdaProfitMarginPercent:0,wamdaPricingPolicy:{mode:'percent',value:0},wamdaCategoryPricingPolicies:{},wamdaAutoRefreshEnabled:true,wamdaRefreshIntervalMinutes:15,
+    bestStoreApiTokenEncrypted:'',bestStoreApiTokenCleared:false,bestStoreCatalogCache:[],bestStoreAccountInfo:null,bestStoreLastSyncAt:null,bestStoreLastTestAt:null,bestStoreLastAttemptAt:null,bestStoreLastError:'',
+    bestStoreCurrency:'USD',bestStoreCurrencyConfirmed:false,bestStorePricingPolicy:{mode:'percent',value:0},bestStoreCategoryPricingPolicies:{},bestStoreProductPricingPolicies:{},bestStoreAutoRefreshEnabled:true,bestStoreRefreshIntervalMinutes:15,
     nexaAiProvider:'gemini',nexaAiModel:'gemini-3.6-flash',nexaAiApiKeyEncrypted:'',nexaAiApiKeyCleared:false,
     catalogWriteApiTokenEncrypted:'', catalogWriteApiTokenCleared:false, catalogWriteApiKeys:[],
     paymentEnabled:cfg.paymentsEnabled, shamApiBase:cfg.apiBase, walletId:cfg.walletId,
@@ -754,6 +783,7 @@ function applyStoreSettings() {
     seagmSecretRuntime = storeSettings.seagmSecretCleared ? '' : (storeSettings.seagmSecretEncrypted ? decryptSecret(storeSettings.seagmSecretEncrypted, cfg.settingsEncryptionKey) : '');
   } catch { seagmSecretRuntime = ''; }
   try { wamdaApiTokenRuntime=storeSettings.wamdaApiTokenCleared?'':(storeSettings.wamdaApiTokenEncrypted?decryptSecret(storeSettings.wamdaApiTokenEncrypted,cfg.settingsEncryptionKey):''); } catch { wamdaApiTokenRuntime=''; }
+  try { bestStoreApiTokenRuntime=storeSettings.bestStoreApiTokenCleared?'':(storeSettings.bestStoreApiTokenEncrypted?decryptSecret(storeSettings.bestStoreApiTokenEncrypted,cfg.settingsEncryptionKey):''); } catch { bestStoreApiTokenRuntime=''; }
   try { wamdaWebhookSecretRuntime=storeSettings.wamdaWebhookSecretEncrypted?decryptSecret(storeSettings.wamdaWebhookSecretEncrypted,cfg.settingsEncryptionKey):''; } catch { wamdaWebhookSecretRuntime=''; }
   try { nexaAiApiKeyRuntime=storeSettings.nexaAiApiKeyCleared?'':(storeSettings.nexaAiApiKeyEncrypted?decryptSecret(storeSettings.nexaAiApiKeyEncrypted,cfg.settingsEncryptionKey):''); } catch { nexaAiApiKeyRuntime=''; }
   cachedShamWallet = null;
@@ -913,13 +943,13 @@ async function refreshAutomaticFx() {
   }
 }
 function safeSettingsForAdmin() {
-  const {shamApiTokenEncrypted,fxApiTokenEncrypted,catalogApiTokenEncrypted,catalogWriteApiTokenEncrypted,seagmSecretEncrypted,seagmCatalogCache=[],catalogWriteApiKeys=[],wamdaApiTokenEncrypted,wamdaWebhookSecretEncrypted,wamdaCatalogCache=[],nexaAiApiKeyEncrypted,...settings}=storeSettings||{};
+  const {shamApiTokenEncrypted,fxApiTokenEncrypted,catalogApiTokenEncrypted,catalogWriteApiTokenEncrypted,seagmSecretEncrypted,seagmCatalogCache=[],catalogWriteApiKeys=[],wamdaApiTokenEncrypted,wamdaWebhookSecretEncrypted,wamdaCatalogCache=[],bestStoreApiTokenEncrypted,bestStoreCatalogCache=[],nexaAiApiKeyEncrypted,...settings}=storeSettings||{};
   const publicBase=String(process.env.PUBLIC_BASE_URL||'https://nexa-store-9st4.onrender.com').replace(/\/+$/,'');
   return {...settings,catalogWriteApiKeys:catalogWriteApiKeys.map(({id,name,createdAt})=>({id,name,createdAt})),
     shamApiTokenConfigured:Boolean(cfg.apiToken),fxApiTokenConfigured:Boolean(fxApiTokenRuntime),catalogApiTokenConfigured:Boolean(catalogApiTokenRuntime),
     catalogWriteApiTokenConfigured:Boolean(catalogWriteApiTokenRuntime||catalogWriteApiKeys.length),seagmSecretConfigured:Boolean(seagmSecretRuntime),
     seagmProductCount:seagmCatalogCache.reduce((sum,category)=>sum+(category.products||[]).length,0),
-    wamdaApiTokenConfigured:Boolean(wamdaApiTokenRuntime),wamdaWebhookConfigured:Boolean(wamdaWebhookSecretRuntime),
+    wamdaApiTokenConfigured:Boolean(wamdaApiTokenRuntime),wamdaWebhookConfigured:Boolean(wamdaWebhookSecretRuntime),bestStoreApiTokenConfigured:Boolean(bestStoreApiTokenRuntime),bestStoreProductCount:bestStoreCatalogCache.reduce((sum,category)=>sum+(category.products||[]).length,0),
     wamdaWebhookUrl:wamdaWebhookSecretRuntime?publicBase+'/api/webhooks/wamda/'+encodeURIComponent(wamdaWebhookSecretRuntime):'',
     wamdaProductCount:wamdaCatalogCache.reduce((sum,category)=>sum+(category.products||[]).length,0),
     nexaAiConfigured:Boolean(nexaAiApiKeyRuntime),
@@ -927,7 +957,7 @@ function safeSettingsForAdmin() {
 }
 function validateAndApplySettings(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('INVALID_SETTINGS');
-  if(wamdaBulkPublishInProgress&&['wamdaPricingPolicy','wamdaProfitMarginPercent','wamdaCategoryPricingPolicies','fxRate'].some(key=>input[key]!==undefined))throw Object.assign(new Error('لا يمكن تغيير سياسة الأسعار أو سعر الصرف أثناء النشر الجماعي.'),{status:409});
+  if((wamdaBulkPublishInProgress||supplierCompareSyncInProgress)&&['wamdaPricingPolicy','wamdaProfitMarginPercent','wamdaCategoryPricingPolicies','bestStoreApiToken','clearBestStoreApiToken','bestStorePricingPolicy','bestStoreCurrency','bestStoreCurrencyConfirmed','bestStoreProductPricingPolicies','bestStoreAutoRefreshEnabled','bestStoreRefreshIntervalMinutes','bestStoreCategoryPricingPolicies','fxRate'].some(key=>input[key]!==undefined))throw Object.assign(new Error('لا يمكن تغيير سياسة الأسعار أو سعر الصرف أثناء النشر الجماعي.'),{status:409});
   const next = { ...storeSettings };
   const setText = (key, max, fallback = '') => {
     if (input[key] === undefined) return;
@@ -1045,6 +1075,16 @@ function validateAndApplySettings(input) {
     next.wamdaApiTokenEncrypted=encryptSecret(input.wamdaApiToken.trim(),cfg.settingsEncryptionKey);next.wamdaApiTokenCleared=false;
   }
   if(input.clearWamdaApiToken===true){next.wamdaApiTokenEncrypted='';next.wamdaApiTokenCleared=true;}
+  if(input.bestStoreApiToken!==undefined&&input.bestStoreApiToken!==''){
+    if(typeof input.bestStoreApiToken!=='string'||input.bestStoreApiToken.length>1024||!input.bestStoreApiToken.trim())throw new Error('INVALID_BEST_STORE_API_TOKEN');
+    next.bestStoreApiTokenEncrypted=encryptSecret(input.bestStoreApiToken.trim(),cfg.settingsEncryptionKey);next.bestStoreApiTokenCleared=false;
+  }
+  if(input.clearBestStoreApiToken===true){next.bestStoreApiTokenEncrypted='';next.bestStoreApiTokenCleared=true;}
+  if(input.bestStoreCurrency!==undefined){const currency=String(input.bestStoreCurrency).toUpperCase();if(!['USD','SYP'].includes(currency))throw new Error('INVALID_BEST_STORE_CURRENCY');if(currency!==String(next.bestStoreCurrency||'USD').toUpperCase())next.bestStoreCurrencyConfirmed=false;next.bestStoreCurrency=currency;}
+  if(input.bestStoreCurrencyConfirmed!==undefined){if(typeof input.bestStoreCurrencyConfirmed!=='boolean')throw new Error('INVALID_BEST_STORE_CURRENCY_CONFIRMATION');next.bestStoreCurrencyConfirmed=input.bestStoreCurrencyConfirmed;}
+  if(input.bestStorePricingPolicy!==undefined){const rule=normalizeWamdaPricingRule(input.bestStorePricingPolicy);if(!['percent','fixed_profit','fixed_price'].includes(rule.mode))throw new Error('INVALID_BEST_STORE_PRICING_MODE');next.bestStorePricingPolicy=rule;}
+  if(input.bestStoreAutoRefreshEnabled!==undefined){if(typeof input.bestStoreAutoRefreshEnabled!=='boolean')throw new Error('INVALID_BEST_STORE_AUTO_REFRESH_ENABLED');next.bestStoreAutoRefreshEnabled=input.bestStoreAutoRefreshEnabled;}
+  if(input.bestStoreRefreshIntervalMinutes!==undefined){const minutes=Number(input.bestStoreRefreshIntervalMinutes);if(!Number.isInteger(minutes)||minutes<5||minutes>1440)throw new Error('INVALID_BEST_STORE_REFRESH_INTERVAL');next.bestStoreRefreshIntervalMinutes=minutes;}
   if(input.nexaAiApiKey!==undefined&&input.nexaAiApiKey!==''){
     if(typeof input.nexaAiApiKey!=='string'||input.nexaAiApiKey.length>1024||!input.nexaAiApiKey.trim())throw new Error('INVALID_NEXA_AI_API_KEY');
     next.nexaAiApiKeyEncrypted=encryptSecret(input.nexaAiApiKey.trim(),cfg.settingsEncryptionKey);next.nexaAiApiKeyCleared=false;
@@ -1184,6 +1224,233 @@ async function persistSeagmSettings(nextSettings) {
 function wamdaClient(){
   if(!wamdaApiTokenRuntime)throw Object.assign(new Error('أدخل Wamda API Token من لوحة الإدارة أولاً.'),{status:400,code:'WAMDA_TOKEN_MISSING'});
   return createWamdaClient({apiToken:wamdaApiTokenRuntime});
+}
+function bestStoreClient(){
+  if(!bestStoreApiTokenRuntime)throw Object.assign(new Error('أدخل Best Store API Token من لوحة الإدارة أولاً.'),{status:400,code:'BEST_STORE_TOKEN_MISSING'});
+  return createBestStoreClient({apiToken:bestStoreApiTokenRuntime});
+}
+async function persistBestStoreSettings(nextSettings){
+  if(!pool)throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
+  await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+  storeSettings=nextSettings;applyStoreSettings();
+}
+function bestStoreCategoryKey(name){return crypto.createHash('sha256').update(normalizeSupplierText(name||'')).digest('hex').slice(0,14);}
+function safeBestStoreImage(value){
+  const raw=String(value||'').trim();if(!raw)return '';
+  try{
+    const url=new URL(/^https:\/\//i.test(raw)?raw:'https://best-store.app/'+raw.replace(/^\/+/,'')); 
+    if(url.protocol==='https:'&&['best-store.app','www.best-store.app','api.best-store.app'].includes(url.hostname))return url.href;
+    if(/^https:\/\//i.test(raw)&&url.protocol==='https:')return url.href;
+  }catch{}
+  return '';
+}
+function getBestStorePricingContext(settings=storeSettings){
+  const globalRule=normalizeWamdaPricingRule(settings?.bestStorePricingPolicy||{mode:'percent',value:0});
+  return {fxRate:Number(settings?.fxRate||145),currency:['USD','SYP'].includes(String(settings?.bestStoreCurrency||'USD').toUpperCase())?String(settings?.bestStoreCurrency||'USD').toUpperCase():'USD',currencyConfirmed:settings?.bestStoreCurrencyConfirmed===true,globalRule,
+    categoryPolicies:settings?.bestStoreCategoryPricingPolicies&&typeof settings.bestStoreCategoryPricingPolicies==='object'?settings.bestStoreCategoryPricingPolicies:{},
+    productPolicies:settings?.bestStoreProductPricingPolicies&&typeof settings.bestStoreProductPricingPolicies==='object'?settings.bestStoreProductPricingPolicies:{}};
+}
+function calculateBestStoreSellPriceSyp(source,settings=storeSettings,ruleOverride=null){
+  const context=getBestStorePricingContext(settings),cost=Number(source?.sourceCost??source?.basePrice??source?.price);
+  if(!Number.isFinite(cost)||cost<=0)throw Object.assign(new Error('BEST_STORE_INVALID_SOURCE_COST'),{code:'BEST_STORE_INVALID_SOURCE_COST'});
+  const costSyp=context.currency==='USD'?cost*context.fxRate:cost;
+  return calculateWamdaSellPriceSyp({unitPriceUsd:costSyp/context.fxRate,fxRate:context.fxRate,pricingRule:ruleOverride||context.globalRule});
+}
+function buildBestStoreAdminCategories(categories,publishedCatalog=catalog,settings=storeSettings){
+  const published=new Map();for(const row of publishedCatalog||[])for(const product of row.items||[])if(product.bestStore?.provider==='beststore')published.set(Number(product.bestStore.productId),product);
+  const context=getBestStorePricingContext(settings);
+  return (Array.isArray(categories)?categories:[]).map(category=>({...category,pricingPolicy:context.categoryPolicies[String(category.id)]||{mode:'inherit',value:0},products:(category.products||[]).map(source=>{
+    const existing=published.get(Number(source.id)),storedOverride=existing?.bestStore?.pricingOverride,configuredOverride=context.productPolicies[String(source.id)],categoryRule=context.categoryPolicies[String(category.id)]||null;
+    const override=configuredOverride?.mode&&configuredOverride.mode!=='inherit'?configuredOverride:(storedOverride?.mode&&storedOverride.mode!=='inherit'?storedOverride:(configuredOverride||storedOverride||{mode:'inherit'}));
+    const resolvedRule=override.mode&&override.mode!=='inherit'?normalizeWamdaPricingRule(override):(categoryRule||context.globalRule);
+    let calculatedSellPriceSyp=0;try{calculatedSellPriceSyp=calculateBestStoreSellPriceSyp(source,settings,resolvedRule);}catch{}
+    return {...source,published:Boolean(existing),pricingOverride:override,resolvedPricingRule:resolvedRule,categoryPricingPolicy:categoryRule||{mode:'inherit',value:0},calculatedSellPriceSyp,currentPriceSyp:existing?.options?.[0]?.packs?.[0]?.[1]??calculatedSellPriceSyp,
+      priceMode:existing?.bestStore?.priceMode||'auto',manualPriceSyp:existing?.bestStore?.manualPriceSyp||null};
+  })}));
+}
+async function testBestStoreConnection(){
+  const account=await bestStoreClient().getProfile(),testedAt=new Date().toISOString();
+  await persistBestStoreSettings({...storeSettings,bestStoreAccountInfo:account,bestStoreLastTestAt:testedAt,bestStoreLastError:''});return {ok:true,account,testedAt};
+}
+async function refreshBestStoreCatalog({source='manual'}={}){
+  if(bestStoreCatalogSyncInProgress||(supplierCompareSyncInProgress&&source!=='combined'))throw Object.assign(new Error('توجد عملية مزامنة موردين قيد التنفيذ.'),{status:409});
+  if(!bestStoreApiTokenRuntime)throw Object.assign(new Error('أدخل Best Store API Token من لوحة الإدارة أولاً.'),{status:400,code:'BEST_STORE_TOKEN_MISSING'});
+  bestStoreCatalogSyncInProgress=true;const attemptedAt=new Date().toISOString();
+  try{
+    await persistBestStoreSettings({...storeSettings,bestStoreLastAttemptAt:attemptedAt,bestStoreLastError:''});
+    const context=getBestStorePricingContext(),client=bestStoreClient(),[account,rows]=await Promise.all([client.getProfile(),client.getProducts()]);
+    const previous=Array.isArray(storeSettings.bestStoreCatalogCache)?storeSettings.bestStoreCatalogCache:[],previousProducts=new Map(previous.flatMap(category=>(category.products||[]).map(product=>[Number(product.id),product])));
+    const grouped=new Map(),received=new Set();let invalidProducts=0;
+    for(const raw of rows){
+      const product=normalizeBestStoreProduct(raw,context.currency);if(!product){invalidProducts++;continue;}
+      received.add(Number(product.id));const categoryName=product.categoryName||'خدمات رقمية متنوعة',key=bestStoreCategoryKey(categoryName);
+      if(!grouped.has(key))grouped.set(key,{id:key,name:categoryName,image:safeBestStoreImage(product.categoryImage),products:[]});
+      const old=previousProducts.get(Number(product.id));product.image=safeBestStoreImage(product.image)||safeBestStoreImage(old?.image)||'';
+      product.categoryImage=safeBestStoreImage(product.categoryImage)||safeBestStoreImage(old?.categoryImage)||grouped.get(key).image||'';
+      if(old?.fields?.length&&old.fields.some((field,index)=>field.submitField!==product.fields[index]?.submitField))product.fields=old.fields;
+      grouped.get(key).products.push(product);
+    }
+    const categories=[...grouped.values()].sort((a,b)=>a.name.localeCompare(b.name,'ar'));
+    for(const oldCategory of previous)for(const oldProduct of oldCategory.products||[]){
+      if(received.has(Number(oldProduct.id)))continue;const key=bestStoreCategoryKey(oldProduct.categoryName||oldCategory.name||'خدمات رقمية متنوعة');
+      let target=categories.find(category=>category.id===key);if(!target){target={id:key,name:oldProduct.categoryName||oldCategory.name||'خدمات رقمية متنوعة',image:oldCategory.image||'',products:[]};categories.push(target);}
+      target.products.push({...oldProduct,available:false,missingFromLatestSync:true});
+    }
+    const syncedAt=new Date().toISOString();
+    await persistBestStoreSettings({...storeSettings,bestStoreAccountInfo:account,bestStoreCatalogCache:categories,bestStoreLastSyncAt:syncedAt,bestStoreLastError:''});
+    return {ok:true,source,account,syncedAt,stats:{categories:categories.length,products:rows.length,available:categories.reduce((sum,cat)=>sum+(cat.products||[]).filter(product=>product.available).length,0),invalidProducts},categories};
+  }catch(error){await persistBestStoreSettings({...storeSettings,bestStoreLastAttemptAt:attemptedAt,bestStoreLastError:String(error?.message||'BEST_STORE_SYNC_FAILED').slice(0,300)}).catch(()=>{});throw error;}
+  finally{bestStoreCatalogSyncInProgress=false;}
+}
+function collectSupplierCandidates(settings=storeSettings){
+  const candidates=[];
+  if(wamdaApiTokenRuntime)for(const category of Array.isArray(settings?.wamdaCatalogCache)?settings.wamdaCatalogCache:[])for(const product of category.products||[]){
+    const candidate={provider:'wamda',categoryId:Number(category.id),categoryName:category.name||product.categoryName||'منتجات ومضة',categoryImage:category.image||'',product,productId:Number(product.id),
+      sourceCost:Number(product.unitPrice),currency:'USD',available:product.available!==false,matchKey:supplierProductMatchKey(product,category.name||product.categoryName||'')};
+    if(candidate.matchKey)candidates.push(candidate);
+  }
+  const currency=getBestStorePricingContext(settings).currency;
+  if(bestStoreApiTokenRuntime&&settings?.bestStoreCurrencyConfirmed===true)for(const category of Array.isArray(settings?.bestStoreCatalogCache)?settings.bestStoreCatalogCache:[])for(const product of category.products||[]){
+    const candidate={provider:'beststore',categoryId:String(category.id),categoryName:category.name||product.categoryName||'خدمات رقمية متنوعة',categoryImage:category.image||product.categoryImage||'',product,productId:Number(product.id),
+      sourceCost:Number(product.sourceCost??product.basePrice??product.price),currency,available:product.available!==false,matchKey:supplierProductMatchKey(product,category.name||product.categoryName||'')};
+    if(candidate.matchKey)candidates.push(candidate);
+  }
+  return candidates;
+}
+function existingSupplierMatchKey(product,settings=storeSettings){
+  if(product?.supplierMatchKey)return String(product.supplierMatchKey);
+  if(product?.wamda?.provider==='wamda'){
+    const source=(settings?.wamdaCatalogCache||[]).flatMap(category=>(category.products||[]).map(item=>({item,category}))).find(row=>Number(row.item.id)===Number(product.wamda.productId));
+    return source?supplierProductMatchKey(source.item,source.category.name||''):'';
+  }
+  if(product?.bestStore?.provider==='beststore'){
+    const source=(settings?.bestStoreCatalogCache||[]).flatMap(category=>(category.products||[]).map(item=>({item,category}))).find(row=>Number(row.item.id)===Number(product.bestStore.productId));
+    return source?supplierProductMatchKey(source.item,source.category.name||''):'';
+  }
+  return '';
+}
+function applySupplierWinnerToCatalog(nextCatalog,winner,pricingSettings=storeSettings){
+  const {provider,product:source,categoryName,categoryImage,categoryId,productId,matchKey}=winner;
+  const existing=nextCatalog.flatMap(category=>category.items||[]).find(item=>existingSupplierMatchKey(item,pricingSettings)===matchKey)||
+    nextCatalog.flatMap(category=>category.items||[]).find(item=>provider==='wamda'?item.wamda?.provider==='wamda'&&Number(item.wamda.productId)===productId:item.bestStore?.provider==='beststore'&&Number(item.bestStore.productId)===productId)||null;
+  const manual={...(existing?.manualOverrides&&typeof existing.manualOverrides==='object'?existing.manualOverrides:{})};
+  const previousApi=existing?.apiSource&&typeof existing.apiSource==='object'?existing.apiSource:{};
+  if(existing){
+    if(manual.name===undefined&&(!previousApi.name||String(existing.name||'')!==String(previousApi.name)))manual.name=existing.name;
+    if(manual.desc===undefined&&(!previousApi.desc||String(existing.desc||'')!==String(previousApi.desc)))manual.desc=existing.desc;
+    if(manual.image===undefined&&(!previousApi.image||String(existing.image||'')!==String(previousApi.image)))manual.image=existing.image;
+    if(manual.options===undefined&&(!Array.isArray(previousApi.options)||JSON.stringify(existing.options||[])!==JSON.stringify(previousApi.options)))manual.options=existing.options;
+  }
+  for(const key of Object.keys(manual))if(manual[key]===undefined||manual[key]===null)delete manual[key];
+  const displayName=String(manual.name??source.name??'منتج رقمي').slice(0,120),sourceDesc=String(source.description||'').slice(0,700);
+  const description=String(manual.desc??(sourceDesc||existing?.desc||'')).slice(0,700);
+  const fallbackImage=safeBestStoreImage(source.image)||safeBestStoreImage(source.categoryImage)||safeBestStoreImage(categoryImage)||existing?.image||'assets/products/_shared/product-placeholder.svg';
+  const image=String(manual.image??fallbackImage),id=String(existing?.id||(provider==='wamda'?'wamda-'+productId:'beststore-'+productId));
+  let updated;
+  if(provider==='wamda'){
+    const context=getWamdaPricingContext(pricingSettings),previousOverride=existing?.wamda?.pricingOverride||{mode:'inherit'};
+    const base=existing||{id,name:displayName,desc:description||'منتج رقمي مرتبط بمصدر ومضة.',image,options:[{id:'wamda-default',name:'الخيار الأساسي',desc:'منتج رقمي مرتبط بمصدر ومضة',flag:'⚡',packs:[['سعر البيع',1]]}]};
+    const calculated=updateWamdaPublishedProduct({...base,wamda:{...(base.wamda||{}),provider:'wamda',pricingOverride:previousOverride}},source,{fxRate:context.fxRate,globalRule:context.globalRule,categoryRule:context.categoryPolicies[String(source.categoryId??categoryId)]||null});
+    const {bestStore,...withoutOtherProvider}=calculated;
+    updated={...withoutOtherProvider,id,name:displayName,desc:description||String(source.description||base.desc||'').slice(0,700),image,
+      options:Array.isArray(manual.options)?manual.options:calculated.options,apiSource:{provider:'wamda',name:String(source.name||displayName),desc:sourceDesc,image:safeBestStoreImage(source.image)||image,options:calculated.options},
+      supplierMatchKey:matchKey,...(Object.keys(manual).length?{manualOverrides:manual}:{})};
+  }else{
+    const context=getBestStorePricingContext(pricingSettings),storedOverride=existing?.bestStore?.pricingOverride,configuredOverride=context.productPolicies[String(productId)],categoryRule=context.categoryPolicies[String(categoryId)]||null;
+    const override=configuredOverride?.mode&&configuredOverride.mode!=='inherit'?configuredOverride:(storedOverride?.mode&&storedOverride.mode!=='inherit'?storedOverride:(configuredOverride||storedOverride||{mode:'inherit'}));
+    const effectiveRule=override.mode&&override.mode!=='inherit'?normalizeWamdaPricingRule(override):(categoryRule||context.globalRule);
+    const calculatedPrice=calculateBestStoreSellPriceSyp(source,pricingSettings,effectiveRule);
+    const autoOptions=[{id:'beststore-default',name:'الخيار الأساسي',desc:'منتج مرتبط بمصدر Best Store',flag:'✦',packs:[['سعر البيع',calculatedPrice]]}];
+    const inferredManualPrice=Array.isArray(manual.options)?Number(manual.options[0]?.packs?.[0]?.[1]):NaN;
+    const manualPrice=existing?.bestStore?.priceMode==='manual'&&Number(existing.bestStore.manualPriceSyp)>0?Number(existing.bestStore.manualPriceSyp):
+      (Array.isArray(manual.options)&&Number.isFinite(inferredManualPrice)&&inferredManualPrice>0?inferredManualPrice:null);
+    const sellPrice=manualPrice||calculatedPrice;
+    if(!Number.isFinite(sellPrice)||sellPrice<=0)throw Object.assign(new Error('سعر بيع Best Store المحسوب غير صالح.'),{code:'BEST_STORE_INVALID_SELL_PRICE'});
+    autoOptions[0].packs[0][1]=sellPrice;
+    const options=Array.isArray(manual.options)?manual.options:autoOptions;
+    const {wamda,...withoutOtherProvider}=existing||{};
+    updated={...withoutOtherProvider,id,name:displayName,desc:description||'منتج رقمي مرتبط بمصدر Best Store.',image,options,
+      apiSource:{provider:'beststore',name:String(source.name||displayName),desc:sourceDesc,image:safeBestStoreImage(source.image)||safeBestStoreImage(source.categoryImage)||image,options:autoOptions},
+      supplierMatchKey:matchKey,...(Object.keys(manual).length?{manualOverrides:manual}:{}),
+      bestStore:{provider:'beststore',productId,categoryId:String(categoryId),categoryName,productType:String(source.productType||'package'),currency:context.currency,
+        minimumQuantity:Number(source.minimumQuantity||1),maximumQuantity:Number(source.maximumQuantity||1),allowedQuantities:Array.isArray(source.allowedQuantities)?source.allowedQuantities:[],
+        fields:Array.isArray(source.fields)?source.fields:[],available:source.available!==false,priceMode:manualPrice?'manual':'auto',manualPriceSyp:manualPrice,
+        calculatedSellPriceSyp:calculatedPrice,pricingOverride:override}};
+  }
+  const existingParent=existing?nextCatalog.find(category=>(category.items||[]).some(item=>item.id===existing.id)):null;
+  const normalizedCategory=normalizeSupplierText(categoryName||'خدمات رقمية متنوعة');
+  const categoryMatch=supplierCategoryMatchKey(categoryName||'خدمات رقمية متنوعة');
+  const exactCategory=nextCatalog.find(category=>normalizeSupplierText(category.name||'')===normalizedCategory);
+  const familyCategory=nextCatalog.find(category=>supplierCategoryMatchKey(category.name||'')===categoryMatch);
+  // Keep an already-published product in its current storefront category when the
+  // winning supplier changes. Otherwise merge categories from equivalent game families.
+  const targetId=existingParent?.id||exactCategory?.id||familyCategory?.id||('supplier-category-'+bestStoreCategoryKey(categoryName||'خدمات رقمية متنوعة'));
+  let target=nextCatalog.find(category=>category.id===targetId);
+  if(!target){target={id:targetId,name:String(categoryName||'خدمات رقمية متنوعة').slice(0,100),desc:'منتجات رقمية متزامنة من الموردين المتاحين.',image:safeBestStoreImage(categoryImage)||'assets/products/_shared/category-placeholder.svg',icon:'✦',items:[]};nextCatalog.push(target);}
+  for(const category of nextCatalog)category.items=(category.items||[]).filter(item=>item.id!==updated.id&&existingSupplierMatchKey(item,pricingSettings)!==matchKey);
+  target.items=target.items||[];target.items.push(updated);return {catalog:nextCatalog,created:!existing,updated,existing};
+}
+async function publishCheapestSupplierProduct(input){
+  if(wamdaBulkPublishInProgress||supplierCompareSyncInProgress)throw Object.assign(new Error('توجد مقارنة أو عملية نشر جماعي قيد التنفيذ.'),{status:409});
+  if(bestStoreApiTokenRuntime&&storeSettings?.bestStoreCurrencyConfirmed!==true)throw Object.assign(new Error('حدد عملة أسعار Best Store وأكّد أنها العملة الفعلية قبل مقارنة الموردين.'),{status:409,code:'BEST_STORE_CURRENCY_UNCONFIRMED'});
+  const provider=String(input?.provider||''),categoryId=String(input?.categoryId??''),productId=Number(input?.productId);
+  if(!['wamda','beststore'].includes(provider)||!categoryId||!Number.isSafeInteger(productId)||productId<=0)throw Object.assign(new Error('بيانات المنتج المطلوب نشره غير صالحة.'),{status:400});
+  const candidates=collectSupplierCandidates(),selected=candidates.find(candidate=>candidate.provider===provider&&String(candidate.categoryId)===categoryId&&candidate.productId===productId);
+  if(!selected)throw Object.assign(new Error('المنتج غير موجود في آخر مزامنة للمورد. حدّث المنتجات أولاً.'),{status:404});
+  const group=compareSupplierCandidates(candidates,getWamdaPricingContext().fxRate).find(row=>row.matchKey===selected.matchKey);
+  if(!group)throw Object.assign(new Error('لا يوجد سعر مورد صالح للمقارنة لهذا المنتج.'),{status:409});
+  wamdaBulkPublishInProgress=true;
+  try{const result=applySupplierWinnerToCatalog(catalog,group.winner),validated=validateCatalog(result.catalog);await persistCatalog(validated);
+    return {ok:true,created:result.created,winner:group.winner.provider,sourceCost:group.winner.sourceCost,currency:group.winner.currency,costSyp:group.winner.costSyp,
+      compared:group.candidates.length,publishedProductId:result.updated.id,sellPriceSyp:result.updated.options?.[0]?.packs?.[0]?.[1]??null,
+      message:group.candidates.length>1?'تمت مقارنة الموردين ونشر النسخة الأرخص قبل إضافة هامش الربح.':'تم نشر المنتج؛ لا يوجد له منتج مطابق في المورد الآخر.'};
+  }finally{wamdaBulkPublishInProgress=false;}
+}
+async function compareAndPublishSupplierCatalog({refresh=true,source='manual'}={}){
+  if(supplierCompareSyncInProgress||wamdaBulkPublishInProgress||wamdaCatalogSyncInProgress||bestStoreCatalogSyncInProgress)throw Object.assign(new Error('توجد عملية مزامنة أو نشر قيد التنفيذ. حاول بعد انتهائها.'),{status:409});
+  if(bestStoreApiTokenRuntime&&storeSettings?.bestStoreCurrencyConfirmed!==true)throw Object.assign(new Error('حدد عملة أسعار Best Store وأكّد أنها العملة الفعلية قبل مقارنة الموردين.'),{status:409,code:'BEST_STORE_CURRENCY_UNCONFIRMED'});
+  if(!wamdaApiTokenRuntime&&!bestStoreApiTokenRuntime)throw Object.assign(new Error('أضف API Token لمضة أو Best Store أولاً.'),{status:400});
+  supplierCompareSyncInProgress=true;
+  try{
+    if(refresh){if(wamdaApiTokenRuntime)await refreshWamdaCatalog({source:'combined'});if(bestStoreApiTokenRuntime)await refreshBestStoreCatalog({source:'combined'});}
+    const candidates=collectSupplierCandidates(),groups=compareSupplierCandidates(candidates,getWamdaPricingContext().fxRate);
+    const availableCandidateKeys=new Set(candidates.filter(candidate=>candidate.available!==false&&Number(candidate.sourceCost)>0).map(candidate=>candidate.matchKey));
+    if(!groups.length&&availableCandidateKeys.size>0)throw Object.assign(new Error('لم يتم العثور على منتجات ذات عملة أو تكلفة صالحة للمقارنة. تحقق من عملة Best Store وأسعار المورد.'),{status:409});
+    if(!groups.length&&!candidates.length)throw Object.assign(new Error('لم يُرجع أي مورد منتجات قابلة للمقارنة.'),{status:409});
+    wamdaBulkPublishInProgress=true;let created=0,updated=0,compared=0,bestStoreWins=0,wamdaWins=0;
+    let nextCatalog=catalog.map(category=>({...category,items:[...(category.items||[])]}));
+    for(const group of groups){const winner=group.winner,result=applySupplierWinnerToCatalog(nextCatalog,winner);nextCatalog=result.catalog;if(result.created)created++;else updated++;if(group.compared)compared++;if(winner.provider==='beststore')bestStoreWins++;else wamdaWins++;}
+    const allCandidateKeys=new Set(candidates.map(candidate=>candidate.matchKey));
+    for(const category of nextCatalog)for(const item of category.items||[]){
+      const key=item.supplierMatchKey||existingSupplierMatchKey(item);
+      if(!key||!allCandidateKeys.has(key)||availableCandidateKeys.has(key))continue;
+      if(item.wamda?.provider==='wamda')item.wamda={...item.wamda,available:false};
+      if(item.bestStore?.provider==='beststore')item.bestStore={...item.bestStore,available:false};
+    }
+    const validated=validateCatalog(nextCatalog);if(Buffer.byteLength(JSON.stringify(validated),'utf8')>15_000_000)throw Object.assign(new Error('كتالوج المنتجات تجاوز الحجم المسموح.'),{status:413});
+    await persistCatalog(validated);
+    return {ok:true,source,stats:{productsFetched:candidates.length,uniqueProducts:groups.length,comparedGroups:compared,bestStoreWins,wamdaWins,publishedNew:created,updatedExisting:updated,
+      unavailable:allCandidateKeys.size-availableCandidateKeys.size,fxRate:getWamdaPricingContext().fxRate},
+      syncedAt:new Date().toISOString(),message:groups.length?'اكتملت مقارنة الموردين قبل هامش الربح، وتم نشر أقل تكلفة متاحة لكل منتج مطابق.':'اكتملت المزامنة، لكن المنتجات الحالية غير متاحة لدى جميع الموردين.'};
+  }finally{wamdaBulkPublishInProgress=false;supplierCompareSyncInProgress=false;}
+}
+async function repricePublishedBestStoreProducts(nextSettings=storeSettings){
+  const context=getBestStorePricingContext(nextSettings),sourceById=new Map((nextSettings?.bestStoreCatalogCache||[]).flatMap(category=>(category.products||[]).map(product=>[Number(product.id),product])));
+  let changed=false;const nextCatalog=catalog.map(category=>({...category,items:(category.items||[]).map(existing=>{
+    if(existing.bestStore?.provider!=='beststore'||existing.bestStore.priceMode==='manual')return existing;
+    const source=sourceById.get(Number(existing.bestStore.productId));if(!source)return existing;
+    try{const productRule=context.productPolicies[String(existing.bestStore.productId)]||existing.bestStore.pricingOverride||null,categoryRule=context.categoryPolicies[String(existing.bestStore.categoryId)]||null;
+      const effectiveRule=productRule?.mode&&productRule.mode!=='inherit'?normalizeWamdaPricingRule(productRule):(categoryRule||context.globalRule);
+      const price=calculateBestStoreSellPriceSyp(source,nextSettings,effectiveRule);
+      const apiOptions=existing.apiSource?.options;
+      if(!Array.isArray(apiOptions)||JSON.stringify(existing.options||[])!==JSON.stringify(apiOptions))return existing;
+      const autoOptions=(existing.options||[]).map((option,index)=>index?option:{...option,packs:(option.packs||[]).map((pack,pIndex)=>pIndex?pack:[pack[0],price])});
+      const updated={...existing,bestStore:{...existing.bestStore,calculatedSellPriceSyp:price},options:autoOptions,
+        apiSource:{...existing.apiSource,options:autoOptions}};
+      if(JSON.stringify(updated)!==JSON.stringify(existing))changed=true;return updated;
+    }catch{return existing;}
+  })}));
+  if(changed)await persistCatalog(validateCatalog(nextCatalog));return {updated:changed};
 }
 async function persistWamdaSettings(nextSettings){
   if(!pool)throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
@@ -1771,8 +2038,22 @@ async function processWamdaFulfillmentJob(job){
   if(decision.action==='retry'){await saveSeagmFulfillmentState(job,{jobStatus:'retry',orderStatus:'waiting',message:decision.message,metadata,delaySeconds:decision.delaySeconds,failureCount:0});return;}
   await saveSeagmFulfillmentState(job,{jobStatus:'manual_review',orderStatus:'manual_review',message:decision.message,errorText:decision.errorCode,metadata,failureCount:0});
 }
+async function processBestStoreFulfillmentJob(job){
+  if(!bestStoreApiTokenRuntime){await saveSeagmFulfillmentState(job,{jobStatus:'manual_review',orderStatus:'manual_review',message:'مفتاح Best Store API غير مضبوط حالياً. أدخله من لوحة الإدارة لمتابعة الطلب.',errorText:'BEST_STORE_TOKEN_MISSING'});return;}
+  const orderUuid=String(job.supplier_mch_order_id||''),client=bestStoreClient();
+  // Reconcile by the same UUID before creating anything. This prevents duplicate supplier purchases on retries.
+  let providerOrder=await client.checkOrder(orderUuid);
+  if(!providerOrder){try{providerOrder=await client.createOrder(Number(job.supplier_type_id),{quantity:Number(job.supplier_quantity||1),fields:job.supplier_fields||{},orderUuid});}
+    catch(createError){providerOrder=await client.checkOrder(orderUuid);if(!providerOrder)throw createError;}}
+  const decision=bestStoreOrderDecision(providerOrder),metadata={...decision.metadata,id:decision.metadata?.id||orderUuid};
+  if(decision.action==='completed'){await saveSeagmFulfillmentState(job,{jobStatus:'completed',orderStatus:'completed',message:decision.message,metadata,
+    resultEncrypted:encryptSecret(JSON.stringify(decision.result),cfg.settingsEncryptionKey),failureCount:0});return;}
+  if(decision.action==='retry'){await saveSeagmFulfillmentState(job,{jobStatus:'retry',orderStatus:'waiting',message:decision.message,metadata,delaySeconds:decision.delaySeconds,failureCount:0});return;}
+  await saveSeagmFulfillmentState(job,{jobStatus:'manual_review',orderStatus:'manual_review',message:decision.message,errorText:decision.errorText,metadata,failureCount:0});
+}
 async function processSeagmFulfillmentJob(job) {
   if(job.supplier_provider==='wamda')return processWamdaFulfillmentJob(job);
+  if(job.supplier_provider==='beststore')return processBestStoreFulfillmentJob(job);
   if(job.supplier_provider!=='seagm'||!['card','recharge'].includes(job.supplier_kind)||
       !Number.isSafeInteger(Number(job.supplier_type_id))||Number(job.supplier_type_id)<=0) {
     await saveSeagmFulfillmentState(job,{
@@ -1841,7 +2122,7 @@ async function processSeagmFulfillmentJob(job) {
   });
 }
 async function runSeagmFulfillmentWorker() {
-  if(!pool||seagmFulfillmentWorkerBusy||(!storeSettings?.seagmUid||!seagmSecretRuntime)&&!wamdaApiTokenRuntime)return;
+  if(!pool||seagmFulfillmentWorkerBusy||(!storeSettings?.seagmUid||!seagmSecretRuntime)&&!wamdaApiTokenRuntime&&!bestStoreApiTokenRuntime)return;
   seagmFulfillmentWorkerBusy=true;
   let job=null;
   try {
@@ -1853,7 +2134,7 @@ async function runSeagmFulfillmentWorker() {
       console.error('SEAGM fulfillment worker failed to claim a job',String(error?.code||error?.message||'unknown').slice(0,120));
       return;
     }
-    const decision=job.supplier_provider==='wamda'?classifyWamdaError(error,Number(job.failure_count||0)):classifySeagmFulfillmentError(error,Number(job.failure_count||0));
+    const decision=job.supplier_provider==='wamda'?classifyWamdaError(error,Number(job.failure_count||0)):(job.supplier_provider==='beststore'?classifyBestStoreError(error,Number(job.failure_count||0)):classifySeagmFulfillmentError(error,Number(job.failure_count||0)));
     if(decision.action==='retry') {
       await saveSeagmFulfillmentState(job,{
         jobStatus:'retry',orderStatus:'waiting',
@@ -1897,7 +2178,7 @@ function assistantToolResult(name,args){
     if(!query||query.length>100)return {ok:false,message:'اكتب اسم المنتج أو الخدمة المراد البحث عنها.'};
     const found=rows.map(row=>({...row,score:[row.product.name,row.product.desc,row.categoryName,row.product.id].filter(Boolean).some(value=>String(value).toLowerCase().includes(query))?1:0}))
       .filter(row=>row.score).slice(0,8).map(row=>({id:String(row.product.id),name:String(row.product.name),description:String(row.product.desc||'').slice(0,240),category:row.categoryName,
-        available:row.product.wamda?.available!==false,options:(row.product.options||[]).map(option=>({name:option.name,packs:(option.packs||[]).slice(0,12).map(pack=>({name:String(pack[0]),price:Number(pack[1])}))}))}));
+        available:(row.product.wamda?.available??row.product.bestStore?.available??true),options:(row.product.options||[]).map(option=>({name:option.name,packs:(option.packs||[]).slice(0,12).map(pack=>({name:String(pack[0]),price:Number(pack[1])}))}))}));
     return {ok:true,results:found,total:found.length};
   }
   if(name==='get_store_product_details'){
@@ -1905,7 +2186,7 @@ function assistantToolResult(name,args){
     const row=rows.find(item=>String(item.product.id)===productId);
     if(!row)return {ok:false,message:'لم يتم العثور على هذا المنتج ضمن الكتالوج المنشور.'};
     return {ok:true,product:{id:String(row.product.id),name:String(row.product.name),description:String(row.product.desc||'').slice(0,700),
-      category:row.categoryName,available:row.product.wamda?.available!==false,
+      category:row.categoryName,available:(row.product.wamda?.available??row.product.bestStore?.available??true),
       options:(row.product.options||[]).map(option=>({name:String(option.name),description:String(option.desc||''),packs:(option.packs||[]).map(pack=>({name:String(pack[0]),price:Number(pack[1])}))}))}};
   }
   if(name==='get_store_help_information'){
@@ -2020,7 +2301,8 @@ seagmFulfillmentTimer.unref?.();
 runSeagmFulfillmentWorker().catch(error=>console.error('initial SEAGM fulfillment run failed',String(error?.message||'unknown').slice(0,120)));
 if (storeSettings?.fxMode === 'api') refreshAutomaticFx().catch(error=>console.error('initial FX refresh failed',error.message));
 if (storeSettings?.catalogApiMode === 'auto') syncCatalogFromApi().catch(error=>console.error('initial catalogue API sync failed',error.message));
-if(storeSettings?.wamdaAutoRefreshEnabled!==false&&wamdaApiTokenRuntime)refreshWamdaCatalog({source:'startup'}).catch(error=>console.error('initial Wamda catalogue refresh failed',String(error?.code||error?.message||'unknown').slice(0,160)));
+if(bestStoreApiTokenRuntime&&storeSettings?.bestStoreCurrencyConfirmed===true&&storeSettings?.bestStoreAutoRefreshEnabled!==false)compareAndPublishSupplierCatalog({refresh:true,source:'startup'}).catch(error=>console.error('initial supplier comparison failed',String(error?.code||error?.message||'unknown').slice(0,160)));
+else if(storeSettings?.wamdaAutoRefreshEnabled!==false&&wamdaApiTokenRuntime)refreshWamdaCatalog({source:'startup'}).catch(error=>console.error('initial Wamda catalogue refresh failed',String(error?.code||error?.message||'unknown').slice(0,160)));
 const fxRefreshTimer = setInterval(()=>{ if (storeSettings?.fxMode === 'api') refreshAutomaticFx().catch(error=>console.error('scheduled FX refresh failed',error.message)); },5*60_000);
 fxRefreshTimer.unref?.();
 const catalogSyncTimer = setInterval(()=>{
@@ -2031,12 +2313,17 @@ const catalogSyncTimer = setInterval(()=>{
 },60_000);
 catalogSyncTimer.unref?.();
 const wamdaCatalogRefreshTimer=setInterval(()=>{
+  if(bestStoreApiTokenRuntime&&storeSettings?.bestStoreCurrencyConfirmed===true&&storeSettings?.bestStoreAutoRefreshEnabled!==false){
+    if(supplierCompareSyncInProgress||bestStoreCatalogSyncInProgress||wamdaCatalogSyncInProgress)return;
+    const last=new Date(storeSettings.bestStoreLastAttemptAt||storeSettings.bestStoreLastSyncAt||0).getTime();
+    const interval=Math.max(5,Number(storeSettings.bestStoreRefreshIntervalMinutes||15))*60_000;
+    if(!Number.isFinite(last)||Date.now()-last>=interval)compareAndPublishSupplierCatalog({refresh:true,source:'scheduled'}).catch(error=>console.error('scheduled Best Store comparison failed',String(error?.code||error?.message||'unknown').slice(0,160)));
+    return;
+  }
   if(storeSettings?.wamdaAutoRefreshEnabled===false||!wamdaApiTokenRuntime||wamdaCatalogSyncInProgress)return;
   const last=new Date(storeSettings.wamdaLastRefreshAttemptAt||storeSettings.wamdaLastSyncAt||0).getTime();
   const interval=Math.max(5,Number(storeSettings.wamdaRefreshIntervalMinutes||15))*60_000;
-  if(!Number.isFinite(last)||Date.now()-last>=interval){
-    refreshWamdaCatalog({source:'scheduled'}).catch(error=>console.error('scheduled Wamda refresh failed',String(error?.code||error?.message||'unknown').slice(0,160)));
-  }
+  if(!Number.isFinite(last)||Date.now()-last>=interval)refreshWamdaCatalog({source:'scheduled'}).catch(error=>console.error('scheduled Wamda refresh failed',String(error?.code||error?.message||'unknown').slice(0,160)));
 },60_000);
 wamdaCatalogRefreshTimer.unref?.();
 
@@ -2403,6 +2690,66 @@ const server = http.createServer(async (req,res) => {
       await persistCatalog(result.catalog);
       return send(res,result.created?201:200,{ok:true,created:result.created,productId:result.productId,message:result.created?'تمت إضافة المنتج عبر API.':'تم تحديث المنتج عبر API.'});
     }
+    if(req.method==='GET'&&url.pathname==='/api/admin/best-store/catalog'){
+      const sourceCategories=Array.isArray(storeSettings?.bestStoreCatalogCache)?storeSettings.bestStoreCatalogCache:[];
+      const categories=buildBestStoreAdminCategories(sourceCategories);
+      const stats={categories:categories.length,products:categories.reduce((sum,cat)=>sum+(cat.products||[]).length,0),
+        available:categories.reduce((sum,cat)=>sum+(cat.products||[]).filter(product=>product.available).length,0),
+        published:categories.reduce((sum,cat)=>sum+(cat.products||[]).filter(product=>product.published).length,0)};
+      return send(res,200,{ok:true,configured:Boolean(bestStoreApiTokenRuntime),account:storeSettings?.bestStoreAccountInfo||null,
+        lastSyncAt:storeSettings?.bestStoreLastSyncAt||null,lastAttemptAt:storeSettings?.bestStoreLastAttemptAt||null,lastTestAt:storeSettings?.bestStoreLastTestAt||null,lastError:storeSettings?.bestStoreLastError||'',
+        syncInProgress:bestStoreCatalogSyncInProgress||supplierCompareSyncInProgress||wamdaBulkPublishInProgress,stats,categories,
+        pricing:{currency:getBestStorePricingContext().currency,currencyConfirmed:getBestStorePricingContext().currencyConfirmed,globalPolicy:getBestStorePricingContext().globalRule,fxRate:getBestStorePricingContext().fxRate,
+          autoRefreshEnabled:storeSettings?.bestStoreAutoRefreshEnabled!==false,refreshIntervalMinutes:Number(storeSettings?.bestStoreRefreshIntervalMinutes||15)}});
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/best-store/catalog/category-pricing'){
+      if(wamdaBulkPublishInProgress||supplierCompareSyncInProgress)return send(res,409,{ok:false,error:'SUPPLIER_SYNC_IN_PROGRESS',message:'لا يمكن تغيير سياسة القسم أثناء مقارنة الموردين.'});
+      const input=await bodyJson(req,16_384),categoryId=String(input.categoryId||'');
+      if(!/^[a-f0-9]{8,40}$/i.test(categoryId))return send(res,400,{ok:false,error:'INVALID_BEST_STORE_CATEGORY'});
+      try{
+        let policies={...(storeSettings.bestStoreCategoryPricingPolicies||{})};
+        if(input.mode==='inherit')delete policies[categoryId];
+        else{const rule=normalizeWamdaPricingRule({mode:input.mode,value:input.value});if(!['percent','fixed_profit','fixed_price'].includes(rule.mode))throw new Error('INVALID_BEST_STORE_PRICING_MODE');policies[categoryId]=rule;}
+        const nextSettings={...storeSettings,bestStoreCategoryPricingPolicies:policies};
+        await persistWamdaSettings(nextSettings);await repricePublishedBestStoreProducts(nextSettings);
+        return send(res,200,{ok:true,message:'تم حفظ سياسة تسعير قسم Best Store وإعادة حساب المنتجات التلقائية.'});
+      }catch(error){return send(res,error?.status||400,{ok:false,error:'INVALID_BEST_STORE_CATEGORY_PRICING',message:String(error?.message||'تعذر حفظ سياسة القسم.')});}
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/best-store/catalog/product-pricing'){
+      if(wamdaBulkPublishInProgress||supplierCompareSyncInProgress)return send(res,409,{ok:false,error:'SUPPLIER_SYNC_IN_PROGRESS',message:'لا يمكن تغيير سياسة المنتج أثناء مقارنة الموردين.'});
+      const input=await bodyJson(req,16_384),productId=Number(input.productId);
+      if(!Number.isSafeInteger(productId)||productId<=0)return send(res,400,{ok:false,error:'INVALID_BEST_STORE_PRODUCT'});
+      try{
+        let policies={...(storeSettings.bestStoreProductPricingPolicies||{})};
+        if(input.mode==='inherit')delete policies[String(productId)];
+        else{const rule=normalizeWamdaPricingRule({mode:input.mode,value:input.value});if(!['percent','fixed_profit','fixed_price'].includes(rule.mode))throw new Error('INVALID_BEST_STORE_PRICING_MODE');policies[String(productId)]=rule;}
+        const nextSettings={...storeSettings,bestStoreProductPricingPolicies:policies};
+        await persistWamdaSettings(nextSettings);await repricePublishedBestStoreProducts(nextSettings);
+        return send(res,200,{ok:true,message:'تم حفظ سياسة تسعير المنتج وإعادة حساب سعر البيع التلقائي.'});
+      }catch(error){return send(res,error?.status||400,{ok:false,error:'INVALID_BEST_STORE_PRODUCT_PRICING',message:String(error?.message||'تعذر حفظ سياسة المنتج.')});}
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/best-store/test'){
+      if(rateLimit(req,res,'best-store-test:'+ip,5,60_000))return;
+      try{return send(res,200,await testBestStoreConnection());}
+      catch(error){return send(res,error?.status||422,{ok:false,error:error?.code||'BEST_STORE_CONNECTION_FAILED',message:String(error?.message||'تعذر الاتصال بـ Best Store.').slice(0,300)});}
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/best-store/catalog/refresh'){
+      if(rateLimit(req,res,'best-store-sync:'+ip,2,60_000))return;
+      try{return send(res,200,await refreshBestStoreCatalog());}
+      catch(error){return send(res,error?.status||422,{ok:false,error:error?.code||'BEST_STORE_CATALOG_SYNC_FAILED',message:String(error?.message||'تعذر جلب منتجات Best Store.').slice(0,300)});}
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/suppliers/publish-cheapest'){
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const input=await bodyJson(req,16_384);
+      try{return send(res,200,await publishCheapestSupplierProduct(input));}
+      catch(error){return send(res,error?.status||400,{ok:false,error:error?.code||'SUPPLIER_PRODUCT_PUBLISH_FAILED',message:String(error?.message||'تعذر مقارنة ونشر المنتج.').slice(0,300)});}
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/suppliers/compare-publish'){
+      if(rateLimit(req,res,'supplier-compare-publish:'+ip,3,60_000))return;
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      try{return send(res,200,await compareAndPublishSupplierCatalog({refresh:true,source:'manual'}));}
+      catch(error){return send(res,error?.status||400,{ok:false,error:error?.code||'SUPPLIER_COMPARE_PUBLISH_FAILED',message:String(error?.message||'تعذرت مقارنة الموردين ونشر المنتجات.').slice(0,300)});}
+    }
     if(req.method==='GET'&&url.pathname==='/api/admin/wamda/catalog'){
       const sourceCategories=Array.isArray(storeSettings?.wamdaCatalogCache)?storeSettings.wamdaCatalogCache:[];
       const categories=buildWamdaAdminCategories(sourceCategories);
@@ -2538,10 +2885,12 @@ const server = http.createServer(async (req,res) => {
       const nextSettings = validateAndApplySettings(input);
       const pricingChanged=
         JSON.stringify(previousSettings?.wamdaPricingPolicy||{mode:'percent',value:Number(previousSettings?.wamdaProfitMarginPercent??0)})!==JSON.stringify(nextSettings.wamdaPricingPolicy||{mode:'percent',value:Number(nextSettings.wamdaProfitMarginPercent??0)})||
-        JSON.stringify(previousSettings?.wamdaCategoryPricingPolicies||{})!==JSON.stringify(nextSettings.wamdaCategoryPricingPolicies||{})||
-        previousSettings?.fxRate!==nextSettings.fxRate;
+        JSON.stringify(previousSettings?.wamdaCategoryPricingPolicies||{})!==JSON.stringify(nextSettings.wamdaCategoryPricingPolicies||{})||previousSettings?.fxRate!==nextSettings.fxRate;
+      const bestStorePricingChanged=JSON.stringify(previousSettings?.bestStorePricingPolicy||{mode:'percent',value:0})!==JSON.stringify(nextSettings.bestStorePricingPolicy||{mode:'percent',value:0})||
+        JSON.stringify(previousSettings?.bestStoreCategoryPricingPolicies||{})!==JSON.stringify(nextSettings.bestStoreCategoryPricingPolicies||{})||previousSettings?.bestStoreCurrency!==nextSettings.bestStoreCurrency||previousSettings?.fxRate!==nextSettings.fxRate;
       if(pricingChanged)await repricePublishedWamdaProducts(nextSettings);
-      else{
+      if(bestStorePricingChanged)await repricePublishedBestStoreProducts(nextSettings);
+      if(!pricingChanged&&!bestStorePricingChanged){
         await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
         storeSettings=nextSettings;applyStoreSettings();
       }
@@ -2562,7 +2911,7 @@ const server = http.createServer(async (req,res) => {
       if (!pool) return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
       const orderId=adminFulfillmentRetry[1];
       const found=await pool.query(`SELECT status,supplier_provider,supplier_status FROM nexa_orders WHERE id=$1`,[orderId]);
-      if (!found.rowCount || found.rows[0].status!=='paid' || !['seagm','wamda'].includes(found.rows[0].supplier_provider)) {
+      if (!found.rowCount || found.rows[0].status!=='paid' || !['seagm','wamda','beststore'].includes(found.rows[0].supplier_provider)) {
         return send(res,409,{ok:false,error:'FULFILLMENT_NOT_RETRYABLE',message:'لا يمكن إعادة محاولة هذا الطلب قبل تأكيد الدفع وربطه بمورد رقمي.'});
       }
       if (found.rows[0].supplier_status==='completed') return send(res,409,{ok:false,error:'FULFILLMENT_ALREADY_COMPLETED',message:'تم تسليم هذا الطلب بالفعل؛ لا يمكن إعادة شرائه.'});

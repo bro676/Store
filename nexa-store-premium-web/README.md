@@ -68,3 +68,10 @@
 - الاستجابة يجب أن تتبع بنية `catalog.json`؛ الأسعار أرقام بالليرة السورية الجديدة، ومعرّفات الأقسام والمنتجات والخيارات فريدة داخل نطاقها. الصور روابط HTTPS أو مسارات أصول محلية أو صور raster مضمنة.
 - توجد واجهة كتابة مستقلة: `POST /api/admin/catalog/products` مع ترويسة `X-Catalog-Key` التي تنشئها من صفحة ربط API. المفتاح محدود بإضافة وتحديث المنتجات ولا يمنح صلاحيات إدارية أخرى.
 - مفاتيح مزود الكتالوج ومفتاح الكتابة تُخزّن مشفّرة في PostgreSQL ولا تُعاد إلى الواجهة العامة.
+
+
+## Dual supplier catalog: WAMDA + Best Store
+
+The Catalog API admin page can connect WAMDA and Best Store to the same storefront. The new “Compare suppliers and publish cheapest” action fetches the latest catalogs from configured sources, matches equivalent game/service SKUs, compares the supplier's base cost before profit, and publishes the lower available cost. Non-matching products from either source remain available in their own storefront category; the public shop does not split its top-level sections by supplier.
+
+Best Store's API docs do not explicitly state the currency for `base_price` or `price`, so choose the matching account currency (USD or SYP) in the admin settings and explicitly confirm it before comparison. The system disables Best Store catalog availability and blocks automated publication/checkout until this confirmation is saved; changing the selected currency clears it. The system uses `base_price` when available and falls back to `price`. Profit is applied only after the winning supplier is selected. Manual edits to published product names, descriptions, images and option prices are preserved during refresh.
