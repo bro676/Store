@@ -3152,3 +3152,130 @@ html[data-theme="light"],body:has(html[data-theme="light"]){
 #app.shell .product-editor-chevron{flex:none;pointer-events:none}
 :root[data-theme="dark"] #app.shell .product-editor-chevron{background:#314452!important;color:#e8f0f6!important;border-color:#526777!important}
 :root[data-theme="light"] #app.shell .product-editor-chevron{background:#fff!important;color:#456178!important;border-color:#cadbe6!important}
+
+
+/* FINAL STOREFRONT CONTRAST FIX — landing page and every editable field. */
+:root[data-theme="dark"] .app-shell .home-intro{
+  background:
+    radial-gradient(circle at 86% 16%,rgba(212,175,55,.13),transparent 32%),
+    linear-gradient(125deg,#171b20 0%,#10161c 58%,#1c1a16 100%)!important;
+  border-color:#3a4149!important;color:#edf2f7!important;
+}
+:root[data-theme="dark"] .app-shell .home-intro-kicker{color:#d8bc84!important}
+:root[data-theme="dark"] .app-shell .home-intro-note{color:#c0b7a6!important}
+:root[data-theme="dark"] .app-shell .home-intro-note b{color:#f0d982!important}
+:root[data-theme="dark"] .app-shell .home-assistant-link{
+  background:#26323c!important;color:#e8edf2!important;border-color:#485764!important;
+}
+:root[data-theme="dark"] .app-shell .intro-side-label{
+  color:#e4d4ad!important;background:rgba(17,24,30,.76)!important;border-color:#46535d!important;
+}
+:root[data-theme="dark"] .app-shell .intro-mark{
+  background:radial-gradient(circle,#2a3037 0%,#151b21 68%,transparent 100%)!important;
+}
+:root[data-theme="dark"] .app-shell .intro-orbit{border-color:rgba(212,175,55,.22)!important}
+
+:root[data-theme="light"] .app-shell .app-main,
+:root[data-theme="light"] .app-shell #appMain{background:#f5f1e7!important}
+:root[data-theme="light"] .app-shell .home-intro{
+  background:
+    radial-gradient(circle at 86% 16%,rgba(184,141,34,.14),transparent 32%),
+    linear-gradient(125deg,#fffdf8 0%,#f9f4e9 58%,#efe5ce 100%)!important;
+  border-color:#e0d3b3!important;color:#262319!important;
+  box-shadow:0 18px 42px rgba(89,69,24,.09)!important;
+}
+:root[data-theme="light"] .app-shell .home-intro-kicker{color:#80611d!important}
+:root[data-theme="light"] .app-shell .home-intro-kicker i{background:#a98223!important}
+:root[data-theme="light"] .app-shell .home-intro p{color:#625a48!important}
+:root[data-theme="light"] .app-shell .home-intro-note{color:#665b43!important}
+:root[data-theme="light"] .app-shell .home-intro-note b{color:#87651a!important}
+:root[data-theme="light"] .app-shell .home-assistant-link{
+  background:#fffaf0!important;color:#5a4c2c!important;border-color:#dfd0aa!important;
+}
+:root[data-theme="light"] .app-shell .home-assistant-link:hover{
+  background:#f4ebd7!important;color:#745617!important;border-color:#c9b47d!important;
+}
+:root[data-theme="light"] .app-shell .intro-side-label{
+  color:#72581d!important;background:rgba(255,252,242,.92)!important;border-color:#dfd0aa!important;
+}
+:root[data-theme="light"] .app-shell .intro-mark{
+  background:radial-gradient(circle,#fffdf6 0%,#efe5cd 68%,transparent 100%)!important;
+}
+:root[data-theme="light"] .app-shell .intro-orbit{border-color:rgba(169,130,35,.24)!important}
+:root[data-theme="light"] .app-shell .section-title{color:#262319!important}
+:root[data-theme="light"] .app-shell .section-sub{color:#746b58!important}
+:root[data-theme="light"] .app-shell .section-kicker{color:#87651a!important}
+:root[data-theme="light"] .app-shell .trust-item{
+  background:#fffdf8!important;border-color:#e4dac3!important;
+}
+:root[data-theme="light"] .app-shell .trust-item strong{color:#302b20!important}
+:root[data-theme="light"] .app-shell .trust-item small{color:#796f5b!important}
+:root[data-theme="light"] .app-shell .process-card,
+:root[data-theme="light"] .app-shell .faq-item{
+  background:#fffdf8!important;color:#302b20!important;border-color:#e4dac3!important;
+}
+:root[data-theme="light"] .app-shell .process-card h3,
+:root[data-theme="light"] .app-shell .faq-item summary{color:#302b20!important}
+:root[data-theme="light"] .app-shell .process-card p,
+:root[data-theme="light"] .app-shell .faq-item p{color:#746b58!important}
+:root[data-theme="light"] .app-shell .home-intro h1,
+:root[data-theme="light"] .app-shell .home-intro-copy h1{color:#262319!important}
+:root[data-theme="light"] .app-shell .home-intro h1 span,
+:root[data-theme="light"] .app-shell .home-intro-copy h1 span{
+  color:#87651a!important;background:none!important;-webkit-text-fill-color:#87651a!important;
+}
+
+/* The older support and wallet field selectors had higher specificity than the
+   generic light theme rule. These explicit selectors now win in both modes. */
+:root[data-theme="dark"] .app-shell input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="dark"] .app-shell textarea,
+:root[data-theme="dark"] .app-shell select,
+:root[data-theme="dark"] .app-shell .support-form .field input,
+:root[data-theme="dark"] .app-shell .support-form .field textarea,
+:root[data-theme="dark"] .app-shell .support-form .field select,
+:root[data-theme="dark"] .app-shell .lookup-input-row input,
+:root[data-theme="dark"] .app-shell .assistant-compose input,
+:root[data-theme="dark"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field input,
+:root[data-theme="dark"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field textarea,
+:root[data-theme="dark"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field select{
+  background:#101820!important;color:#f2f6fa!important;border-color:#455968!important;
+  color-scheme:dark!important;-webkit-text-fill-color:#f2f6fa!important;caret-color:#f2f6fa!important;
+}
+:root[data-theme="light"] .app-shell input:not([type="checkbox"]):not([type="radio"]),
+:root[data-theme="light"] .app-shell textarea,
+:root[data-theme="light"] .app-shell select,
+:root[data-theme="light"] .app-shell .support-form .field input,
+:root[data-theme="light"] .app-shell .support-form .field textarea,
+:root[data-theme="light"] .app-shell .support-form .field select,
+:root[data-theme="light"] .app-shell .lookup-input-row input,
+:root[data-theme="light"] .app-shell .assistant-compose input,
+:root[data-theme="light"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field input,
+:root[data-theme="light"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field textarea,
+:root[data-theme="light"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field select{
+  background:#fff!important;color:#263b4f!important;border-color:#cbd9e3!important;
+  color-scheme:light!important;-webkit-text-fill-color:#263b4f!important;caret-color:#263b4f!important;
+}
+:root[data-theme="dark"] .app-shell input::placeholder,
+:root[data-theme="dark"] .app-shell textarea::placeholder{color:#92a3b1!important;opacity:1!important}
+:root[data-theme="light"] .app-shell input::placeholder,
+:root[data-theme="light"] .app-shell textarea::placeholder{color:#8497a7!important;opacity:1!important}
+:root[data-theme="dark"] .app-shell input:focus,
+:root[data-theme="dark"] .app-shell textarea:focus,
+:root[data-theme="dark"] .app-shell select:focus{
+  border-color:#b99b52!important;box-shadow:0 0 0 3px rgba(212,175,55,.15)!important;
+}
+:root[data-theme="light"] .app-shell input:focus,
+:root[data-theme="light"] .app-shell textarea:focus,
+:root[data-theme="light"] .app-shell select:focus{
+  border-color:#b88d22!important;box-shadow:0 0 0 3px rgba(184,141,34,.13)!important;
+}
+:root[data-theme="dark"] .app-shell input:-webkit-autofill,
+:root[data-theme="dark"] .app-shell input:-webkit-autofill:hover,
+:root[data-theme="dark"] .app-shell input:-webkit-autofill:focus{
+  -webkit-text-fill-color:#f2f6fa!important;-webkit-box-shadow:0 0 0 1000px #101820 inset!important;
+}
+:root[data-theme="light"] .app-shell input:-webkit-autofill,
+:root[data-theme="light"] .app-shell input:-webkit-autofill:hover,
+:root[data-theme="light"] .app-shell input:-webkit-autofill:focus{
+  -webkit-text-fill-color:#263b4f!important;-webkit-box-shadow:0 0 0 1000px #fff inset!important;
+}
