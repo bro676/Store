@@ -767,7 +767,7 @@ body{
 </div>
 </div>
 
-<div class="modal-backdrop" id="orderModal"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-head"><h2 id="modalTitle">تأكيد الطلب</h2><button class="modal-close" id="modalClose" aria-label="إغلاق">×</button></div><div class="modal-body"><div class="modal-product"><img id="modalImage" src="assets/products/freefire.svg" alt=""><span><strong id="modalProduct">الباقة المختارة</strong><small id="modalOption">تفاصيل الباقة</small></span><b id="modalPrice">—</b></div><form id="orderForm"><div class="form-grid"><div class="field"><label for="customerName">اسم العميل *</label><input id="customerName" name="customerName" placeholder="اكتب اسمك" required maxlength="70"></div><div class="field"><label for="customerPhone">رقم التواصل *</label><input id="customerPhone" name="customerPhone" placeholder="09xxxxxxxx" required maxlength="20" inputmode="tel"></div><div class="field full currency-field"><label for="orderCurrency">عملة الدفع *</label><select id="orderCurrency" name="currency" required><option value="SYP">الليرة السورية الجديدة (SYP)</option><option value="USD">الدولار الأمريكي (USD)</option></select><strong id="currencyPreview">—</strong><small id="currencyRateHint">يُحسب السعر النهائي على الخادم عند إنشاء الفاتورة.</small></div><div class="field full"><label for="paymentMethod">طريقة الدفع *</label><select id="paymentMethod" name="paymentMethod" required><option value="shamcash">دفع مباشر عبر شام كاش</option><option value="wallet">استخدام رصيد حسابي في Nexa</option></select><small id="paymentMethodHint">يمكنك الدفع مباشرة أو استخدام رصيدك بعد تسجيل الدخول.</small></div><div class="field full hidden" id="seagmFieldsContainer"></div><div class="field full hidden" id="seagmQuantityContainer"><label for="orderQuantity">الكمية</label><input id="orderQuantity" name="quantity" type="number" min="1" max="1000" step="1" value="1" inputmode="numeric"><small id="seagmQuantityHint">اختر الكمية المطلوبة.</small></div>
+<div class="modal-backdrop" id="orderModal"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div class="modal-head"><h2 id="modalTitle">تأكيد الطلب</h2><button class="modal-close" id="modalClose" aria-label="إغلاق">×</button></div><div class="modal-body"><div class="modal-product"><img id="modalImage" src="assets/products/01-games/free-fire/cover.svg" alt=""><span><strong id="modalProduct">الباقة المختارة</strong><small id="modalOption">تفاصيل الباقة</small></span><b id="modalPrice">—</b></div><form id="orderForm"><div class="form-grid"><div class="field"><label for="customerName">اسم العميل *</label><input id="customerName" name="customerName" placeholder="اكتب اسمك" required maxlength="70"></div><div class="field"><label for="customerPhone">رقم التواصل *</label><input id="customerPhone" name="customerPhone" placeholder="09xxxxxxxx" required maxlength="20" inputmode="tel"></div><div class="field full currency-field"><label for="orderCurrency">عملة الدفع *</label><select id="orderCurrency" name="currency" required><option value="SYP">الليرة السورية الجديدة (SYP)</option><option value="USD">الدولار الأمريكي (USD)</option></select><strong id="currencyPreview">—</strong><small id="currencyRateHint">يُحسب السعر النهائي على الخادم عند إنشاء الفاتورة.</small></div><div class="field full"><label for="paymentMethod">طريقة الدفع *</label><select id="paymentMethod" name="paymentMethod" required><option value="shamcash">دفع مباشر عبر شام كاش</option><option value="wallet">استخدام رصيد حسابي في Nexa</option></select><small id="paymentMethodHint">يمكنك الدفع مباشرة أو استخدام رصيدك بعد تسجيل الدخول.</small></div><div class="field full hidden" id="seagmFieldsContainer"></div><div class="field full hidden" id="seagmQuantityContainer"><label for="orderQuantity">الكمية</label><input id="orderQuantity" name="quantity" type="number" min="1" max="1000" step="1" value="1" inputmode="numeric"><small id="seagmQuantityHint">اختر الكمية المطلوبة.</small></div>
 <div class="field full" id="accountField"><label for="accountId">معرّف اللاعب / الحساب</label><input id="accountId" name="accountId" placeholder="أدخل المعرّف عند الحاجة" maxlength="80"><small>لا تدخل كلمة المرور أو رمز التحقق.</small></div><div class="field full"><label for="orderNotes">ملاحظات إضافية</label><textarea id="orderNotes" name="orderNotes" placeholder="أي تفاصيل تساعد على فهم طلبك..."></textarea></div></div><div class="modal-actions"><button class="btn btn-primary" type="submit">إنشاء الطلب والمتابعة للدفع</button><button class="btn btn-soft" type="button" id="modalCancel">إلغاء</button></div><p style="font-size:9px;color:#808998;line-height:1.8;margin:12px 0 0">سيتم إنشاء طلب على الخادم بسعر الباقة المحدد، ثم تنتقل إلى شاشة التحقق من عملية شام كاش. لن يُقبل الدفع حتى يتأكد الخادم من جميع البيانات.</p></form></div></div></div>
 <section class="assistant-widget" aria-label="مساعد Nexa">
   <button class="assistant-launcher" id="assistantLauncher" type="button" aria-expanded="false" aria-controls="assistantPanel"><span class="assistant-launcher-icon">✦</span><span>مساعد Nexa</span><i></i></button>
@@ -780,24 +780,65 @@ body{
   </div>
 </section>
 <div class="toast" id="toast"></div>
+<script src="/assets/brand/nexa-catalog.js?v=20261102-01"></script>
 <script>
 let categories=[];
 const $=id=>document.getElementById(id);const money=v=>v>0?new Intl.NumberFormat('en-US').format(v)+' ل.س جديدة':'يحدد لاحقاً';const formatMinor=(minor,currency='SYP')=>{const value=Number(BigInt(minor||0))/100;return currency==='USD'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value):new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value)+' ل.س جديدة'};const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let state={view:'home',category:null,item:null,option:null,selectedPack:null,pendingOrder:null,catalogPage:1,catalogQuery:'',productPage:1,productQuery:'',searchResults:[],searchPage:1};let toastTimer;let memoryData={orders:[],favs:[],supportTickets:[]};const deliveryWatchers=new Set();
+let state={view:'home',department:null,category:null,item:null,option:null,selectedPack:null,pendingOrder:null,catalogPage:1,catalogQuery:'',productPage:1,productQuery:'',searchResults:[],searchPage:1};let toastTimer;let memoryData={orders:[],favs:[],supportTickets:[]};const deliveryWatchers=new Set();
 function getCategory(id){return categories.find(x=>String(x.id)===String(id))||null}function getItem(id,categoryId=state.category){const scoped=categoryId==null?null:getCategory(categoryId);if(scoped){const match=(scoped.items||[]).find(x=>String(x.id)===String(id));if(match)return match;}for(const c of categories){const it=(c.items||[]).find(x=>String(x.id)===String(id));if(it)return it}return null}function getOption(id){const it=state.item&&getItem(state.item,state.category);return it?.options?.find(x=>String(x.id)===String(id))||null}
 function storageRead(){try{const raw=localStorage.getItem('nexa-store-client');if(raw){memoryData=JSON.parse(raw);return memoryData}}catch{}return memoryData}function storageSave(d){memoryData=d;try{localStorage.setItem('nexa-store-client',JSON.stringify(d))}catch{}}
 function showToast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2400)}
 function navigate(view){state.view=view;document.querySelectorAll('.view').forEach(e=>e.classList.toggle('hidden',e.dataset.view!==view));document.querySelectorAll('[data-page]').forEach(e=>e.classList.toggle('active',e.dataset.page===view));document.querySelectorAll('[data-nav]').forEach(e=>e.classList.toggle('active',e.dataset.nav===view));try{history.replaceState(null,'','#'+view)}catch{try{location.hash=view}catch{}}if(view==='store')renderCatalog();if(view==='orders')renderOrders();if(view==='favorites')renderFavorites();if(view==='home')renderFeatured();if(view==='support')renderSupportState();window.scrollTo({top:0,behavior:'smooth'});closeMenu()}
 function closeMenu(){document.body.classList.remove('menu-open','sidebar-open');$('menuToggle')?.setAttribute('aria-expanded','false')}
-function categoryCard(c){return `<button class="category-card" data-category="${c.id}"><img src="${esc(c.image)}" alt="" loading="lazy"><span class="category-mark">${esc(c.icon)}</span><span class="category-card-content"><strong>${esc(c.name)}</strong><small>${esc(c.desc)}</small></span></button>`}
-function renderHomeCategories(){const preview=categories.slice(0,8);$('homeCategoryGrid').innerHTML=categories.length?preview.map(categoryCard).join(''):'<div class="empty-state"><strong>لا توجد أقسام منشورة حالياً</strong><p>تواصل مع فريق الدعم للمساعدة.</p></div>';const count=$('homeCategoryCount');if(count)count.textContent=categories.length.toLocaleString('en-US');}
+function renderDepartmentCard(group){
+ return '<button type="button" class="department-card" data-department="'+esc(group.id)+'" aria-label="فتح '+esc(group.name)+'">'+
+  '<span class="department-card-art"><img src="'+esc(group.cover)+'" alt="" loading="lazy"><i>'+esc(group.icon)+'</i></span>'+
+  '<span class="department-card-copy"><strong>'+esc(group.name)+'</strong><small>'+esc(group.description)+'</small>'+
+  '<span class="department-card-meta">'+group.categoryCount.toLocaleString('en-US')+' أقسام داخلية · '+group.productCount.toLocaleString('en-US')+' منتج</span></span>'+
+  '<span class="department-card-arrow">←</span></button>';
+}
+function renderHomeCategories(){
+ const groups=NexaCatalog.getDepartmentSummaries(categories);
+ $('homeCategoryGrid').innerHTML=groups.length?groups.map(renderDepartmentCard).join(''):'<div class="empty-state"><strong>لا توجد أقسام منشورة حالياً</strong><p>تواصل مع فريق الدعم للمساعدة.</p></div>';
+ const count=$('homeCategoryCount');if(count)count.textContent=groups.length.toLocaleString('en-US');
+}
 function renderFeatured(){
- const list=categories.flatMap(cat=>(cat.items||[]).filter(it=>it.wamda?.available!==false).map(it=>({cat,it}))).slice(0,4);
- $('featuredGrid').innerHTML=list.length?list.map(({cat,it})=>`<article class="product-card" data-open-item="${esc(it.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0" aria-label="عرض المنتج ${esc(it.name)}"><div class="product-image"><img src="${esc(it.image)}" alt="${esc(it.name)}" loading="lazy"><span class="product-badge">${esc(cat.name)}</span><button class="favorite" data-favorite="${esc(it.id)}" aria-label="إضافة للمفضلة">♡</button></div><div class="product-info"><div class="product-meta"><span class="product-category">${esc(cat.name)}</span><span class="product-label">خيارات متاحة</span></div><h3>${esc(it.name)}</h3><p>${esc(it.desc)}</p><div class="product-foot"><span class="price">خيارات متعددة<small>السعر بعد اختيار الخيار</small></span><button class="mini-choose" data-open-item="${esc(it.id)}" data-open-category="${esc(cat.id)}">استكشف ←</button></div></div></article>`).join(''):'<div class="empty-state"><strong>لا توجد منتجات متاحة حالياً</strong><p>سيظهر هنا أحدث ما هو منشور في المتجر.</p></div>';
+ const list=[],seen=new Set();
+ for(const group of NexaCatalog.getDepartmentSummaries(categories)){
+  const found=group.categories.flatMap(cat=>(cat.items||[]).map(it=>({cat,it}))).find(row=>row.it.wamda?.available!==false);
+  if(found&&!seen.has(String(found.it.id))){list.push(found);seen.add(String(found.it.id));}
+  if(list.length>=4)break;
+ }
+ if(list.length<4){
+  for(const cat of categories)for(const it of cat.items||[]){
+   if(it.wamda?.available===false||seen.has(String(it.id)))continue;
+   list.push({cat,it});seen.add(String(it.id));if(list.length>=4)break;
+  }
+ }
+ $('featuredGrid').innerHTML=list.length?list.map(({cat,it})=>{
+  const image=NexaCatalog.productImage(it,cat);
+  return '<article class="product-card" data-open-item="'+esc(it.id)+'" data-open-category="'+esc(cat.id)+'" role="button" tabindex="0" aria-label="عرض المنتج '+esc(it.name)+'">'+
+   '<div class="product-image"><img src="'+esc(image)+'" alt="'+esc(it.name)+'" loading="lazy"><span class="product-badge">'+esc(cat.name)+'</span><button type="button" class="favorite" data-favorite="'+esc(it.id)+'" aria-label="إضافة للمفضلة">♡</button></div>'+
+   '<div class="product-info"><div class="product-meta"><span class="product-category">'+esc(cat.name)+'</span><span class="product-label">خيارات متاحة</span></div><h3>'+esc(it.name)+'</h3><p>'+esc(it.desc)+'</p><div class="product-foot"><span class="price">خيارات متعددة<small>السعر بعد اختيار الخيار</small></span><button type="button" class="mini-choose" data-open-item="'+esc(it.id)+'" data-open-category="'+esc(cat.id)+'">استكشف ←</button></div></div></article>';
+ }).join(''):'<div class="empty-state"><strong>لا توجد منتجات متاحة حالياً</strong><p>سيظهر هنا أحدث ما هو منشور في المتجر.</p></div>';
  syncFavorites();
 }
-function renderSteps(level){const steps=['القسم','اللعبة / الخدمة','المنطقة / الخطة','الباقة والسعر'];return steps.map((s,i)=>`${i?'<span class="step-arrow">←</span>':''}<span class="step ${i+1===level?'active':''}"><span>${i+1}</span>${s}</span>`).join('')}
-function breadcrumb(){let s='<button class="crumb" data-bc="root">كل الأقسام</button>';if(state.category){const c=getCategory(state.category);s+=`<span>‹</span><button class="crumb ${!state.item?'current':''}" ${state.item?'data-bc="category"':''}>${esc(c.name)}</button>`}if(state.item){const i=getItem(state.item);s+=`<span>‹</span><button class="crumb ${!state.option?'current':''}" ${state.option?'data-bc="item"':''}>${esc(i.name)}</button>`}if(state.option){const o=getOption(state.option);s+=`<span>‹</span><span class="crumb current">${esc(o.name)}</span>`}return s}
+function renderSteps(level){const steps=['القسم الرئيسي','قسم المورد','المنتج','الخيار / المنطقة','الباقة والسعر'];return steps.map((s,i)=>`${i?'<span class="step-arrow">←</span>':''}<span class="step ${i+1===level?'active':''}"><span>${i+1}</span>${s}</span>`).join('')}
+function breadcrumb(){
+ let s='<button type="button" class="crumb" data-bc="root">كل الأقسام</button>';
+ if(state.department){const d=NexaCatalog.department(state.department);s+='<span>‹</span><button type="button" class="crumb '+(!state.category?'current':'')+'" '+(state.category?'data-bc="department"':'')+'>'+esc(d.name)+'</button>';}
+ if(state.category){const c=getCategory(state.category);if(c)s+='<span>‹</span><button type="button" class="crumb '+(!state.item?'current':'')+'" '+(state.item?'data-bc="category"':'')+'>'+esc(c.name)+'</button>';}
+ if(state.item){const i=getItem(state.item,state.category);if(i)s+='<span>‹</span><button type="button" class="crumb '+(!state.option?'current':'')+'" '+(state.option?'data-bc="item"':'')+'>'+esc(i.name)+'</button>';}
+ if(state.option){const o=getOption(state.option);if(o)s+='<span>‹</span><span class="crumb current">'+esc(o.name)+'</span>';}
+ return s;
+}
+function tile(title,desc,image,tag,action,foot='عرض الخيارات',disabled=false){
+ return '<button type="button" class="catalog-tile" '+(disabled?'disabled aria-disabled="true" ':'')+action+'><span class="catalog-tile-image"><img src="'+esc(image)+'" alt="" loading="lazy"><span class="catalog-tile-tag">'+esc(tag)+'</span></span><span class="catalog-tile-body"><strong>'+esc(title)+'</strong><p>'+esc(desc)+'</p><span class="tile-foot">'+esc(foot)+' <span>←</span></span></span></button>';
+}
+function storeCatalogPager(page,pageCount,attribute){
+ if(pageCount<=1)return '';
+ return '<div class="store-catalog-pager"><button type="button" class="btn btn-soft" data-'+attribute+'="'+(page-1)+'" '+(page<=1?'disabled':'')+'>السابق</button><span>صفحة '+page.toLocaleString('en-US')+' من '+pageCount.toLocaleString('en-US')+'</span><button type="button" class="btn btn-soft" data-'+attribute+'="'+(page+1)+'" '+(page>=pageCount?'disabled':'')+'>التالي</button></div>';
+}
 function tile(title,desc,image,tag,action,foot='عرض الخيارات',disabled=false){return `<button class="catalog-tile" ${disabled?'disabled aria-disabled="true"':''} ${action}><span class="catalog-tile-image"><img src="${esc(image)}" alt="" loading="lazy"><span class="catalog-tile-tag">${esc(tag)}</span></span><span class="catalog-tile-body"><strong>${esc(title)}</strong><p>${esc(desc)}</p><span class="tile-foot">${esc(foot)} <span>←</span></span></span></button>`}
 function storeCatalogPager(page,pageCount,attribute){
  if(pageCount<=1)return '';
@@ -809,22 +850,37 @@ function renderCatalog(){
   $('catalogTitle').textContent='الكتالوج الرقمي';$('catalogDescription').textContent='لا توجد منتجات منشورة حالياً.';$('catalogCount').textContent='0 أقسام';$('catalogSteps').innerHTML='';$('breadcrumbs').innerHTML='';
   target.innerHTML='<div class="empty-state"><strong>لا توجد منتجات متاحة حالياً</strong><p>تواصل مع فريق الدعم للمساعدة أو عد لاحقاً للاطلاع على المنتجات المنشورة.</p><a class="btn btn-soft" href="https://wa.me/963936382101" target="_blank" rel="noopener">التواصل مع الدعم ↗</a></div>';return;
  }
- const cat=state.category?getCategory(state.category):null,it=state.item?getItem(state.item):null,opt=state.option?getOption(state.option):null;
- const level=opt?4:it?3:cat?2:1;
- $('catalogTitle').textContent=opt?opt.name:it?it.name:cat?cat.name:'كل الأقسام';
- $('catalogDescription').textContent=opt?'اختر الباقة المناسبة وراجع السعر والعملة قبل إنشاء الفاتورة.':it?'اختر المنطقة أو النسخة أو الخطة المناسبة.':cat?cat.desc:'ابحث ضمن جميع الأقسام أو تصفّح صفحات الكتالوج.';
+ const department=state.department?NexaCatalog.department(state.department):null;
+ const cat=state.category?getCategory(state.category):null;
+ const it=state.item?getItem(state.item,state.category):null;
+ const opt=state.option?getOption(state.option):null;
+ const level=opt?5:it?4:cat?3:department?2:1;
+ $('catalogTitle').textContent=opt?opt.name:it?it.name:cat?cat.name:department?department.name:'كل الأقسام الرئيسية';
+ $('catalogDescription').textContent=opt?'اختر الباقة المناسبة وراجع السعر والعملة قبل إنشاء الفاتورة.':
+  it?'اختر المنطقة أو النسخة أو الخطة المناسبة.':
+  cat?'اختر المنتج المطلوب من هذا القسم.':
+  department?department.description:'ابدأ بالقسم الرئيسي، ثم انتقل إلى قسم المورد والمنتج وخياراته وباقاته.';
  $('catalogSteps').innerHTML=renderSteps(level);$('breadcrumbs').innerHTML=breadcrumb();
  let html='';
- if(!cat){
+ if(!department){
   const query=String(state.catalogQuery||'').trim().toLocaleLowerCase('ar');
-  const all=categories.filter(category=>!query||[category.name,category.desc,category.id].some(value=>String(value||'').toLocaleLowerCase('ar').includes(query)));
-  const pageSize=36,pageCount=Math.max(1,Math.ceil(all.length/pageSize));
-  state.catalogPage=Math.min(Math.max(1,Number(state.catalogPage)||1),pageCount);
-  const pageRows=all.slice((state.catalogPage-1)*pageSize,state.catalogPage*pageSize);
-  $('catalogCount').textContent=all.length.toLocaleString('en-US')+' من '+categories.length.toLocaleString('en-US')+' قسم';
-  html='<div class="store-catalog-toolbar"><input id="storeCatalogSearch" type="search" value="'+esc(state.catalogQuery)+'" placeholder="ابحث باسم القسم أو الخدمة..." aria-label="بحث في الأقسام"><span>'+all.length.toLocaleString('en-US')+' نتيجة</span></div>'+
-   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(c=>tile(c.name,c.desc,c.image,'قسم رئيسي','data-browse-category="'+esc(c.id)+'',(c.items||[]).length+' منتجات')).join('')+'</div>':'<div class="empty-state"><strong>لا توجد أقسام مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
-   storeCatalogPager(state.catalogPage,pageCount,'catalog-page');
+  const summaries=NexaCatalog.getDepartmentSummaries(categories);
+  const all=summaries.filter(group=>!query||[group.name,group.description,...group.categories.map(c=>c.name)].some(value=>String(value||'').toLocaleLowerCase('ar').includes(query)));
+  $('catalogCount').textContent=all.length.toLocaleString('en-US')+' أقسام رئيسية';
+  html='<div class="store-catalog-toolbar"><input id="storeCatalogSearch" type="search" value="'+esc(state.catalogQuery)+'" placeholder="ابحث باسم القسم الرئيسي أو الخدمة..." aria-label="بحث في الأقسام الرئيسية"><span>'+all.length.toLocaleString('en-US')+' أقسام رئيسية</span></div>'+
+   (all.length?'<div class="department-grid catalog-department-grid">'+all.map(renderDepartmentCard).join('')+'</div>':'<div class="empty-state"><strong>لا توجد أقسام مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>');
+ }else if(!cat){
+  const query=String(state.categoryQuery||'').trim().toLocaleLowerCase('ar');
+  const all=categories.filter(category=>NexaCatalog.classifyCategory(category)===department.id);
+  const filtered=all.filter(category=>!query||[category.name,category.desc,category.id].some(value=>String(value||'').toLocaleLowerCase('ar').includes(query)));
+  const pageSize=36,pageCount=Math.max(1,Math.ceil(filtered.length/pageSize));
+  state.categoryPage=Math.min(Math.max(1,Number(state.categoryPage)||1),pageCount);
+  const pageRows=filtered.slice((state.categoryPage-1)*pageSize,state.categoryPage*pageSize);
+  $('catalogCount').textContent=filtered.length.toLocaleString('en-US')+' من '+all.length.toLocaleString('en-US')+' قسم داخلي';
+  html='<div class="back-row"><button type="button" class="back-button" data-bc="root">← الأقسام الرئيسية</button><span class="catalog-count">'+filtered.length+' أقسام داخلية</span></div>'+
+   '<div class="store-catalog-toolbar"><input id="storeCategorySearch" type="search" value="'+esc(state.categoryQuery)+'" placeholder="ابحث داخل '+esc(department.name)+'..." aria-label="بحث في الأقسام الداخلية"><span>'+filtered.length.toLocaleString('en-US')+' نتيجة</span></div>'+
+   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(c=>tile(c.name,c.desc,NexaCatalog.categoryImage(c),'قسم داخلي','data-browse-category="'+esc(c.id)+'',(c.items||[]).length+' منتجات')).join('')+'</div>':'<div class="empty-state"><strong>لا توجد أقسام داخلية مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
+   storeCatalogPager(state.categoryPage,pageCount,'category-page');
  }else if(!it){
   const all=cat.items||[],query=String(state.productQuery||'').trim().toLocaleLowerCase('ar');
   const filtered=all.filter(product=>!query||[product.name,product.desc,product.id].some(value=>String(value||'').toLocaleLowerCase('ar').includes(query)));
@@ -832,16 +888,20 @@ function renderCatalog(){
   state.productPage=Math.min(Math.max(1,Number(state.productPage)||1),pageCount);
   const pageRows=filtered.slice((state.productPage-1)*pageSize,state.productPage*pageSize);
   $('catalogCount').textContent=filtered.length.toLocaleString('en-US')+' من '+all.length.toLocaleString('en-US')+' منتج';
-  html='<div class="back-row"><button class="back-button" data-bc="root">← كل الأقسام</button><span class="catalog-count">'+filtered.length+' منتجات</span></div>'+
+  html='<div class="back-row"><button type="button" class="back-button" data-bc="department">← '+esc(department.name)+'</button><span class="catalog-count">'+filtered.length+' منتجات</span></div>'+
    '<div class="store-catalog-toolbar"><input id="storeProductSearch" type="search" value="'+esc(state.productQuery)+'" placeholder="ابحث داخل '+esc(cat.name)+'..." aria-label="بحث في منتجات القسم"><span>'+filtered.length.toLocaleString('en-US')+' نتيجة</span></div>'+
-   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(product=>tile(product.name,product.desc,product.image,'منتج رقمي','data-open-item="'+esc(product.id)+'" data-open-category="'+esc(cat.id)+'"',product.wamda?.available===false?'غير متوفر حالياً':'اختيار المنتج',false)).join('')+'</div>':'<div class="empty-state"><strong>لا توجد منتجات مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
+   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(product=>tile(product.name,product.desc,NexaCatalog.productImage(product,cat),'منتج رقمي','data-open-item="'+esc(product.id)+'" data-open-category="'+esc(cat.id)+'"',product.wamda?.available===false?'غير متوفر حالياً':'عرض المنتج',false)).join('')+'</div>':'<div class="empty-state"><strong>لا توجد منتجات مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
    storeCatalogPager(state.productPage,pageCount,'product-page');
  }else if(!opt){
-  html='<div class="back-row"><button class="back-button" data-bc="category">← العودة إلى '+esc(cat.name)+'</button><span class="catalog-count">'+it.options.length+' خيارات</span></div><div class="step-summary"><img src="'+esc(it.image)+'" alt=""><span><strong>'+esc(it.name)+'</strong><p>'+esc(it.desc)+' · اختر المنطقة أو النسخة أو الخطة.</p></span></div><div class="option-list">'+it.options.map(o=>'<button class="option-card" data-browse-option="'+esc(o.id)+'"><img src="'+esc(o.image||it.image)+'" alt=""><span><strong>'+esc(o.name)+'</strong><small>'+esc(o.desc)+'</small></span><span class="option-flag">'+esc(o.flag||'›')+'</span></button>').join('')+'</div>';
+  html='<div class="back-row"><button type="button" class="back-button" data-bc="category">← العودة إلى '+esc(cat.name)+'</button><span class="catalog-count">'+(it.options||[]).length+' خيارات</span></div>'+
+   '<div class="step-summary"><img src="'+esc(NexaCatalog.productImage(it,cat))+'" alt=""><span><strong>'+esc(it.name)+'</strong><p>'+esc(it.desc)+' · اختر المنطقة أو النسخة أو الخطة.</p></span></div>'+
+   '<div class="option-list">'+(it.options||[]).map(o=>'<button type="button" class="option-card" data-browse-option="'+esc(o.id)+'"><img src="'+esc(NexaCatalog.optionImage(o,it,cat))+'" alt=""><span><strong>'+esc(o.name)+'</strong><small>'+esc(o.desc)+'</small></span><span class="option-flag">'+esc(o.flag||'›')+'</span></button>').join('')+'</div>';
  }else{
-  html='<div class="back-row"><button class="back-button" data-bc="item">← العودة إلى الخيارات</button><span class="catalog-count">'+opt.packs.length+' باقات</span></div><div class="step-summary"><img src="'+esc(it.image)+'" alt=""><span><strong>'+esc(it.name)+' · '+esc(opt.name)+'</strong><p>'+esc(opt.desc)+'</p></span></div><div class="pack-grid">'+opt.packs.map((p,n)=>'<article class="pack-card"><div class="pack-image"><img src="'+esc(it.image)+'" alt="" loading="lazy"><span class="pack-label">'+(it.wamda?.available===false?'غير متوفر حالياً':'متاح للطلب')+'</span></div><div class="pack-body"><h3>'+esc(p[0])+'</h3><p>'+(it.wamda?'سعر البيع المعتمد من المتجر، ويظهر المبلغ النهائي في الفاتورة.':'السعر المعروض هو سعر البيع المحدد لهذا الخيار.')+'</p><div class="pack-price">'+money(p[1])+'<small>السعر المعتمد</small></div><button class="btn btn-primary" data-select-pack="'+n+'" '+(it.wamda?.available===false?'disabled aria-disabled="true"':'')+'>'+(it.wamda?.available===false?'غير متوفر حالياً':'اختيار الباقة ←')+'</button></div></article>').join('')+'</div>';
+  html='<div class="back-row"><button type="button" class="back-button" data-bc="item">← العودة إلى الخيارات</button><span class="catalog-count">'+(opt.packs||[]).length+' باقات</span></div>'+
+   '<div class="step-summary"><img src="'+esc(NexaCatalog.productImage(it,cat))+'" alt=""><span><strong>'+esc(it.name)+' · '+esc(opt.name)+'</strong><p>'+esc(opt.desc)+'</p></span></div>'+
+   '<div class="pack-grid">'+(opt.packs||[]).map((p,n)=>'<article class="pack-card"><div class="pack-image"><img src="'+esc(NexaCatalog.optionImage(opt,it,cat))+'" alt="" loading="lazy"><span class="pack-label">'+(it.wamda?.available===false?'غير متوفر حالياً':'متاح للطلب')+'</span></div><div class="pack-body"><h3>'+esc(p[0])+'</h3><p>'+(it.wamda?'سعر البيع المعتمد من المتجر، ويظهر المبلغ النهائي في الفاتورة.':'السعر المعروض هو سعر البيع المحدد لهذا الخيار.')+'</p><div class="pack-price">'+money(p[1])+'<small>السعر المعتمد</small></div><button type="button" class="btn btn-primary" data-select-pack="'+n+'" '+(it.wamda?.available===false?'disabled aria-disabled="true"':'')+'>'+(it.wamda?.available===false?'غير متوفر حالياً':'اختيار الباقة ←')+'</button></div></article>').join('')+'</div>';
  }
- if(it?.wamda?.available===false){html+='<div class="catalog-note"><strong>تنبيه التوفر:</strong> هذا المنتج ظاهر للتفاصيل فقط؛ لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد.</div>';}
+ if(it?.wamda?.available===false)html+='<div class="catalog-note"><strong>تنبيه التوفر:</strong> هذا المنتج ظاهر للتفاصيل فقط؛ لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد.</div>';
  target.innerHTML=html;
 }
 function renderSearchResults(){
@@ -851,23 +911,24 @@ function renderSearchResults(){
  $('catalogTitle').textContent='نتائج البحث';$('catalogDescription').textContent='نتائج مطابقة لعبارة: '+state.searchQuery;
  $('catalogCount').textContent=matches.length.toLocaleString('en-US')+' نتيجة';
  $('catalogSteps').innerHTML=renderSteps(1);$('breadcrumbs').innerHTML='<span class="crumb current">نتائج البحث</span>';
- $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,i.image,c.name,'data-open-item="'+esc(i.id)+'" data-open-category="'+esc(c.id)+'"',i.wamda?.available===false?'غير متوفر حالياً':'عرض الخيارات',i.wamda?.available===false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
+ $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,NexaCatalog.productImage(i,c),c.name,'data-open-item="'+esc(i.id)+'" data-open-category="'+esc(c.id)+'"',i.wamda?.available===false?'غير متوفر حالياً':'عرض الخيارات',false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
 }
 function openItem(itemId,categoryId=null){
  const requestedCategory=categoryId==null?null:getCategory(categoryId);
  const category=(requestedCategory&&(requestedCategory.items||[]).some(x=>String(x.id)===String(itemId))?requestedCategory:null)
   ||categories.find(c=>(c.items||[]).some(x=>String(x.id)===String(itemId)));
  const it=category?.items?.find(x=>String(x.id)===String(itemId));
- if(!category||!it){showToast('تعذر العثور على هذا المنتج في الكتالوج الحالي. حدّث الصفحة وحاول مجدداً.');return;}
- state.category=category.id;state.item=it.id;state.option=null;state.productPage=1;state.productQuery='';navigate('store');
+ if(!category||!it){showToast('لم يتم العثور على المنتج أو أن القسم المرتبط به تغيّر. ارجع إلى الأقسام الداخلية وحدده من جديد.');return;}
+ state.department=NexaCatalog.classifyCategory(category);state.category=category.id;state.item=it.id;state.option=null;state.categoryQuery='';state.productPage=1;state.productQuery='';navigate('store');
 }
-function resetCatalog(){state.category=null;state.item=null;state.option=null;state.catalogPage=1;state.catalogQuery='';state.productPage=1;state.productQuery='';}
+function resetCatalog(){state.department=null;state.category=null;state.item=null;state.option=null;state.catalogPage=1;state.catalogQuery='';state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';}
 function openOrder(packIndex){
  const it=getItem(state.item,state.category),op=getOption(state.option),p=op?.packs?.[packIndex],supplier=it?.wamda||it?.seagm||null;
  if(!it||!op||!p){showToast('تعذر تحميل تفاصيل الباقة. حدّث الكتالوج وحاول مجدداً.');return;}
  if(it.wamda?.available===false){showToast('هذا المنتج غير متوفر حالياً لدى المورد.');return;}
- state.selectedPack={category:state.category,item:state.item,option:state.option,index:packIndex,name:`${it.name} — ${op.name} — ${p[0]}`,price:p[1],image:it.image,supplier:!!supplier};
- $('modalProduct').textContent=it.name+' — '+p[0];$('modalOption').textContent=op.name+' · باقة مختارة';$('modalImage').src=it.image;$('modalPrice').textContent=money(p[1]);
+ state.selectedPack={category:state.category,item:state.item,option:state.option,index:packIndex,name:`${it.name} — ${op.name} — ${p[0]}`,price:p[1],image:NexaCatalog.productImage(it,getCategory(state.category)),supplier:!!supplier};
+ const image=NexaCatalog.productImage(it,getCategory(state.category));
+ $('modalProduct').textContent=it.name+' — '+p[0];$('modalOption').textContent=op.name+' · باقة مختارة';$('modalImage').src=image;$('modalPrice').textContent=money(p[1]);
  $('orderCurrency').value='SYP';$('orderCurrency').disabled=false;
  $('paymentMethod').value='shamcash';
  if(customerAccount){$('customerName').value=customerAccount.full_name||'';$('customerPhone').value=customerAccount.phone||'';}
@@ -922,7 +983,7 @@ function openOrder(packIndex){
 function closeModal(){$('orderModal').classList.remove('open');document.body.style.overflow=''}
 function renderOrders(){const d=storageRead(),rows=d.orders||[];$('orderBadge').textContent=rows.length;$('sideOrderBadge').textContent=rows.length;$('ordersTable').innerHTML=rows.length?rows.map(o=>`<tr><td class="ltr">${esc(o.id)}</td><td>${esc(o.name)}</td><td>${esc(o.date)}</td><td>${o.amountMinor?formatMinor(o.amountMinor,o.currency||'SYP'):money(o.price)}</td><td><span class="status">${o.status==='paid'?'مدفوع ومتحقق':o.status==='expired'?'منتهي':'بانتظار الدفع'}</span></td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:#828b99;padding:25px">لا توجد طلبات حتى الآن.</td></tr>'}
 function syncFavorites(){const favs=storageRead().favs||[];document.querySelectorAll('[data-favorite]').forEach(b=>{const active=favs.includes(b.dataset.favorite);b.classList.toggle('active',active);b.textContent=active?'♥':'♡'})}
-function renderFavorites(){const d=storageRead(),ids=d.favs||[],items=ids.map(id=>({id,item:getItem(id)})).filter(x=>x.item);$('favoritesGrid').innerHTML=items.length?items.map(({id,item})=>{const cat=categories.find(c=>(c.items||[]).some(i=>String(i.id)===String(id)&&i===item))||categories.find(c=>(c.items||[]).some(i=>String(i.id)===String(id)));if(!cat)return '';return `<article class="product-card" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0" aria-label="عرض المنتج ${esc(item.name)}"><div class="product-image"><img src="${esc(item.image)}" alt=""><span class="product-badge">${esc(cat.name)}</span><button class="favorite active" data-favorite="${esc(item.id)}" aria-label="إزالة من المفضلة">♥</button></div><div class="product-info"><div class="product-meta"><span class="product-category">${esc(cat.name)}</span><span class="product-label">محفوظ</span></div><h3>${esc(item.name)}</h3><p>${esc(item.desc)}</p><div class="product-foot"><span class="price">خيارات متعددة<small>السعر بعد اختيار المنطقة</small></span><button class="mini-choose" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}">استكشف ←</button></div></div></article>`}).join(''):`<div class="empty-state"><strong>المفضلة فارغة</strong><p>احفظ المنتجات التي تهمك من بطاقاتها.</p><button class="btn btn-soft" data-page="store">استكشف المتجر</button></div>`;syncFavorites()}
+function renderFavorites(){const d=storageRead(),ids=d.favs||[],items=ids.map(id=>({id,item:getItem(id)})).filter(x=>x.item);$('favoritesGrid').innerHTML=items.length?items.map(({id,item})=>{const cat=categories.find(c=>(c.items||[]).some(i=>String(i.id)===String(id)&&i===item))||categories.find(c=>(c.items||[]).some(i=>String(i.id)===String(id)));if(!cat)return '';const image=NexaCatalog.productImage(item,cat);return `<article class="product-card" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0" aria-label="عرض المنتج ${esc(item.name)}"><div class="product-image"><img src="${esc(image)}" alt=""><span class="product-badge">${esc(cat.name)}</span><button type="button" class="favorite active" data-favorite="${esc(item.id)}" aria-label="إزالة من المفضلة">♥</button></div><div class="product-info"><div class="product-meta"><span class="product-category">${esc(cat.name)}</span><span class="product-label">محفوظ</span></div><h3>${esc(item.name)}</h3><p>${esc(item.desc)}</p><div class="product-foot"><span class="price">خيارات متعددة<small>السعر بعد اختيار المنطقة</small></span><button type="button" class="mini-choose" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}">استكشف ←</button></div></div></article>`}).join(''):`<div class="empty-state"><strong>المفضلة فارغة</strong><p>احفظ المنتجات التي تهمك من بطاقاتها.</p><button type="button" class="btn btn-soft" data-page="store">استكشف المتجر</button></div>`;syncFavorites()}
 function toggleFavorite(id){const d=storageRead();d.favs=d.favs||[];d.favs=d.favs.includes(id)?d.favs.filter(x=>x!==id):[...d.favs,id];storageSave(d);syncFavorites();if(state.view==='favorites')renderFavorites();showToast(d.favs.includes(id)?'تمت الإضافة إلى المفضلة':'تمت الإزالة من المفضلة')}
 function showSearchResults(q){
  const query=String(q||'').trim().toLocaleLowerCase('ar');if(!query)return;
@@ -1180,31 +1241,33 @@ function initializeStoreColorMode(){
 async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;const footerName=document.querySelector('.footer-brand strong');if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
 async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items)&&c.items.length);}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();loadPaymentConfig();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','favorites','wallet','support'].includes(hash))navigate(hash);$('sideYear').textContent=new Date().getFullYear();await refreshCustomerAccount();}
 // delegated interactions
- document.addEventListener('click',e=>{const favoriteControl=e.target.closest('[data-favorite]');if(favoriteControl){toggleFavorite(favoriteControl.dataset.favorite);return;}
- const productControl=e.target.closest('[data-open-item]');if(productControl){e.preventDefault();openItem(productControl.dataset.openItem,productControl.dataset.openCategory||null);return;}
- const el=e.target.closest('[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-reset-catalog],[data-scroll],[data-catalog-page],[data-product-page],[data-search-page]');if(!el)return;
+ document.addEventListener('click',e=>{const target=e.target instanceof Element?e.target:null;if(!target)return;const favoriteControl=target.closest('[data-favorite]');if(favoriteControl){toggleFavorite(favoriteControl.dataset.favorite);return;}
+ const productControl=target.closest('[data-open-item]');if(productControl){e.preventDefault();openItem(productControl.dataset.openItem,productControl.dataset.openCategory||null);return;}
+ const el=target.closest('[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-department],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-reset-catalog],[data-scroll],[data-catalog-page],[data-category-page],[data-product-page],[data-search-page]');if(!el)return;
  if(el.dataset.openAssistant!==undefined){openAssistant();return}
  if(el.dataset.assistantPrompt){sendAssistantPrompt(el.dataset.assistantPrompt);return}
  if(el.dataset.page){e.preventDefault();if(el.dataset.page==='store')resetCatalog();navigate(el.dataset.page);return}
  if(el.dataset.nav){e.preventDefault();navigate(el.dataset.nav);return}
  if(el.dataset.scroll){document.getElementById(el.dataset.scroll)?.scrollIntoView({behavior:'smooth'});return}
  if(el.dataset.catalogPage){state.catalogPage=Number(el.dataset.catalogPage)||1;renderCatalog();return}
+ if(el.dataset.categoryPage){state.categoryPage=Number(el.dataset.categoryPage)||1;renderCatalog();return}
  if(el.dataset.productPage){state.productPage=Number(el.dataset.productPage)||1;renderCatalog();return}
  if(el.dataset.searchPage){state.searchPage=Number(el.dataset.searchPage)||1;renderSearchResults();return}
 
- if(el.dataset.category){state.category=el.dataset.category;state.item=null;state.option=null;navigate('store');return}
- if(el.dataset.browseCategory){state.category=el.dataset.browseCategory;state.item=null;state.option=null;renderCatalog();return}
+ if(el.dataset.department){state.department=el.dataset.department;state.category=null;state.item=null;state.option=null;state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';renderCatalog();return}
+ if(el.dataset.category){state.category=el.dataset.category;state.department=NexaCatalog.classifyCategory(getCategory(el.dataset.category));state.item=null;state.option=null;navigate('store');return}
+ if(el.dataset.browseCategory){state.category=el.dataset.browseCategory;state.department=NexaCatalog.classifyCategory(getCategory(el.dataset.browseCategory));state.item=null;state.option=null;state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';renderCatalog();return}
  if(el.dataset.browseItem){state.item=el.dataset.browseItem;state.option=null;renderCatalog();return}
  if(el.dataset.browseOption){state.option=el.dataset.browseOption;renderCatalog();return}
- if(el.dataset.bc){if(el.dataset.bc==='root')resetCatalog();if(el.dataset.bc==='category'){state.item=null;state.option=null}if(el.dataset.bc==='item')state.option=null;renderCatalog();return}
+ if(el.dataset.bc){if(el.dataset.bc==='root')resetCatalog();if(el.dataset.bc==='department'){state.category=null;state.item=null;state.option=null;state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';}if(el.dataset.bc==='category'){state.item=null;state.option=null;state.productPage=1;state.productQuery='';}if(el.dataset.bc==='item')state.option=null;renderCatalog();return}
  if(el.dataset.selectPack!==undefined){openOrder(Number(el.dataset.selectPack));return}
  if(el.dataset.resetCatalog){resetCatalog();renderCatalog();return}
- });
+ },true);
 document.addEventListener('input',event=>{
  const id=event.target?.id;
- if(id!=='storeCatalogSearch'&&id!=='storeProductSearch')return;
+ if(!['storeCatalogSearch','storeCategorySearch','storeProductSearch'].includes(id))return;
  const value=event.target.value;
- if(id==='storeCatalogSearch'){state.catalogQuery=value;state.catalogPage=1;}else{state.productQuery=value;state.productPage=1;}
+ if(id==='storeCatalogSearch'){state.catalogQuery=value;state.catalogPage=1;}else if(id==='storeCategorySearch'){state.categoryQuery=value;state.categoryPage=1;}else{state.productQuery=value;state.productPage=1;}
  const keepId=id,caret=value.length;
  renderCatalog();
  const next=$(keepId);if(next){next.focus();try{next.setSelectionRange(caret,caret)}catch{}}
