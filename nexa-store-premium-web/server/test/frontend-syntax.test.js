@@ -43,8 +43,8 @@ test('product click targets are complete and wallet checkout controls are presen
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   assert.ok(store.includes("'data-open-item=\"'+esc(product.id)+'\" data-open-category=\"'+esc(cat.id)+'\"'"), 'Category product tiles must open through the canonical item handler and retain category context');
   assert.ok(store.includes("'data-open-item=\"'+esc(i.id)+'\" data-open-category=\"'+esc(c.id)+'\"'"), 'Search product tiles must retain their category context');
-  assert.ok(store.includes('<article class="product-card" data-open-item="${esc(it.id)}" role="button" tabindex="0"'), 'Featured product cards open when clicked');
-  assert.ok(store.includes('<article class="product-card" data-open-item="${esc(id)}" role="button" tabindex="0"'), 'Saved product cards open when clicked');
+  assert.ok(store.includes('<article class="product-card" data-open-item="${esc(it.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Featured product cards retain category context and open when clicked');
+  assert.ok(store.includes('<article class="product-card" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Saved product cards retain category context and open when clicked');
   assert.ok(store.includes("e.target.matches?.('.product-card[role=\"button\"][data-open-item]')"), 'Product cards support keyboard activation');
   assert.ok(store.includes('id="paymentMethod"'), 'Checkout must expose a payment method selector');
   assert.ok(store.includes('value="shamcash"') && store.includes('value="wallet"'), 'Checkout must offer direct and wallet payment');
@@ -80,8 +80,8 @@ test('Store and admin assets are revalidated instead of serving a stale theme', 
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
-  assert.ok(store.includes('nexa-luxury.css?v=20261101-04'), 'Store stylesheet uses the cache-busting version');
-  assert.ok(admin.includes('nexa-luxury.css?v=20261101-04'), 'Admin stylesheet uses the cache-busting version');
+  assert.ok(store.includes('nexa-luxury.css?v=20261101-05'), 'Store stylesheet uses the cache-busting version');
+  assert.ok(admin.includes('nexa-luxury.css?v=20261101-05'), 'Admin stylesheet uses the cache-busting version');
   assert.ok(server.includes("const cacheControl = extension === '.html' ? 'no-store'"), 'HTML responses are not cached');
   assert.ok(server.includes("'Cache-Control':cacheControl"), 'Static files send explicit cache policy');
 });
@@ -129,4 +129,49 @@ test('theme contract assigns readable dark and light surfaces to store and admin
     ':root[data-theme="dark"] .app-shell .data-table td',
     ':root[data-theme="light"] .app-shell .data-table td'
   ]) assert.ok(css.includes(selector), 'Missing explicit theme surface rule: ' + selector);
+});
+
+
+test('storefront product navigation normalizes ids and keeps the originating category', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  assert.match(store, /function getCategory\(id\)\{return categories\.find\(x=>String\(x\.id\)===String\(id\)\)\|\|null\}/, 'Category ids are normalized across DOM and API string values');
+  assert.match(store, /function getItem\(id,categoryId=state\.category\)/, 'Product lookup is scoped to the active category where possible');
+  assert.ok(store.includes('data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Featured product cards retain their category id');
+  assert.ok(store.includes('data-open-item="${esc(it.id)}" data-open-category="${esc(cat.id)}">استكشف'), 'Featured call-to-action retains its category id');
+  assert.match(store, /const productControl=e\.target\.closest\('\[data-open-item\]'\)/, 'Product clicks use a dedicated delegated handler');
+  assert.match(store, /openItem\(productControl\.dataset\.openItem,productControl\.dataset\.openCategory\|\|null\)/, 'Product handler passes both identifiers to the detail route');
+  const openItem = store.slice(store.indexOf('function openItem'), store.indexOf('function resetCatalog'));
+  assert.ok(openItem.includes("state.category=category.id;state.item=it.id"), 'Product selection stores canonical API identifiers');
+  assert.ok(!openItem.includes('available===false'), 'Unavailable products can still be opened for details');
+});
+
+test('unavailable products open for details but cannot be purchased', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  assert.ok(store.includes("product.wamda?.available===false?'غير متوفر حالياً':'اختيار المنتج',false"), 'Unavailable products remain clickable from the category list');
+  assert.ok(store.includes("it.wamda?.available===false?'disabled aria-disabled=\"true\"':''"), 'Unavailable pack buttons are disabled');
+  assert.ok(store.includes('لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد'), 'The detail view explains the availability restriction');
+});
+
+test('storefront light and dark themes override high-specificity form fields and autofill', async () => {
+  const css = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-luxury.css'), 'utf8');
+  for (const selector of [
+    ':root[data-theme="light"] .app-shell .support-form .field input',
+    ':root[data-theme="light"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field input',
+    ':root[data-theme="dark"] .app-shell .support-form .field input',
+    ':root[data-theme="dark"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field input',
+    ':root[data-theme="light"] .app-shell input:-webkit-autofill',
+    ':root[data-theme="dark"] .app-shell input:-webkit-autofill',
+    ':root[data-theme="light"] .app-shell .home-intro',
+    ':root[data-theme="light"] .app-shell .home-intro-note',
+    ':root[data-theme="light"] .app-shell .home-assistant-link'
+  ]) assert.ok(css.includes(selector), 'Missing storefront theme override: ' + selector);
+});
+
+
+test('favorite product cards resolve category ids consistently and retain click context', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const renderer = store.slice(store.indexOf('function renderFavorites'), store.indexOf('function toggleFavorite'));
+  assert.ok(renderer.includes('String(i.id)===String(id)&&i===item'), 'Favorite category lookup uses normalized IDs and the matched product object');
+  assert.ok(renderer.includes('data-open-category="${esc(cat.id)}"'), 'Favorite cards pass their category identifier to product navigation');
+  assert.ok(renderer.includes('data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}">استكشف'), 'Favorite call-to-action passes both item and category identifiers');
 });
