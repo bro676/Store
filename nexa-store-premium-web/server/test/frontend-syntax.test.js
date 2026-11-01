@@ -45,10 +45,12 @@ test('product click targets are complete and wallet checkout controls are presen
   assert.ok(store.includes("'data-open-item=\"'+esc(i.id)+'\" data-open-category=\"'+esc(c.id)+'\"'"), 'Search product tiles must retain their category context');
   assert.ok(store.includes("return '<article class=\"product-card\" data-open-item=\"'+esc(it.id)+'\" data-open-category=\"'+esc(cat.id)+'\" role=\"button\" tabindex=\"0\""), 'Featured product cards retain category context and open when clicked');
   assert.ok(store.includes('<article class="product-card" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Saved product cards retain category context and open when clicked');
-  assert.ok(store.includes("const productControl=eventElement(e,'[data-open-item]')"), 'All product cards route through composed-path delegated click handling');
+  assert.ok(store.includes("for(const rootId of ['homeView','catalogContent','favoritesGrid'])"), 'All dynamic product-card regions have stable roots');
+  assert.ok(store.includes("root?.addEventListener('click',handleStoreProductActivation,true)"), 'Product cards use direct root click handling');
+  assert.ok(store.includes("openItem(control.getAttribute('data-open-item'),control.getAttribute('data-open-category')||null)"), 'The direct handler passes both canonical identifiers into product navigation');
   assert.ok(store.includes("document.addEventListener('keydown',e=>"), 'Product cards support keyboard activation');
-  assert.ok(store.includes("eventElement(e,'.product-card[role=\"button\"][data-open-item]')"), 'Keyboard activation resolves the product card and its category context');
-  assert.ok(store.includes(" },true);\n document.addEventListener('keydown',e=>"), 'Product and pack selection handlers run in capture phase');
+  assert.ok(store.includes("const productControl=eventElement(e,'[data-open-item]')"), 'Keyboard activation resolves product cards, tiles, and featured calls to action');
+  assert.ok(store.includes("root?.addEventListener('click',handleStoreProductActivation,true)"), 'Product activation runs during the capture phase at its stable parent root');
   assert.ok(store.includes('id="paymentMethod"'), 'Checkout must expose a payment method selector');
   assert.ok(store.includes('value="shamcash"') && store.includes('value="wallet"'), 'Checkout must offer direct and wallet payment');
   assert.ok(store.includes('id="customerWalletCard"') && store.includes('id="walletTopupForm"'), 'Wallet account and top-up interface must exist');
@@ -141,10 +143,13 @@ test('storefront product navigation normalizes ids and keeps the originating cat
   assert.match(store, /function getItem\(id,categoryId=state\.category\)/, 'Product lookup is scoped to the active category where possible');
   assert.ok(store.includes('data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Featured product cards retain their category id');
   assert.ok(store.includes('data-open-item=\"\'+esc(it.id)+\'\" data-open-category=\"\'+esc(cat.id)+\'\">استكشف'), 'Featured call-to-action retains its category id');
-  assert.match(store, /const productControl=eventElement\(e,'\[data-open-item\]'\)/, 'Product clicks use the shared composed-path delegated handler');
-  assert.match(store, /openItem\(productControl\.dataset\.openItem,productControl\.dataset\.openCategory\|\|null\)/, 'Product handler passes both identifiers to the detail route');
-  const openItem = store.slice(store.indexOf('function openItem'), store.indexOf('function resetCatalog'));
-  assert.ok(openItem.includes("state.category=category.id;state.item=it.id"), 'Product selection stores canonical API identifiers');
+  assert.ok(store.includes("for(const rootId of ['homeView','catalogContent','favoritesGrid'])"), 'Home, catalogue/search, and favourites each have direct product click roots');
+  assert.ok(store.includes('function handleStoreProductActivation(event)'), 'Product clicks use a dedicated activation handler');
+  assert.ok(store.includes("openItem(control.getAttribute('data-open-item'),control.getAttribute('data-open-category')||null)"), 'The product handler passes both identifiers into the detail route');
+  const openItem = store.slice(store.indexOf('function openItem'), store.indexOf('function closestStoreTarget'));
+  assert.ok(openItem.includes('NexaCatalog.resolveProductNavigation(categories,itemId,categoryId)'), 'Product selection uses the canonical API resolver');
+  assert.ok(openItem.includes('state.category=resolved.categoryId;'), 'Product selection stores the canonical category identifier');
+  assert.ok(openItem.includes('state.item=resolved.itemId;'), 'Product selection stores the canonical product identifier');
   assert.ok(!openItem.includes('available===false'), 'Unavailable products can still be opened for details');
 });
 
@@ -233,7 +238,7 @@ test('product images and canonical folders use category-specific paths and prese
 
 test('storefront image lookup replaces the old logo placeholder in every primary surface', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
-  assert.ok(store.includes('/assets/brand/nexa-catalog.js?v=20261102-01'), 'Image and hierarchy helper loads before page scripts');
+  assert.ok(store.includes('/assets/brand/nexa-catalog.js?v=20261102-02'), 'Updated image and hierarchy helper loads before page scripts');
   assert.ok(store.includes('NexaCatalog.categoryImage(c)'), 'Homepage and catalog use department/category covers');
   assert.ok(store.includes('NexaCatalog.productImage(product,cat)'), 'Product tiles use product-specific images');
   assert.ok(store.includes('NexaCatalog.optionImage(o,it,cat)'), 'Option tiles use option artwork or the product fallback');
@@ -266,9 +271,51 @@ test('Best Store webhook URL is shown only in the admin integration panel with a
 test('single-option products bypass the redundant option screen and invalid packs are not offered', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const catalogHelper = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-catalog.js'), 'utf8');
-  assert.ok(store.includes('state.option=NexaCatalog.initialOptionId(it)'), 'One-option products automatically open the option/pack step');
+  assert.ok(store.includes('state.option=resolved.optionId;'), 'One-option products automatically open the option/pack step');
   assert.ok(store.includes('NexaCatalog.getProductOptions(it)'), 'Only valid options are displayed');
   assert.ok(store.includes('NexaCatalog.isValidPack(p)'), 'Only valid priced packs are shown');
   assert.ok(store.includes("const productOptions=NexaCatalog.getProductOptions(it),backToProducts=productOptions.length===1;"), 'Single-option pack pages return directly to the product list');
   assert.ok(catalogHelper.includes('function initialOptionId(product)'), 'The navigation helper detects a single selectable option');
+});
+
+test('Best Store settings are persisted after repricing and runtime credentials are refreshed before success', async () => {
+  const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
+  const start = server.indexOf("if (req.method === 'PATCH' && url.pathname === '/api/admin/settings')");
+  const end = server.indexOf("if (req.method === 'POST' && url.pathname === '/api/admin/fx/refresh')", start);
+  assert.ok(start >= 0 && end > start, 'Admin settings PATCH route exists');
+  const route = server.slice(start, end);
+  const repriceWamda = route.indexOf('if(pricingChanged)await repricePublishedWamdaProducts(nextSettings)');
+  const repriceBestStore = route.indexOf('if(bestStorePricingChanged)await repricePublishedBestStoreProducts(nextSettings)');
+  const persist = route.indexOf('await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)])');
+  const apply = route.indexOf('storeSettings=nextSettings;');
+  const success = route.indexOf("return send(res,200,{ok:true,settings:safeSettingsForAdmin()");
+  assert.ok(repriceWamda >= 0 && repriceBestStore > repriceWamda, 'Both supplier reprice operations run before settings persistence');
+  assert.ok(persist > repriceBestStore, 'Validated settings are persisted even when repricing ran');
+  assert.ok(apply > persist && success > apply, 'Runtime secrets are reloaded before the success response');
+  assert.ok(!route.includes('if(!pricingChanged&&!bestStorePricingChanged)'), 'Pricing changes must not bypass settings persistence');
+});
+
+test('Best Store token input remains visible until the server confirms the encrypted credential was saved', async () => {
+  const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  const start = admin.indexOf('async function saveBestStoreSettings');
+  const end = admin.indexOf('async function testBestStore', start);
+  assert.ok(start >= 0 && end > start, 'Best Store save function exists');
+  const save = admin.slice(start, end);
+  assert.ok(save.includes('if(payload.bestStoreApiToken&&!savedSettings.bestStoreApiTokenConfigured)'), 'A submitted token must be confirmed by the server');
+  assert.ok(save.indexOf('if(payload.bestStoreApiToken&&!savedSettings.bestStoreApiTokenConfigured)') < save.indexOf("  $('bestStoreApiToken').value='';"), 'Token input is cleared only after the server confirms persistence');
+  assert.ok(save.includes('state.settings={...state.settings,...savedSettings}'), 'Admin preserves the rest of the loaded settings');
+});
+
+test('storefront product cards have direct click handlers on each dynamic rendering root', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const helper = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-catalog.js'), 'utf8');
+  assert.ok(helper.includes('function resolveProductNavigation(categories,productId,categoryId=null)'), 'Catalog helper resolves the selected product and its canonical step state');
+  assert.ok(store.includes('NexaCatalog.resolveProductNavigation(categories,itemId,categoryId)'), 'Storefront uses the canonical product resolver');
+  assert.ok(store.includes("for(const rootId of ['homeView','catalogContent','favoritesGrid'])"), 'Home, catalogue/search, and favourites each have a stable click root');
+  assert.ok(store.includes("root?.addEventListener('click',handleStoreProductActivation,true)"), 'Dynamic product cards are opened from a direct root capture listener');
+  assert.ok(store.includes('function handleStoreProductActivation(event)'), 'Product activation has a dedicated event handler');
+  assert.ok(store.includes('function closestStoreTarget(event,selector)'), 'Product event targets use robust closest() lookup without realm-dependent Element checks');
+  const delegated = store.slice(store.indexOf("document.addEventListener('click',e=>{const favoriteControl"), store.indexOf("document.addEventListener('keydown',e=>{", store.indexOf("document.addEventListener('click',e=>{const favoriteControl")));
+  assert.ok(!delegated.includes("const productControl=eventElement(e,'[data-open-item]')"), 'The product flow no longer depends on the general document delegate');
+  assert.ok(store.includes('nexa-catalog.js?v=20261102-02'), 'Updated product navigation helper bypasses stale browser assets');
 });

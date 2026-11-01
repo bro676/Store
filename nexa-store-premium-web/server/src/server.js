@@ -2941,10 +2941,14 @@ const server = http.createServer(async (req,res) => {
         JSON.stringify(previousSettings?.bestStoreCategoryPricingPolicies||{})!==JSON.stringify(nextSettings.bestStoreCategoryPricingPolicies||{})||previousSettings?.bestStoreCurrency!==nextSettings.bestStoreCurrency||previousSettings?.fxRate!==nextSettings.fxRate;
       if(pricingChanged)await repricePublishedWamdaProducts(nextSettings);
       if(bestStorePricingChanged)await repricePublishedBestStoreProducts(nextSettings);
-      if(!pricingChanged&&!bestStorePricingChanged){
-        await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
-        storeSettings=nextSettings;applyStoreSettings();
-      }
+
+      // Pricing refreshes may update the catalogue, but they must never bypass
+      // saving the settings object itself. Always persist the validated settings
+      // and refresh runtime credentials before reporting a successful PATCH.
+      await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+      storeSettings=nextSettings;
+      applyStoreSettings();
+
       return send(res,200,{ok:true,settings:safeSettingsForAdmin(),paymentsReady,fxReady:fxRateReady()});
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/fx/refresh') {
