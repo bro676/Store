@@ -45,9 +45,10 @@ test('product click targets are complete and wallet checkout controls are presen
   assert.ok(store.includes("'data-open-item=\"'+esc(i.id)+'\" data-open-category=\"'+esc(c.id)+'\"'"), 'Search product tiles must retain their category context');
   assert.ok(store.includes("return '<article class=\"product-card\" data-open-item=\"'+esc(it.id)+'\" data-open-category=\"'+esc(cat.id)+'\" role=\"button\" tabindex=\"0\""), 'Featured product cards retain category context and open when clicked');
   assert.ok(store.includes('<article class="product-card" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0"'), 'Saved product cards retain category context and open when clicked');
-  assert.ok(store.includes("e.target.matches?.('.product-card[role=\"button\"][data-open-item]')"), 'Product cards support keyboard activation');
-  assert.ok(store.includes("const productControl=target.closest('[data-open-item]')"), 'All product cards route through the central delegated click handler');
-  assert.ok(store.includes(" },true);\ndocument.addEventListener('input',event=>"), 'Product and pack selection handlers run in capture phase');
+  assert.ok(store.includes("const productControl=eventElement(e,'[data-open-item]')"), 'All product cards route through composed-path delegated click handling');
+  assert.ok(store.includes("document.addEventListener('keydown',e=>"), 'Product cards support keyboard activation');
+  assert.ok(store.includes("eventElement(e,'.product-card[role=\"button\"][data-open-item]')"), 'Keyboard activation resolves the product card and its category context');
+  assert.ok(store.includes(" },true);\n document.addEventListener('keydown',e=>"), 'Product and pack selection handlers run in capture phase');
   assert.ok(store.includes('id="paymentMethod"'), 'Checkout must expose a payment method selector');
   assert.ok(store.includes('value="shamcash"') && store.includes('value="wallet"'), 'Checkout must offer direct and wallet payment');
   assert.ok(store.includes('id="customerWalletCard"') && store.includes('id="walletTopupForm"'), 'Wallet account and top-up interface must exist');
