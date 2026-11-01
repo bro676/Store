@@ -13,7 +13,7 @@
   {id:'other',name:'خدمات رقمية متنوعة',icon:'✦',description:'أقسام إضافية لا تندرج تحت الأقسام الرئيسية.',folder:'11-other-services',cover:'assets/products/11-other-services/cover.svg'}
  ];
  const byId=new Map(DEPARTMENTS.map(row=>[row.id,row]));
- const placeholders=new Set(['assets/brand/logo.svg','assets/products/logo.svg','assets/products/_shared/logo.svg']);
+ const placeholders=new Set(['assets/brand/logo.svg','assets/products/logo.svg','assets/products/_shared/logo.svg','assets/products/_shared/product-placeholder.svg','assets/products/_shared/category-placeholder.svg']);
  const rules=[
   ['ai',/(?:ذكاء\s*اصطناعي|ذكاء\s*صناعي|chat\s*gpt|chatgpt|claude|gemini|gamma\s*ai|midjourney|ai\s*assistant)/i],
   ['vpn',/(?:\bvpn\b|surf\s*shark|surfshark|nord\s*vpn|proton\s*vpn|express\s*vpn|pure\s*vpn|shield\s*vpn|pia\s*vpn|شبكة\s*خاصة\s*افتراضية)/i],
@@ -74,7 +74,10 @@
  function slugify(value){const result=text(value).replace(/[^\p{L}\p{N}]+/gu,'-').replace(/^-+|-+$/g,'').slice(0,64);return result||'item'}
  function folderFor(category,product,option,pack){
   const group=department(classifyCategory(category));
-  const parts=['assets','products',group.folder,slugify(category?.name)+'--'+slugify(category?.id||'category'),slugify(product?.name)+'--'+slugify(product?.id||'product')];
+  const externalName=product?.apiSource?.name||product?.wamda?.externalName||product?.externalName||product?.sourceName||'';
+  const externalPart=externalName&&text(externalName)!==text(product?.name)?'--source-'+slugify(externalName):'';
+  const productFolder=slugify(product?.name)+externalPart+'--'+slugify(product?.id||'product');
+  const parts=['assets','products',group.folder,slugify(category?.name)+'--'+slugify(category?.id||'category'),productFolder];
   if(option)parts.push('options',slugify(option?.name)+'--'+slugify(option?.id||'option'));
   if(pack)parts.push('packs','pack-'+slugify(pack?.[0]||'offer'));
   return parts.join('/');
