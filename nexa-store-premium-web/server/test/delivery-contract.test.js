@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-const root=fileURLToPath(new URL('../../',import.meta.url));
 const read=path=>readFile(new URL(path,import.meta.url),'utf8');
 
 test('manual fulfillment is isolated from the automatic supplier purchase queue',async()=>{
