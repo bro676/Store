@@ -252,7 +252,9 @@ export function deleteCatalogFolder(input, categoryId, destinationCategoryId = '
       };
     }
   }
-  return validateCatalog(result.filter(category=>category.id!==categoryId));
+  const remaining=result.filter(category=>category.id!==categoryId);
+  if(!remaining.length)throw Object.assign(new Error('LAST_CATALOG_FOLDER_CANNOT_DELETE'),{status:409});
+  return validateCatalog(remaining);
 }
 
 export function mergeCatalog(existing, incoming, mode = 'merge') {
