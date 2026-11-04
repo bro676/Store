@@ -84,8 +84,7 @@ function familyFromSupplierText(value) {
 export function supplierCategoryMatchKey(categoryName = '') {
   const normalized=normalizeSupplierText(categoryName);
   if(!normalized)return '';
-  const family=familyFromSupplierText(normalized)||
-    (/\buc\b/.test(normalized)&&/\d/.test(normalized)?'pubg':'');
+  const family=familyFromSupplierText(normalized)||(/\buc\s*\d+\b/.test(normalized)?'pubg':'');
   return family ? 'family::'+family : 'name::'+normalized;
 }
 /**
@@ -147,9 +146,11 @@ export function supplierProductMatchKey(product, categoryName = '') {
   // Prefer a platform explicitly present in the SKU name. Use the source
   // category only when the name omits it, then the description as a last resort.
   // This prevents a broad/mislabelled category from overriding the product name.
+  const productAndCategoryText=normalizeSupplierText([product?.name,categoryName,product?.categoryName].filter(Boolean).join(' '));
+  const ucDenomination=/\buc\s*\d+\b/.test(productAndCategoryText);
   const family = familyFromSupplierText(product?.name) ||
     familyFromSupplierText([categoryName,product?.categoryName].filter(Boolean).join(' ')) ||
-    familyFromSupplierText(product?.description) || 'product';
+    (ucDenomination?'pubg':'') || familyFromSupplierText(product?.description) || 'product';
   // Strip only the platform alias. Keep denomination, region, currency, emoji,
   // language, account type and other SKU qualifiers in their original order.
   const identity = FAMILY_TERMS[family]
