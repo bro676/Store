@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f0f0f">
+<meta name="theme-color" content="#67c8f3">
 <meta name="description" content="Nexa Store — متجر رقمي للألعاب والبطاقات والاشتراكات والخدمات الرقمية.">
 <title>Nexa Store | متجرك الرقمي</title>
 <style>
@@ -613,26 +613,42 @@ body{
   <a class="sidebar-brand" href="#home" data-page="home" aria-label="Nexa Store الرئيسية">
     <img src="assets/brand/logo.svg" alt="Nexa Store">
     <span><strong>NEXA</strong><small>DIGITAL STORE</small></span>
+    <span class="sidebar-brand-status" aria-label="Nexa">NX</span>
   </a>
-  <div class="sidebar-divider"></div>
-  <div class="sidebar-caption">القائمة الرئيسية</div>
+  <button class="sidebar-profile" id="sidebarProfileButton" type="button" data-page="profile">
+    <span class="sidebar-profile-avatar" id="sidebarProfileAvatar">N</span>
+    <span class="sidebar-profile-copy"><strong id="sidebarCustomerName">زائر Nexa</strong><small id="sidebarCustomerMeta">سجّل الدخول لعرض حسابك</small></span>
+    <span class="sidebar-profile-arrow" aria-hidden="true">‹</span>
+  </button>
+  <div class="sidebar-quick-actions" aria-label="اختصارات الحساب">
+    <button type="button" data-page="wallet" title="المحفظة" aria-label="المحفظة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 9h18M16 15h2"/></svg></button>
+    <button type="button" data-page="favorites" title="المفضلة" aria-label="المفضلة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.5 8.8c0 5.2-8.5 10-8.5 10s-8.5-4.8-8.5-10A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8.5 2.8Z"/></svg></button>
+    <button type="button" data-page="orders" title="طلباتي" aria-label="طلباتي"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12l2 4v13H4V7zM4 7h16M9 11v5m6-5v5"/></svg></button>
+    <button type="button" data-page="support" title="الدعم" aria-label="الدعم"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v12H7l-3 3z"/><path d="M8 9h8m-8 4h5"/></svg></button>
+  </div>
+  <button class="sidebar-currency" type="button" data-page="wallet"><span>عملة الحساب</span><strong>SYP</strong><small id="sidebarWalletAmount">الرصيد يظهر بعد الدخول</small></button>
   <nav class="sidebar-nav" aria-label="أقسام المتجر">
+    <div class="sidebar-group-label">استكشف المتجر</div>
     <a class="side-link active" href="#home" data-page="home"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-6h6v6"/></svg></span><span>الرئيسية</span><i></i></a>
-    <a class="side-link" href="#store" data-page="store"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></span><span>المتجر</span><i></i></a>
+    <a class="side-link" href="#store" data-page="store"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></span><span>الأقسام والمنتجات</span><i></i></a>
+    <div class="sidebar-group-label">حسابك وعملياتك</div>
     <a class="side-link" href="#orders" data-page="orders"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12l2 4v13H4V7zM4 7h16M9 11v5m6-5v5"/></svg></span><span>طلباتي</span><b class="side-count" id="sideOrderBadge">0</b><i></i></a>
+    <a class="side-link" href="#payments" data-page="payments"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 14h4m-4 3h7"/></svg></span><span>مدفوعاتي</span><i></i></a>
+    <a class="side-link" href="#wallet" data-page="wallet"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 9h18M16 15h2"/></svg></span><span>المحفظة وشحن الرصيد</span><i></i></a>
     <a class="side-link" href="#favorites" data-page="favorites"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.5 8.8c0 5.2-8.5 10-8.5 10s-8.5-4.8-8.5-10A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8.5 2.8Z"/></svg></span><span>المفضلة</span><i></i></a>
-    <a class="side-link" href="#wallet" data-page="wallet"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 9h18M16 15h2"/></svg></span><span>المحفظة</span><i></i></a>
+    <a class="side-link" href="#profile" data-page="profile"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.2 3.5-6.3 8-6.3s7.2 2.1 8 6.3"/></svg></span><span>ملفي الشخصي</span><i></i></a>
+    <div class="sidebar-group-label">المساعدة والمعلومات</div>
     <a class="side-link" href="#support" data-page="support"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v12H7l-3 3z"/><path d="M8 9h8m-8 4h5"/></svg></span><span>الدعم والتواصل</span><i></i></a>
+    <a class="side-link" href="#about" data-page="about"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg></span><span>عن Nexa Store</span><i></i></a>
   </nav>
   <div class="sidebar-bottom">
-    <div class="sidebar-status"><span class="status-pulse"></span><div><strong>تجربة المتجر</strong><small>المفضلة على الجهاز والطلبات على الخادم</small></div></div>
-    <div class="sidebar-footer"><span>© <span id="sideYear"></span> NEXA STORE</span><small>تجربة رقمية منظمة</small></div>
+    <div class="sidebar-status"><span class="status-pulse"></span><div><strong>حساب آمن</strong><small>الدخول برقم الهاتف وكلمة المرور</small></div></div>
+    <div class="sidebar-footer"><span>© <span id="sideYear"></span> NEXA STORE</span><small>مساحتك الرقمية</small></div>
   </div>
 </aside>
 <button class="sidebar-backdrop" id="sidebarBackdrop" aria-label="إغلاق القائمة الجانبية" tabindex="-1"></button>
 <div class="app-main">
 
-<div class="promo"><div class="wrap promo-inner"><span class="promo-dot"></span><span>مرحباً بك في <strong>Nexa Store</strong> — تجربة متجر رقمي محلية ومنظمة.</span></div></div>
 <header class="header">
   <div class="wrap header-main">
     <a class="header-brand" href="#home" data-page="home" aria-label="Nexa Store الرئيسية">
@@ -651,6 +667,7 @@ body{
       <button class="icon-button menu-toggle" id="menuToggle" type="button" aria-label="فتح القائمة الجانبية" aria-expanded="false" aria-controls="sidebar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
       </button>
+      <button class="wallet-chip" id="headerWalletChip" type="button" data-page="wallet"><span>رصيدك</span><strong id="headerWalletBalance">—</strong></button>
       <button class="icon-button store-theme-toggle" id="storeThemeToggle" type="button" aria-label="التبديل إلى الوضع الفاتح" title="تبديل الوضع اللوني" aria-pressed="true">☀</button>
       <button class="icon-button" data-page="favorites" title="المفضلة" aria-label="المفضلة">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20.5 8.8c0 5.2-8.5 10-8.5 10s-8.5-4.8-8.5-10A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8.5 2.8Z"/></svg>
@@ -667,14 +684,39 @@ body{
     </div>
   </div>
 </header>
+<div class="promo"><div class="wrap promo-inner"><span class="promo-dot"></span><span>مرحباً بك في <strong>Nexa Store</strong> — تجربة متجر رقمي محلية ومنظمة.</span></div></div>
 <main id="appMain">
 <section class="view" data-view="home" id="homeView">
   <div class="wrap">
     <section class="home-intro">
-      <div class="home-intro-copy"><span class="home-intro-kicker"><i></i> أهلاً بك في Nexa Store</span><h1>مساحتك الرقمية، <span>بكل بساطة.</span></h1><p>تصفّح الألعاب والبطاقات والاشتراكات والخدمات الرقمية. اختر القسم ثم المنتج والمنطقة والباقة المناسبة بخطوات واضحة.</p><div class="home-intro-actions"><button class="btn btn-primary" data-page="store">ابدأ التسوق <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14m-6-6 6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="home-assistant-link" data-open-assistant>✦ اسأل مساعد Nexa</button><span class="home-intro-note"><b id="homeCategoryCount">0</b> أقسام رئيسية <em></em> خيارات متعددة</span></div></div>
-      <div class="home-intro-side"><span class="intro-orbit orbit-one"></span><span class="intro-orbit orbit-two"></span><div class="intro-mark"><img src="assets/brand/hero-art.svg" alt="Nexa digital services"></div><span class="intro-side-label">YOUR DIGITAL SPACE</span></div>
+      <div class="home-intro-copy">
+        <span class="home-intro-kicker"><i></i> أهلاً بك في NEXA STORE</span>
+        <h1>كل عالمك الرقمي، <span>في مكان واحد.</span></h1>
+        <p>تصفّح الألعاب والبطاقات والاشتراكات والخدمات الرقمية. اختر القسم، ثم المنتج والمنطقة والباقة المناسبة بخطوات واضحة.</p>
+        <div class="home-intro-actions">
+          <button class="btn btn-primary" data-page="store">اكتشف المتجر <span aria-hidden="true">←</span></button>
+          <button class="home-assistant-link" data-open-assistant>✦ اسأل مساعد Nexa</button>
+        </div>
+        <div class="home-intro-note"><b id="homeCategoryCount">0</b> أقسام رئيسية <em></em> كتالوج متدرّج حتى الباقة والسعر</div>
+      </div>
+      <div class="home-intro-side">
+        <span class="intro-orbit orbit-one"></span><span class="intro-orbit orbit-two"></span>
+        <div class="intro-mark"><img src="assets/brand/hero-art.svg" alt="Nexa digital services"></div>
+        <span class="intro-side-label">YOUR DIGITAL SPACE</span>
+      </div>
     </section>
-    <div class="trust-row"><div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 7v5c0 5 3.4 8 8 9 4.6-1 8-4 8-9V7z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></span><span><strong>اختيار منظم</strong><small>كل خدمة ضمن مسار واضح</small></span></div><div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></span><span><strong>تفاصيل قبل الطلب</strong><small>راجع المنطقة والباقة أولاً</small></span></div><div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v12H7l-3 3z"/><path d="M8 9h8m-8 4h5"/></svg></span><span><strong>تواصل مباشر</strong><small>قنوات دعم واضحة</small></span></div><div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 8h8v8H8z"/></svg></span><span><strong>دفع موثّق</strong><small>اعتماد بعد تحقق API</small></span></div></div>
+    <div class="nexa-marquee" aria-label="معلومات المتجر">
+      <div class="nexa-marquee-track">
+        <span>✦ NEXA STORE</span><b>•</b><span>ألعاب وبطاقات رقمية</span><b>•</b><span>اشتراكات وتطبيقات</span><b>•</b><span>خيارات وباقات واضحة</span><b>•</b><span>دفع يتحقق منه الخادم</span><b>•</b><span>دعم ومتابعة للطلبات</span><b>•</b>
+        <span>✦ NEXA STORE</span><b>•</b><span>ألعاب وبطاقات رقمية</span><b>•</b><span>اشتراكات وتطبيقات</span><b>•</b><span>خيارات وباقات واضحة</span><b>•</b><span>دفع يتحقق منه الخادم</span><b>•</b><span>دعم ومتابعة للطلبات</span><b>•</b>
+      </div>
+    </div>
+    <form class="nexa-home-search" id="homeSearchForm" role="search">
+      <span class="nexa-home-search-icon" aria-hidden="true">⌕</span>
+      <input id="homeSearch" type="search" placeholder="ابحث عن لعبة، بطاقة، اشتراك أو خدمة..." autocomplete="off" aria-label="البحث في متجر Nexa">
+      <button type="submit">بحث في المتجر</button>
+    </form>
+        <div class="trust-row"><div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3 4 7v5c0 5 3.4 8 8 9 4.6-1 8-4 8-9V7z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg></span><span><strong>اختيار منظم</strong><small>كل خدمة ضمن مسار واضح</small></span></div><div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></span><span><strong>تفاصيل قبل الطلب</strong><small>راجع المنطقة والباقة أولاً</small></span></div><div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v12H7l-3 3z"/><path d="M8 9h8m-8 4h5"/></svg></span><span><strong>تواصل مباشر</strong><small>قنوات دعم واضحة</small></span></div><div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 8h8v8H8z"/></svg></span><span><strong>دفع موثّق</strong><small>اعتماد بعد تحقق API</small></span></div></div>
   </div>
   <section class="section" id="categories"><div class="wrap"><div class="section-head"><div><span class="section-kicker">BROWSE BY CATEGORY</span><h2 class="section-title">تصفّح حسب القسم</h2><p class="section-sub">اختر مجالاً أولاً، وسنأخذك إلى الخيارات المتاحة خطوة بخطوة.</p></div><button class="text-link" data-page="store">عرض جميع الأقسام ←</button></div><div class="category-grid" id="homeCategoryGrid"></div></div></section>
   <section class="section"><div class="wrap"><div class="section-head"><div><span class="section-kicker">POPULAR PICKS</span><h2 class="section-title">اختيارات تستحق الاستكشاف</h2><p class="section-sub">ابدأ من لعبة أو خدمة شائعة، ثم اختر النسخة المناسبة لك.</p></div><button class="text-link" data-page="store">الذهاب إلى الكتالوج ←</button></div><div class="featured-grid" id="featuredGrid"></div></div></section>
@@ -682,7 +724,7 @@ body{
   <section class="section"><div class="wrap"><div class="section-head"><div><span class="section-kicker">HELP CENTER</span><h2 class="section-title">أسئلة شائعة</h2><p class="section-sub">إجابات واضحة حول المنتجات والطلبات والدفع والدعم.</p></div></div><div class="faq-grid"><details class="faq-item"><summary>هل الأسعار المعروضة حقيقية؟</summary><p>تعرض صفحات المنتجات الأسعار المعتمدة في كتالوج المتجر وقت التصفح. يظهر المبلغ النهائي والعملة ومدة الفاتورة في صفحة الدفع قبل التحويل.</p></details><details class="faq-item"><summary>هل يتم تنفيذ الطلبات فعلياً؟</summary><p>ينشئ المتجر الفاتورة على الخادم، وبعد التحقق من التحويل يُرسل الطلب إلى المورد المرتبط بالمنتج ويتابع حالة التنفيذ. قد تتطلب بعض الحالات مراجعة إضافية إذا تأخر المورد أو رفض الطلب.</p></details><details class="faq-item"><summary>هل شام كاش مفعّل؟</summary><p>يتحقق الخادم من حالة المحفظة والفاتورة ورقم التحويل والمبلغ والوقت، ويمنع إعادة استخدام رقم العملية.</p></details><details class="faq-item"><summary>كيف أتواصل مع الدعم؟</summary><p>يمكنك استخدام زر واتساب أو البريد الإلكتروني الموجودين في صفحة الدعم.</p></details></div></div></section>
 </section>
 <section class="view hidden" data-view="store" id="storeView"><div class="wrap page-shell"><div class="page-heading"><div><span class="section-kicker">NEXA CATALOG</span><h1>الكتالوج الرقمي</h1><p>اختر المنتج والنسخة أو الخطة المناسبة، ثم راجع السعر النهائي قبل إنشاء الفاتورة.</p></div></div><div class="catalog-shell"><div class="catalog-header"><div><h2 id="catalogTitle">كل الأقسام</h2><p id="catalogDescription">ابدأ باختيار القسم المناسب، ثم انتقل إلى المنتج والخيارات والأسعار.</p></div><span class="catalog-count" id="catalogCount">8 أقسام</span></div><div class="catalog-steps" id="catalogSteps"></div><div class="breadcrumbs" id="breadcrumbs"></div><div id="catalogContent"></div><div class="catalog-note"><span>ⓘ</span><div><strong>معلومة مهمة:</strong> السعر والعملة ومدة صلاحية الفاتورة تُعرض لك قبل التحويل. لا يُعتمد أي دفع قبل التحقق من العملية لدى مزوّد الدفع.</div></div></div></div></section>
-<section class="view hidden" data-view="orders"><div class="wrap page-shell"><div class="page-heading"><div><span class="section-kicker">YOUR ACTIVITY</span><h1>طلباتي</h1><p>يعرض هذا القسم سجل الطلبات المحفوظ على هذا الجهاز، بينما تُحفظ الفواتير ونتائج التحقق على الخادم.</p></div><button class="btn btn-soft" data-page="store">إنشاء طلب جديد</button></div><div class="data-panel"><div class="data-table-wrap"><table class="data-table"><thead><tr><th>رقم الطلب</th><th>الخدمة</th><th>التاريخ</th><th>الإجمالي</th><th>الحالة</th></tr></thead><tbody id="ordersTable"><tr><td colspan="5">لا توجد طلبات حتى الآن.</td></tr></tbody></table></div></div></div></section>
+<section class="view hidden" data-view="orders"><div class="wrap page-shell"><div class="page-heading"><div><span class="section-kicker">YOUR ACTIVITY</span><h1>طلباتي</h1><p>يعرض هذا القسم سجل الطلبات المحفوظ على هذا الجهاز، بينما تُحفظ الفواتير ونتائج التحقق على الخادم.</p></div><button class="btn btn-soft" data-page="store">إنشاء طلب جديد</button></div><div class="data-panel"><div class="data-table-wrap"><table class="data-table"><thead><tr><th>رقم الطلب</th><th>الخدمة</th><th>التاريخ</th><th>الإجمالي</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody id="ordersTable"><tr><td colspan="5">لا توجد طلبات حتى الآن.</td></tr></tbody></table></div></div></div></section>
 <section class="view hidden" data-view="favorites"><div class="wrap page-shell"><div class="page-heading"><div><span class="section-kicker">SAVED ITEMS</span><h1>المفضلة</h1><p>العناصر التي حفظتها للرجوع إليها لاحقاً على هذا المتصفح.</p></div><button class="btn btn-soft" data-page="store">استكشف المتجر</button></div><div class="featured-grid" id="favoritesGrid"><div class="empty-state"><strong>المفضلة فارغة</strong><p>احفظ المنتجات التي تهمك من بطاقاتها.</p></div></div></div></section>
 <section class="view hidden" data-view="wallet"><div class="wrap page-shell"><div class="page-heading"><div><span class="section-kicker">SECURE CHECKOUT · SHAM CASH</span><h1>الدفع الآمن عبر شام كاش</h1><p>فاتورة رسمية لكل طلب، ومطابقة آلية لرقم التحويل والمبلغ ومحفظة الاستلام قبل اعتماد الدفع.</p></div><span class="status-pill" id="shamCashStatusBadge">جارٍ فحص الاتصال…</span></div><section class="customer-wallet-card" id="customerWalletCard">
   <div class="customer-wallet-head"><div><span class="section-kicker">NEXA WALLET</span><h2>حسابك ورصيدك</h2><p>أنشئ حساباً لتحتفظ برصيدك وتستخدمه عند شراء أي منتج.</p></div><span class="account-status-pill" id="walletAccountStatus">غير مسجل الدخول</span></div>
@@ -763,8 +805,52 @@ body{
     </div></section>
   </div>
 </section>
+
+<section class="view hidden" data-view="payments" id="paymentsView">
+  <div class="wrap page-shell">
+    <div class="page-heading">
+      <div><span class="section-kicker">PAYMENT HISTORY</span><h1>مدفوعاتي</h1><p>سجل الفواتير والمدفوعات المرتبطة بطلبات حسابك، كما وردت من الخادم.</p></div>
+      <button class="btn btn-soft" data-page="wallet">فتح المحفظة</button>
+    </div>
+    <div class="history-toolbar">
+      <label class="history-search"><span aria-hidden="true">⌕</span><input id="paymentHistorySearch" type="search" placeholder="ابحث برقم الطلب أو اسم المنتج..." aria-label="البحث في المدفوعات"></label>
+      <select id="paymentHistoryFilter" aria-label="تصفية المدفوعات"><option value="all">كل العمليات</option><option value="paid">مدفوع ومتحقق</option><option value="pending">بانتظار الدفع</option><option value="other">منتهية أو ملغاة</option></select>
+    </div>
+    <div class="data-panel"><div class="data-table-wrap"><table class="data-table">
+      <thead><tr><th>رقم الطلب</th><th>المنتج</th><th>طريقة الدفع</th><th>تاريخ العملية</th><th>المبلغ</th><th>الحالة</th></tr></thead>
+      <tbody id="paymentsTable"><tr><td colspan="6" class="table-empty">سجّل الدخول لعرض مدفوعاتك.</td></tr></tbody>
+    </table></div></div>
+    <p class="history-footnote">حالة الدفع المعروضة مصدرها سجل الطلب على الخادم؛ لا يعتمد المتجر على رسالة نجاح من المتصفح وحدها.</p>
+  </div>
+</section>
+
+<section class="view hidden" data-view="profile" id="profileView">
+  <div class="wrap page-shell">
+    <div class="page-heading"><div><span class="section-kicker">YOUR NEXA ACCOUNT</span><h1>ملفي الشخصي</h1><p>بيانات الحساب المرتبطة بتسجيل الدخول برقم الهاتف وكلمة المرور.</p></div><button class="btn btn-soft" data-page="wallet">إدارة الحساب والمحفظة</button></div>
+    <div id="profileDetails" class="profile-details"><div class="empty-state"><strong>جارٍ تحميل بيانات الحساب</strong><p>ستظهر بياناتك بعد التحقق من جلسة الدخول.</p></div></div>
+  </div>
+</section>
+
+<section class="view hidden" data-view="about" id="aboutView">
+  <div class="wrap page-shell">
+    <div class="page-heading"><div><span class="section-kicker">ABOUT NEXA</span><h1>عن Nexa Store</h1><p>مساحة رقمية مستقلة للألعاب والبطاقات والاشتراكات والخدمات الرقمية.</p></div></div>
+    <section class="about-hero">
+      <div class="about-mark"><img src="assets/brand/logo.svg" alt="Nexa Store"></div>
+      <div><span class="section-kicker">YOUR DIGITAL SPACE</span><h2>اختيار واضح، وطلب منظم.</h2><p>نجمع فئات المنتجات الرقمية في كتالوج واحد متدرّج، لتتمكن من اختيار المنتج ثم الخيار أو المنطقة ثم الباقة والسعر قبل إنشاء الطلب.</p></div>
+    </section>
+    <div class="about-grid">
+      <article class="about-card"><span>01</span><h3>كتالوج منظم</h3><p>تصفح الأقسام والمنتجات والخيارات والباقات دون خلط بين المستويات.</p></article>
+      <article class="about-card"><span>02</span><h3>طلب يمكن متابعته</h3><p>أنشئ طلبك واحتفظ برقم الفاتورة، ثم تابع حالته من صفحة طلباتي.</p></article>
+      <article class="about-card"><span>03</span><h3>تحقق من الدفع</h3><p>لا يعتمد الدفع إلا بعد تحقق الخادم من بيانات العملية لدى بوابة شام كاش.</p></article>
+    </div>
+    <section class="about-contact">
+      <div><span class="section-kicker">NEED HELP?</span><h2>نحن هنا للمساعدة</h2><p>للاستفسارات المتعلقة بالمنتجات والطلبات، تواصل مع قنوات الدعم المعلنة.</p></div>
+      <div class="about-contact-actions"><a class="btn btn-primary" href="https://wa.me/963936382101" target="_blank" rel="noopener">واتساب الدعم ↗</a><a class="btn btn-soft" href="mailto:support.nsde@gmail.com">support.nsde@gmail.com</a></div>
+    </section>
+  </div>
+</section>
 </main>
-<footer class="footer"><div class="wrap"><div class="footer-main"><div><div class="footer-brand"><img src="assets/brand/logo.svg" alt=""><strong>NEXA STORE</strong></div><p class="footer-note">مساحة رقمية واحدة للألعاب والبطاقات والاشتراكات والخدمات.</p></div><nav class="footer-links"><a href="#home" data-nav="home">الرئيسية</a><a href="#store" data-page="store">المتجر</a><a href="#orders" data-page="orders">طلباتي</a><a href="#support" data-page="support">الدعم</a><a href="mailto:support.nsde@gmail.com">البريد الإلكتروني</a><a href="/admin.html" rel="nofollow">إدارة المتجر</a></nav></div><div class="footer-bottom"><span>© <span id="year"></span> NEXA STORE</span><span>الدفع عبر شام كاش · التحقق من رقم العملية عبر API</span></div></div></footer>
+<footer class="footer"><div class="wrap"><div class="footer-main"><div><div class="footer-brand"><img src="assets/brand/logo.svg" alt=""><strong>NEXA STORE</strong></div><p class="footer-note">مساحة رقمية واحدة للألعاب والبطاقات والاشتراكات والخدمات.</p></div><nav class="footer-links"><a href="#home" data-nav="home">الرئيسية</a><a href="#store" data-page="store">المتجر</a><a href="#orders" data-page="orders">طلباتي</a><a href="#payments" data-page="payments">مدفوعاتي</a><a href="#wallet" data-page="wallet">المحفظة</a><a href="#about" data-page="about">عن المتجر</a><a href="#support" data-page="support">الدعم</a><a href="mailto:support.nsde@gmail.com">البريد الإلكتروني</a><a href="/admin.html" rel="nofollow">إدارة المتجر</a></nav></div><div class="footer-bottom"><span>© <span id="year"></span> NEXA STORE</span><span>الدفع عبر شام كاش · التحقق من رقم العملية عبر API</span></div></div></footer>
 </div>
 </div>
 
@@ -789,7 +875,7 @@ let state={view:'home',department:null,category:null,item:null,option:null,selec
 function getCategory(id){return categories.find(x=>String(x.id)===String(id))||null}function getItem(id,categoryId=state.category){const scoped=categoryId==null?null:getCategory(categoryId);if(scoped){const match=(scoped.items||[]).find(x=>String(x.id)===String(id));if(match)return match;}for(const c of categories){const it=(c.items||[]).find(x=>String(x.id)===String(id));if(it)return it}return null}function getOption(id){const it=state.item&&getItem(state.item,state.category);return NexaCatalog.getProductOptions(it).find(x=>String(x.id)===String(id))||null}
 function storageRead(){try{const raw=localStorage.getItem('nexa-store-client');if(raw){memoryData=JSON.parse(raw);return memoryData}}catch{}return memoryData}function storageSave(d){memoryData=d;try{localStorage.setItem('nexa-store-client',JSON.stringify(d))}catch{}}
 function showToast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2400)}
-function navigate(view){state.view=view;document.querySelectorAll('.view').forEach(e=>e.classList.toggle('hidden',e.dataset.view!==view));document.querySelectorAll('[data-page]').forEach(e=>e.classList.toggle('active',e.dataset.page===view));document.querySelectorAll('[data-nav]').forEach(e=>e.classList.toggle('active',e.dataset.nav===view));try{history.replaceState(null,'','#'+view)}catch{try{location.hash=view}catch{}}if(view==='store')renderCatalog();if(view==='orders')renderOrders();if(view==='favorites')renderFavorites();if(view==='home')renderFeatured();if(view==='support')renderSupportState();window.scrollTo({top:0,behavior:'smooth'});closeMenu()}
+function navigate(view){state.view=view;document.querySelectorAll('.view').forEach(e=>e.classList.toggle('hidden',e.dataset.view!==view));document.querySelectorAll('[data-page]').forEach(e=>e.classList.toggle('active',e.dataset.page===view));document.querySelectorAll('[data-nav]').forEach(e=>e.classList.toggle('active',e.dataset.nav===view));try{history.replaceState(null,'','#'+view)}catch{try{location.hash=view}catch{}}if(view==='store')renderCatalog();if(view==='orders')renderOrders();if(view==='payments')renderPaymentHistory();if(view==='profile')renderProfilePage();if(view==='favorites')renderFavorites();if(view==='home')renderFeatured();if(view==='support')renderSupportState();renderSidebarAccount();window.scrollTo({top:0,behavior:'smooth'});closeMenu()}
 function closeMenu(){document.body.classList.remove('menu-open','sidebar-open');$('menuToggle')?.setAttribute('aria-expanded','false')}
 function renderDepartmentCard(group){
  return '<button type="button" class="department-card" data-department="'+esc(group.id)+'" aria-label="فتح '+esc(group.name)+'">'+
@@ -1024,7 +1110,12 @@ function closeModal(){$('orderModal').classList.remove('open');document.body.sty
 function renderOrders(){
  const d=storageRead(),rows=d.orders||[];
  $('orderBadge').textContent=rows.length;$('sideOrderBadge').textContent=rows.length;
- $('ordersTable').innerHTML=rows.length?rows.map(o=>`<tr><td class="ltr">${esc(o.id)}</td><td>${esc(o.name)}</td><td>${esc(o.date)}</td><td>${o.amountMinor?formatMinor(o.amountMinor,o.currency||'SYP'):money(o.price)}</td><td><span class="status">${o.status==='paid'?'مدفوع ومتحقق':o.status==='expired'?'منتهي':'بانتظار الدفع'}</span></td><td><button type="button" class="btn btn-soft" data-open-order="${esc(o.id)}">متابعة / استلام</button></td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;color:#828b99;padding:25px">لا توجد طلبات حتى الآن.</td></tr>';
+ $('ordersTable').innerHTML=rows.length?rows.map(o=>{
+  const paid=Boolean(o.paidAt)||o.status==='paid';
+  const label=paid?'مدفوع ومتحقق':o.status==='expired'?'منتهي':o.status==='cancelled'?'ملغي':'بانتظار الدفع';
+  return `<tr><td class="ltr">${esc(o.id)}</td><td>${esc(o.name)}</td><td>${esc(o.date)}</td><td>${o.amountMinor?formatMinor(o.amountMinor,o.currency||'SYP'):money(o.price)}</td><td><span class="status">${label}</span></td><td><button type="button" class="btn btn-soft" data-open-order="${esc(o.id)}">متابعة / استلام</button></td></tr>`;
+ }).join(''):'<tr><td colspan="6" class="table-empty">لا توجد طلبات حتى الآن.</td></tr>';
+ renderPaymentHistory();
 }
 $('ordersTable')?.addEventListener('click',async e=>{
  const button=e.target.closest('[data-open-order]');if(!button)return;
@@ -1262,6 +1353,54 @@ async function watchSeagmDelivery(orderId){
  }catch{}
  finally{deliveryWatchers.delete(orderId)}
 }
+function paymentStateForOrder(order){
+ const status=String(order?.status||'').toLowerCase();
+ if(order?.paidAt||status==='paid')return 'paid';
+ if(status==='pending_payment'||status==='pending')return 'pending';
+ return 'other';
+}
+function renderPaymentHistory(){
+ const table=$('paymentsTable');if(!table)return;
+ const rows=storageRead().orders||[];
+ const filter=$('paymentHistoryFilter')?.value||'all';
+ const query=String($('paymentHistorySearch')?.value||'').trim().toLocaleLowerCase('ar');
+ const visible=rows.filter(order=>{
+  const paymentState=paymentStateForOrder(order);
+  const matchesFilter=filter==='all'||(filter==='paid'&&paymentState==='paid')||(filter==='pending'&&paymentState==='pending')||(filter==='other'&&paymentState==='other');
+  const haystack=[order.id,order.name,order.paymentMethod].join(' ').toLocaleLowerCase('ar');
+  return matchesFilter&&(!query||haystack.includes(query));
+ });
+ table.innerHTML=visible.length?visible.map(order=>{
+  const paymentState=paymentStateForOrder(order);
+  const statusLabel=paymentState==='paid'?'مدفوع ومتحقق':paymentState==='pending'?'بانتظار التحقق':'منتهي أو ملغي';
+  const method=order.paymentMethod==='wallet'?'محفظة Nexa':String(order.paymentMethod||'').includes('shamcash')?'شام كاش':'—';
+  const date=order.paidAt?new Date(order.paidAt).toLocaleString('ar-SY'):String(order.date||'—');
+  return '<tr><td class="ltr">'+esc(order.id)+'</td><td>'+esc(order.name||'—')+'</td><td>'+esc(method)+'</td><td>'+esc(date)+'</td><td>'+formatMinor(order.amountMinor||'0',order.currency||'SYP')+'</td><td><span class="status '+paymentState+'">'+statusLabel+'</span></td></tr>';
+ }).join(''):'<tr><td colspan="6" class="table-empty">'+(rows.length?'لا توجد عمليات تطابق البحث أو التصفية.':'سجّل الدخول لعرض سجل مدفوعاتك من الخادم.')+'</td></tr>';
+}
+function renderProfilePage(){
+ const target=$('profileDetails');if(!target)return;
+ if(!customerAccount){
+  target.innerHTML='<section class="profile-guest"><div class="profile-guest-mark">N</div><h2>سجّل الدخول للوصول إلى ملفك</h2><p>استخدم رقم الهاتف وكلمة المرور لعرض بيانات الحساب ورصيد المحفظة.</p><button class="btn btn-primary" type="button" data-page="wallet">تسجيل الدخول <span>←</span></button></section>';
+  return;
+ }
+ const name=String(customerAccount.full_name||'عميل Nexa'),phone=String(customerAccount.phone||'');
+ const accountId=String(customerAccount.id||'').slice(0,8).toUpperCase()||'—';
+ target.innerHTML='<section class="profile-card"><div class="profile-card-identity"><span class="profile-card-avatar">'+esc(name.trim().charAt(0)||'N')+'</span><div><span class="section-kicker">NEXA MEMBER</span><h2>'+esc(name)+'</h2><small class="ltr">'+esc(phone)+'</small></div></div><div class="profile-card-stats"><div><small>معرّف الحساب</small><strong class="ltr">'+esc(accountId)+'</strong></div><div><small>رصيد المحفظة</small><strong>'+formatMinor(customerAccount.balance_minor||'0','SYP')+'</strong></div><div><small>طريقة الدخول</small><strong>رقم الهاتف وكلمة المرور</strong></div></div><p class="profile-card-note">تُعرض هذه البيانات من جلسة حسابك الحالية. تعديل معلومات الهوية غير متاح من هذه الصفحة.</p><div class="profile-card-actions"><button class="btn btn-primary" type="button" data-page="wallet">إدارة المحفظة</button><button class="btn btn-soft" type="button" data-page="orders">عرض طلباتي</button><button class="btn btn-soft" type="button" id="profileLogoutButton">تسجيل الخروج</button></div></section>';
+ const logout=$('profileLogoutButton');
+ if(logout)logout.addEventListener('click',async()=>{try{await fetch('/api/account/logout',{method:'POST',credentials:'same-origin'});}catch{}customerAccount=null;await refreshCustomerAccount();renderProfilePage();showToast('تم تسجيل الخروج.');});
+}
+function renderSidebarAccount(){
+ const name=customerAccount?.full_name||'زائر Nexa',id=String(customerAccount?.id||'');
+ const avatar=String(name).trim().charAt(0)||'N';
+ const meta=customerAccount?'معرّف '+(id?id.slice(0,8).toUpperCase():'حساب نشط'):'سجّل الدخول لعرض حسابك';
+ const balance=customerAccount?formatMinor(customerAccount.balance_minor||'0','SYP'):'الرصيد يظهر بعد الدخول';
+ if($('sidebarCustomerName'))$('sidebarCustomerName').textContent=name;
+ if($('sidebarCustomerMeta'))$('sidebarCustomerMeta').textContent=meta;
+ if($('sidebarProfileAvatar'))$('sidebarProfileAvatar').textContent=avatar;
+ if($('sidebarWalletAmount'))$('sidebarWalletAmount').textContent=balance;
+ if($('headerWalletBalance'))$('headerWalletBalance').textContent=customerAccount?balance:'دخول الحساب';
+}
 function renderSupportState(){const d=storageRead();const tickets=d.supportTickets||[];const result=$('supportTicketResult');if(result&&tickets.length){const t=tickets[0];$('supportTicketText').textContent=`رقم المسودة ${t.id} · ${t.issue}`;result.classList.remove('hidden');const message=`مرحباً، أود التواصل مع الدعم الفني في Nexa Store.\nرقم البلاغ: ${t.id}\nالاسم: ${t.name}\nالتواصل: ${t.contact}\nنوع الطلب: ${t.issue}\nرقم الطلب: ${t.orderId||'غير محدد'}\nالتفاصيل: ${t.message}`;$('supportTicketWA').href=`https://wa.me/963936382101?text=${encodeURIComponent(message)}`;$('supportTicketEmail').href=`mailto:support.nsde@gmail.com?subject=${encodeURIComponent('بلاغ دعم '+t.id)}&body=${encodeURIComponent(message)}`}}
 function submitSupportTicket(e){e.preventDefault();const d=storageRead();d.supportTickets=d.supportTickets||[];const t={id:'NX-S-'+Date.now().toString().slice(-7),name:$('supportName').value.trim(),contact:$('supportContact').value.trim(),issue:$('supportIssue').value,orderId:$('supportOrderId').value.trim(),message:$('supportMessage').value.trim(),date:new Intl.DateTimeFormat('ar-SY',{dateStyle:'medium'}).format(new Date())};if(!t.name||!t.contact||!t.issue||!t.message)return;d.supportTickets.unshift(t);storageSave(d);renderSupportState();$('supportForm').reset();$('supportTicketResult').scrollIntoView({behavior:'smooth',block:'nearest'});showToast('تم حفظ مسودة البلاغ على هذا الجهاز');}
 function lookupSupportOrder(e){e.preventDefault();const id=$('supportLookupInput').value.trim().toUpperCase();const found=(storageRead().orders||[]).find(o=>String(o.id).toUpperCase()===id);const box=$('supportLookupResult');box.classList.remove('found','not-found');const p=document.createElement('p');if(found){box.classList.add('found');p.textContent=`${found.id} · ${found.name} · ${found.date} · ${money(found.price)}. الحالة: طلب محفوظ على هذا الجهاز؛ راجع حالة الدفع والتنفيذ من صفحة «طلباتي».`}else{box.classList.add('not-found');p.textContent='لم نعثر على هذا الرقم ضمن طلبات هذا المتصفح. تأكد من الرقم وافتح صفحة «طلباتي» للتحقق.'}box.replaceChildren();const mark=document.createElement('span');mark.className='lookup-result-mark';mark.textContent=found?'✓':'!';box.append(mark,p)}
@@ -1310,7 +1449,7 @@ function initializeStoreColorMode(){
  window.addEventListener('storage',event=>{if(event.key===NEXA_THEME_KEY&&event.newValue)setStoreColorMode(event.newValue,{persist:false});});
 }
 async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong');if(brand)brand.textContent=d.storeName;const footerName=document.querySelector('.footer-brand strong');if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
-async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items)&&c.items.length);}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();loadPaymentConfig();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','favorites','wallet','support'].includes(hash)){if(hash==='store')resetCatalog();navigate(hash);}$('sideYear').textContent=new Date().getFullYear();await refreshCustomerAccount();}
+async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items)&&c.items.length);}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();renderPaymentHistory();renderProfilePage();renderSidebarAccount();loadPaymentConfig();$('year').textContent=new Date().getFullYear();const hash=location.hash.slice(1);if(['home','store','orders','payments','favorites','wallet','profile','support','about'].includes(hash)){if(hash==='store')resetCatalog();navigate(hash);}$('sideYear').textContent=new Date().getFullYear();await refreshCustomerAccount();}
 // delegated interactions
  function eventElement(event,selector){
   const eventPath=typeof event.composedPath==='function'?event.composedPath():[];
@@ -1365,16 +1504,16 @@ $('orderQuantity').addEventListener('input',renderCurrencyPreview);$('shamCashPa
  const productControl=NexaCatalog.findProductControl(e)||eventElement(e,'[data-open-item]');
  if(!productControl||closestStoreTarget(e,'[data-favorite]'))return;
  e.preventDefault();openItem(productControl.getAttribute('data-open-item'),productControl.getAttribute('data-open-category')||null);
- });$('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){showSearchResults(e.currentTarget.value)}});$('globalSearch').addEventListener('search',e=>{if(!e.currentTarget.value){navigate('home')}});$('menuToggle').addEventListener('click',()=>{const opened=document.body.classList.toggle('sidebar-open');$('menuToggle').setAttribute('aria-expanded',String(opened))});$('sidebarBackdrop').addEventListener('click',closeMenu);
+ });$('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){showSearchResults(e.currentTarget.value)}});$('globalSearch').addEventListener('search',e=>{if(!e.currentTarget.value){navigate('home')}});$('homeSearchForm')?.addEventListener('submit',e=>{e.preventDefault();showSearchResults($('homeSearch')?.value||'')});$('homeSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();showSearchResults(e.currentTarget.value)}});$('paymentHistoryFilter')?.addEventListener('change',renderPaymentHistory);$('paymentHistorySearch')?.addEventListener('input',renderPaymentHistory);$('menuToggle').addEventListener('click',()=>{const opened=document.body.classList.toggle('sidebar-open');$('menuToggle').setAttribute('aria-expanded',String(opened))});$('sidebarBackdrop').addEventListener('click',closeMenu);
 
 async function refreshCustomerAccount(){
  const guest=$('customerGuestPanel'),signed=$('customerSignedPanel'),status=$('walletAccountStatus');
  try{
   const response=await fetch('/api/account/me',{credentials:'same-origin',cache:'no-store'});
-  if(!response.ok){customerAccount=null;guest.classList.remove('hidden');signed.classList.add('hidden');status.textContent='غير مسجل الدخول';return;}
+  if(!response.ok){customerAccount=null;guest.classList.remove('hidden');signed.classList.add('hidden');status.textContent='غير مسجل الدخول';renderSidebarAccount();renderProfilePage();return;}
   const data=await response.json();customerAccount=data.customer||null;
-  if(!customerAccount){guest.classList.remove('hidden');signed.classList.add('hidden');status.textContent='غير مسجل الدخول';return;}
-  guest.classList.add('hidden');signed.classList.remove('hidden');status.textContent='حساب نشط';
+  if(!customerAccount){guest.classList.remove('hidden');signed.classList.add('hidden');status.textContent='غير مسجل الدخول';renderSidebarAccount();renderProfilePage();return;}
+  guest.classList.add('hidden');signed.classList.remove('hidden');status.textContent='حساب نشط';renderSidebarAccount();renderProfilePage();
   $('walletCustomerName').textContent=customerAccount.full_name||'';
   $('walletCustomerPhone').textContent=customerAccount.phone||'';
   $('walletBalanceValue').textContent=formatMinor(customerAccount.balance_minor||'0','SYP');
@@ -1392,12 +1531,12 @@ async function refreshCustomerAccount(){
   const orderResponse=await fetch('/api/account/orders',{credentials:'same-origin',cache:'no-store'});
   if(orderResponse.ok){
    const orderData=await orderResponse.json();
-   const orders=(orderData.orders||[]).map(item=>({id:item.id,name:item.product_label,date:item.createdAt?new Date(item.createdAt).toLocaleDateString('ar-SY'):'',amountMinor:item.amountMinor,currency:item.currency,status:item.status,paymentMethod:item.paymentMethod}));
-   const saved=storageRead();saved.orders=orders;storageSave(saved);renderOrders();
+   const orders=(orderData.orders||[]).map(item=>({id:item.id,name:item.product_label,date:item.createdAt?new Date(item.createdAt).toLocaleDateString('ar-SY'):'',amountMinor:item.amountMinor,currency:item.currency,status:item.status,paymentMethod:item.paymentMethod,paidAt:item.paidAt||null,supplierStatus:item.supplierStatus||null}));
+   const saved=storageRead();saved.orders=orders;storageSave(saved);renderOrders();renderPaymentHistory();
   }
   if(state.selectedPack)renderCurrencyPreview();
  }catch{
-  customerAccount=null;guest.classList.remove('hidden');signed.classList.add('hidden');status.textContent='تعذر تحميل الحساب';
+  customerAccount=null;guest.classList.remove('hidden');signed.classList.add('hidden');status.textContent='تعذر تحميل الحساب';renderSidebarAccount();renderProfilePage();
  }
 }
 async function submitAccountForm(form,endpoint,payload){
