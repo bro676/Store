@@ -22,6 +22,7 @@ import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSi
 import { verifyBestStoreWebhookSecret, parseBestStoreWebhookBody, isBestStoreWebhookTest, resolveBestStoreWebhookReference } from './best-store-webhook.js';
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
 import { expirePendingOrders } from './order-expiry.js';
+import { resolveProductFulfillment, buildManualDeliveryMessage, normalizeManualDeliveryDetails } from './manual-delivery.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -78,7 +79,7 @@ let pool;
 if (cfg.databaseUrl) {
   pool = new Pool({ connectionString: cfg.databaseUrl, ssl: cfg.databaseSsl ? { rejectUnauthorized: true } : false,
     max: 10, idleTimeoutMillis: 30_000, connectionTimeoutMillis: 8_000 });
-  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql']) {
+  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql', '008_manual_delivery.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
   }
 }
@@ -448,8 +449,20 @@ async function createOrder(input, customer = null) {
   if (!pack) return { error:'INVALID_PRODUCT', status:400, message:'الباقة غير متاحة أو سعرها غير محدد.' };
   const sourceCategory = catalog.find(category => category.id === input.categoryId);
   const sourceProduct = sourceCategory?.items?.find(product => product.id === input.productId);
-  const supplier = sourceProduct?.wamda?.provider === 'wamda' ? sourceProduct.wamda : (sourceProduct?.seagm?.provider === 'seagm' ? sourceProduct.seagm : (sourceProduct?.bestStore?.provider === 'beststore' ? sourceProduct.bestStore : null));
+  const fulfillment = resolveProductFulfillment(sourceProduct || {});
+  if (!fulfillment.valid) {
+    const messages = {
+      AUTOMATIC_FULFILLMENT_NOT_CONFIGURED:'التسليم التلقائي غير مربوط بمورد لهذا المنتج. اختر التسليم اليدوي أو اربط مورداً من لوحة الإدارة.',
+      INVALID_FULFILLMENT_MODE:'طريقة تسليم المنتج غير صالحة. راجع إعداداته في لوحة الإدارة.',
+      INVALID_MANUAL_DELIVERY_HOURS:'مدة التسليم اليدوي يجب أن تكون بين ساعة واحدة و720 ساعة.',
+      INVALID_MANUAL_DELIVERY_MESSAGE:'رسالة التسليم اليدوي غير صالحة.',
+    };
+    return {error:fulfillment.error,status:409,message:messages[fulfillment.error]||'إعدادات تسليم المنتج غير مكتملة.'};
+  }
+  const supplier = fulfillment.mode === 'automatic' ? fulfillment.supplier : {provider:'manual'};
   const supplierProvider=supplier?.provider||'';
+  const deliveryEtaHours=fulfillment.manualDeliveryHours;
+  const manualDeliveryTemplate=fulfillment.manualDeliveryMessage;
   let quantity=1,supplierFields={};
   if(supplierProvider==='wamda'){
     if(!Number.isSafeInteger(Number(supplier.productId))||Number(supplier.productId)<=0||!Number.isSafeInteger(Number(supplier.categoryId))||Number(supplier.categoryId)<0) return {error:'INVALID_WAMDA_PRODUCT',status:409,message:'بيانات ربط المنتج مع ومضة غير مكتملة. أعد مزامنته ونشره من لوحة الإدارة.'};
@@ -631,15 +644,21 @@ async function verifyProviderInvoice(order, transactionRef) {
 }
 
 function supplierDeliveryForOrder(order) {
-  if (!['seagm','wamda','beststore'].includes(order?.supplier_provider)) return null;
+  if (!['seagm','wamda','beststore','manual'].includes(order?.supplier_provider)) return null;
   let result = null;
   if (order.supplier_status === 'completed' && order.supplier_result_encrypted) {
     try { result = JSON.parse(decryptSecret(order.supplier_result_encrypted, cfg.settingsEncryptionKey)); } catch {}
   }
+  const provider = order.supplier_provider === 'manual' ? 'MANUAL'
+    : order.supplier_provider === 'wamda' ? 'WAMDA'
+    : order.supplier_provider === 'beststore' ? 'BEST_STORE' : 'SEAGM';
   return {
-    provider:order.supplier_provider==='wamda'?'WAMDA':(order.supplier_provider==='beststore'?'BEST_STORE':'SEAGM'),status:String(order.supplier_status || 'pending'),
+    provider,
+    status:String(order.supplier_status || 'pending'),
     message:String(order.supplier_message || ''),
     orderId:order.supplier_order_id ? String(order.supplier_order_id) : null,
+    ...(Number.isSafeInteger(Number(order.delivery_eta_hours)) ? { etaHours:Number(order.delivery_eta_hours) } : {}),
+    ...(order.delivery_due_at ? { dueAt:new Date(order.delivery_due_at).toISOString() } : {}),
     ...(result || {}),
   };
 }
