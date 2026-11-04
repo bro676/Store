@@ -161,3 +161,17 @@ test('hidden folder descendants are excluded from storefront folder navigation',
   assert.equal(catalog.isCategoryVisible(categories[2],categories),false);
   assert.equal(catalog.getFolderProductCount(categories[0],categories),1);
 });
+
+test('explicit folder display priority is applied before automatic product-count ordering',async()=>{
+  const catalog=await loadCatalogHelper();
+  const rows=[
+    {id:'popular',name:'Popular',sortOrder:0,items:Array.from({length:20},(_,i)=>i)},
+    {id:'second',name:'Second',sortOrder:2,items:[]},
+    {id:'first',name:'First',sortOrder:1,items:Array.from({length:12},(_,i)=>i)},
+    {id:'automatic-small',name:'Automatic small',sortOrder:0,items:[1]},
+  ];
+  assert.deepEqual(catalog.sortCategoriesByProductCount(rows).map(row=>row.id),
+    ['first','second','automatic-small','popular']);
+  assert.equal(catalog.compareDisplayOrder({sortOrder:1},{sortOrder:2}),-1);
+  assert.equal(catalog.compareDisplayOrder({sortOrder:1},{sortOrder:0}),-1);
+});
