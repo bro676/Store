@@ -731,7 +731,8 @@ async function verifyPayment(input) {
       VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING RETURNING id`,
       [transactionRef,orderId,tx.amountMinor.toString(),tx.currency,String(wallet.id),tx.occurredAt,JSON.stringify({invoiceNumber:order.invoice_number,transactionId:transactionRef,amountMinor:tx.amountMinor.toString(),currency:tx.currency,receiverAddress:tx.receiverAddress,type:tx.type,occurredAt:tx.occurredAt.toISOString(),paidAt:paidAt.toISOString()})]);
     if (!inserted.rowCount) { await client.query('ROLLBACK'); return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'}; }
-    await client.query("UPDATE nexa_orders SET status='paid',paid_at=$2,supplier_status=CASE WHEN supplier_provider IN ('seagm','wamda','beststore') THEN 'pending' ELSE supplier_status END,supplier_message=CASE WHEN supplier_provider='wamda' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.' WHEN supplier_provider='seagm' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.' WHEN supplier_provider='beststore' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى Best Store.' ELSE supplier_message END WHERE id=$1",[orderId,paidAt]);
+    const paidManualMessage=manualPendingMessage({etaHours:Number(order.delivery_eta_hours||24),message:order.delivery_customer_message||''});
+    await client.query("UPDATE nexa_orders SET status='paid',paid_at=$2,supplier_status=CASE WHEN delivery_mode='manual' THEN 'manual_pending' WHEN supplier_provider IN ('seagm','wamda','beststore') THEN 'pending' ELSE supplier_status END,supplier_message=CASE WHEN delivery_mode='manual' THEN $3 WHEN supplier_provider='wamda' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.' WHEN supplier_provider='seagm' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.' WHEN supplier_provider='beststore' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى Best Store.' ELSE supplier_message END WHERE id=$1",[orderId,paidAt,paidManualMessage]);
     let walletBalanceMinor=null;
     if(order.wallet_topup_customer_id){
       const credited=await client.query('UPDATE nexa_customers SET balance_minor=balance_minor+$2 WHERE id=$1 RETURNING balance_minor::text',[order.wallet_topup_customer_id,String(order.amount_minor)]);
@@ -740,18 +741,21 @@ async function verifyPayment(input) {
       await client.query(`INSERT INTO nexa_wallet_ledger(customer_id,kind,amount_minor,balance_after_minor,reference_order_id,note)
         VALUES($1,'topup',$2,$3,$4,'شحن رصيد عبر شام كاش')`,[order.wallet_topup_customer_id,String(order.amount_minor),walletBalanceMinor,orderId]);
     }
-    if (['seagm','wamda','beststore'].includes(order.supplier_provider)) {
+    if (order.delivery_mode!=='manual' && ['seagm','wamda','beststore'].includes(order.supplier_provider)) {
       await client.query(`INSERT INTO nexa_fulfillment_jobs(order_id,status,next_attempt_at)
         VALUES($1,'pending',NOW()) ON CONFLICT(order_id) DO NOTHING`,[orderId]);
     }
     await client.query('COMMIT');
+    const paidStatus=order.delivery_mode==='manual'?'manual_pending':(order.supplier_provider?'pending':order.supplier_status);
+    const paidMessage=order.delivery_mode==='manual'?paidManualMessage:(order.supplier_provider==='wamda'?'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.':(order.supplier_provider==='beststore'?'تم التحقق من الدفع. سيتم إرسال الطلب إلى Best Store.':(order.supplier_provider==='seagm'?'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.':'')));
+    const delivery=supplierDeliveryForOrder({...order,supplier_status:paidStatus,supplier_message:paidMessage});
     return {ok:true,orderId,invoiceNumber:order.invoice_number,transactionId:transactionRef,status:'paid',verifiedAt:new Date().toISOString(),
       ...(walletBalanceMinor!==null?{walletBalanceMinor}:{}),
       receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,
         paymentMethod:order.wallet_topup_customer_id?'shamcash_topup':'shamcash',
         ...(walletBalanceMinor!==null?{walletBalanceMinor}:{}),
         invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:paidAt.toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,
-        ...(order.supplier_provider==='wamda'?{delivery:{provider:'WAMDA',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.'}}:(order.supplier_provider==='beststore'?{delivery:{provider:'BEST_STORE',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى Best Store.'}}:(order.supplier_provider==='seagm'?{delivery:{provider:'SEAGM',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.'}}:{})))}};
+        ...(delivery?{delivery}:{})}};
   } catch (error) {
     await client.query('ROLLBACK').catch(()=>{});
     if (error.code === '23505') return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'};
@@ -2147,6 +2151,7 @@ async function claimSeagmFulfillmentJob() {
       JOIN nexa_orders o ON o.id=j.order_id
       WHERE j.status IN ('pending','retry','processing')
         AND j.next_attempt_at<=NOW()
+        AND o.delivery_mode='automatic'
         AND (j.status<>'processing' OR j.locked_at<NOW()-INTERVAL '4 minutes')
       ORDER BY j.next_attempt_at ASC,j.created_at ASC
       FOR UPDATE OF j SKIP LOCKED LIMIT 1`);
@@ -2553,9 +2558,22 @@ const server = http.createServer(async (req,res) => {
       if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك.'});
       const result=await pool.query(`SELECT o.id,o.product_label,o.amount_minor::text AS "amountMinor",o.currency,o.status,
         o.payment_method AS "paymentMethod",o.created_at AS "createdAt",o.paid_at AS "paidAt",
-        o.supplier_status AS "supplierStatus",o.supplier_message AS "supplierMessage"
+        o.supplier_provider AS "supplierProvider",o.supplier_status AS "supplierStatus",
+        o.supplier_message AS "supplierMessage",o.supplier_order_id AS "supplierOrderId",
+        o.supplier_result_encrypted AS "supplierResultEncrypted",
+        o.delivery_mode AS "deliveryMode",o.delivery_eta_hours AS "deliveryEtaHours"
         FROM nexa_orders o WHERE o.customer_id=$1 ORDER BY o.created_at DESC LIMIT 100`,[customer.id]);
-      return send(res,200,{ok:true,orders:result.rows});
+      const orders=result.rows.map(item=>({
+        id:item.id,product_label:item.product_label,amountMinor:item.amountMinor,currency:item.currency,status:item.status,
+        paymentMethod:item.paymentMethod,createdAt:item.createdAt,paidAt:item.paidAt,
+        supplierStatus:item.supplierStatus,supplierMessage:item.supplierMessage,
+        delivery:item.status==='paid'?supplierDeliveryForOrder({
+          supplier_provider:item.supplierProvider,supplier_status:item.supplierStatus,supplier_message:item.supplierMessage,
+          supplier_order_id:item.supplierOrderId,supplier_result_encrypted:item.supplierResultEncrypted,
+          delivery_mode:item.deliveryMode,delivery_eta_hours:item.deliveryEtaHours,
+        }):null,
+      }));
+      return send(res,200,{ok:true,orders});
     }
     if(req.method==='GET'&&url.pathname==='/api/wallet/transactions'){
       const customer=await currentCustomer(req);
@@ -3242,7 +3260,7 @@ const server = http.createServer(async (req,res) => {
     const orderLookup = url.pathname.match(/^\/api\/orders\/(NX-[A-F0-9]{20})$/);
     if (req.method === 'GET' && orderLookup) {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
-      const q = await pool.query(`SELECT o.id,o.product_label,o.amount_minor,o.currency,o.status,o.payment_method,o.expires_at,o.invoice_number,o.invoice_identifier,o.wallet_label,o.wallet_address,o.customer_name,o.paid_at,p.transaction_id,o.supplier_provider,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_result_encrypted
+      const q = await pool.query(`SELECT o.id,o.product_label,o.amount_minor,o.currency,o.status,o.payment_method,o.expires_at,o.invoice_number,o.invoice_identifier,o.wallet_label,o.wallet_address,o.customer_name,o.paid_at,p.transaction_id,o.supplier_provider,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_result_encrypted,o.delivery_mode,o.delivery_eta_hours
         FROM nexa_orders o LEFT JOIN nexa_payments p ON p.order_id=o.id WHERE o.id=$1`,[orderLookup[1]]);
       if (!q.rowCount) return send(res,404,{error:'ORDER_NOT_FOUND',message:'لم يتم العثور على الطلب.'});
       const o=q.rows[0];
