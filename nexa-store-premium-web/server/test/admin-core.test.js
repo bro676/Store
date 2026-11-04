@@ -205,7 +205,7 @@ test('catalog folders support nested parents, root departments, visibility and s
   assert.equal(validated[0].departmentId,'games');
   assert.throws(()=>validateCatalog([{...nested[0],id:'bad-child',parentId:'missing-parent'}]),/INVALID_CATEGORY_PARENT/);
   assert.throws(()=>validateCatalog([{...nested[0],id:'loop-a',parentId:'loop-b',departmentId:undefined},{...nested[1],id:'loop-b',parentId:'loop-a'}]),/CATALOG_FOLDER_CYCLE/);
-  assert.throws(()=>validateCatalog([{...nested[1],id:'bad-nested',parentId:'games-root',departmentId:'apps'}]),/NESTED_CATEGORY_CANNOT_SET_DEPARTMENT/);
+  assert.throws(()=>validateCatalog([nested[0],{...nested[1],id:'bad-nested',parentId:'games-root',departmentId:'apps'}]),/NESTED_CATEGORY_CANNOT_SET_DEPARTMENT/);
   assert.throws(()=>validateCatalog([{...nested[0],visible:'false'}]),/INVALID_CATEGORY_VISIBILITY/);
 });
 
