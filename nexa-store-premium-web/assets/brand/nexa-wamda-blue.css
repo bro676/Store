@@ -1371,3 +1371,19 @@ body{font-family:Tahoma,"Segoe UI",Arial,sans-serif;overflow-x:hidden}
   #app.shell .grid-2,#app.shell .catalog-layout{grid-template-columns:1fr!important}
   #app.shell .page-head{align-items:flex-start!important;flex-direction:column!important}
 }
+
+
+/* Admin mobile navigation follows the actual body state toggled by admin.html. */
+#app.shell .admin-menu-toggle{
+  display:grid!important;place-items:center!important;flex:0 0 37px!important;
+  width:37px!important;height:37px!important;border-radius:11px!important;
+  border:1px solid rgba(17,93,132,.18)!important;background:rgba(255,255,255,.78)!important;
+  color:#145578!important;
+}
+:root[data-theme="dark"] #app.shell .admin-menu-toggle{
+  border-color:#31556d!important;background:#153149!important;color:#dff5ff!important;
+}
+@media(max-width:850px){
+  body.admin-sidebar-open #app.shell .side{transform:translateX(0)!important}
+  body.admin-sidebar-open #app.shell .admin-sidebar-backdrop{opacity:1!important;visibility:visible!important}
+}
