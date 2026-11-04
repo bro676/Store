@@ -53,7 +53,7 @@
   return {
    category:match.category,
    item:match.item,
-   departmentId:classifyCategory(match.category),
+   departmentId:getCategoryDepartmentId(match.category,categories),
    categoryId:normalizeId(match.category.id),
    itemId:normalizeId(match.item.id),
    optionId:options.length===1?normalizeId(options[0].id):null,
