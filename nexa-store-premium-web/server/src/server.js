@@ -2847,7 +2847,7 @@ const server = http.createServer(async (req,res) => {
           const source=product.apiSource;
           if(!source)return product;
           const restored={...product};
-          for(const key of ['name','desc','image','options','visible','sortOrder'])if(Object.prototype.hasOwnProperty.call(source,key))restored[key]=source[key];
+          for(const key of ['name','desc','image','options','visible','sortOrder','deliveryMode','deliveryEtaHours','deliveryMessage'])if(Object.prototype.hasOwnProperty.call(source,key))restored[key]=source[key];
           delete restored.manualOverrides;
           return restored;
         })
@@ -2932,7 +2932,7 @@ const server = http.createServer(async (req,res) => {
           if(!previous)return product;
           const apiSource=previous.apiSource||{name:previous.name,desc:previous.desc,image:previous.image,options:previous.options};
           const overrides={...(previous.manualOverrides||{})};
-          for(const key of ['name','desc','image','options','visible','sortOrder']){
+          for(const key of ['name','desc','image','options','visible','sortOrder','deliveryMode','deliveryEtaHours','deliveryMessage']){
             if(JSON.stringify(product[key]??null)!==JSON.stringify(previous[key]??null))overrides[key]=product[key]??null;
           }
           const updated={...product,apiSource};
@@ -3202,15 +3202,15 @@ const server = http.createServer(async (req,res) => {
     if (req.method === 'GET' && url.pathname === '/api/admin/orders') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const limit = Math.min(200,Math.max(1,Number(url.searchParams.get('limit')||100)));
-      const result = await pool.query(`SELECT o.id,o.product_label,o.amount_minor::text,o.currency,o.status,o.customer_name,o.customer_phone,o.game_account,o.notes,o.invoice_number,o.invoice_identifier,o.wallet_label,o.created_at,o.expires_at,o.paid_at,o.supplier_provider,o.supplier_kind,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_mch_order_id,j.last_error AS supplier_error FROM nexa_orders o LEFT JOIN nexa_fulfillment_jobs j ON j.order_id=o.id ORDER BY o.created_at DESC LIMIT $1`,[limit]);
+      const result = await pool.query(`SELECT o.id,o.product_label,o.amount_minor::text,o.currency,o.status,o.customer_name,o.customer_phone,o.game_account,o.notes,o.invoice_number,o.invoice_identifier,o.wallet_label,o.created_at,o.expires_at,o.paid_at,o.supplier_provider,o.supplier_kind,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_mch_order_id,o.delivery_mode,o.delivery_eta_hours,o.delivery_customer_message,j.last_error AS supplier_error FROM nexa_orders o LEFT JOIN nexa_fulfillment_jobs j ON j.order_id=o.id ORDER BY o.created_at DESC LIMIT $1`,[limit]);
       return send(res,200,{ok:true,orders:result.rows.map(o=>({...o,amountMinor:o.amount_minor,createdAt:o.created_at,expiresAt:o.expires_at,paidAt:o.paid_at}))});
     }
     const adminFulfillmentRetry = url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/fulfillment\/retry$/);
     if (req.method === 'POST' && adminFulfillmentRetry) {
       if (!pool) return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
       const orderId=adminFulfillmentRetry[1];
-      const found=await pool.query(`SELECT status,supplier_provider,supplier_status FROM nexa_orders WHERE id=$1`,[orderId]);
-      if (!found.rowCount || found.rows[0].status!=='paid' || !['seagm','wamda','beststore'].includes(found.rows[0].supplier_provider)) {
+      const found=await pool.query(`SELECT status,supplier_provider,supplier_status,delivery_mode FROM nexa_orders WHERE id=$1`,[orderId]);
+      if (!found.rowCount || found.rows[0].status!=='paid' || found.rows[0].delivery_mode==='manual' || !['seagm','wamda','beststore'].includes(found.rows[0].supplier_provider)) {
         return send(res,409,{ok:false,error:'FULFILLMENT_NOT_RETRYABLE',message:'لا يمكن إعادة محاولة هذا الطلب قبل تأكيد الدفع وربطه بمورد رقمي.'});
       }
       if (found.rows[0].supplier_status==='completed') return send(res,409,{ok:false,error:'FULFILLMENT_ALREADY_COMPLETED',message:'تم تسليم هذا الطلب بالفعل؛ لا يمكن إعادة شرائه.'});
@@ -3220,6 +3220,39 @@ const server = http.createServer(async (req,res) => {
       await pool.query(`UPDATE nexa_orders SET supplier_status='pending',supplier_message='أعيد إرسال الطلب إلى قائمة تنفيذ المورد من لوحة الإدارة.' WHERE id=$1`,[orderId]);
       runSeagmFulfillmentWorker().catch(error=>console.error('manual supplier retry failed',String(error?.message||'unknown').slice(0,120)));
       return send(res,200,{ok:true,message:'تمت جدولة إعادة فحص الطلب باستخدام رقم المورد الأصلي؛ لن يتم إنشاء رقم طلب مختلف.'});
+    }
+    const adminManualDeliveryMatch = url.pathname.match(/^\\/api\\/admin\\/orders\\/(NX-[A-F0-9]{20})\\/fulfillment\\/manual-complete$/);
+    if (req.method === 'POST' && adminManualDeliveryMatch) {
+      if (!pool) return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      if (rateLimit(req,res,'manual-delivery:'+ip,10,60_000)) return;
+      const orderId=adminManualDeliveryMatch[1];
+      let deliveryInput;
+      try { deliveryInput=validateManualDeliveryInput(await bodyJson(req)); }
+      catch(error) { return send(res,error.status||400,{ok:false,error:error.message||'INVALID_MANUAL_DELIVERY',message:'أدخل بيانات التسليم بشكل صحيح (حتى 8000 حرف).'}); }
+      const client=await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const found=await client.query(`SELECT status,delivery_mode,supplier_status FROM nexa_orders WHERE id=$1 FOR UPDATE`,[orderId]);
+        if(!found.rowCount||found.rows[0].status!=='paid'||found.rows[0].delivery_mode!=='manual') {
+          await client.query('ROLLBACK');
+          return send(res,409,{ok:false,error:'MANUAL_DELIVERY_NOT_AVAILABLE',message:'هذا الطلب غير مدفوع أو لا يستخدم التسليم اليدوي.'});
+        }
+        if(found.rows[0].supplier_status==='completed') {
+          await client.query('ROLLBACK');
+          return send(res,409,{ok:false,error:'DELIVERY_ALREADY_COMPLETED',message:'تم تسليم هذا الطلب مسبقاً.'});
+        }
+        const deliveredAt=new Date().toISOString();
+        const encrypted=encryptSecret(JSON.stringify({deliveredData:deliveryInput.deliveryData,deliveredAt}),cfg.settingsEncryptionKey);
+        const customerMessage=deliveryInput.customerMessage||'تم تجهيز طلبك يدوياً. تجد بيانات التسليم الآن في صفحة «طلباتي».';
+        await client.query(`UPDATE nexa_orders SET supplier_status='completed',supplier_message=$2,
+          supplier_result_encrypted=$3,supplier_completed_at=NOW() WHERE id=$1`,[orderId,customerMessage,encrypted]);
+        await client.query(`UPDATE nexa_fulfillment_jobs SET status='completed',locked_at=NULL,updated_at=NOW() WHERE order_id=$1`,[orderId]);
+        await client.query('COMMIT');
+        return send(res,200,{ok:true,message:'تم حفظ بيانات التسليم المشفّرة وإتاحتها لصاحب الطلب.'});
+      } catch(error) {
+        await client.query('ROLLBACK').catch(()=>{});
+        throw error;
+      } finally { client.release(); }
     }
     const adminOrderMatch = url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/cancel$/);
     if (req.method === 'POST' && adminOrderMatch) {
