@@ -808,7 +808,7 @@ function adminFolderChildren(parentId=null,departmentId=null){
   (parentId!==null?true:categoryDepartmentId(category)===departmentId)
  );
  return rows.map((category,index)=>({category,index,count:NexaCatalog.getFolderProductCount(category,state.catalog)}))
-  .sort((a,b)=>a.count-b.count||Number(a.category.sortOrder||0)-Number(b.category.sortOrder||0)||
+  .sort((a,b)=>NexaCatalog.sortPriority(a.category.sortOrder)-NexaCatalog.sortPriority(b.category.sortOrder)||a.count-b.count||
    String(a.category.name||'').localeCompare(String(b.category.name||''),'ar',{numeric:true,sensitivity:'base'}));
 }
 function renderFolderBranch(parentId,departmentId,depth=0){
@@ -864,7 +864,7 @@ function renderCatalog(){
  <div class="form-grid">
   ${field('اسم المجلد',ci+'.name',cat.name)}
   ${field('الأيقونة',ci+'.icon',cat.icon||'📁')}
-  ${field('ترتيب يدوي عند تساوي عدد المنتجات',ci+'.sortOrder',cat.sortOrder||0,{type:'number',step:1})}
+  ${field('أولوية الظهور (1 أولاً، 2 بعده، 0 تلقائي)',ci+'.sortOrder',cat.sortOrder||0,{type:'number',step:1})}
   ${field('الوصف',ci+'.desc',cat.desc,{type:'textarea',full:true})}
   ${parentSelect}
   ${departmentSelect}
@@ -887,7 +887,7 @@ function renderProduct(p,ci,pi){
 <div class="product-body"><div class="form-grid">
 <div class="field"><label>معرّف المنتج الثابت</label><input value="${esc(p.id)}" readonly></div>
 ${field('اسم المنتج',base+'.name',p.name)}
-${field('ترتيب المنتج',base+'.sortOrder',p.sortOrder||0,{type:'number',step:1})}
+${field('أولوية ظهور المنتج (1 أولاً، 2 بعده، 0 تلقائي)',base+'.sortOrder',p.sortOrder||0,{type:'number',step:1})}
 ${field('الوصف',base+'.desc',p.desc,{type:'textarea',full:true})}
 <div class="field full"><label>صورة المنتج</label><div class="image-row"><img class="image-preview" src="${esc(p.image)}" alt=""><div><input data-path="${base}.image" value="${esc(p.image)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${base}.image"></label></div></div></div>
 ${moveSelect}
