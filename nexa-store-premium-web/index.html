@@ -1029,8 +1029,9 @@ function deliveryStatusLabel(status){return ({pending_payment:'بانتظار ا
 function renderOrders(){
  const d=storageRead(),rows=d.orders||[];$('orderBadge').textContent=rows.length;$('sideOrderBadge').textContent=rows.length;
  $('ordersTable').innerHTML=rows.length?rows.map(o=>{
-  const deliveryLine=o.supplierProvider?'<small>'+esc(deliveryStatusLabel(o.supplierStatus))+'</small>':'',
-   action=o.status==='paid'&&o.supplierProvider?'<button type="button" class="btn btn-soft order-delivery-view" data-customer-order-delivery="'+esc(o.id)+'">عرض التسليم</button>':'';
+  const supplierProvider=o.supplierProvider||o.deliveryProvider,
+   deliveryLine=supplierProvider?'<small>'+esc(deliveryStatusLabel(o.supplierStatus))+'</small>':'',
+   action=o.status==='paid'&&supplierProvider?'<button type="button" class="btn btn-soft order-delivery-view" data-customer-order-delivery="'+esc(o.id)+'">عرض التسليم</button>':'';
   return `<tr><td class="ltr">${esc(o.id)}</td><td>${esc(o.name)}</td><td>${esc(o.date)}</td><td>${o.amountMinor?formatMinor(o.amountMinor,o.currency||'SYP'):money(o.price)}</td><td><span class="status">${o.status==='paid'?'مدفوع ومتحقق':o.status==='expired'?'منتهي':'بانتظار الدفع'}</span>${deliveryLine}${action}</td></tr>`;
  }).join(''):'<tr><td colspan="5" style="text-align:center;color:#828b99;padding:25px">لا توجد طلبات حتى الآن.</td></tr>'
 }
@@ -1038,7 +1039,8 @@ $('ordersTable').addEventListener('click',async event=>{
  const button=event.target.closest('[data-customer-order-delivery]');if(!button)return;
  const orderId=button.dataset.customerOrderDelivery;button.disabled=true;
  try{
-  const response=await fetch('/api/account/orders/'+encodeURIComponent(orderId),{credentials:'same-origin',cache:'no-store'});
+  let response=await fetch('/api/account/orders/'+encodeURIComponent(orderId),{credentials:'same-origin',cache:'no-store'});
+  if(response.status===401)response=await fetch('/api/orders/'+encodeURIComponent(orderId),{cache:'no-store'});
   const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'تعذر تحميل التسليم.');
   const delivery=data.delivery;
   if(!delivery){alert('لا توجد بيانات تسليم لهذا الطلب حالياً.');return}
@@ -1107,7 +1109,7 @@ async function doOrder(e){
   const data=await response.json();
   if(!response.ok||!data.ok)throw new Error(data.message||'تعذر إنشاء الطلب.');
   const d=storageRead();d.orders=d.orders||[];
-  const order={id:data.orderId,name:data.product||pack.name,price:pack.price,amountMinor:data.amountMinor,currency:data.currency,date:new Intl.DateTimeFormat('ar-SY',{dateStyle:'medium'}).format(new Date()),status:data.status||'pending_payment',paymentMethod:data.paymentMethod||'shamcash',expiresAt:data.expiresAt||null,invoiceNumber:data.invoiceNumber||null,deliveryProvider:data.deliveryProvider||null};
+  const order={id:data.orderId,name:data.product||pack.name,price:pack.price,amountMinor:data.amountMinor,currency:data.currency,date:new Intl.DateTimeFormat('ar-SY',{dateStyle:'medium'}).format(new Date()),status:data.status||'pending_payment',paymentMethod:data.paymentMethod||'shamcash',expiresAt:data.expiresAt||null,invoiceNumber:data.invoiceNumber||null,deliveryProvider:data.deliveryProvider||null,supplierProvider:data.deliveryProvider||null,supplierStatus:data.deliveryStatus||data.receipt?.delivery?.status||null,supplierMessage:data.receipt?.delivery?.message||'',deliveryEtaHours:data.deliveryEtaHours||data.receipt?.delivery?.etaHours||null,deliveryDueAt:data.receipt?.delivery?.dueAt||null};
   d.orders.unshift(order);storageSave(d);
   if(data.paymentMethod==='wallet'){
    closeModal();renderOrders();
@@ -1237,8 +1239,8 @@ async function watchSeagmDelivery(orderId){
  if(!orderId||deliveryWatchers.has(orderId))return;
  deliveryWatchers.add(orderId);
  try{
-  for(let attempt=0;attempt<20;attempt++){
-   await new Promise(resolve=>setTimeout(resolve,5000));
+  for(let attempt=0;attempt<10;attempt++){
+   await new Promise(resolve=>setTimeout(resolve,10_000));
    const response=await fetch('/api/orders/'+encodeURIComponent(orderId),{cache:'no-store'});
    if(!response.ok)continue;
    const data=await response.json();if(!data.ok||!data.delivery)continue;
