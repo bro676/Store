@@ -111,6 +111,9 @@ export function validateCatalog(input) {
       if (product.visible !== undefined && typeof product.visible !== 'boolean') throw new Error('INVALID_PRODUCT_VISIBILITY');
       if (product.sortOrder !== undefined && (!Number.isSafeInteger(product.sortOrder) || Math.abs(product.sortOrder)>1_000_000)) throw new Error('INVALID_PRODUCT_SORT_ORDER');
       if (product.fulfillmentMode !== undefined && !['automatic','manual'].includes(product.fulfillmentMode)) throw new Error('INVALID_PRODUCT_FULFILLMENT_MODE');
+      if (product.fulfillmentMode === 'automatic' && !(
+        product.seagm?.provider === 'seagm' || product.wamda?.provider === 'wamda' || product.bestStore?.provider === 'beststore'
+      )) throw new Error('AUTOMATIC_FULFILLMENT_REQUIRES_SUPPORTED_SUPPLIER');
       if (product.manualDeliveryHours !== undefined && (!Number.isSafeInteger(product.manualDeliveryHours) || product.manualDeliveryHours < 1 || product.manualDeliveryHours > 168)) throw new Error('INVALID_PRODUCT_MANUAL_DELIVERY_HOURS');
       if (product.manualOverrides !== undefined && (!product.manualOverrides || typeof product.manualOverrides!=='object' || Array.isArray(product.manualOverrides))) throw new Error('INVALID_PRODUCT_MANUAL_OVERRIDES');
       if (!Array.isArray(product.options) || product.options.length > 100) throw new Error('INVALID_PRODUCT_OPTIONS');
