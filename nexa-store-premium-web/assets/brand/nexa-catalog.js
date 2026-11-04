@@ -74,16 +74,18 @@
   const rows=Array.isArray(categories)?categories:[];
   const targetId=normalizeId(productId);
   if(!targetId)return null;
-  if(categoryId!==null&&categoryId!==undefined&&normalizeId(categoryId)){
-   const scoped=rows.find(row=>normalizeId(row?.id)===normalizeId(categoryId));
-   const scopedProduct=(scoped?.items||[]).find(product=>normalizeId(product?.id)===targetId);
-   if(scopedProduct)return {category:scoped,item:scopedProduct};
-  }
+  const matches=[];
   for(const category of rows){
    const item=(category?.items||[]).find(product=>normalizeId(product?.id)===targetId);
-   if(item)return {category,item};
+   if(item)matches.push({category,item});
   }
-  return null;
+  if(categoryId!==null&&categoryId!==undefined&&normalizeId(categoryId)){
+   const scoped=rows.find(row=>normalizeId(row?.id)===normalizeId(categoryId));
+   if(scoped)return matches.find(match=>match.category===scoped)||null;
+  }
+  // When no reliable category is supplied, never open the wrong item if two
+  // categories contain the same provider-generated product ID.
+  return matches.length===1?matches[0]:null;
  }
  function getDepartmentSummaries(categories){
   const rows=new Map(DEPARTMENTS.map(row=>[row.id,{...row,categories:[],categoryCount:0,productCount:0}]));
