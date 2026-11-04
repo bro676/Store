@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { compareSupplierCandidates, supplierProductMatchKey, supplierCategoryMatchKey, supplierCostInSyp } from '../src/supplier-comparison.js';
+import { compareSupplierCandidates, supplierProductMatchKey, supplierCategoryMatchKey, supplierCostInSyp, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey } from '../src/supplier-comparison.js';
 
 test('same named product in the same game family compares across suppliers',()=>{
   const a={name:'PUBG UC 60'},b={name:'PUBG UC 60'};
@@ -45,4 +45,25 @@ test('unavailable suppliers are excluded, while unmatched available SKUs remain 
   ].map(row=>({...row,matchKey:supplierProductMatchKey(row,row.categoryName)})),145);
   assert.equal(result.length,2);
   assert.equal(result.find(row=>row.matchKey.includes('pubg')).winner.provider,'beststore');
+});
+
+
+test('supplier source index resolves legacy WAMDA and Best Store products without rescanning caches',()=>{
+  const settings={
+    wamdaCatalogCache:[{name:'PUBG Mobile',products:[{id:101,name:'PUBG UC 60'}]}],
+    bestStoreCatalogCache:[{name:'PUBG Global',products:[{id:202,name:'PUBG UC 60'}]}],
+  };
+  const index=buildSupplierSourceMatchKeyIndex(settings);
+  assert.equal(index.get('wamda:101'),index.get('beststore:202'));
+  assert.equal(existingSupplierMatchKey({wamda:{provider:'wamda',productId:101}},index),index.get('wamda:101'));
+  assert.equal(existingSupplierMatchKey({bestStore:{provider:'beststore',productId:202}},index),index.get('beststore:202'));
+  assert.equal(existingSupplierMatchKey({wamda:{provider:'wamda',productId:999}},index),'');
+});
+
+test('explicit published supplierMatchKey takes precedence over the source index',()=>{
+  const index=buildSupplierSourceMatchKeyIndex({
+    wamdaCatalogCache:[{name:'PUBG Mobile',products:[{id:101,name:'PUBG UC 60'}]}],
+  });
+  assert.equal(existingSupplierMatchKey({supplierMatchKey:'explicit::key',wamda:{provider:'wamda',productId:101}},index),'explicit::key');
+  assert.equal(existingSupplierMatchKey({id:'manual-product'},index),'');
 });
