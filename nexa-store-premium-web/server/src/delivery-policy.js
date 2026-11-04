@@ -50,7 +50,7 @@ export function validateManualDeliveryInput(input = {}) {
     throw Object.assign(new Error('MANUAL_DELIVERY_DATA_REQUIRED'), { status: 400 });
   }
   const deliveryData = input.deliveryData.trim();
-  if (!deliveryData || deliveryData.length > 8000 || deliveryData.includes('\\0')) {
+  if (!deliveryData || deliveryData.length > 8000 || deliveryData.includes('\0')) {
     throw Object.assign(new Error('INVALID_MANUAL_DELIVERY_DATA'), { status: 400 });
   }
   const customerMessage = input.customerMessage === undefined || input.customerMessage === null
