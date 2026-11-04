@@ -1798,7 +1798,9 @@ $('ordersBody').addEventListener('click',async e=>{
   if(o)alert([
    'رقم الطلب: '+o.id,'المنتج: '+o.product_label,'العميل: '+o.customer_name,'الهاتف: '+o.customer_phone,
    'المبلغ: '+formatAmount(o.amountMinor,o.currency),'الحالة: '+o.status,
-   'المورد: '+(o.supplier_provider||'—'),'حالة التسليم: '+(o.supplier_status||'—'),
+   'المورد: '+(o.supplier_provider||'—'),'طريقة التسليم: '+(o.delivery_mode==='manual'?'يدوي':'تلقائي'),'مهلة التسليم: '+(o.delivery_eta_hours||24)+' ساعة',
+   'بيانات الحساب أو اللاعب التي أدخلها العميل: '+(o.supplier_fields?JSON.stringify(typeof o.supplier_fields==='string'?JSON.parse(o.supplier_fields):o.supplier_fields,null,2):'—'),
+   'حالة التسليم: '+(o.supplier_status||'—'),
    'رقم طلب المورد: '+(o.supplier_order_id||o.supplier_mch_order_id||'—'),
    'رسالة المورد: '+(o.supplier_message||'—'),'آخر خطأ: '+(o.supplier_error||'—'),
    'رقم الفاتورة: '+(o.invoice_number||'—'),'عنوان الاستلام: '+(o.invoice_identifier||'—'),
