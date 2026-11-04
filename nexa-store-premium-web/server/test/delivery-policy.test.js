@@ -39,7 +39,8 @@ test('product-level settings override supplier defaults and sanitize eta/message
 
 test('manual pending message clearly includes the configured deadline', () => {
   assert.match(manualPendingMessage({etaHours:4}),/4 ساعة/);
-  assert.equal(manualPendingMessage({etaHours:2,message:'رسالة خاصة'}),'رسالة خاصة');
+  assert.match(manualPendingMessage({etaHours:2,message:'رسالة خاصة'}),/رسالة خاصة/);
+  assert.match(manualPendingMessage({etaHours:2,message:'رسالة خاصة'}),/2 ساعة/);
 });
 
 test('manual delivery accepts bounded non-empty text only', () => {
