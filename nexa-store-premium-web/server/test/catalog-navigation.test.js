@@ -159,4 +159,5 @@ test('hidden folder descendants are excluded from storefront folder navigation',
   ];
   assert.deepEqual(catalog.getChildFolders(categories,'games-root').map(row=>row.id),['visible-folder']);
   assert.equal(catalog.isCategoryVisible(categories[2],categories),false);
+  assert.equal(catalog.getFolderProductCount(categories[0],categories),1);
 });
