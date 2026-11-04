@@ -650,14 +650,15 @@ function supplierDeliveryForOrder(order) {
   if (order.supplier_status === 'completed' && order.supplier_result_encrypted) {
     try { result = JSON.parse(decryptSecret(order.supplier_result_encrypted, cfg.settingsEncryptionKey)); } catch {}
   }
+  const safeResult=result&&typeof result==='object'&&!Array.isArray(result)?result:{};
   return {
+    ...safeResult,
     provider:order.supplier_provider==='wamda'?'WAMDA':(order.supplier_provider==='beststore'?'BEST_STORE':(order.supplier_provider==='seagm'?'SEAGM':'MANUAL')),
     mode:manual?'manual':'automatic',
     status:String(order.supplier_status || 'pending'),
     etaHours:Number(order.delivery_eta_hours||24),
     message:String(order.supplier_message || ''),
     orderId:order.supplier_order_id ? String(order.supplier_order_id) : null,
-    ...(result || {}),
   };
 }
 
