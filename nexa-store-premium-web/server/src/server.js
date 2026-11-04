@@ -15,7 +15,7 @@ import { createSeagmClient } from './seagm-api.js';
 import { createWamdaClient } from './wamda-api.js';
 import { createBestStoreClient, normalizeBestStoreProduct } from './best-store-api.js';
 import { bestStoreOrderDecision, classifyBestStoreError } from './best-store-fulfillment.js';
-import { buildSupplierComparisonPlan, supplierProductMatchKey, supplierCategoryMatchKey, normalizeSupplierText, isSupplierAvailable, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey, applyFirstPriceableSupplierCandidate, buildSupplierCatalogIndex, registerSupplierCatalogCategory, updateSupplierCatalogIndex } from './supplier-comparison.js';
+import { buildSupplierComparisonPlan, supplierProductMatchKey, supplierCategoryMatchKey, normalizeSupplierText, isSupplierAvailable, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey, applyFirstPriceableSupplierCandidate, buildSupplierCatalogIndex, registerSupplierCatalogCategory, updateSupplierCatalogIndex, uniqueSupplierCatalogProductId } from './supplier-comparison.js';
 import { wamdaOrderDecision, classifyWamdaError } from './wamda-fulfillment.js';
 import { normalizeWamdaMargin, normalizeWamdaPricingRule, resolveWamdaPricingRule, calculateWamdaSellPriceSyp, calculateWamdaSellUnitPriceSyp, supplierUnitPriceToMinor, updateWamdaPublishedProduct, markWamdaProductUnavailable } from './wamda-pricing.js';
 import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSignature } from './seagm-webhook.js';
@@ -1364,7 +1364,8 @@ function applySupplierWinnerToCatalog(nextCatalog,winner,pricingSettings=storeSe
   const displayName=String(manual.name??source.name??'منتج رقمي').slice(0,120),sourceDesc=String(source.description||'').slice(0,700);
   const description=String(manual.desc??(sourceDesc||existing?.desc||'')).slice(0,700);
   const fallbackImage=safeBestStoreImage(source.image)||safeBestStoreImage(source.categoryImage)||safeBestStoreImage(categoryImage)||existing?.image||'assets/products/_shared/product-placeholder.svg';
-  const image=String(manual.image??fallbackImage),id=String(existing?.id||(provider==='wamda'?'wamda-'+productId:'beststore-'+productId));
+  const image=String(manual.image??fallbackImage),preferredProductId=provider==='wamda'?'wamda-'+productId:'beststore-'+productId;
+  const id=String(existing?.id||uniqueSupplierCatalogProductId(nextCatalog,preferredProductId,`${provider}:${productId}:${publishMatchKey}`));
   let updated;
   if(provider==='wamda'){
     const context=getWamdaPricingContext(pricingSettings),previousOverride=existing?.wamda?.pricingOverride||{mode:'inherit'};
