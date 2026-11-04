@@ -3239,7 +3239,7 @@ const server = http.createServer(async (req,res) => {
     const adminManualDeliveryMatch=url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/manual-delivery$/);
     if(req.method==='POST'&&adminManualDeliveryMatch){
       if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
-      const input=await bodyJson(req,12_000);
+      const input=await bodyJson(req,15_000);
       let details;
       try{details=normalizeManualDeliveryDetails(input.details);}
       catch(error){return send(res,error.status||400,{ok:false,error:error.code||'INVALID_MANUAL_DELIVERY_DETAILS',message:error.message});}
