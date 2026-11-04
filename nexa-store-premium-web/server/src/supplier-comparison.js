@@ -1,5 +1,5 @@
 const FAMILY_RULES = [
-  ['pubg',/(?:\b(?:pubg|uc|unknown cash)\b|ببجي|بوبجي|يو\s*سي|يوسي)/],
+  ['pubg',/(?:\b(?:pubg|unknown cash)\b|ببجي|بوبجي|يو\s*سي|يوسي)/],
   ['free-fire',/(?:free\s*fire|freefire|فري\s*فاير)/],
   ['mobile-legends',/(?:mobile\s*legends|mlbb|موبايل\s*ليجند|موبايل\s*ليجندز)/],
   ['call-of-duty',/(?:call\s*of\s*duty|codm|كول\s*اوف\s*ديوتي)/],
@@ -61,10 +61,18 @@ const FAMILY_TERMS = {
   viber:/\bviber\b/gu,imo:/\bimo\b/gu,
   apple:/\bapple\b/gu,amazon:/\bamazon\b/gu,microsoft:/\bmicrosoft\b/gu,
 };
+function familyFromSupplierText(value) {
+  const normalized=normalizeSupplierText(value);
+  if(!normalized)return '';
+  const matches=FAMILY_RULES.filter(([,pattern])=>pattern.test(normalized));
+  return matches.length===1?matches[0][0]:'';
+}
+
 export function supplierCategoryMatchKey(categoryName = '') {
   const normalized=normalizeSupplierText(categoryName);
   if(!normalized)return '';
-  const family=FAMILY_RULES.find(([,pattern])=>pattern.test(normalized))?.[0];
+  const family=familyFromSupplierText(normalized)||
+    (/\buc\b/.test(normalized)&&/\d/.test(normalized)?'pubg':'');
   return family ? 'family::'+family : 'name::'+normalized;
 }
 /**
@@ -100,10 +108,12 @@ export function supplierProductMatchKey(product, categoryName = '') {
   const name = normalizeSupplierProductText(product?.name);
   if (!name || name.length < 2) return '';
   const category = normalizeSupplierProductText(categoryName || product?.categoryName || '');
-  const context = normalizeSupplierText([
-    categoryName,product?.categoryName,product?.description,product?.name
-  ].filter(Boolean).join(' '));
-  const family = FAMILY_RULES.find(([,pattern])=>pattern.test(context))?.[0] || 'product';
+  // Prefer a platform explicitly present in the SKU name. Use the source
+  // category only when the name omits it, then the description as a last resort.
+  // This prevents a broad/mislabelled category from overriding the product name.
+  const family = familyFromSupplierText(product?.name) ||
+    familyFromSupplierText([categoryName,product?.categoryName].filter(Boolean).join(' ')) ||
+    familyFromSupplierText(product?.description) || 'product';
   // Strip only the platform alias. Keep denomination, region, currency, emoji,
   // language, account type and other SKU qualifiers in their original order.
   const identity = FAMILY_TERMS[family]
