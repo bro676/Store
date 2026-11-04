@@ -80,6 +80,10 @@ let pool;
 if (cfg.databaseUrl) {
   pool = new Pool({ connectionString: cfg.databaseUrl, ssl: cfg.databaseSsl ? { rejectUnauthorized: true } : false,
     max: 10, idleTimeoutMillis: 30_000, connectionTimeoutMillis: 8_000 });
+  // Idle PostgreSQL clients can be disconnected during provider restarts; handle pool errors so they do not crash Node.
+  pool.on('error', (error) => {
+    console.error('[database] idle PostgreSQL client error:', error?.message || 'unknown error');
+  });
   for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql', '008_manual_fulfillment.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
   }
