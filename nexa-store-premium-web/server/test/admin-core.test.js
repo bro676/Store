@@ -72,7 +72,11 @@ test('catalogue validator supports the full imported supplier catalogue with saf
   assert.throws(()=>validateCatalog([...supplierCatalog,...Array.from({length:340},(_,i)=>({
     id:'extra-category-'+i,name:'Extra '+i,desc:'',image:'assets/brand/logo.svg',items:[]
   }))]),/INVALID_CATALOG/);
-  const oversized=[{...catalog[0],items:Array.from({length:501},(_,i)=>({
+  const largeSupplierCategory=[{...catalog[0],items:Array.from({length:955},(_,i)=>({
+    id:'supplier-large-'+i,name:'Supplier product '+i,desc:'Imported product',image:'assets/brand/logo.svg',options:[]
+  }))}];
+  assert.equal(validateCatalog(largeSupplierCategory)[0].items.length,955);
+  const oversized=[{...catalog[0],items:Array.from({length:2001},(_,i)=>({
     id:'oversized-'+i,name:'Product '+i,desc:'Product',image:'assets/brand/logo.svg',options:[]
   }))}];
   assert.throws(()=>validateCatalog(oversized),/INVALID_CATEGORY_ITEMS/);
