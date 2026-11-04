@@ -780,7 +780,7 @@ body{
   </div>
 </section>
 <div class="toast" id="toast"></div>
-<script src="/assets/brand/nexa-catalog.js?v=20261102-02"></script>
+<script src="/assets/brand/nexa-catalog.js?v=20261104-product-click"></script>
 <script>
 let categories=[];
 const $=id=>document.getElementById(id);const money=v=>v>0?new Intl.NumberFormat('en-US',{maximumFractionDigits:Number(v)<0.01?8:2}).format(v)+' ل.س جديدة':'يحدد لاحقاً';const formatMinor=(minor,currency='SYP')=>{const value=Number(BigInt(minor||0))/100;return currency==='USD'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value):new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value)+' ل.س جديدة'};const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -926,22 +926,6 @@ function closestStoreTarget(event,selector){
  const target=event.target;
  const element=target?.nodeType===1?target:target?.parentElement;
  return element?.closest?.(selector)||null;
-}
-function handleStoreProductActivation(event){
- if(closestStoreTarget(event,'[data-favorite]'))return false;
- const control=closestStoreTarget(event,'[data-open-item]');
- if(!control)return false;
- event.preventDefault();
- event.stopPropagation();
- openItem(control.getAttribute('data-open-item'),control.getAttribute('data-open-category')||null);
- return true;
-}
-// Product cards are rendered dynamically inside these three stable roots.
-// Binding directly to the roots avoids a missing document-level delegate
-// leaving the entire product flow inert.
-for(const rootId of ['homeView','catalogContent','favoritesGrid']){
- const root=$(rootId);
- root?.addEventListener('click',handleStoreProductActivation,true);
 }
 function resetCatalog(){state.department=null;state.category=null;state.item=null;state.option=null;state.catalogPage=1;state.catalogQuery='';state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';}
 function openOrder(packIndex){
@@ -1274,6 +1258,12 @@ async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'})
   return element?.closest?.(selector)||null;
  }
  document.addEventListener('click',e=>{const favoriteControl=eventElement(e,'[data-favorite]');if(favoriteControl){toggleFavorite(favoriteControl.dataset.favorite);return;}
+ const productControl=NexaCatalog.findProductControl(e);
+ if(productControl){
+  e.preventDefault();e.stopPropagation();
+  openItem(productControl.getAttribute('data-open-item'),productControl.getAttribute('data-open-category')||null);
+  return;
+ }
  const el=eventElement(e,'[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-department],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-reset-catalog],[data-scroll],[data-catalog-page],[data-category-page],[data-product-page],[data-search-page]');if(!el)return;
  if(el.dataset.openAssistant!==undefined){openAssistant();return}
  if(el.dataset.assistantPrompt){sendAssistantPrompt(el.dataset.assistantPrompt);return}
@@ -1308,7 +1298,7 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-print-receipt]'
 $('orderQuantity').addEventListener('input',renderCurrencyPreview);$('shamCashPaymentForm').addEventListener('submit',verifyShamCashPayment);$('paymentOrderId').addEventListener('change',loadShamCashOrderSummary);$('paymentOrderId').addEventListener('blur',loadShamCashOrderSummary);$('supportForm').addEventListener('submit',submitSupportTicket);$('supportLookupForm').addEventListener('submit',lookupSupportOrder);$('assistantLauncher').addEventListener('click',openAssistant);$('assistantClose').addEventListener('click',closeAssistant);$('assistantForm').addEventListener('submit',e=>{e.preventDefault();const input=$('assistantInput');const value=input.value.trim();if(!value)return;input.value='';sendAssistantPrompt(value)});$('modalClose').addEventListener('click',closeModal);$('modalCancel').addEventListener('click',closeModal);$('orderModal').addEventListener('click',e=>{if(e.target===$('orderModal'))closeModal()});document.addEventListener('keydown',e=>{
  if(e.key==='Escape'){closeModal();closeMenu();closeAssistant();return;}
  if(e.key!=='Enter'&&e.key!==' ')return;
- const productControl=eventElement(e,'[data-open-item]');
+ const productControl=NexaCatalog.findProductControl(e);
  if(!productControl||closestStoreTarget(e,'[data-favorite]'))return;
  e.preventDefault();openItem(productControl.getAttribute('data-open-item'),productControl.getAttribute('data-open-category')||null);
  });$('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){showSearchResults(e.currentTarget.value)}});$('globalSearch').addEventListener('search',e=>{if(!e.currentTarget.value){navigate('home')}});$('menuToggle').addEventListener('click',()=>{const opened=document.body.classList.toggle('sidebar-open');$('menuToggle').setAttribute('aria-expanded',String(opened))});$('sidebarBackdrop').addEventListener('click',closeMenu);

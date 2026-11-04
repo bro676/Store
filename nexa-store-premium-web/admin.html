@@ -1295,16 +1295,29 @@ async function refreshBestStoreProducts(){
 }
 async function compareAndPublishAllSuppliers(){
   const button=$('comparePublishSuppliersBtn');
-  if(!confirm('سيتم جلب أحدث المنتجات من كل مورد تم ربطه، ومقارنة تكلفة المنتجات المتطابقة قبل هامش الربح، ثم نشر أو تحديث أرخص مصدر لكل منتج متاح. لن يتم شراء منتجات أو خصم رصيد الموردين. هل تريد المتابعة؟'))return;
+  if(!confirm('سيتم جلب كامل كتالوج كل مورد متصل. ستتم مطابقة هوية كل منتج مع المورد الآخر؛ المنتج المتطابق تتم مقارنة تكلفته قبل هامش الربح ونشر الأرخص، والمنتج الموجود لدى مورد واحد فقط يُنشر مباشرة. الأسماء الملتبسة أو المتكررة داخل المورد نفسه ستُنشر منفصلة ولن تُدمج عشوائياً. لن يتم شراء منتجات أو خصم رصيد الموردين. هل تريد المتابعة؟'))return;
   button.disabled=true;button.textContent='جارٍ جلب المنتجات والمقارنة والنشر…';
   $('bestStoreAccountStatus').textContent='جارٍ مزامنة الموردين ومقارنة أقل تكلفة أساسية لكل منتج…';
   try{
     await saveBestStoreSettings({silent:true});
     const d=await api('/api/admin/suppliers/compare-publish',{method:'POST',body:'{}'});
-    const x=d.stats||{};
-    $('bestStoreAccountStatus').textContent='تم الجلب: '+Number(x.productsFetched||0)+' · منتجات بعد الدمج: '+Number(x.uniqueProducts||0)+' · مجموعات تمت مقارنتها: '+Number(x.comparedGroups||0)+' · فاز Best Store: '+Number(x.bestStoreWins||0)+' · فازت ومضة: '+Number(x.wamdaWins||0)+' · نشر جديد: '+Number(x.publishedNew||0)+' · تحديث: '+Number(x.updatedExisting||0);
+    const x=d.stats||{},w=x.sources?.wamda||{},b=x.sources?.beststore||{};
+    const sourceLabel=(label,row)=>label+': '+Number(row.uniqueProducts||0).toLocaleString('en-US')+' SKU · متاح '+Number(row.available||0).toLocaleString('en-US')+' · غير متاح '+Number(row.unavailable||0).toLocaleString('en-US')+' · سعر غير صالح '+Number(row.invalidPrice||0).toLocaleString('en-US');
+    $('bestStoreAccountStatus').textContent=[
+      sourceLabel('WAMDA',w),sourceLabel('Best Store',b),
+      'صفوف مكررة أزيلت: '+Number(x.duplicateSourceRowsRemoved||0).toLocaleString('en-US'),
+      'منتجات مشتركة: '+Number(x.sharedProductKeys||0).toLocaleString('en-US'),
+      'تمت مقارنة السعر فعلياً: '+Number(x.comparedGroups||0).toLocaleString('en-US'),
+      'منتجات من مورد واحد نُشرت مباشرة: '+Number(x.singleSourcePublished||0).toLocaleString('en-US'),
+      'مجموعات أسماء ملتبسة نُشرت منفصلة: '+Number(x.ambiguousProductKeys||0).toLocaleString('en-US'),
+      'تغطية غير قابلة للمطابقة: '+Number(x.unmatchableProducts||0).toLocaleString('en-US'),
+      'فاز Best Store: '+Number(x.bestStoreWins||0).toLocaleString('en-US'),
+      'فازت WAMDA: '+Number(x.wamdaWins||0).toLocaleString('en-US'),
+      'نشر جديد: '+Number(x.publishedNew||0).toLocaleString('en-US')+' · تحديث: '+Number(x.updatedExisting||0).toLocaleString('en-US'),
+      'تجاوز بسبب سعر غير آمن: '+Number(x.skippedUnpriceable||0).toLocaleString('en-US')
+    ].join(' | ');
     await Promise.all([loadCatalog(),loadBestStoreCatalog(),loadWamdaCatalog()]);
-    toast('اكتملت مقارنة الموردين ونشر الأرخص قبل الربح.');
+    toast(d.message||'اكتمل تدقيق كتالوج الموردين ونشر الأرخص والمنتجات المنفردة.');
   }catch(error){$('bestStoreAccountStatus').textContent=error.message;toast(error.message);}
   finally{button.disabled=false;button.textContent='مقارنة الموردين ونشر الأرخص للجميع';}
 }

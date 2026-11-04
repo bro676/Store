@@ -61,20 +61,31 @@
    packCount:options.reduce((sum,option)=>sum+option.packs.filter(isValidPack).length,0)
   };
  }
+ function findProductControl(event){
+  const eventPath=typeof event?.composedPath==='function'?event.composedPath():[];
+  for(const node of eventPath){
+   if(node?.nodeType===1&&typeof node.matches==='function'&&node.matches('[data-open-item]'))return node;
+  }
+  const target=event?.target;
+  const element=target?.nodeType===1?target:target?.parentElement;
+  return element?.closest?.('[data-open-item]')||null;
+ }
  function findProduct(categories,productId,categoryId=null){
   const rows=Array.isArray(categories)?categories:[];
   const targetId=normalizeId(productId);
   if(!targetId)return null;
-  if(categoryId!==null&&categoryId!==undefined&&normalizeId(categoryId)){
-   const scoped=rows.find(row=>normalizeId(row?.id)===normalizeId(categoryId));
-   const scopedProduct=(scoped?.items||[]).find(product=>normalizeId(product?.id)===targetId);
-   if(scopedProduct)return {category:scoped,item:scopedProduct};
-  }
+  const matches=[];
   for(const category of rows){
    const item=(category?.items||[]).find(product=>normalizeId(product?.id)===targetId);
-   if(item)return {category,item};
+   if(item)matches.push({category,item});
   }
-  return null;
+  if(categoryId!==null&&categoryId!==undefined&&normalizeId(categoryId)){
+   const scoped=rows.find(row=>normalizeId(row?.id)===normalizeId(categoryId));
+   if(scoped)return matches.find(match=>match.category===scoped)||null;
+  }
+  // When no reliable category is supplied, never open the wrong item if two
+  // categories contain the same provider-generated product ID.
+  return matches.length===1?matches[0]:null;
  }
  function getDepartmentSummaries(categories){
   const rows=new Map(DEPARTMENTS.map(row=>[row.id,{...row,categories:[],categoryCount:0,productCount:0}]));
@@ -125,5 +136,5 @@
   if(pack)parts.push('packs','pack-'+slugify(pack?.[0]||'offer'));
   return parts.join('/');
  }
- window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
+ window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
 })();

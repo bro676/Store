@@ -15,7 +15,7 @@ import { createSeagmClient } from './seagm-api.js';
 import { createWamdaClient } from './wamda-api.js';
 import { createBestStoreClient, normalizeBestStoreProduct } from './best-store-api.js';
 import { bestStoreOrderDecision, classifyBestStoreError } from './best-store-fulfillment.js';
-import { compareSupplierCandidates, supplierProductMatchKey, supplierCategoryMatchKey, normalizeSupplierText, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey, applyFirstPriceableSupplierCandidate, buildSupplierCatalogIndex, registerSupplierCatalogCategory, updateSupplierCatalogIndex } from './supplier-comparison.js';
+import { buildSupplierComparisonPlan, supplierProductMatchKey, supplierCategoryMatchKey, normalizeSupplierText, isSupplierAvailable, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey, applyFirstPriceableSupplierCandidate, buildSupplierCatalogIndex, registerSupplierCatalogCategory, updateSupplierCatalogIndex } from './supplier-comparison.js';
 import { wamdaOrderDecision, classifyWamdaError } from './wamda-fulfillment.js';
 import { normalizeWamdaMargin, normalizeWamdaPricingRule, resolveWamdaPricingRule, calculateWamdaSellPriceSyp, calculateWamdaSellUnitPriceSyp, supplierUnitPriceToMinor, updateWamdaPublishedProduct, markWamdaProductUnavailable } from './wamda-pricing.js';
 import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSignature } from './seagm-webhook.js';
@@ -1328,25 +1328,29 @@ function collectSupplierCandidates(settings=storeSettings){
   const candidates=[];
   if(wamdaApiTokenRuntime)for(const category of Array.isArray(settings?.wamdaCatalogCache)?settings.wamdaCatalogCache:[])for(const product of category.products||[]){
     const candidate={provider:'wamda',categoryId:Number(category.id),categoryName:category.name||product.categoryName||'منتجات ومضة',categoryImage:category.image||'',product,productId:Number(product.id),
-      sourceCost:Number(product.unitPrice),currency:'USD',available:product.available!==false,matchKey:supplierProductMatchKey(product,category.name||product.categoryName||'')};
-    if(candidate.matchKey)candidates.push(candidate);
+      sourceCost:Number(product.unitPrice),currency:'USD',available:isSupplierAvailable(product.available),matchKey:supplierProductMatchKey(product,category.name||product.categoryName||'')};
+    candidates.push(candidate);
   }
   const currency=getBestStorePricingContext(settings).currency;
   if(bestStoreApiTokenRuntime&&settings?.bestStoreCurrencyConfirmed===true)for(const category of Array.isArray(settings?.bestStoreCatalogCache)?settings.bestStoreCatalogCache:[])for(const product of category.products||[]){
     const candidate={provider:'beststore',categoryId:String(category.id),categoryName:category.name||product.categoryName||'خدمات رقمية متنوعة',categoryImage:category.image||product.categoryImage||'',product,productId:Number(product.id),
-      sourceCost:Number(product.sourceCost??product.basePrice??product.price),currency,available:product.available!==false,matchKey:supplierProductMatchKey(product,category.name||product.categoryName||'')};
-    if(candidate.matchKey)candidates.push(candidate);
+      sourceCost:Number(product.sourceCost??product.basePrice??product.price),currency,available:isSupplierAvailable(product.available),matchKey:supplierProductMatchKey(product,category.name||product.categoryName||'')};
+    candidates.push(candidate);
   }
   return candidates;
 }
 function applySupplierWinnerToCatalog(nextCatalog,winner,pricingSettings=storeSettings,sourceMatchIndex=buildSupplierSourceMatchKeyIndex(pricingSettings),catalogIndex=null){
   const {provider,product:source,categoryName,categoryImage,categoryId,productId,matchKey}=winner;
-  const existingEntry=catalogIndex
-    ? (catalogIndex.byMatchKey.get(matchKey)||catalogIndex.byProviderProduct.get(`${provider}:${productId}`)||null)
-    : null;
+  const publishMatchKey=String(winner.publishMatchKey||matchKey);
+  const providerEntry=catalogIndex?.byProviderProduct.get(`${provider}:${productId}`)||null;
+  const matchEntry=catalogIndex?.byMatchKey.get(publishMatchKey)||
+    (!winner.ambiguous?catalogIndex?.byMatchKey.get(matchKey):null)||null;
+  const existingEntry=providerEntry||matchEntry;
   const existing=existingEntry?.item||(catalogIndex?null:(
-    nextCatalog.flatMap(category=>category.items||[]).find(item=>existingSupplierMatchKey(item,sourceMatchIndex)===matchKey)||
-    nextCatalog.flatMap(category=>category.items||[]).find(item=>provider==='wamda'?item.wamda?.provider==='wamda'&&Number(item.wamda.productId)===productId:item.bestStore?.provider==='beststore'&&Number(item.bestStore.productId)===productId)||null
+    nextCatalog.flatMap(category=>category.items||[]).find(item=>provider==='wamda'
+      ? item.wamda?.provider==='wamda'&&Number(item.wamda.productId)===productId
+      : item.bestStore?.provider==='beststore'&&Number(item.bestStore.productId)===productId)||
+    (!winner.ambiguous?nextCatalog.flatMap(category=>category.items||[]).find(item=>existingSupplierMatchKey(item,sourceMatchIndex)===matchKey):null)
   ));
   const manual={...(existing?.manualOverrides&&typeof existing.manualOverrides==='object'?existing.manualOverrides:{})};
   const previousApi=existing?.apiSource&&typeof existing.apiSource==='object'?existing.apiSource:{};
@@ -1369,7 +1373,7 @@ function applySupplierWinnerToCatalog(nextCatalog,winner,pricingSettings=storeSe
     const {bestStore,...withoutOtherProvider}=calculated;
     updated={...withoutOtherProvider,id,name:displayName,desc:description||String(source.description||base.desc||'').slice(0,700),image,
       options:Array.isArray(manual.options)?manual.options:calculated.options,apiSource:{provider:'wamda',name:String(source.name||displayName),desc:sourceDesc,image:safeBestStoreImage(source.image)||image,options:calculated.options},
-      supplierMatchKey:matchKey,...(Object.keys(manual).length?{manualOverrides:manual}:{})};
+      supplierMatchKey:publishMatchKey,...(Object.keys(manual).length?{manualOverrides:manual}:{})};
   }else{
     const context=getBestStorePricingContext(pricingSettings),storedOverride=existing?.bestStore?.pricingOverride,configuredOverride=context.productPolicies[String(productId)],categoryRule=context.categoryPolicies[String(categoryId)]||null;
     const override=configuredOverride?.mode&&configuredOverride.mode!=='inherit'?configuredOverride:(storedOverride?.mode&&storedOverride.mode!=='inherit'?storedOverride:(configuredOverride||storedOverride||{mode:'inherit'}));
@@ -1386,7 +1390,7 @@ function applySupplierWinnerToCatalog(nextCatalog,winner,pricingSettings=storeSe
     const {wamda,...withoutOtherProvider}=existing||{};
     updated={...withoutOtherProvider,id,name:displayName,desc:description||'منتج رقمي مرتبط بمصدر Best Store.',image,options,
       apiSource:{provider:'beststore',name:String(source.name||displayName),desc:sourceDesc,image:safeBestStoreImage(source.image)||safeBestStoreImage(source.categoryImage)||image,options:autoOptions},
-      supplierMatchKey:matchKey,...(Object.keys(manual).length?{manualOverrides:manual}:{}),
+      supplierMatchKey:publishMatchKey,...(Object.keys(manual).length?{manualOverrides:manual}:{}),
       bestStore:{provider:'beststore',productId,categoryId:String(categoryId),categoryName,productType:String(source.productType||'package'),currency:context.currency,
         minimumQuantity:Number(source.minimumQuantity||1),maximumQuantity:Number(source.maximumQuantity||1),allowedQuantities:Array.isArray(source.allowedQuantities)?source.allowedQuantities:[],
         fields:Array.isArray(source.fields)?source.fields:[],available:source.available!==false,priceMode:manualPrice?'manual':'auto',manualPriceSyp:manualPrice,
@@ -1415,9 +1419,10 @@ function applySupplierWinnerToCatalog(nextCatalog,winner,pricingSettings=storeSe
       if(itemIndex>=0)target.items[itemIndex]=updated;
       else{target.items.push(updated);itemIndex=target.items.length-1;}
     }
-    updateSupplierCatalogIndex(catalogIndex,existingEntry,updated,target,itemIndex,matchKey);
+    updateSupplierCatalogIndex(catalogIndex,existingEntry,updated,target,itemIndex,publishMatchKey);
   }else{
-    for(const category of nextCatalog)category.items=(category.items||[]).filter(item=>item.id!==updated.id&&existingSupplierMatchKey(item,sourceMatchIndex)!==matchKey);
+    for(const category of nextCatalog)category.items=(category.items||[]).filter(item=>
+      item.id!==updated.id&&(winner.ambiguous||existingSupplierMatchKey(item,sourceMatchIndex)!==matchKey));
     target.items.push(updated);
   }
   return {catalog:nextCatalog,created:!existing,updated,existing};
@@ -1429,10 +1434,15 @@ async function publishCheapestSupplierProduct(input){
   if(!['wamda','beststore'].includes(provider)||!categoryId||!Number.isSafeInteger(productId)||productId<=0)throw Object.assign(new Error('بيانات المنتج المطلوب نشره غير صالحة.'),{status:400});
   const candidates=collectSupplierCandidates(),selected=candidates.find(candidate=>candidate.provider===provider&&String(candidate.categoryId)===categoryId&&candidate.productId===productId);
   if(!selected)throw Object.assign(new Error('المنتج غير موجود في آخر مزامنة للمورد. حدّث المنتجات أولاً.'),{status:404});
-  const group=compareSupplierCandidates(candidates,getWamdaPricingContext().fxRate).find(row=>row.matchKey===selected.matchKey);
-  if(!group)throw Object.assign(new Error('لا يوجد سعر مورد صالح للمقارنة لهذا المنتج.'),{status:409});
+  const comparisonPlan=buildSupplierComparisonPlan(candidates,getWamdaPricingContext().fxRate);
+  const group=comparisonPlan.groups.find(row=>row.candidates.some(candidate=>
+    candidate.provider===provider&&Number(candidate.productId)===productId&&String(candidate.categoryId)===categoryId));
+  if(!group)throw Object.assign(new Error('لا يوجد سعر مورد صالح للمقارنة لهذا المنتج، أو أن تطابقه ملتبس ويحتاج اختياراً مستقلاً.'),{status:409});
   wamdaBulkPublishInProgress=true;
-  try{const result=applySupplierWinnerToCatalog(catalog,group.winner),validated=validateCatalog(result.catalog);await persistCatalog(validated);
+  try{
+    const sourceMatchIndex=buildSupplierSourceMatchKeyIndex(storeSettings);
+    const catalogIndex=buildSupplierCatalogIndex(catalog,sourceMatchIndex);
+    const result=applySupplierWinnerToCatalog(catalog,group.winner,storeSettings,sourceMatchIndex,catalogIndex),validated=validateCatalog(result.catalog);await persistCatalog(validated);
     return {ok:true,created:result.created,winner:group.winner.provider,sourceCost:group.winner.sourceCost,currency:group.winner.currency,costSyp:group.winner.costSyp,
       compared:group.candidates.length,publishedProductId:result.updated.id,sellPriceSyp:result.updated.options?.[0]?.packs?.[0]?.[1]??null,
       message:group.candidates.length>1?'تمت مقارنة الموردين ونشر النسخة الأرخص قبل إضافة هامش الربح.':'تم نشر المنتج؛ لا يوجد له منتج مطابق في المورد الآخر.'};
@@ -1444,47 +1454,117 @@ async function compareAndPublishSupplierCatalog({refresh=true,source='manual'}={
   if(!wamdaApiTokenRuntime&&!bestStoreApiTokenRuntime)throw Object.assign(new Error('أضف API Token لمضة أو Best Store أولاً.'),{status:400});
   supplierCompareSyncInProgress=true;
   try{
-    if(refresh){if(wamdaApiTokenRuntime)await refreshWamdaCatalog({source:'combined'});if(bestStoreApiTokenRuntime)await refreshBestStoreCatalog({source:'combined'});}
-    const candidates=collectSupplierCandidates(),groups=compareSupplierCandidates(candidates,getWamdaPricingContext().fxRate);
-    const availableCandidateKeys=new Set(candidates.filter(candidate=>candidate.available!==false&&Number(candidate.sourceCost)>0).map(candidate=>candidate.matchKey));
-    if(!groups.length&&availableCandidateKeys.size>0)throw Object.assign(new Error('لم يتم العثور على منتجات ذات عملة أو تكلفة صالحة للمقارنة. تحقق من عملة Best Store وأسعار المورد.'),{status:409});
-    if(!groups.length&&!candidates.length)throw Object.assign(new Error('لم يُرجع أي مورد منتجات قابلة للمقارنة.'),{status:409});
-    wamdaBulkPublishInProgress=true;let created=0,updated=0,compared=0,bestStoreWins=0,wamdaWins=0,skippedUnpriceable=0;
+    // Fetch the complete latest catalog from each connected supplier before
+    // planning. A supplier may contain unique products, matched products or
+    // ambiguous duplicate names; none is silently omitted from the audit.
+    if(refresh){
+      if(wamdaApiTokenRuntime)await refreshWamdaCatalog({source:'combined'});
+      if(bestStoreApiTokenRuntime)await refreshBestStoreCatalog({source:'combined'});
+    }
+    const candidates=collectSupplierCandidates();
+    const comparisonPlan=buildSupplierComparisonPlan(candidates,getWamdaPricingContext().fxRate);
+    const groups=comparisonPlan.groups;
+    if(!comparisonPlan.candidates.length)throw Object.assign(new Error('لم يُرجع أي مورد منتجات صالحة للتدقيق بعد المزامنة.'),{status:409});
+
+    const allSourceProductKeys=new Set(comparisonPlan.candidates.map(candidate=>candidate.sourceProductKey).filter(Boolean));
+    const availableSourceProductKeys=new Set(comparisonPlan.candidates
+      .filter(candidate=>candidate.available&&Number.isFinite(candidate.costSyp)&&candidate.costSyp>0)
+      .map(candidate=>candidate.sourceProductKey).filter(Boolean));
+    const unpriceableSourceProductKeys=new Set();
+
+    wamdaBulkPublishInProgress=true;
+    let created=0,updated=0,bestStoreWins=0,wamdaWins=0,skippedUnpriceable=0;
+    let singleSourcePublished=0,ambiguousPublished=0;
     let nextCatalog=catalog.map(category=>({...category,items:[...(category.items||[])]}));
-    const sourceMatchIndex=buildSupplierSourceMatchKeyIndex(storeSettings),catalogIndex=buildSupplierCatalogIndex(nextCatalog,sourceMatchIndex),unpriceableKeys=new Set();
+    const sourceMatchIndex=buildSupplierSourceMatchKeyIndex(storeSettings);
+    const catalogIndex=buildSupplierCatalogIndex(nextCatalog,sourceMatchIndex);
+
     for(const group of groups){
       const applied=applyFirstPriceableSupplierCandidate(group,candidate=>
         applySupplierWinnerToCatalog(nextCatalog,candidate,storeSettings,sourceMatchIndex,catalogIndex));
       for(const skipped of applied.unpriceableCandidates){
-        console.warn('supplier candidate skipped: invalid calculated selling price',JSON.stringify({
+        if(skipped.sourceProductKey)unpriceableSourceProductKeys.add(skipped.sourceProductKey);
+        console.warn('supplier candidate skipped: invalid calculated supplier selling price',JSON.stringify({
           provider:skipped.provider,productId:skipped.productId,categoryId:skipped.categoryId,errorCode:skipped.errorCode
         }));
       }
       if(!applied.candidate){
-        unpriceableKeys.add(group.matchKey);skippedUnpriceable++;continue;
+        skippedUnpriceable++;
+        continue;
       }
       const winner=applied.candidate,result=applied.result;
-      nextCatalog=result.catalog;if(result.created)created++;else updated++;
-      if(group.compared)compared++;
-      if(winner.provider==='beststore')bestStoreWins++;else wamdaWins++;
+      nextCatalog=result.catalog;
+      if(result.created)created++;else updated++;
+      if(group.compared){
+        if(winner.provider==='beststore')bestStoreWins++;else wamdaWins++;
+      }else{
+        singleSourcePublished++;
+        if(group.ambiguous)ambiguousPublished++;
+      }
     }
-    const allCandidateKeys=new Set(candidates.map(candidate=>candidate.matchKey));
+
+    // Availability follows provider SKU IDs, not fuzzy product-name keys.
+    // This is important when a provider has repeated names/variants.
     for(const category of nextCatalog)for(const item of category.items||[]){
-      const key=item.supplierMatchKey||existingSupplierMatchKey(item,sourceMatchIndex);
-      if(!key||!allCandidateKeys.has(key)||(availableCandidateKeys.has(key)&&!unpriceableKeys.has(key)))continue;
-      if(item.wamda?.provider==='wamda')item.wamda={...item.wamda,available:false};
-      if(item.bestStore?.provider==='beststore')item.bestStore={...item.bestStore,available:false};
+      if(item.wamda?.provider==='wamda'){
+        const key=`wamda:${Number(item.wamda.productId)}`;
+        if(allSourceProductKeys.has(key)&&(!availableSourceProductKeys.has(key)||unpriceableSourceProductKeys.has(key))){
+          item.wamda={...item.wamda,available:false};
+        }
+      }
+      if(item.bestStore?.provider==='beststore'){
+        const key=`beststore:${Number(item.bestStore.productId)}`;
+        if(allSourceProductKeys.has(key)&&(!availableSourceProductKeys.has(key)||unpriceableSourceProductKeys.has(key))){
+          item.bestStore={...item.bestStore,available:false};
+        }
+      }
     }
-    const validated=validateCatalog(nextCatalog);if(Buffer.byteLength(JSON.stringify(validated),'utf8')>15_000_000)throw Object.assign(new Error('كتالوج المنتجات تجاوز الحجم المسموح.'),{status:413});
+
+    const validated=validateCatalog(nextCatalog);
+    if(Buffer.byteLength(JSON.stringify(validated),'utf8')>15_000_000)throw Object.assign(new Error('كتالوج المنتجات تجاوز الحجم المسموح.'),{status:413});
     await persistCatalog(validated);
-    const unavailable=allCandidateKeys.size-availableCandidateKeys.size+unpriceableKeys.size;
-    const message=skippedUnpriceable
-      ?`اكتملت مقارنة الموردين. تم نشر أقل تكلفة صالحة، واستثناء ${skippedUnpriceable} مجموعة منتجات لم ينتج لها سعر بيع آمن.`
-      :groups.length?'اكتملت مقارنة الموردين قبل هامش الربح، وتم نشر أقل تكلفة متاحة لكل منتج مطابق.':'اكتملت المزامنة، لكن المنتجات الحالية غير متاحة لدى جميع الموردين.';
-    return {ok:true,source,stats:{productsFetched:candidates.length,uniqueProducts:groups.length,comparedGroups:compared,bestStoreWins,wamdaWins,publishedNew:created,updatedExisting:updated,
-      unavailable,skippedUnpriceable,fxRate:getWamdaPricingContext().fxRate},
-      syncedAt:new Date().toISOString(),message};
-  }finally{wamdaBulkPublishInProgress=false;supplierCompareSyncInProgress=false;}
+
+    const sourceStats=comparisonPlan.stats.sources;
+    const message=[
+      `تم تدقيق ${comparisonPlan.stats.uniqueSourceProducts.toLocaleString('en-US')} منتج فريد من الموردين.`,
+      `المتطابق بين الموردين: ${comparisonPlan.stats.sharedProductKeys.toLocaleString('en-US')} مجموعة.`,
+      `تمت مقارنة السعر والنشر للأرخص: ${comparisonPlan.stats.comparedGroups.toLocaleString('en-US')} مجموعة.`,
+      `نشر منفرد: ${singleSourcePublished.toLocaleString('en-US')} منتج.`,
+      comparisonPlan.stats.ambiguousProductKeys
+        ? `أسماء ملتبسة نُشرت كل وحدة منها بشكل مستقل: ${comparisonPlan.stats.ambiguousProductKeys.toLocaleString('en-US')} مجموعة.`
+        : '',
+      skippedUnpriceable
+        ? `استُثنيت ${skippedUnpriceable.toLocaleString('en-US')} مجموعة لعدم وجود سعر بيع آمن.`
+        : '',
+    ].filter(Boolean).join(' · ');
+
+    return {
+      ok:true,
+      source,
+      stats:{
+        ...comparisonPlan.stats,
+        productsFetched:comparisonPlan.stats.sourceRowsFetched,
+        uniqueProducts:groups.length,
+        comparedGroups:comparisonPlan.stats.comparedGroups,
+        bestStoreWins,
+        wamdaWins,
+        singleSourcePublished,
+        ambiguousPublished,
+        publishedNew:created,
+        updatedExisting:updated,
+        skippedUnpriceable,
+        unpriceableSourceProducts:unpriceableSourceProductKeys.size,
+        unavailable:comparisonPlan.candidates.filter(candidate=>!candidate.available).length,
+        fxRate:getWamdaPricingContext().fxRate,
+        sources:sourceStats,
+      },
+      syncedAt:new Date().toISOString(),
+      message,
+    };
+  }finally{
+    wamdaBulkPublishInProgress=false;
+    supplierCompareSyncInProgress=false;
+  }
 }
 async function repricePublishedBestStoreProducts(nextSettings=storeSettings){
   const context=getBestStorePricingContext(nextSettings),sourceById=new Map((nextSettings?.bestStoreCatalogCache||[]).flatMap(category=>(category.products||[]).map(product=>[Number(product.id),product])));
