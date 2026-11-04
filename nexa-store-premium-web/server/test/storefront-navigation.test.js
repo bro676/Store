@@ -92,7 +92,10 @@ test('a missing product or stale category cannot open an unrelated product',asyn
   ];
   assert.equal(api.resolveProductNavigation(categories,'missing','first'),null);
   assert.equal(api.resolveProductNavigation(categories,'same-id','stale'),null);
+  assert.equal(api.resolveProductNavigation(categories,'same-id'),null);
   assert.equal(api.resolveProductNavigation(categories,'same-id','second').item.name,'Second product');
+  const unique=[{id:'only',name:'Only category',items:[{id:'unique-item',name:'Unique',options:[]}]}];
+  assert.equal(api.resolveProductNavigation(unique,'unique-item','deleted-category').item.name,'Unique');
 });
 
 test('the live storefront delegates all product-card clicks at document level and prioritizes favorites',async()=>{
