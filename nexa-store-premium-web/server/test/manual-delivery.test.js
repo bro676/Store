@@ -46,5 +46,5 @@ test('manual delivery ETA and message settings are bounded and normalized',()=>{
 test('manual credentials/details are validated but can contain multi-line text',()=>{
   assert.equal(normalizeManualDeliveryDetails('البريد: user@example.com\nكلمة المرور: abc123'),'البريد: user@example.com\nكلمة المرور: abc123');
   assert.throws(()=>normalizeManualDeliveryDetails(''));
-  assert.throws(()=>normalizeManualDeliveryDetails('x'.repeat(8001)));
+  assert.throws(()=>normalizeManualDeliveryDetails('x'.repeat(3001)));
 });
