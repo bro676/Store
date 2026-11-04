@@ -313,6 +313,7 @@ export function upsertCatalogProduct(existingCatalog, categoryId, productInput) 
   else {
     const previous=items[productIndex];
     const overrides=previous.manualOverrides&&typeof previous.manualOverrides==='object'?previous.manualOverrides:{};
+    if(previous.manualCreated===true)validated.manualCreated=true;
     validated.apiSource={name:validated.name,desc:validated.desc,image:validated.image,options:validated.options};
     for(const key of ['name','desc','image','options'])if(Object.prototype.hasOwnProperty.call(overrides,key))validated[key]=overrides[key];
     if(Object.keys(overrides).length)validated.manualOverrides=overrides;
