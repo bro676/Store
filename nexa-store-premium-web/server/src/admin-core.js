@@ -202,6 +202,61 @@ function mergeSupplierProduct(previous, incoming) {
   return product;
 }
 
+export function deleteCatalogFolder(input, categoryId, destinationCategoryId = '') {
+  const current=validateCatalog(input);
+  if(typeof categoryId!=='string'||!categoryId)throw Object.assign(new Error('INVALID_FOLDER_ID'),{status:400});
+  const source=current.find(category=>category.id===categoryId);
+  if(!source)throw Object.assign(new Error('CATALOG_FOLDER_NOT_FOUND'),{status:404});
+  const subtree=new Set([categoryId]);
+  let changed=true;
+  while(changed){
+    changed=false;
+    for(const category of current){
+      if(category.parentId&&subtree.has(category.parentId)&&!subtree.has(category.id)){
+        subtree.add(category.id);changed=true;
+      }
+    }
+  }
+  const directChildren=current.filter(category=>category.parentId===categoryId);
+  const hasContents=(source.items||[]).length>0||directChildren.length>0;
+  const destinationId=String(destinationCategoryId||'');
+  if(hasContents&&!destinationId)throw Object.assign(new Error('FOLDER_DELETE_DESTINATION_REQUIRED'),{status:400});
+  if(!hasContents&&destinationId&&subtree.has(destinationId))throw Object.assign(new Error('INVALID_FOLDER_DELETE_DESTINATION'),{status:400});
+  if(hasContents){
+    if(!destinationId||subtree.has(destinationId))throw Object.assign(new Error('INVALID_FOLDER_DELETE_DESTINATION'),{status:400});
+    const destination=current.find(category=>category.id===destinationId);
+    if(!destination)throw Object.assign(new Error('FOLDER_DELETE_DESTINATION_NOT_FOUND'),{status:404});
+    const targetProductIds=new Set((destination.items||[]).map(product=>product.id));
+    if((source.items||[]).some(product=>targetProductIds.has(product.id)))
+      throw Object.assign(new Error('PRODUCT_ID_COLLISION_IN_DESTINATION'),{status:409});
+  }
+  const result=current.map(category=>JSON.parse(JSON.stringify(category)));
+  const sourceCopy=result.find(category=>category.id===categoryId);
+  if(hasContents){
+    const destination=result.find(category=>category.id===destinationId);
+    destination.items.push(...sourceCopy.items);
+    destination.sourceCategoryAliases=Array.from(new Set([
+      ...(Array.isArray(destination.sourceCategoryAliases)?destination.sourceCategoryAliases:[]),
+      ...(Array.isArray(sourceCopy.sourceCategoryAliases)?sourceCopy.sourceCategoryAliases:[]),
+      ...(sourceCopy.apiSource?.name?[sourceCopy.apiSource.name]:[]),
+      ...(sourceCopy.name?[sourceCopy.name]:[]),
+    ].filter(value=>typeof value==='string'&&value.trim()))).slice(0,40);
+    for(const child of result){
+      if(child.parentId!==categoryId)continue;
+      child.parentId=destinationId;
+      child.departmentId='';
+      child.manualOverrides={
+        ...(child.manualOverrides&&typeof child.manualOverrides==='object'?child.manualOverrides:{}),
+        parentId:destinationId,
+        departmentId:'',
+      };
+    }
+  }
+  const remaining=result.filter(category=>category.id!==categoryId);
+  if(!remaining.length)throw Object.assign(new Error('LAST_CATALOG_FOLDER_CANNOT_DELETE'),{status:409});
+  return validateCatalog(remaining);
+}
+
 export function mergeCatalog(existing, incoming, mode = 'merge') {
   const current=validateCatalog(existing),next=validateCatalog(incoming);
   if(!['merge','replace'].includes(mode))throw new Error('INVALID_CATALOG_SYNC_MODE');

@@ -103,6 +103,8 @@ test('admin catalog exposes a recursive folder tree and safe manual organization
   assert.ok(admin.includes('إظهار المنتج في المتجر'), 'Products can be hidden individually');
   assert.ok(admin.includes('folderManual:true'), 'Manually created folders are marked to survive supplier replace sync');
   assert.ok(server.includes("url.pathname==='/api/admin/catalog/move-product'"), 'The server moves products without recreating their supplier records');
+  assert.ok(admin.includes('id="deleteFolderDestination"'), 'Non-empty folder deletion requires an explicit destination');
+  assert.ok(server.includes("url.pathname==='/api/admin/catalog/delete-folder'"), 'The server deletes folders by safely rehoming their contents');
 });
 
 test('storefront renders child folders and products together inside each folder', async () => {
