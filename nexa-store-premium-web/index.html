@@ -897,7 +897,7 @@ function renderCatalog(){
   const folderRows=filteredFolders.slice((state.categoryPage-1)*folderPageSize,state.categoryPage*folderPageSize);
   const allProducts=cat.items||[],productQuery=String(state.productQuery||'').trim().toLocaleLowerCase('ar');
   const sortedProducts=allProducts.map((product,index)=>({product,index}))
-   .sort((a,b)=>Number(a.product.sortOrder||0)-Number(b.product.sortOrder||0)||
+   .sort((a,b)=>NexaCatalog.sortPriority(a.product.sortOrder)-NexaCatalog.sortPriority(b.product.sortOrder)||
     String(a.product.name||'').localeCompare(String(b.product.name||''),'ar',{numeric:true,sensitivity:'base'})||a.index-b.index)
    .map(row=>row.product);
   const filteredProducts=sortedProducts.filter(product=>!productQuery||[product.name,product.desc,product.id].some(value=>String(value||'').toLocaleLowerCase('ar').includes(productQuery)));
