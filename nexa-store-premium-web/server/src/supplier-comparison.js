@@ -120,3 +120,32 @@ export function compareSupplierCandidates(candidates, fxRate = 145) {
   }
   return winners;
 }
+
+/**
+ * Try supplier candidates from lowest to highest source cost. A malformed
+ * calculated WAMDA selling price must not abort publication for every other
+ * product; fall back to the next supplier, or report this product as skipped.
+ * All unrelated errors still propagate so real publication failures remain
+ * visible and cannot be silently hidden.
+ */
+export function applyFirstPriceableSupplierCandidate(group, applyCandidate) {
+  if (typeof applyCandidate !== 'function') throw new TypeError('INVALID_SUPPLIER_APPLY_CALLBACK');
+  const candidates = Array.isArray(group?.candidates) && group.candidates.length
+    ? group.candidates
+    : (group?.winner ? [group.winner] : []);
+  const unpriceableCandidates = [];
+  for (const candidate of candidates) {
+    try {
+      return { candidate, result:applyCandidate(candidate), unpriceableCandidates };
+    } catch (error) {
+      if (error?.message !== 'INVALID_WAMDA_CALCULATED_PRICE') throw error;
+      unpriceableCandidates.push({
+        provider:String(candidate?.provider || ''),
+        productId:Number(candidate?.productId || 0),
+        categoryId:String(candidate?.categoryId ?? ''),
+        errorCode:error.message,
+      });
+    }
+  }
+  return { candidate:null, result:null, unpriceableCandidates };
+}
