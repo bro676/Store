@@ -615,3 +615,103 @@ body { font-family: Tahoma, "Segoe UI", Arial, sans-serif; }
   #app.shell .topbar .top-actions { gap: 5px !important; }
   #app.shell .topbar .btn { padding: 7px 9px !important; }
 }
+
+
+/* Final brand sweep: replace legacy green/gold decorative accents with Nexa sky blue.
+   Semantic error/warning colours remain distinct; successful payments/credits use blue
+   in this theme so there is no competing green brand palette. */
+.app-shell .department-card-art { background: #0c2032 !important; }
+.app-shell .department-card-art i {
+  color: #c4efff !important; background: rgba(8, 35, 54, .88) !important;
+  border-color: rgba(126, 215, 250, .45) !important;
+}
+:root[data-theme="light"] .app-shell .department-card {
+  background: #ffffff !important; color: #183a55 !important; border-color: #dceaf4 !important;
+  box-shadow: 0 12px 28px rgba(25, 64, 91, .08) !important;
+}
+:root[data-theme="light"] .app-shell .department-card-copy strong { color: #183a55 !important; }
+:root[data-theme="light"] .app-shell .department-card-copy small { color: #71899d !important; }
+:root[data-theme="light"] .app-shell .department-card-meta { color: #1989bd !important; }
+:root[data-theme="dark"] .app-shell .department-card {
+  background: #111f2e !important; color: #edf7ff !important; border-color: #2b4358 !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, .22) !important;
+}
+:root[data-theme="dark"] .app-shell .department-card-copy strong { color: #edf7ff !important; }
+:root[data-theme="dark"] .app-shell .department-card-copy small { color: #9eb6c7 !important; }
+:root[data-theme="dark"] .app-shell .department-card-meta { color: #85d9fa !important; }
+.app-shell .department-card:hover,
+.app-shell .catalog-tile:hover,
+.app-shell .option-card:hover,
+.app-shell .pack-card:hover,
+.app-shell .support-channel:hover,
+.app-shell .support-form-panel:hover,
+.app-shell .support-lookup-panel:hover {
+  border-color: #6bc9f0 !important; box-shadow: 0 14px 36px rgba(39, 145, 195, .13) !important;
+}
+.app-shell .home-intro:after { border-color: rgba(82, 188, 231, .2) !important; box-shadow: 0 0 0 22px rgba(82, 188, 231, .035), 0 0 0 46px rgba(82, 188, 231, .02) !important; }
+.app-shell .home-intro-kicker i { background: #48b7e8 !important; box-shadow: 0 0 0 4px rgba(72, 183, 232, .14) !important; }
+.app-shell .intro-orbit,
+.app-shell .orbit-two { border-color: rgba(82, 188, 231, .22) !important; }
+.app-shell .header-search:focus-within { border-color: #55b8e7 !important; box-shadow: 0 0 0 3px rgba(45, 166, 224, .16) !important; }
+.app-shell .btn-soft:hover { background: #e8f7ff !important; border-color: #acdff5 !important; color: #126d9d !important; }
+:root[data-theme="dark"] .app-shell .btn-soft:hover { background: #193b54 !important; border-color: #3b7595 !important; color: #a8e5ff !important; }
+.app-shell .crumb:not(.current):hover { border-color: #7dceef !important; color: #147dad !important; }
+:root[data-theme="dark"] .app-shell .crumb:not(.current):hover { color: #8bdcff !important; }
+.app-shell .wallet-api-mark,
+.app-shell .support-welcome-mark {
+  background: linear-gradient(145deg, #1789bf, #45b7e7 60%, #a1e4ff) !important;
+  color: #08263d !important; box-shadow: 0 12px 28px rgba(42, 158, 209, .19) !important;
+}
+.app-shell .wallet-api-side,
+.app-shell .assistant-head {
+  background: radial-gradient(circle at 92% 5%, rgba(74, 184, 232, .18), transparent 34%), linear-gradient(145deg, #10263a, #0b1c2d 72%, #102b42) !important;
+  border-color: var(--lux-line) !important;
+}
+.app-shell .wallet-api-main,
+.app-shell .support-welcome {
+  background: radial-gradient(circle at 100% 0, rgba(74, 184, 232, .12), transparent 33%), linear-gradient(145deg, #11283d, #0c1f31) !important;
+  border-color: var(--lux-line) !important;
+}
+.app-shell .wallet-api-side li b,
+.app-shell .secure-lock {
+  color: #bfeeff !important; background: rgba(74, 184, 232, .14) !important; border-color: rgba(100, 202, 244, .28) !important;
+}
+.app-shell .wallet-api-state.ready,
+.app-shell .wallet-payment-result.success,
+.app-shell .receipt-stamp,
+.app-shell .support-live-pill,
+.app-shell .account-status-pill {
+  background: rgba(51, 160, 211, .13) !important;
+  border-color: rgba(79, 183, 229, .3) !important;
+  color: #147eaf !important;
+}
+:root[data-theme="dark"] .app-shell .wallet-api-state.ready,
+:root[data-theme="dark"] .app-shell .wallet-payment-result.success,
+:root[data-theme="dark"] .app-shell .receipt-stamp,
+:root[data-theme="dark"] .app-shell .support-live-pill,
+:root[data-theme="dark"] .app-shell .account-status-pill {
+  background: rgba(51, 160, 211, .16) !important; border-color: rgba(79, 183, 229, .32) !important; color: #b6eaff !important;
+}
+.app-shell .wallet-ledger-row b.credit { color: #168bc0 !important; }
+:root[data-theme="dark"] .app-shell .wallet-ledger-row b.credit { color: #81d8fa !important; }
+.app-shell .wallet-placeholder {
+  background: radial-gradient(circle at 85% 20%, rgba(79, 181, 231, .2), transparent 32%), linear-gradient(120deg, #11273b, #19415b) !important;
+}
+.app-shell .support-live-pill { box-shadow: inset 0 0 0 1px rgba(68, 173, 220, .05) !important; }
+
+/* Admin's remaining decorative green states, badges and utility controls. */
+#app.shell .avatar {
+  background: #e7f6ff !important; color: #1685ba !important; border-color: #c5e6f5 !important;
+}
+:root[data-theme="dark"] #app.shell .avatar { background: #17364c !important; color: #a8e5ff !important; border-color: #345c75 !important; }
+#app.shell .tag.green,
+:root[data-theme="light"] #app.shell .tag.green,
+:root[data-theme="dark"] #app.shell .tag.green {
+  background: rgba(51, 160, 211, .13) !important; border-color: rgba(79, 183, 229, .3) !important; color: #167eae !important;
+}
+:root[data-theme="dark"] #app.shell .tag.green { color: #b6eaff !important; }
+#app.shell .dark { background: #12304a !important; color: #e8f7ff !important; border-color: #2d5874 !important; }
+#app.shell .soft:hover,
+#app.shell .icon-btn:hover { background: var(--nexa-primary-soft) !important; border-color: #81c9e9 !important; color: #147dad !important; }
+:root[data-theme="dark"] #app.shell .soft:hover,
+:root[data-theme="dark"] #app.shell .icon-btn:hover { background: #193b54 !important; color: #a8e5ff !important; border-color: #3b7595 !important; }
