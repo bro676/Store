@@ -780,7 +780,7 @@ body{
   </div>
 </section>
 <div class="toast" id="toast"></div>
-<script src="/assets/brand/nexa-catalog.js?v=20261102-02"></script>
+<script src="/assets/brand/nexa-catalog.js?v=20261104-product-click"></script>
 <script>
 let categories=[];
 const $=id=>document.getElementById(id);const money=v=>v>0?new Intl.NumberFormat('en-US',{maximumFractionDigits:Number(v)<0.01?8:2}).format(v)+' ل.س جديدة':'يحدد لاحقاً';const formatMinor=(minor,currency='SYP')=>{const value=Number(BigInt(minor||0))/100;return currency==='USD'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value):new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value)+' ل.س جديدة'};const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
