@@ -808,8 +808,8 @@ function adminFolderChildren(parentId=null,departmentId=null){
   (parentId!==null?true:categoryDepartmentId(category)===departmentId)
  );
  return rows.map((category,index)=>({category,index,count:NexaCatalog.getFolderProductCount(category,state.catalog)}))
-  .sort((a,b)=>a.count-b.count||Number(a.category.sortOrder||0)-Number(b.category.sortOrder||0)||
-   String(a.category.name||'').localeCompare(String(b.category.name||''),'ar',{numeric:true,sensitivity:'base'}));
+  .sort((a,b)=>NexaCatalog.compareDisplayOrder(a.category,b.category)||a.count-b.count||
+   String(a.category.name||'').localeCompare(String(b.category.name||''),'ar',{numeric:true,sensitivity:'base'})||a.index-b.index);
 }
 function renderFolderBranch(parentId,departmentId,depth=0){
  return adminFolderChildren(parentId,departmentId).map(({category,index,count})=>
@@ -864,7 +864,7 @@ function renderCatalog(){
  <div class="form-grid">
   ${field('اسم المجلد',ci+'.name',cat.name)}
   ${field('الأيقونة',ci+'.icon',cat.icon||'📁')}
-  ${field('ترتيب يدوي عند تساوي عدد المنتجات',ci+'.sortOrder',cat.sortOrder||0,{type:'number',step:1})}
+  ${field('ترتيب الظهور (1 أولاً · 0 تلقائي)',ci+'.sortOrder',cat.sortOrder||0,{type:'number',step:1,min:0,max:1000000})}
   ${field('الوصف',ci+'.desc',cat.desc,{type:'textarea',full:true})}
   ${parentSelect}
   ${departmentSelect}
@@ -881,13 +881,16 @@ function renderProduct(p,ci,pi){
  const base=`${ci}.items.${pi}`;
  const destinations=state.catalog.filter(category=>category.id!==state.catalog[ci].id);
  const moveSelect='<div class="field full"><label>نقل المنتج إلى مجلد آخر</label><select data-move-product="'+esc(p.id)+'" data-source-category="'+esc(state.catalog[ci].id)+'"><option value="">اختر مجلداً للنقل...</option>'+destinations.map(category=>'<option value="'+esc(category.id)+'">'+esc(categoryPathLabel(category))+'</option>').join('')+'</select></div>';
- const supplierLinked=p.wamda?.provider==='wamda'||p.bestStore?.provider==='beststore';
+ const supplierLinked=p.seagm?.provider==='seagm'||p.wamda?.provider==='wamda'||p.bestStore?.provider==='beststore';
+ const fulfillmentMode=p.fulfillmentMode||(supplierLinked?'automatic':'manual');
  return `
-<details class="product-editor"><summary><img class="product-thumb" src="${esc(p.image)}" alt=""><span><strong>${esc(p.name)}</strong><small>${(p.options||[]).length} خيارات · ${(p.options||[]).reduce((n,o)=>n+(o.packs||[]).length,0)} باقات · ${supplierLinked?'مرتبط بمورد':'منتج يدوي'}</small></span><span class="icon-btn product-editor-chevron" aria-hidden="true">⌄</span></summary>
+<details class="product-editor"><summary><img class="product-thumb" src="${esc(p.image)}" alt=""><span><strong>${esc(p.name)}</strong><small>${(p.options||[]).length} خيارات · ${(p.options||[]).reduce((n,o)=>n+(o.packs||[]).length,0)} باقات · ${supplierLinked?'مرتبط بمورد':'منتج يدوي'} · ${fulfillmentMode==='automatic'?'تسليم آلي':'تسليم يدوي'}</small></span><span class="icon-btn product-editor-chevron" aria-hidden="true">⌄</span></summary>
 <div class="product-body"><div class="form-grid">
 <div class="field"><label>معرّف المنتج الثابت</label><input value="${esc(p.id)}" readonly></div>
 ${field('اسم المنتج',base+'.name',p.name)}
-${field('ترتيب المنتج',base+'.sortOrder',p.sortOrder||0,{type:'number',step:1})}
+${field('ترتيب الظهور (1 أولاً · 0 تلقائي)',base+'.sortOrder',p.sortOrder||0,{type:'number',step:1,min:0,max:1000000})}
+<div class="field"><label>طريقة التسليم</label><select data-path="${base}.fulfillmentMode"><option value="automatic" ${fulfillmentMode==='automatic'?'selected':''}>آلي عبر API المورد</option><option value="manual" ${fulfillmentMode==='manual'?'selected':''}>يدوي من لوحة الطلبات</option></select><small class="muted">الآلي متاح فقط للمنتجات المرتبطة بمورد يدعم تنفيذ API. غير ذلك سيُعامل الطلب كتسليم يدوي.</small></div>
+${field('مهلة التسليم اليدوي (ساعة)',base+'.manualDeliveryHours',p.manualDeliveryHours??24,{type:'number',step:1,min:1,max:168})}
 ${field('الوصف',base+'.desc',p.desc,{type:'textarea',full:true})}
 <div class="field full"><label>صورة المنتج</label><div class="image-row"><img class="image-preview" src="${esc(p.image)}" alt=""><div><input data-path="${base}.image" value="${esc(p.image)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${base}.image"></label></div></div></div>
 ${moveSelect}
