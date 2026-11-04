@@ -176,17 +176,17 @@ test('catalog API refresh preserves manual product display overrides and keeps a
 });
 
 
-test('catalogue validator accepts up to eight decimal places for supplier unit prices only',()=>{
+test('catalogue validator accepts up to twelve decimal places for supplier unit prices only',()=>{
   const base={
     id:'tiny-price-product',name:'Tiny supplier product',desc:'Supplier unit price below one cent',
     image:'assets/brand/logo.svg',
-    options:[{id:'default',name:'Default',desc:'',packs:[['Unit',0.00000024]]}],
+    options:[{id:'default',name:'Default',desc:'',packs:[['Unit',0.000000274586]]}],
   };
   const supplierCategory=[{
     id:'tiny-price-category',name:'Supplier products',desc:'',image:'assets/brand/logo.svg',
-    items:[{...base,wamda:{provider:'wamda'}}],
+    items:[{...base,options:[{id:'default',name:'Default',desc:'',packs:[['Unit',0.000000274586]]}],wamda:{provider:'wamda'}}],
   }];
-  assert.equal(validateCatalog(supplierCategory)[0].items[0].options[0].packs[0][1],0.00000024);
+  assert.equal(validateCatalog(supplierCategory)[0].items[0].options[0].packs[0][1],0.000000274586);
   const ordinaryCategory=[{
     id:'ordinary-price-category',name:'Ordinary products',desc:'',image:'assets/brand/logo.svg',
     items:[base],
