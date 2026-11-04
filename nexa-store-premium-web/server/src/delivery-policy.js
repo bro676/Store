@@ -2,8 +2,8 @@ const AUTOMATIC_PROVIDERS = new Set(['seagm','wamda','beststore']);
 const MAX_DELIVERY_ETA_HOURS = 720;
 
 function supplierFor(product) {
-  if (product?.seagm?.provider === 'seagm') return product.seagm;
   if (product?.wamda?.provider === 'wamda') return product.wamda;
+  if (product?.seagm?.provider === 'seagm') return product.seagm;
   if (product?.bestStore?.provider === 'beststore') return product.bestStore;
   return null;
 }
