@@ -5,6 +5,8 @@ import {
   normalizeWamdaPricingRule,
   resolveWamdaPricingRule,
   calculateWamdaSellPriceSyp,
+  calculateWamdaSellUnitPriceSyp,
+  supplierUnitPriceToMinor,
   updateWamdaPublishedProduct,
   markWamdaProductUnavailable,
 } from '../src/wamda-pricing.js';
@@ -120,4 +122,46 @@ test('fixed-profit pricing keeps a constant profit amount while supplier cost ch
   assert.equal(first-2*145,275);
   assert.equal(second-8*145,275);
   assert.notEqual(first,second);
+});
+
+
+test('keeps sub-cent WAMDA unit prices and rounds only after quantity is applied',()=>{
+  const unitPrice=calculateWamdaSellUnitPriceSyp({
+    unitPriceUsd:0.000028665,
+    fxRate:145,
+    pricingRule:{mode:'percent',value:15},
+  });
+  assert.equal(unitPrice,0.00477988875);
+  assert.equal(supplierUnitPriceToMinor(unitPrice,10),5n);
+  assert.equal(supplierUnitPriceToMinor(unitPrice,1000),478n);
+});
+
+test('supports Best Store unit prices below one SYP cent with large minimum quantities',()=>{
+  const unitPrice=calculateWamdaSellUnitPriceSyp({
+    unitPriceUsd:0.00000027/145,
+    fxRate:145,
+    pricingRule:{mode:'percent',value:0},
+  });
+  assert.equal(unitPrice,0.00000027);
+  assert.equal(supplierUnitPriceToMinor(unitPrice,1000000),27n);
+});
+
+test('preserves the existing two-decimal unit pricing for ordinary supplier prices',()=>{
+  assert.equal(calculateWamdaSellUnitPriceSyp({unitPriceUsd:10,fxRate:145,marginPercent:20}),1740);
+});
+
+test('rejects invalid quantities and supplier unit prices',()=>{
+  assert.throws(()=>supplierUnitPriceToMinor(0,10),/INVALID_SUPPLIER_UNIT_PRICE/);
+  assert.throws(()=>supplierUnitPriceToMinor(0.001,0),/INVALID_SUPPLIER_UNIT_PRICE/);
+  assert.throws(()=>supplierUnitPriceToMinor(0.001,1000001),/INVALID_SUPPLIER_UNIT_PRICE/);
+});
+
+test('publishes WAMDA products whose per-unit calculated price is below one cent',()=>{
+  const existing={id:'wamda-tiny',name:'Tiny product',options:[],wamda:{provider:'wamda'}};
+  const product=updateWamdaPublishedProduct(existing,{
+    id:10417,categoryId:5,name:'Telegram Reaction',unitPrice:0.000028665,
+    sourcePrice:0.028665,pricePerQuantity:1000,available:true,fields:[],
+  },{fxRate:145,globalRule:{mode:'percent',value:15}});
+  assert.equal(product.options[0].packs[0][1],0.00477988875);
+  assert.equal(product.wamda.minimumQuantity,1);
 });

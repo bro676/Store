@@ -17,7 +17,7 @@ import { createBestStoreClient, normalizeBestStoreProduct } from './best-store-a
 import { bestStoreOrderDecision, classifyBestStoreError } from './best-store-fulfillment.js';
 import { compareSupplierCandidates, supplierProductMatchKey, supplierCategoryMatchKey, normalizeSupplierText, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey, applyFirstPriceableSupplierCandidate } from './supplier-comparison.js';
 import { wamdaOrderDecision, classifyWamdaError } from './wamda-fulfillment.js';
-import { normalizeWamdaMargin, normalizeWamdaPricingRule, resolveWamdaPricingRule, calculateWamdaSellPriceSyp, updateWamdaPublishedProduct, markWamdaProductUnavailable } from './wamda-pricing.js';
+import { normalizeWamdaMargin, normalizeWamdaPricingRule, resolveWamdaPricingRule, calculateWamdaSellPriceSyp, calculateWamdaSellUnitPriceSyp, supplierUnitPriceToMinor, updateWamdaPublishedProduct, markWamdaProductUnavailable } from './wamda-pricing.js';
 import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSignature } from './seagm-webhook.js';
 import { verifyBestStoreWebhookSecret, parseBestStoreWebhookBody, isBestStoreWebhookTest, resolveBestStoreWebhookReference } from './best-store-webhook.js';
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
@@ -180,9 +180,12 @@ function findPack(categoryId, productId, optionId, packIndex) {
   const option = product?.options.find(o => o.id === optionId);
   const pack = Number.isInteger(packIndex) ? option?.packs[packIndex] : null;
   if (!category || !product || !option || !pack || !Number.isFinite(pack[1]) || pack[1] <= 0) return null;
+  const label = `${product.name} — ${option.name} — ${pack[0]}`;
+  const isPerUnitSupplierProduct = product.wamda?.provider === 'wamda' || product.bestStore?.provider === 'beststore';
+  if (isPerUnitSupplierProduct) return { label, unitAmountSyp:Number(pack[1]) };
   const amountMinor = decimalMinor(pack[1]);
   if (amountMinor === null || amountMinor <= 0n) return null;
-  return { label: `${product.name} — ${option.name} — ${pack[0]}`, amountMinor };
+  return { label, amountMinor };
 }
 function pricePack(pack, currency) {
   if (currency === 'SYP') return { ...pack, currency, amountMinor:pack.amountMinor };
@@ -466,7 +469,15 @@ async function createOrder(input, customer = null) {
   }
   const currency = String(input.currency || 'SYP').trim().toUpperCase();
   if (!['SYP','USD'].includes(currency)) return { error:'INVALID_CURRENCY', status:400, message:'اختر الليرة السورية أو الدولار الأمريكي.' };
-  const totalPack = { ...pack, label:supplier ? `${pack.label} × ${quantity}` : pack.label, amountMinor:pack.amountMinor * BigInt(quantity) };
+  let totalAmountMinor;
+  if (supplierProvider === 'wamda' || supplierProvider === 'beststore') {
+    try { totalAmountMinor = supplierUnitPriceToMinor(pack.unitAmountSyp, quantity); }
+    catch { return { error:'INVALID_PRICE', status:400, message:'تعذر حساب إجمالي سعر المنتج والكمية المختارة.' }; }
+  } else {
+    totalAmountMinor = pack.amountMinor * BigInt(quantity);
+  }
+  if (totalAmountMinor <= 0n) return { error:'INVALID_PRICE', status:400, message:'إجمالي سعر الكمية أقل من الحد الأدنى القابل للدفع.' };
+  const totalPack = { ...pack, label:supplier ? `${pack.label} × ${quantity}` : pack.label, amountMinor:totalAmountMinor };
   const pricedPack = pricePack(totalPack, currency);
   if (!pricedPack) return { error:'INVALID_PRICE', status:400, message:'تعذر حساب السعر بالعملة المختارة.' };
   const name = String(input.customerName || customer?.full_name || '').trim().slice(0,70);
@@ -1265,7 +1276,7 @@ function calculateBestStoreSellPriceSyp(source,settings=storeSettings,ruleOverri
   const context=getBestStorePricingContext(settings),cost=Number(source?.sourceCost??source?.basePrice??source?.price);
   if(!Number.isFinite(cost)||cost<=0)throw Object.assign(new Error('BEST_STORE_INVALID_SOURCE_COST'),{code:'BEST_STORE_INVALID_SOURCE_COST'});
   const costSyp=context.currency==='USD'?cost*context.fxRate:cost;
-  return calculateWamdaSellPriceSyp({unitPriceUsd:costSyp/context.fxRate,fxRate:context.fxRate,pricingRule:ruleOverride||context.globalRule});
+  return calculateWamdaSellUnitPriceSyp({unitPriceUsd:costSyp/context.fxRate,fxRate:context.fxRate,pricingRule:ruleOverride||context.globalRule});
 }
 function buildBestStoreAdminCategories(categories,publishedCatalog=catalog,settings=storeSettings){
   const published=new Map();for(const row of publishedCatalog||[])for(const product of row.items||[])if(product.bestStore?.provider==='beststore')published.set(Number(product.bestStore.productId),product);

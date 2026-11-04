@@ -174,3 +174,22 @@ test('catalog API refresh preserves manual product display overrides and keeps a
   assert.equal(product.apiSource.options[0].name,'API option');
   assert.equal(product.apiSource.options[0].packs[0][1],320);
 });
+
+
+test('catalogue validator accepts up to twelve decimal places for supplier unit prices only',()=>{
+  const base={
+    id:'tiny-price-product',name:'Tiny supplier product',desc:'Supplier unit price below one cent',
+    image:'assets/brand/logo.svg',
+    options:[{id:'default',name:'Default',desc:'',packs:[['Unit',0.000000274586]]}],
+  };
+  const supplierCategory=[{
+    id:'tiny-price-category',name:'Supplier products',desc:'',image:'assets/brand/logo.svg',
+    items:[{...base,options:[{id:'default',name:'Default',desc:'',packs:[['Unit',0.000000274586]]}],wamda:{provider:'wamda'}}],
+  }];
+  assert.equal(validateCatalog(supplierCategory)[0].items[0].options[0].packs[0][1],0.000000274586);
+  const ordinaryCategory=[{
+    id:'ordinary-price-category',name:'Ordinary products',desc:'',image:'assets/brand/logo.svg',
+    items:[base],
+  }];
+  assert.throws(()=>validateCatalog(ordinaryCategory),/INVALID_PACK_PRICE/);
+});
