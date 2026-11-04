@@ -177,6 +177,7 @@ function asAmount(minor) { return `${minor / 100n}.${String(minor % 100n).padSta
 function findPack(categoryId, productId, optionId, packIndex) {
   const category = catalog.find(c => c.id === categoryId);
   const product = category?.items.find(p => p.id === productId);
+  if (!category || !isPublicCatalogCategory(category) || product?.visible === false) return null;
   const option = product?.options.find(o => o.id === optionId);
   const pack = Number.isInteger(packIndex) ? option?.packs[packIndex] : null;
   if (!category || !product || !option || !pack || !Number.isFinite(pack[1]) || pack[1] <= 0) return null;
@@ -211,9 +212,14 @@ function publicCatalog() {
     ...category,
     items: category.items.filter(product=>product.visible!==false).map(product => {
       const { seagm, wamda, bestStore, manualOverrides, apiSource, ...publicProduct } = product;
+      const supplierLinked = seagm?.provider === 'seagm' || wamda?.provider === 'wamda' || bestStore?.provider === 'beststore';
+      const fulfillmentMode = product.fulfillmentMode === 'manual' || !supplierLinked ? 'manual' : 'automatic';
+      if (fulfillmentMode === 'manual') {
+        return {...publicProduct,fulfillmentMode:'manual',manualDeliveryHours:Number(product.manualDeliveryHours||24)};
+      }
       if (seagm?.provider === 'seagm') {
         return {
-          ...publicProduct,
+          ...publicProduct,fulfillmentMode:'automatic',
           seagm: {
             provider:'seagm',kind:seagm.kind === 'recharge' ? 'recharge' : 'card',
             minimumQuantity:Number(seagm.minimumQuantity || 1),maximumQuantity:Number(seagm.maximumQuantity || 1),
@@ -233,7 +239,7 @@ function publicCatalog() {
         };
       }
       if (wamda?.provider === 'wamda') {
-        return {...publicProduct,wamda:{
+        return {...publicProduct,fulfillmentMode:'automatic',wamda:{
           provider:'wamda',minimumQuantity:Number(wamda.minimumQuantity || 1),maximumQuantity:Number(wamda.maximumQuantity || 1),available:wamda.available!==false,
           fields:Array.isArray(wamda.fields)?wamda.fields.map(field=>({
             name:String(field.key || ''),submitField:String(field.key || ''),label:String(field.label || field.key || ''),
@@ -243,7 +249,7 @@ function publicCatalog() {
         }};
       }
       if(bestStore?.provider==='beststore'){
-        return {...publicProduct,bestStore:{
+        return {...publicProduct,fulfillmentMode:'automatic',bestStore:{
           provider:'beststore',productId:Number(bestStore.productId),available:bestStore.available!==false&&Boolean(bestStoreApiTokenRuntime)&&storeSettings?.bestStoreCurrencyConfirmed===true,
           minimumQuantity:Number(bestStore.minimumQuantity||1),maximumQuantity:Number(bestStore.maximumQuantity||1),
           allowedQuantities:Array.isArray(bestStore.allowedQuantities)?bestStore.allowedQuantities.map(Number).filter(value=>Number.isSafeInteger(value)&&value>0):[],
@@ -254,7 +260,7 @@ function publicCatalog() {
           })):[],
         }};
       }
-      return publicProduct;
+      return {...publicProduct,fulfillmentMode:'manual',manualDeliveryHours:Number(product.manualDeliveryHours||24)};
     }),
   }));
 }
@@ -450,8 +456,12 @@ async function createOrder(input, customer = null) {
   const sourceProduct = sourceCategory?.items?.find(product => product.id === input.productId);
   const supplier = sourceProduct?.wamda?.provider === 'wamda' ? sourceProduct.wamda : (sourceProduct?.seagm?.provider === 'seagm' ? sourceProduct.seagm : (sourceProduct?.bestStore?.provider === 'beststore' ? sourceProduct.bestStore : null));
   const supplierProvider=supplier?.provider||'';
+  const supportedSupplier=['seagm','wamda','beststore'].includes(supplierProvider);
+  const fulfillmentMode=supportedSupplier&&sourceProduct?.fulfillmentMode!=='manual'?'automatic':'manual';
+  const automaticSupplierProvider=fulfillmentMode==='automatic'?supplierProvider:'';
+  const manualDeliveryHours=Math.max(1,Math.min(168,Math.trunc(Number(sourceProduct?.manualDeliveryHours)||24)));
   let quantity=1,supplierFields={};
-  if(supplierProvider==='wamda'){
+  if(automaticSupplierProvider==='wamda'){
     if(!Number.isSafeInteger(Number(supplier.productId))||Number(supplier.productId)<=0||!Number.isSafeInteger(Number(supplier.categoryId))||Number(supplier.categoryId)<0) return {error:'INVALID_WAMDA_PRODUCT',status:409,message:'بيانات ربط المنتج مع ومضة غير مكتملة. أعد مزامنته ونشره من لوحة الإدارة.'};
     if(supplier.available===false) return {error:'WAMDA_PRODUCT_UNAVAILABLE',status:409,message:'هذا المنتج غير متوفر حالياً لدى ومضة. حدّث الكتالوج واختر منتجاً متاحاً.'};
     if(!wamdaApiTokenRuntime) return {error:'WAMDA_NOT_CONFIGURED',status:503,message:'أدخل API Token الخاص بومضة من لوحة الإدارة ثم اختبر الاتصال.'};
@@ -460,7 +470,7 @@ async function createOrder(input, customer = null) {
     if(!Number.isSafeInteger(quantity)||quantity<min||quantity>max) return {error:'INVALID_QUANTITY',status:400,message:`الكمية يجب أن تكون بين ${min} و${max}.`};
     try{supplierFields=validateWamdaCustomerFields(sourceProduct,input.supplierFields||{});}
     catch(error){return {error:'INVALID_SUPPLIER_FIELDS',status:error.status||400,message:error.message};}
-  } else if(supplierProvider==='seagm'){
+  } else if(automaticSupplierProvider==='seagm'){
     if(!['card','recharge'].includes(supplier.kind)||!Number.isSafeInteger(Number(supplier.typeId))||Number(supplier.typeId)<=0||!Number.isSafeInteger(Number(supplier.categoryId))||Number(supplier.categoryId)<=0) return {error:'INVALID_SEAGM_PRODUCT',status:409,message:'بيانات ربط المنتج مع SEAGM غير مكتملة. أعد مزامنته ونشره من لوحة الإدارة.'};
     if(!storeSettings?.seagmUid||!seagmSecretRuntime) return {error:'SEAGM_NOT_CONFIGURED',status:503,message:'منتج المورد غير متاح حالياً حتى يتم ضبط UID وSecret Key من لوحة الإدارة.'};
     const min=Math.max(1,Number(supplier.minimumQuantity||1)),max=Math.min(1000,Math.max(min,Number(supplier.maximumQuantity||1)));
@@ -468,7 +478,7 @@ async function createOrder(input, customer = null) {
     if(!Number.isSafeInteger(quantity)||quantity<min||quantity>max) return {error:'INVALID_QUANTITY',status:400,message:`الكمية يجب أن تكون بين ${min} و${max}.`};
     try{supplierFields=validateSeagmCustomerFields(sourceProduct,input.supplierFields||{});}
     catch(error){return {error:'INVALID_SUPPLIER_FIELDS',status:error.status||400,message:error.message};}
-  } else if(supplierProvider==='beststore'){
+  } else if(automaticSupplierProvider==='beststore'){
     if(!Number.isSafeInteger(Number(supplier.productId))||Number(supplier.productId)<=0)return {error:'INVALID_BEST_STORE_PRODUCT',status:409,message:'بيانات ربط المنتج مع Best Store غير مكتملة. أعد مزامنته ونشره من لوحة الإدارة.'};
     if(supplier.available===false)return {error:'BEST_STORE_PRODUCT_UNAVAILABLE',status:409,message:'هذا المنتج غير متوفر حالياً لدى Best Store. حدّث الكتالوج واختر منتجاً متاحاً.'};
     if(!bestStoreApiTokenRuntime||storeSettings?.bestStoreCurrencyConfirmed!==true)return {error:'BEST_STORE_NOT_CONFIGURED',status:503,message:'أدخل Best Store API Token وحدد عملة المورد وأكّدها من لوحة الإدارة قبل إتاحة الشراء.'};
@@ -630,15 +640,25 @@ async function verifyProviderInvoice(order, transactionRef) {
   return invoice;
 }
 
+function manualDeliveryMessage(hours) {
+  const safeHours=Math.max(1,Math.min(168,Math.trunc(Number(hours)||24)));
+  return `تم تأكيد الدفع. سيجهّز فريق المتجر طلبك ويرسل بيانات التسليم خلال ${safeHours} ساعة كحد أقصى.`;
+}
 function supplierDeliveryForOrder(order) {
-  if (!['seagm','wamda','beststore'].includes(order?.supplier_provider)) return null;
+  const manual=order?.fulfillment_mode==='manual'||order?.supplier_provider==='manual';
+  if (!manual && !['seagm','wamda','beststore'].includes(order?.supplier_provider)) return null;
   let result = null;
   if (order.supplier_status === 'completed' && order.supplier_result_encrypted) {
     try { result = JSON.parse(decryptSecret(order.supplier_result_encrypted, cfg.settingsEncryptionKey)); } catch {}
   }
+  const hours=Math.max(1,Math.min(168,Math.trunc(Number(order.manual_delivery_hours)||24)));
+  const paidAt=order.paid_at?new Date(order.paid_at):null;
+  const dueAt=manual&&paidAt&&!Number.isNaN(paidAt.getTime())?new Date(paidAt.getTime()+hours*60*60*1000).toISOString():null;
   return {
-    provider:order.supplier_provider==='wamda'?'WAMDA':(order.supplier_provider==='beststore'?'BEST_STORE':'SEAGM'),status:String(order.supplier_status || 'pending'),
-    message:String(order.supplier_message || ''),
+    provider:manual?'MANUAL':(order.supplier_provider==='wamda'?'WAMDA':(order.supplier_provider==='beststore'?'BEST_STORE':'SEAGM')),
+    mode:manual?'manual':'automatic',status:String(order.supplier_status || (manual?'manual_pending':'pending')),
+    message:String(order.supplier_message || (manual?manualDeliveryMessage(hours):'')),
+    ...(manual?{manualDeliveryHours:hours,dueAt}:{}),
     orderId:order.supplier_order_id ? String(order.supplier_order_id) : null,
     ...(result || {}),
   };
