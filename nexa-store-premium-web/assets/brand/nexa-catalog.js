@@ -13,6 +13,7 @@
   {id:'other',name:'خدمات رقمية متنوعة',icon:'✦',description:'أقسام إضافية لا تندرج تحت الأقسام الرئيسية.',folder:'11-other-services',cover:'assets/products/11-other-services/cover.svg'}
  ];
  const byId=new Map(DEPARTMENTS.map(row=>[row.id,row]));
+ const CATALOG_DEPARTMENT_IDS=new Set(DEPARTMENTS.map(row=>row.id));
  const placeholders=new Set(['assets/brand/logo.svg','assets/products/logo.svg','assets/products/_shared/logo.svg','assets/products/_shared/product-placeholder.svg','assets/products/_shared/category-placeholder.svg']);
  const rules=[
   ['ai',/(?:ذكاء\s*اصطناعي|ذكاء\s*صناعي|chat\s*gpt|chatgpt|claude|gemini|gamma\s*ai|midjourney|ai\s*assistant)/i],
@@ -125,7 +126,7 @@
   const nextVisited=new Set(visited);nextVisited.add(normalizeId(category.id));
   const rows=Array.isArray(categories)?categories:[];
   const own=(category.items||[]).filter(product=>product.visible!==false).length;
-  return own+rows.filter(child=>normalizeId(child.parentId)===normalizeId(category.id))
+  return own+rows.filter(child=>normalizeId(child.parentId)===normalizeId(category.id)&&child.visible!==false&&isCategoryVisible(child,rows))
    .reduce((sum,child)=>sum+getFolderProductCount(child,rows,nextVisited),0);
  }
  function sortCategoriesByProductCount(categories,allCategories=null){
