@@ -780,7 +780,7 @@ body{
   </div>
 </section>
 <div class="toast" id="toast"></div>
-<script src="/assets/brand/nexa-catalog.js?v=20261104-navigation-folder-sort"></script>
+<script src="/assets/brand/nexa-catalog.js?v=20261104-folder-tree-v1"></script>
 <script>
 let categories=[];
 const $=id=>document.getElementById(id);const money=v=>v>0?new Intl.NumberFormat('en-US',{maximumFractionDigits:Number(v)<0.01?8:2}).format(v)+' ل.س جديدة':'يحدد لاحقاً';const formatMinor=(minor,currency='SYP')=>{const value=Number(BigInt(minor||0))/100;return currency==='USD'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value):new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value)+' ل.س جديدة'};const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -816,20 +816,32 @@ function renderFeatured(){
   }
  }
  $('featuredGrid').innerHTML=list.length?list.map(({cat,it})=>{
-  const image=NexaCatalog.productImage(it,cat);
+  const image=NexaCatalog.productImage(it,cat,categories);
   return '<article class="product-card" data-open-item="'+esc(it.id)+'" data-open-category="'+esc(cat.id)+'" role="button" tabindex="0" aria-label="عرض المنتج '+esc(it.name)+'">'+
    '<div class="product-image"><img src="'+esc(image)+'" alt="'+esc(it.name)+'" loading="lazy"><span class="product-badge">'+esc(cat.name)+'</span><button type="button" class="favorite" data-favorite="'+esc(it.id)+'" aria-label="إضافة للمفضلة">♡</button></div>'+
    '<div class="product-info"><div class="product-meta"><span class="product-category">'+esc(cat.name)+'</span><span class="product-label">خيارات متاحة</span></div><h3>'+esc(it.name)+'</h3><p>'+esc(it.desc)+'</p><div class="product-foot"><span class="price">خيارات متعددة<small>السعر بعد اختيار الخيار</small></span><button type="button" class="mini-choose" data-open-item="'+esc(it.id)+'" data-open-category="'+esc(cat.id)+'">استكشف ←</button></div></div></article>';
  }).join(''):'<div class="empty-state"><strong>لا توجد منتجات متاحة حالياً</strong><p>سيظهر هنا أحدث ما هو منشور في المتجر.</p></div>';
  syncFavorites();
 }
-function renderSteps(level){const steps=['القسم الرئيسي','قسم المورد','المنتج','الخيار / المنطقة','الباقة والسعر'];return steps.map((s,i)=>`${i?'<span class="step-arrow">←</span>':''}<span class="step ${i+1===level?'active':''}"><span>${i+1}</span>${s}</span>`).join('')}
+function renderSteps(level){const steps=['القسم الرئيسي','المجلدات المتداخلة','المنتج','الخيار / المنطقة','الباقة والسعر'];return steps.map((s,i)=>`${i?'<span class="step-arrow">←</span>':''}<span class="step ${i+1===level?'active':''}"><span>${i+1}</span>${s}</span>`).join('')}
 function breadcrumb(){
  let s='<button type="button" class="crumb" data-bc="root">كل الأقسام</button>';
- if(state.department){const d=NexaCatalog.department(state.department);s+='<span>‹</span><button type="button" class="crumb '+(!state.category?'current':'')+'" '+(state.category?'data-bc="department"':'')+'>'+esc(d.name)+'</button>';}
- if(state.category){const c=getCategory(state.category);if(c)s+='<span>‹</span><button type="button" class="crumb '+(!state.item?'current':'')+'" '+(state.item?'data-bc="category"':'')+'>'+esc(c.name)+'</button>';}
- if(state.item){const i=getItem(state.item,state.category);if(i)s+='<span>‹</span><button type="button" class="crumb '+(!state.option?'current':'')+'" '+(state.option?'data-bc="item"':'')+'>'+esc(i.name)+'</button>';}
- if(state.option){const o=getOption(state.option);if(o)s+='<span>‹</span><span class="crumb current">'+esc(o.name)+'</span>';}
+ if(state.department){
+  const d=NexaCatalog.department(state.department);
+  s+='<span>‹</span><button type="button" class="crumb '+(!state.category?'current':'')+'" '+(state.category?'data-bc="department"':'')+'>'+esc(d.name)+'</button>';
+ }
+ if(state.category){
+  const category=getCategory(state.category),trail=NexaCatalog.categoryAncestors(category,categories);
+  for(let index=0;index<trail.length;index++){
+   const row=trail[index],isCurrent=index===trail.length-1&&!state.item;
+   s+='<span>‹</span>'+(isCurrent?'<span class="crumb current">'+esc(row.name)+'</span>':'<button type="button" class="crumb" data-browse-category="'+esc(row.id)+'">'+esc(row.name)+'</button>');
+  }
+ }
+ if(state.item){
+  const item=getItem(state.item,state.category);
+  if(item)s+='<span>‹</span><button type="button" class="crumb '+(!state.option?'current':'')+'" '+(state.option?'data-bc="item"':'')+'>'+esc(item.name)+'</button>';
+ }
+ if(state.option){const option=getOption(state.option);if(option)s+='<span>‹</span><span class="crumb current">'+esc(option.name)+'</span>';}
  return s;
 }
 function tile(title,desc,image,tag,action,foot='عرض الخيارات',disabled=false){
@@ -853,8 +865,8 @@ function renderCatalog(){
  $('catalogTitle').textContent=opt?opt.name:it?it.name:cat?cat.name:department?department.name:'كل الأقسام الرئيسية';
  $('catalogDescription').textContent=opt?'اختر الباقة المناسبة وراجع السعر والعملة قبل إنشاء الفاتورة.':
   it?'اختر المنطقة أو النسخة أو الخطة المناسبة.':
-  cat?'اختر المنتج المطلوب من هذا القسم.':
-  department?department.description:'ابدأ بالقسم الرئيسي، ثم انتقل إلى قسم المورد والمنتج وخياراته وباقاته.';
+  cat?'تصفح المجلدات الفرعية والمنتجات الموجودة داخل هذا المجلد.':
+  department?department.description:'ابدأ بالقسم الرئيسي، ثم افتح المجلدات المتداخلة وصولاً إلى المنتج وخياراته وباقاته.';
  $('catalogSteps').innerHTML=renderSteps(level);$('breadcrumbs').innerHTML=breadcrumb();
  let html='';
  if(!department){
@@ -866,38 +878,58 @@ function renderCatalog(){
    (all.length?'<div class="department-grid catalog-department-grid">'+all.map(renderDepartmentCard).join('')+'</div>':'<div class="empty-state"><strong>لا توجد أقسام مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>');
  }else if(!cat){
   const query=String(state.categoryQuery||'').trim().toLocaleLowerCase('ar');
-  const all=NexaCatalog.sortCategoriesByProductCount(categories.filter(category=>NexaCatalog.classifyCategory(category)===department.id));
-  const filtered=all.filter(category=>!query||[category.name,category.desc,category.id].some(value=>String(value||'').toLocaleLowerCase('ar').includes(query)));
+  const all=NexaCatalog.getChildFolders(categories,null,department.id);
+  const filtered=all.filter(folder=>!query||[folder.name,folder.desc,folder.id].some(value=>String(value||'').toLocaleLowerCase('ar').includes(query)));
   const pageSize=36,pageCount=Math.max(1,Math.ceil(filtered.length/pageSize));
   state.categoryPage=Math.min(Math.max(1,Number(state.categoryPage)||1),pageCount);
   const pageRows=filtered.slice((state.categoryPage-1)*pageSize,state.categoryPage*pageSize);
-  $('catalogCount').textContent=filtered.length.toLocaleString('en-US')+' من '+all.length.toLocaleString('en-US')+' قسم داخلي';
-  html='<div class="back-row"><button type="button" class="back-button" data-bc="root">← الأقسام الرئيسية</button><span class="catalog-count">'+filtered.length+' أقسام داخلية</span></div>'+
-   '<div class="store-catalog-toolbar"><input id="storeCategorySearch" type="search" value="'+esc(state.categoryQuery)+'" placeholder="ابحث داخل '+esc(department.name)+'..." aria-label="بحث في الأقسام الداخلية"><span>'+filtered.length.toLocaleString('en-US')+' نتيجة</span></div>'+
-   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(c=>tile(c.name,c.desc,NexaCatalog.categoryImage(c),'قسم داخلي','data-browse-category="'+esc(c.id)+'',(c.items||[]).length+' منتجات')).join('')+'</div>':'<div class="empty-state"><strong>لا توجد أقسام داخلية مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
+  $('catalogCount').textContent=filtered.length.toLocaleString('en-US')+' مجلدات رئيسية';
+  html='<div class="back-row"><button class="back-button" data-bc="root">← الأقسام الرئيسية</button><span class="catalog-count">'+filtered.length+' مجلدات</span></div>'+
+   '<div class="store-catalog-toolbar"><input id="storeCategorySearch" type="search" value="'+esc(state.categoryQuery)+'" placeholder="ابحث داخل '+esc(department.name)+'..." aria-label="بحث في المجلدات"><span>'+filtered.length.toLocaleString('en-US')+' نتيجة</span></div>'+
+   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(folder=>tile(folder.name,folder.desc,NexaCatalog.categoryImage(folder,categories),'مجلد','data-browse-category="'+esc(folder.id)+'"',NexaCatalog.getFolderProductCount(folder,categories)+' منتجات')).join('')+'</div>':'<div class="empty-state"><strong>لا توجد مجلدات مطابقة</strong><p>يمكن أن تظهر المجلدات الجديدة تلقائياً بعد مزامنة الموردين.</p></div>')+
    storeCatalogPager(state.categoryPage,pageCount,'category-page');
  }else if(!it){
-  const all=cat.items||[],query=String(state.productQuery||'').trim().toLocaleLowerCase('ar');
-  const filtered=all.filter(product=>!query||[product.name,product.desc,product.id].some(value=>String(value||'').toLocaleLowerCase('ar').includes(query)));
-  const pageSize=36,pageCount=Math.max(1,Math.ceil(filtered.length/pageSize));
-  state.productPage=Math.min(Math.max(1,Number(state.productPage)||1),pageCount);
-  const pageRows=filtered.slice((state.productPage-1)*pageSize,state.productPage*pageSize);
-  $('catalogCount').textContent=filtered.length.toLocaleString('en-US')+' من '+all.length.toLocaleString('en-US')+' منتج';
-  html='<div class="back-row"><button type="button" class="back-button" data-bc="department">← '+esc(department.name)+'</button><span class="catalog-count">'+filtered.length+' منتجات</span></div>'+
-   '<div class="store-catalog-toolbar"><input id="storeProductSearch" type="search" value="'+esc(state.productQuery)+'" placeholder="ابحث داخل '+esc(cat.name)+'..." aria-label="بحث في منتجات القسم"><span>'+filtered.length.toLocaleString('en-US')+' نتيجة</span></div>'+
-   (pageRows.length?'<div class="catalog-grid">'+pageRows.map(product=>tile(product.name,product.desc,NexaCatalog.productImage(product,cat),'منتج رقمي','data-open-item="'+esc(product.id)+'" data-open-category="'+esc(cat.id)+'"',(product.wamda||product.bestStore)?.available===false?'غير متوفر حالياً':(NexaCatalog.getProductOptions(product).length===1?'عرض الباقات':'عرض المنتج'),false)).join('')+'</div>':'<div class="empty-state"><strong>لا توجد منتجات مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>')+
-   storeCatalogPager(state.productPage,pageCount,'product-page');
+  const childFolders=NexaCatalog.getChildFolders(categories,cat.id);
+  const folderQuery=String(state.categoryQuery||'').trim().toLocaleLowerCase('ar');
+  const filteredFolders=childFolders.filter(folder=>!folderQuery||[folder.name,folder.desc,folder.id].some(value=>String(value||'').toLocaleLowerCase('ar').includes(folderQuery)));
+  const folderPageSize=36,folderPageCount=Math.max(1,Math.ceil(filteredFolders.length/folderPageSize));
+  state.categoryPage=Math.min(Math.max(1,Number(state.categoryPage)||1),folderPageCount);
+  const folderRows=filteredFolders.slice((state.categoryPage-1)*folderPageSize,state.categoryPage*folderPageSize);
+  const allProducts=cat.items||[],productQuery=String(state.productQuery||'').trim().toLocaleLowerCase('ar');
+  const sortedProducts=allProducts.map((product,index)=>({product,index}))
+   .sort((a,b)=>Number(a.product.sortOrder||0)-Number(b.product.sortOrder||0)||
+    String(a.product.name||'').localeCompare(String(b.product.name||''),'ar',{numeric:true,sensitivity:'base'})||a.index-b.index)
+   .map(row=>row.product);
+  const filteredProducts=sortedProducts.filter(product=>!productQuery||[product.name,product.desc,product.id].some(value=>String(value||'').toLocaleLowerCase('ar').includes(productQuery)));
+  const productPageSize=36,productPageCount=Math.max(1,Math.ceil(filteredProducts.length/productPageSize));
+  state.productPage=Math.min(Math.max(1,Number(state.productPage)||1),productPageCount);
+  const productRows=filteredProducts.slice((state.productPage-1)*productPageSize,state.productPage*productPageSize);
+  const parentButton=cat.parentId
+   ?'<button class="back-button" data-browse-category="'+esc(cat.parentId)+'">← المجلد الأعلى</button>'
+   :'<button class="back-button" data-bc="department">← '+esc(department.name)+'</button>';
+  $('catalogCount').textContent=childFolders.length.toLocaleString('en-US')+' مجلدات · '+allProducts.length.toLocaleString('en-US')+' منتجات';
+  html='<div class="back-row">'+parentButton+'<span class="catalog-count">'+NexaCatalog.getFolderProductCount(cat,categories).toLocaleString('en-US')+' منتجات في هذا المسار</span></div>';
+  if(childFolders.length){
+   html+='<div class="store-catalog-toolbar"><strong>المجلدات الفرعية</strong><input id="storeCategorySearch" type="search" value="'+esc(state.categoryQuery)+'" placeholder="ابحث داخل المجلدات..." aria-label="بحث في المجلدات الفرعية"><span>'+filteredFolders.length.toLocaleString('en-US')+' مجلدات</span></div>';
+   html+=folderRows.length?'<div class="catalog-grid">'+folderRows.map(folder=>tile(folder.name,folder.desc,NexaCatalog.categoryImage(folder,categories),'مجلد','data-browse-category="'+esc(folder.id)+'"',NexaCatalog.getFolderProductCount(folder,categories)+' منتجات')).join('')+'</div>':'<div class="empty-state"><strong>لا توجد مجلدات مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>';
+   html+=storeCatalogPager(state.categoryPage,folderPageCount,'category-page');
+  }
+  if(allProducts.length||!childFolders.length){
+   html+='<div class="store-catalog-toolbar"><strong>المنتجات داخل '+esc(cat.name)+'</strong><input id="storeProductSearch" type="search" value="'+esc(state.productQuery)+'" placeholder="ابحث باسم المنتج..." aria-label="بحث في المنتجات"><span>'+filteredProducts.length.toLocaleString('en-US')+' من '+allProducts.length.toLocaleString('en-US')+'</span></div>';
+   html+=productRows.length?'<div class="catalog-grid">'+productRows.map(product=>tile(product.name,product.desc,NexaCatalog.productImage(product,cat,categories),'منتج رقمي','data-open-item="'+esc(product.id)+'" data-open-category="'+esc(cat.id)+'"',(product.wamda||product.bestStore)?.available===false?'غير متوفر حالياً':(NexaCatalog.getProductOptions(product).length===1?'عرض الباقات':'عرض المنتج'),false)).join('')+'</div>':'<div class="empty-state"><strong>لا توجد منتجات مطابقة</strong><p>يمكنك استخدام المجلدات الفرعية أو البحث باسم آخر.</p></div>';
+   html+=storeCatalogPager(state.productPage,productPageCount,'product-page');
+  }
  }else if(!opt){
   const productOptions=NexaCatalog.getProductOptions(it);
   html='<div class="back-row"><button type="button" class="back-button" data-bc="category">← العودة إلى '+esc(cat.name)+'</button><span class="catalog-count">'+productOptions.length+' خيارات</span></div>'+
-   '<div class="step-summary"><img src="'+esc(NexaCatalog.productImage(it,cat))+'" alt=""><span><strong>'+esc(it.name)+'</strong><p>'+esc(it.desc)+' · اختر المنطقة أو النسخة أو الخطة.</p></span></div>'+
-   (productOptions.length?'<div class="option-list">'+productOptions.map(o=>'<button type="button" class="option-card" data-browse-option="'+esc(o.id)+'"><img src="'+esc(NexaCatalog.optionImage(o,it,cat))+'" alt=""><span><strong>'+esc(o.name)+'</strong><small>'+esc(o.desc)+'</small></span><span class="option-flag">'+esc(o.flag||'›')+'</span></button>').join('')+'</div>':'<div class="empty-state"><strong>لا تتوفر خيارات صالحة لهذا المنتج حالياً</strong><p>لم تتوفر باقة يمكن طلبها لهذا المنتج. ارجع إلى قائمة المنتجات أو أخبر إدارة المتجر.</p><button type="button" class="btn btn-soft" data-bc="category">العودة إلى المنتجات</button></div>');
+   '<div class="step-summary"><img src="'+esc(NexaCatalog.productImage(it,cat,categories))+'" alt=""><span><strong>'+esc(it.name)+'</strong><p>'+esc(it.desc)+' · اختر المنطقة أو النسخة أو الخطة.</p></span></div>'+
+   (productOptions.length?'<div class="option-list">'+productOptions.map(o=>'<button type="button" class="option-card" data-browse-option="'+esc(o.id)+'"><img src="'+esc(NexaCatalog.optionImage(o,it,cat,categories))+'" alt=""><span><strong>'+esc(o.name)+'</strong><small>'+esc(o.desc)+'</small></span><span class="option-flag">'+esc(o.flag||'›')+'</span></button>').join('')+'</div>':'<div class="empty-state"><strong>لا تتوفر خيارات صالحة لهذا المنتج حالياً</strong><p>لم تتوفر باقة يمكن طلبها لهذا المنتج. ارجع إلى قائمة المنتجات أو أخبر إدارة المتجر.</p><button type="button" class="btn btn-soft" data-bc="category">العودة إلى المنتجات</button></div>');
  }else{
   const productOptions=NexaCatalog.getProductOptions(it),backToProducts=productOptions.length===1;
   const packCount=(opt.packs||[]).filter(NexaCatalog.isValidPack).length;
   html='<div class="back-row"><button type="button" class="back-button" data-bc="'+(backToProducts?'category':'item')+'">'+(backToProducts?'← العودة إلى المنتجات':'← العودة إلى الخيارات')+'</button><span class="catalog-count">'+packCount+' باقات</span></div>'+
-   '<div class="step-summary"><img src="'+esc(NexaCatalog.productImage(it,cat))+'" alt=""><span><strong>'+esc(it.name)+' · '+esc(opt.name)+'</strong><p>'+esc(opt.desc)+'</p></span></div>'+
-   '<div class="pack-grid">'+(opt.packs||[]).map((p,n)=>NexaCatalog.isValidPack(p)?'<article class="pack-card"><div class="pack-image"><img src="'+esc(NexaCatalog.optionImage(opt,it,cat))+'" alt="" loading="lazy"><span class="pack-label">'+((it.wamda||it.bestStore)?.available===false?'غير متوفر حالياً':'متاح للطلب')+'</span></div><div class="pack-body"><h3>'+esc(p[0])+'</h3><p>'+((it.wamda||it.bestStore)?'سعر البيع المعتمد من المتجر، ويظهر المبلغ النهائي في الفاتورة.':'السعر المعروض هو سعر البيع المحدد لهذا الخيار.')+'</p><div class="pack-price">'+money(p[1])+'<small>السعر المعتمد</small></div><button type="button" class="btn btn-primary" data-select-pack="'+n+'" '+((it.wamda||it.bestStore)?.available===false?'disabled aria-disabled="true"':'')+'>'+((it.wamda||it.bestStore)?.available===false?'غير متوفر حالياً':'اختيار الباقة ←')+'</button></div></article>':'').join('')+'</div>';
+   '<div class="step-summary"><img src="'+esc(NexaCatalog.productImage(it,cat,categories))+'" alt=""><span><strong>'+esc(it.name)+' · '+esc(opt.name)+'</strong><p>'+esc(opt.desc)+'</p></span></div>'+
+   '<div class="pack-grid">'+(opt.packs||[]).map((p,n)=>NexaCatalog.isValidPack(p)?'<article class="pack-card"><div class="pack-image"><img src="'+esc(NexaCatalog.optionImage(opt,it,cat,categories))+'" alt="" loading="lazy"><span class="pack-label">'+((it.wamda||it.bestStore)?.available===false?'غير متوفر حالياً':'متاح للطلب')+'</span></div><div class="pack-body"><h3>'+esc(p[0])+'</h3><p>'+((it.wamda||it.bestStore)?'سعر البيع المعتمد من المتجر، ويظهر المبلغ النهائي في الفاتورة.':'السعر المعروض هو سعر البيع المحدد لهذا الخيار.')+'</p><div class="pack-price">'+money(p[1])+'<small>السعر المعتمد</small></div><button type="button" class="btn btn-primary" data-select-pack="'+n+'" '+((it.wamda||it.bestStore)?.available===false?'disabled aria-disabled="true"':'')+'>'+((it.wamda||it.bestStore)?.available===false?'غير متوفر حالياً':'اختيار الباقة ←')+'</button></div></article>':'').join('')+'</div>';
  }
  if((it?.wamda||it?.bestStore)?.available===false)html+='<div class="catalog-note"><strong>تنبيه التوفر:</strong> هذا المنتج ظاهر للتفاصيل فقط؛ لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد.</div>';
  target.innerHTML=html;
@@ -909,7 +941,7 @@ function renderSearchResults(){
  $('catalogTitle').textContent='نتائج البحث';$('catalogDescription').textContent='نتائج مطابقة لعبارة: '+state.searchQuery;
  $('catalogCount').textContent=matches.length.toLocaleString('en-US')+' نتيجة';
  $('catalogSteps').innerHTML=renderSteps(1);$('breadcrumbs').innerHTML='<span class="crumb current">نتائج البحث</span>';
- $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,NexaCatalog.productImage(i,c),c.name,'data-open-item="'+esc(i.id)+'" data-open-category="'+esc(c.id)+'"',(i.wamda||i.bestStore)?.available===false?'غير متوفر حالياً':(NexaCatalog.getProductOptions(i).length===1?'عرض الباقات':'عرض الخيارات'),false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
+ $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,NexaCatalog.productImage(i,c,categories),c.name,'data-open-item="'+esc(i.id)+'" data-open-category="'+esc(c.id)+'"',(i.wamda||i.bestStore)?.available===false?'غير متوفر حالياً':(NexaCatalog.getProductOptions(i).length===1?'عرض الباقات':'عرض الخيارات'),false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
 }
 function openItem(itemId,categoryId=null){
  const resolved=NexaCatalog.resolveProductNavigation(categories,itemId,categoryId);
@@ -932,8 +964,8 @@ function openOrder(packIndex){
  const it=getItem(state.item,state.category),op=getOption(state.option),p=op?.packs?.[packIndex],supplier=it?.wamda||it?.seagm||it?.bestStore||null;
  if(!it||!op||!p||!NexaCatalog.isValidPack(p)){showToast('تعذر تحميل تفاصيل الباقة. حدّث الكتالوج وحاول مجدداً.');return;}
  if(supplier?.available===false){showToast('هذا المنتج غير متوفر حالياً لدى المورد.');return;}
- state.selectedPack={category:state.category,item:state.item,option:state.option,index:packIndex,name:`${it.name} — ${op.name} — ${p[0]}`,price:p[1],image:NexaCatalog.productImage(it,getCategory(state.category)),supplier:!!supplier};
- const image=NexaCatalog.productImage(it,getCategory(state.category));
+ state.selectedPack={category:state.category,item:state.item,option:state.option,index:packIndex,name:`${it.name} — ${op.name} — ${p[0]}`,price:p[1],image:NexaCatalog.productImage(it,getCategory(state.category),categories),supplier:!!supplier};
+ const image=NexaCatalog.productImage(it,getCategory(state.category),categories);
  $('modalProduct').textContent=it.name+' — '+p[0];$('modalOption').textContent=op.name+' · باقة مختارة';$('modalImage').src=image;$('modalPrice').textContent=money(p[1]);
  $('orderCurrency').value='SYP';$('orderCurrency').disabled=false;
  $('paymentMethod').value='shamcash';
@@ -990,7 +1022,7 @@ function openOrder(packIndex){
 function closeModal(){$('orderModal').classList.remove('open');document.body.style.overflow=''}
 function renderOrders(){const d=storageRead(),rows=d.orders||[];$('orderBadge').textContent=rows.length;$('sideOrderBadge').textContent=rows.length;$('ordersTable').innerHTML=rows.length?rows.map(o=>`<tr><td class="ltr">${esc(o.id)}</td><td>${esc(o.name)}</td><td>${esc(o.date)}</td><td>${o.amountMinor?formatMinor(o.amountMinor,o.currency||'SYP'):money(o.price)}</td><td><span class="status">${o.status==='paid'?'مدفوع ومتحقق':o.status==='expired'?'منتهي':'بانتظار الدفع'}</span></td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:#828b99;padding:25px">لا توجد طلبات حتى الآن.</td></tr>'}
 function syncFavorites(){const favs=storageRead().favs||[];document.querySelectorAll('[data-favorite]').forEach(b=>{const active=favs.includes(b.dataset.favorite);b.classList.toggle('active',active);b.textContent=active?'♥':'♡'})}
-function renderFavorites(){const d=storageRead(),ids=d.favs||[],items=ids.map(id=>({id,item:getItem(id)})).filter(x=>x.item);$('favoritesGrid').innerHTML=items.length?items.map(({id,item})=>{const cat=categories.find(c=>(c.items||[]).some(i=>String(i.id)===String(id)&&i===item))||categories.find(c=>(c.items||[]).some(i=>String(i.id)===String(id)));if(!cat)return '';const image=NexaCatalog.productImage(item,cat);return `<article class="product-card" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0" aria-label="عرض المنتج ${esc(item.name)}"><div class="product-image"><img src="${esc(image)}" alt=""><span class="product-badge">${esc(cat.name)}</span><button type="button" class="favorite active" data-favorite="${esc(item.id)}" aria-label="إزالة من المفضلة">♥</button></div><div class="product-info"><div class="product-meta"><span class="product-category">${esc(cat.name)}</span><span class="product-label">محفوظ</span></div><h3>${esc(item.name)}</h3><p>${esc(item.desc)}</p><div class="product-foot"><span class="price">خيارات متعددة<small>السعر بعد اختيار المنطقة</small></span><button type="button" class="mini-choose" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}">استكشف ←</button></div></div></article>`}).join(''):`<div class="empty-state"><strong>المفضلة فارغة</strong><p>احفظ المنتجات التي تهمك من بطاقاتها.</p><button type="button" class="btn btn-soft" data-page="store">استكشف المتجر</button></div>`;syncFavorites()}
+function renderFavorites(){const d=storageRead(),ids=d.favs||[],items=ids.map(id=>({id,item:getItem(id)})).filter(x=>x.item);$('favoritesGrid').innerHTML=items.length?items.map(({id,item})=>{const cat=categories.find(c=>(c.items||[]).some(i=>String(i.id)===String(id)&&i===item))||categories.find(c=>(c.items||[]).some(i=>String(i.id)===String(id)));if(!cat)return '';const image=NexaCatalog.productImage(item,cat,categories);return `<article class="product-card" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0" aria-label="عرض المنتج ${esc(item.name)}"><div class="product-image"><img src="${esc(image)}" alt=""><span class="product-badge">${esc(cat.name)}</span><button type="button" class="favorite active" data-favorite="${esc(item.id)}" aria-label="إزالة من المفضلة">♥</button></div><div class="product-info"><div class="product-meta"><span class="product-category">${esc(cat.name)}</span><span class="product-label">محفوظ</span></div><h3>${esc(item.name)}</h3><p>${esc(item.desc)}</p><div class="product-foot"><span class="price">خيارات متعددة<small>السعر بعد اختيار المنطقة</small></span><button type="button" class="mini-choose" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}">استكشف ←</button></div></div></article>`}).join(''):`<div class="empty-state"><strong>المفضلة فارغة</strong><p>احفظ المنتجات التي تهمك من بطاقاتها.</p><button type="button" class="btn btn-soft" data-page="store">استكشف المتجر</button></div>`;syncFavorites()}
 function toggleFavorite(id){const d=storageRead();d.favs=d.favs||[];d.favs=d.favs.includes(id)?d.favs.filter(x=>x!==id):[...d.favs,id];storageSave(d);syncFavorites();if(state.view==='favorites')renderFavorites();showToast(d.favs.includes(id)?'تمت الإضافة إلى المفضلة':'تمت الإزالة من المفضلة')}
 function showSearchResults(q){
  const query=String(q||'').trim().toLocaleLowerCase('ar');if(!query)return;
@@ -1276,11 +1308,11 @@ async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'})
  if(el.dataset.searchPage){state.searchPage=Number(el.dataset.searchPage)||1;renderSearchResults();return}
 
  if(el.dataset.department){state.department=el.dataset.department;state.category=null;state.item=null;state.option=null;state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';navigate('store');return}
- if(el.dataset.category){state.category=el.dataset.category;state.department=NexaCatalog.classifyCategory(getCategory(el.dataset.category));state.item=null;state.option=null;navigate('store');return}
- if(el.dataset.browseCategory){state.category=el.dataset.browseCategory;state.department=NexaCatalog.classifyCategory(getCategory(el.dataset.browseCategory));state.item=null;state.option=null;state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';renderCatalog();return}
+ if(el.dataset.category){state.category=el.dataset.category;state.department=NexaCatalog.getCategoryDepartmentId(getCategory(el.dataset.category),categories);state.item=null;state.option=null;navigate('store');return}
+ if(el.dataset.browseCategory){state.category=el.dataset.browseCategory;state.department=NexaCatalog.getCategoryDepartmentId(getCategory(el.dataset.browseCategory),categories);state.item=null;state.option=null;state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';renderCatalog();return}
  if(el.dataset.browseItem){state.item=el.dataset.browseItem;state.option=null;renderCatalog();return}
  if(el.dataset.browseOption){state.option=el.dataset.browseOption;renderCatalog();return}
- if(el.dataset.bc){if(el.dataset.bc==='root')resetCatalog();if(el.dataset.bc==='department'){state.category=null;state.item=null;state.option=null;state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';}if(el.dataset.bc==='category'){state.item=null;state.option=null;state.productPage=1;state.productQuery='';}if(el.dataset.bc==='item')state.option=null;renderCatalog();return}
+ if(el.dataset.bc){if(el.dataset.bc==='root')resetCatalog();if(el.dataset.bc==='department'){state.category=null;state.item=null;state.option=null;state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';}if(el.dataset.bc==='parent'){const current=getCategory(state.category);state.category=current?.parentId||null;state.item=null;state.option=null;state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';}if(el.dataset.bc==='category'){state.item=null;state.option=null;state.productPage=1;state.productQuery='';}if(el.dataset.bc==='item')state.option=null;renderCatalog();return}
  if(el.dataset.selectPack!==undefined){openOrder(Number(el.dataset.selectPack));return}
  if(el.dataset.resetCatalog){resetCatalog();renderCatalog();return}
  },true);
