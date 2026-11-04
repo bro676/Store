@@ -871,9 +871,9 @@ function renderCatalog(){
   <label class="inline-check"><input type="checkbox" data-path="${ci}.visible" ${cat.visible===false?'':'checked'}> إظهار هذا المجلد في المتجر</label>
  </div>
  <div class="toolbar"><span class="muted">صورة المجلد</span><div class="image-row" style="max-width:360px"><img class="image-preview" src="${esc(cat.image)}" alt=""><div><input data-path="${ci}.image" value="${esc(cat.image)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${ci}.image"></label></div></div>
-  <button class="btn danger" data-remove-category="${ci}" ${hasContents?'disabled title="انقل المنتجات والمجلدات الفرعية أولاً"':''}>حذف المجلد الفارغ</button>
+  <button class="btn danger" data-remove-category="${ci}">حذف المجلد</button>
  </div>
- ${hasContents?'<div class="notice info">لا يمكن حذف مجلد يحتوي منتجات أو مجلدات فرعية. انقل محتوياته أولاً حتى لا تضيع المنتجات أو روابطها.</div>':''}
+ ${hasContents?'<div class="field full"><label>انقل محتويات المجلد إلى</label><select id="deleteFolderDestination"><option value="">اختر مجلد الاستقبال قبل الحذف...</option>'+parentOptions.map(row=>'<option value="'+esc(row.id)+'">'+esc(categoryPathLabel(row))+'</option>').join('')+'</select><small class="muted">ستُنقل المنتجات مباشرة، وتُنقل المجلدات الفرعية داخل مجلد الاستقبال. تبقى خيارات المنتجات وأسعار الموردين ومعرّفاتهم كما هي.</small></div><div class="notice info">لن تضيع المنتجات: يجب تحديد مجلد استقبال قبل حذف مجلد غير فارغ.</div>':''}
  <div class="toolbar"><div><h3 style="margin:0">المنتجات داخل المجلد</h3><small class="muted">يمكنك إضافة منتج يدوي أو نقله من مجلد آخر مع الحفاظ على ربط المورد.</small></div><button class="btn soft" id="addProductInlineBtn">＋ إضافة منتج</button></div>
  <div class="product-grid">${(cat.items||[]).map((p,pi)=>renderProduct(p,ci,pi)).join('')||'<div class="empty">لا توجد منتجات هنا بعد. يمكن نقل المنتجات إلى هذا المجلد أو إضافة منتج يدوياً.</div>'}</div>`;
 }
@@ -933,8 +933,24 @@ $('catalogEditor').addEventListener('click',async e=>{
   const ci=Number(button.dataset.removeCategory),category=state.catalog[ci];
   if(!category)return;
   const children=state.catalog.some(row=>row.parentId===category.id);
-  if((category.items||[]).length||children){toast('انقل المنتجات والمجلدات الفرعية قبل حذف هذا المجلد.');return;}
-  if(confirm('حذف المجلد الفارغ «'+category.name+'»؟')){state.catalog.splice(ci,1);state.categoryIndex=-1;renderCatalog();}
+  const hasContents=(category.items||[]).length>0||children;
+  const destinationCategoryId=$('deleteFolderDestination')?.value||'';
+  if(hasContents&&!destinationCategoryId){toast('اختر مجلد الاستقبال أولاً حتى لا تفقد المنتجات أو المجلدات الفرعية.');$('deleteFolderDestination')?.focus();return;}
+  const destination=state.catalog.find(row=>row.id===destinationCategoryId);
+  const question=hasContents
+   ?'سيتم نقل المنتجات والمجلدات الفرعية إلى «'+(destination?.name||'المجلد المحدد')+'»، ثم حذف «'+category.name+'». هل تتابع؟'
+   :'حذف المجلد الفارغ «'+category.name+'»؟';
+  if(!confirm(question))return;
+  const selectedDepartment=categoryDepartmentId(destination||category);
+  button.disabled=true;
+  try{
+   await saveCatalogChanges();
+   await api('/api/admin/catalog/delete-folder',{method:'POST',body:JSON.stringify({categoryId:category.id,destinationCategoryId})});
+   state.categoryIndex=-1;
+   state.selectedDepartmentId=selectedDepartment;
+   await loadCatalog();
+   toast(hasContents?'تم حذف المجلد ونقل جميع محتوياته دون فقدان بيانات المنتجات.':'تم حذف المجلد الفارغ.');
+  }catch(error){toast(error.message);button.disabled=false;}
   return;
  }
  if(button.id==='addProductInlineBtn'||button.dataset.addProduct!==undefined){
