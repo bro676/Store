@@ -962,7 +962,7 @@ $('catalogEditor').addEventListener('click',async e=>{
  if(button.id==='addProductInlineBtn'||button.dataset.addProduct!==undefined){
   const category=activeCategory();if(!category)return;
   const id='product-'+Date.now().toString(36);
-  category.items.push({id,name:'منتج جديد',desc:'وصف المنتج',image:'assets/products/_shared/product-placeholder.svg',visible:true,sortOrder:0,fulfillmentMode:'manual',manualDeliveryHours:24,manualDeliveryMessage:'',options:[{id:'option-'+Date.now().toString(36),name:'الخيار الأساسي',desc:'',flag:'✦',packs:[['باقة جديدة',1]]}]});
+  category.items.push({id,name:'منتج جديد',desc:'وصف المنتج',image:'assets/products/_shared/product-placeholder.svg',visible:true,manualCreated:true,sortOrder:0,fulfillmentMode:'manual',manualDeliveryHours:24,manualDeliveryMessage:'',options:[{id:'option-'+Date.now().toString(36),name:'الخيار الأساسي',desc:'',flag:'✦',packs:[['باقة جديدة',1]]}]});
   renderCatalog();
   const details=[...$('catalogEditor').querySelectorAll('.product-editor')].at(-1);if(details)details.open=true;
   return;
