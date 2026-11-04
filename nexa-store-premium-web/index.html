@@ -605,6 +605,7 @@ body{
 
 </style>
 <link rel="stylesheet" href="/assets/brand/nexa-luxury.css?v=20261102-01">
+<link rel="stylesheet" href="/assets/brand/nexa-wamda-blue.css?v=20261104-wamda-blue-v1">
 </head>
 <body>
 <div class="app-shell">
@@ -703,7 +704,7 @@ body{
     </div>
     <button type="button" class="account-auth-switch" id="accountAuthSwitch">ليس لديك حساب؟ أنشئ حساباً جديداً</button>
     <p class="account-auth-message" id="accountAuthMessage" role="status"></p>
-    <p class="account-auth-note">لا نطلب كلمة مرور شام كاش أو رمز OTP. استخدم كلمة مرور مختلفة عن كلمات مرور حساباتك الأخرى.</p>
+    <p class="account-auth-note">الدخول الحالي برقم الهاتف وكلمة المرور فقط. إنشاء الحسابات الجديدة متوقف مؤقتاً. لا نطلب كلمة مرور شام كاش أو رمز OTP.</p>
   </div>
   <div id="customerSignedPanel" class="hidden">
     <div class="wallet-account-summary">
@@ -1300,7 +1301,7 @@ function setStoreColorMode(mode,{persist=true}={}){
  if(persist){try{localStorage.setItem(NEXA_THEME_KEY,selected)}catch{}}
  const button=$('storeThemeToggle');
  if(button){button.textContent=selected==='dark'?'☀':'☾';button.title=selected==='dark'?'التبديل إلى الوضع الفاتح':'التبديل إلى الوضع الداكن';button.setAttribute('aria-label',button.title);button.setAttribute('aria-pressed',String(selected==='dark'));}
- const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=selected==='dark'?'#0f0f0f':'#f5f1e7';
+ const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=selected==='dark'?'#0d2033':'#e8f7ff';
 }
 function initializeStoreColorMode(){
  let saved='dark';try{saved=localStorage.getItem(NEXA_THEME_KEY)||'dark'}catch{}
