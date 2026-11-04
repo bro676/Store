@@ -20,7 +20,7 @@ for (const page of pages) {
     }
   });
 }
-const backendFiles = ['../src/server.js','../src/admin-core.js','../src/exchange-rate.js','../src/order-expiry.js','../src/best-store-api.js','../src/best-store-webhook.js','../src/best-store-fulfillment.js','../src/supplier-comparison.js'];
+const backendFiles = ['../src/server.js','../src/admin-core.js','../src/manual-delivery.js','../src/exchange-rate.js','../src/order-expiry.js','../src/best-store-api.js','../src/best-store-webhook.js','../src/best-store-fulfillment.js','../src/supplier-comparison.js'];
 for (const relativePath of backendFiles) {
   test(relativePath + ' backend JavaScript parses without syntax errors', () => {
     const absolutePath = path.resolve(here, relativePath);
@@ -29,6 +29,23 @@ for (const relativePath of backendFiles) {
 }
 
 
+test('catalog priority and manual delivery are connected across admin and customer views',async()=>{
+  const [store,admin,server,catalogHelper,adminCore]=await Promise.all([
+    fs.readFile(path.join(webRoot,'index.html'),'utf8'),
+    fs.readFile(path.join(webRoot,'admin.html'),'utf8'),
+    fs.readFile(path.resolve(here,'../src/server.js'),'utf8'),
+    fs.readFile(path.join(webRoot,'assets/brand/nexa-catalog.js'),'utf8'),
+    fs.readFile(path.resolve(here,'../src/admin-core.js'),'utf8'),
+  ]);
+  assert.ok(catalogHelper.includes('sortProductsByPriority'),'Product priority helper is exported');
+  assert.ok(store.includes('NexaCatalog.sortProductsByPriority(allProducts)'),'Storefront uses explicit product priority');
+  assert.ok(admin.includes('fulfillmentMode'),'Admin can select a delivery mode for products');
+  assert.ok(admin.includes('data-manual-delivery'),'Admin can record a manual delivery');
+  assert.ok(server.includes("'fulfillmentMode','manualDeliveryHours','manualDeliveryMessage'"),'Catalog save persists all manual delivery settings');
+  assert.ok(server.includes('/manual-delivery'),'Manual delivery endpoint is registered');
+  assert.ok(server.includes('o.customer_id=$2'),'Customer order details are scoped to the signed-in customer');
+  assert.ok(adminCore.includes("'manualDeliveryHours','manualDeliveryMessage'"),'Supplier sync preserves delivery overrides');
+});
 test('store and admin themes use independent persisted preferences', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');

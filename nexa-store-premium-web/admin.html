@@ -711,7 +711,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
         </section>
       </section>
       <section class="page hidden" id="page-orders">
-        <div class="page-head"><div><div class="eyebrow">ORDERS & RECEIPTS</div><h2>الطلبات والفواتير</h2><p>عرض حالة الدفع والتسليم من SEAGM. لا يمكن اعتماد الدفع يدوياً من لوحة الإدارة، ويمكن إعادة فحص طلب المورد عند الحاجة.</p></div><button class="btn soft" id="refreshOrdersBtn">تحديث القائمة ↻</button></div>
+        <div class="page-head"><div><div class="eyebrow">ORDERS & RECEIPTS</div><h2>الطلبات والفواتير</h2><p>تابع الدفع والتسليم الآلي واليدوي. تُدخل بيانات التسليم اليدوي بعد تأكيد الدفع فقط، ويمكن إعادة فحص طلب المورد دون تكرار الشراء.</p></div><button class="btn soft" id="refreshOrdersBtn">تحديث القائمة ↻</button></div>
         <section class="panel"><div class="toolbar"><input id="orderSearch" placeholder="ابحث برقم الطلب أو الاسم أو رقم الفاتورة"><select id="orderStatus" class="field" style="margin:0;width:145px"><option value="">كل الحالات</option><option value="paid">مدفوع</option><option value="pending_payment">بانتظار الدفع</option><option value="expired">منتهي</option><option value="cancelled">ملغي</option></select></div><div class="table-wrap"><table><thead><tr><th>رقم الطلب</th><th>المنتج</th><th>العميل</th><th>المبلغ</th><th>الحالة</th><th>الفاتورة</th><th>التاريخ</th><th>إجراء</th></tr></thead><tbody id="ordersBody"><tr><td colspan="8">جارٍ التحميل…</td></tr></tbody></table></div></section>
       </section>
       <section class="page hidden" id="page-payments">
@@ -807,9 +807,10 @@ function adminFolderChildren(parentId=null,departmentId=null){
   String(category.parentId||'')===String(parentId||'')&&
   (parentId!==null?true:categoryDepartmentId(category)===departmentId)
  );
- return rows.map((category,index)=>({category,index,count:NexaCatalog.getFolderProductCount(category,state.catalog)}))
-  .sort((a,b)=>a.count-b.count||Number(a.category.sortOrder||0)-Number(b.category.sortOrder||0)||
-   String(a.category.name||'').localeCompare(String(b.category.name||''),'ar',{numeric:true,sensitivity:'base'}));
+ const indexById=new Map(state.catalog.map((category,index)=>[category.id,index]));
+ return NexaCatalog.sortCategoriesByProductCount(rows,state.catalog).map(category=>({
+  category,index:indexById.get(category.id),count:NexaCatalog.getFolderProductCount(category,state.catalog)
+ }));
 }
 function renderFolderBranch(parentId,departmentId,depth=0){
  return adminFolderChildren(parentId,departmentId).map(({category,index,count})=>
@@ -864,7 +865,7 @@ function renderCatalog(){
  <div class="form-grid">
   ${field('اسم المجلد',ci+'.name',cat.name)}
   ${field('الأيقونة',ci+'.icon',cat.icon||'📁')}
-  ${field('ترتيب يدوي عند تساوي عدد المنتجات',ci+'.sortOrder',cat.sortOrder||0,{type:'number',step:1})}
+  ${field('أولوية الظهور (1 أولاً، 2 ثانياً، 0 تلقائي)',ci+'.sortOrder',cat.sortOrder||0,{type:'number',min:0,max:1000000,step:1})}
   ${field('الوصف',ci+'.desc',cat.desc,{type:'textarea',full:true})}
   ${parentSelect}
   ${departmentSelect}
@@ -875,27 +876,32 @@ function renderCatalog(){
  </div>
  ${hasContents?'<div class="field full"><label>انقل محتويات المجلد إلى</label><select id="deleteFolderDestination"><option value="">اختر مجلد الاستقبال قبل الحذف...</option>'+parentOptions.map(row=>'<option value="'+esc(row.id)+'">'+esc(categoryPathLabel(row))+'</option>').join('')+'</select><small class="muted">ستُنقل المنتجات مباشرة، وتُنقل المجلدات الفرعية داخل مجلد الاستقبال. تبقى خيارات المنتجات وأسعار الموردين ومعرّفاتهم كما هي.</small></div><div class="notice info">لن تضيع المنتجات: يجب تحديد مجلد استقبال قبل حذف مجلد غير فارغ.</div>':''}
  <div class="toolbar"><div><h3 style="margin:0">المنتجات داخل المجلد</h3><small class="muted">يمكنك إضافة منتج يدوي أو نقله من مجلد آخر مع الحفاظ على ربط المورد.</small></div><button class="btn soft" id="addProductInlineBtn">＋ إضافة منتج</button></div>
- <div class="product-grid">${(cat.items||[]).map((p,pi)=>renderProduct(p,ci,pi)).join('')||'<div class="empty">لا توجد منتجات هنا بعد. يمكن نقل المنتجات إلى هذا المجلد أو إضافة منتج يدوياً.</div>'}</div>`;
+ <div class="product-grid">${NexaCatalog.sortProductEntriesByPriority(cat.items||[]).map(({product,index})=>renderProduct(product,ci,index)).join('')||'<div class="empty">لا توجد منتجات هنا بعد. يمكن نقل المنتجات إلى هذا المجلد أو إضافة منتج يدوياً.</div>'}</div>`;
 }
 function renderProduct(p,ci,pi){
  const base=`${ci}.items.${pi}`;
  const destinations=state.catalog.filter(category=>category.id!==state.catalog[ci].id);
  const moveSelect='<div class="field full"><label>نقل المنتج إلى مجلد آخر</label><select data-move-product="'+esc(p.id)+'" data-source-category="'+esc(state.catalog[ci].id)+'"><option value="">اختر مجلداً للنقل...</option>'+destinations.map(category=>'<option value="'+esc(category.id)+'">'+esc(categoryPathLabel(category))+'</option>').join('')+'</select></div>';
- const supplierLinked=p.wamda?.provider==='wamda'||p.bestStore?.provider==='beststore';
+ const supplierLinked=p.wamda?.provider==='wamda'||p.seagm?.provider==='seagm'||p.bestStore?.provider==='beststore';
+ const fulfillmentMode=p.fulfillmentMode||(supplierLinked?'automatic':'manual');
+ const fulfillmentSelect='<div class="field"><label>طريقة التسليم</label><select data-path="'+base+'.fulfillmentMode"><option value="automatic" '+(fulfillmentMode==='automatic'?'selected':'')+' '+(supplierLinked?'':'disabled')+'>تلقائي عبر API المورد</option><option value="manual" '+(fulfillmentMode==='manual'?'selected':'')+'>يدوي بواسطة الإدارة</option></select><small class="muted">التلقائي يتطلب ربطاً صالحاً بمورد API. اليدوي لا ينشئ طلب شراء لدى المورد.</small></div>';
  return `
-<details class="product-editor"><summary><img class="product-thumb" src="${esc(p.image)}" alt=""><span><strong>${esc(p.name)}</strong><small>${(p.options||[]).length} خيارات · ${(p.options||[]).reduce((n,o)=>n+(o.packs||[]).length,0)} باقات · ${supplierLinked?'مرتبط بمورد':'منتج يدوي'}</small></span><span class="icon-btn product-editor-chevron" aria-hidden="true">⌄</span></summary>
-<div class="product-body"><div class="form-grid">
-<div class="field"><label>معرّف المنتج الثابت</label><input value="${esc(p.id)}" readonly></div>
-${field('اسم المنتج',base+'.name',p.name)}
-${field('ترتيب المنتج',base+'.sortOrder',p.sortOrder||0,{type:'number',step:1})}
-${field('الوصف',base+'.desc',p.desc,{type:'textarea',full:true})}
-<div class="field full"><label>صورة المنتج</label><div class="image-row"><img class="image-preview" src="${esc(p.image)}" alt=""><div><input data-path="${base}.image" value="${esc(p.image)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${base}.image"></label></div></div></div>
-${moveSelect}
-<label class="inline-check"><input type="checkbox" data-path="${base}.visible" ${p.visible===false?'':'checked'}> إظهار المنتج في المتجر</label>
-</div>
-<div class="option-list">${(p.options||[]).map((o,oi)=>renderOption(o,base,oi,p.image)).join('')}</div>
-<div class="toolbar" style="margin-top:12px"><button class="add-row" data-add-option="${ci}.${pi}">＋ إضافة منطقة / خطة</button>${Object.keys(p.manualOverrides||{}).length?'<button class="btn soft" type="button" data-reset-manual="'+ci+'.'+pi+'">استعادة بيانات API</button>':''}<button class="btn danger" data-remove-product="${ci}.${pi}">${supplierLinked?'إخفاء من المتجر':'حذف المنتج'}</button></div>
-</div></details>`;
+ <details class="product-editor"><summary><img class="product-thumb" src="${esc(p.image)}" alt=""><span><strong>${esc(p.name)}</strong><small>${(p.options||[]).length} خيارات · ${(p.options||[]).reduce((n,o)=>n+(o.packs||[]).length,0)} باقات · ${supplierLinked?'مرتبط بمورد':'منتج يدوي'} · ${fulfillmentMode==='manual'?'تسليم يدوي':'تسليم تلقائي'}</small></span><span class="icon-btn product-editor-chevron" aria-hidden="true">⌄</span></summary>
+ <div class="product-body"><div class="form-grid">
+ <div class="field"><label>معرّف المنتج الثابت</label><input value="${esc(p.id)}" readonly></div>
+ ${field('اسم المنتج',base+'.name',p.name)}
+ ${field('أولوية الظهور (1 أولاً، 2 ثانياً، 0 تلقائي)',base+'.sortOrder',p.sortOrder||0,{type:'number',min:0,max:1000000,step:1})}
+ ${field('الوصف',base+'.desc',p.desc,{type:'textarea',full:true})}
+ ${fulfillmentSelect}
+ ${field('مدة التسليم اليدوي بالساعات',base+'.manualDeliveryHours',p.manualDeliveryHours||24,{type:'number',min:1,max:720,step:1})}
+ ${field('رسالة التسليم اليدوي (استخدم {hours} للمدة)',base+'.manualDeliveryMessage',p.manualDeliveryMessage||'',{type:'textarea',full:true,max:240,placeholder:'تم تأكيد الدفع. طلبك قيد التجهيز، وسيصلك خلال {hours} ساعة كحد أقصى.'})}
+ <div class="field full"><label>صورة المنتج</label><div class="image-row"><img class="image-preview" src="${esc(p.image)}" alt=""><div><input data-path="${base}.image" value="${esc(p.image)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${base}.image"></label></div></div></div>
+ ${moveSelect}
+ <label class="inline-check"><input type="checkbox" data-path="${base}.visible" ${p.visible===false?'':'checked'}> إظهار المنتج في المتجر</label>
+ </div>
+ <div class="option-list">${(p.options||[]).map((o,oi)=>renderOption(o,base,oi,p.image)).join('')}</div>
+ <div class="toolbar" style="margin-top:12px"><button class="add-row" data-add-option="${ci}.${pi}">＋ إضافة منطقة / خطة</button>${Object.keys(p.manualOverrides||{}).length?'<button class="btn soft" type="button" data-reset-manual="'+ci+'.'+pi+'">استعادة بيانات API</button>':''}<button class="btn danger" data-remove-product="${ci}.${pi}">${supplierLinked?'إخفاء من المتجر':'حذف المنتج'}</button></div>
+ </div></details>`;
 }
 function renderOption(o,base,oi,fallbackImage){const path=base+`.options.${oi}`;return `
 <div class="option-editor"><div class="option-head"><strong>الخيار ${oi+1}</strong><button class="icon-btn" data-remove-option="${path}" title="حذف الخيار">×</button></div>
@@ -956,14 +962,14 @@ $('catalogEditor').addEventListener('click',async e=>{
  if(button.id==='addProductInlineBtn'||button.dataset.addProduct!==undefined){
   const category=activeCategory();if(!category)return;
   const id='product-'+Date.now().toString(36);
-  category.items.push({id,name:'منتج جديد',desc:'وصف المنتج',image:'assets/products/_shared/product-placeholder.svg',visible:true,options:[{id:'option-'+Date.now().toString(36),name:'الخيار الأساسي',desc:'',flag:'✦',packs:[['باقة جديدة',1]]}]});
+  category.items.push({id,name:'منتج جديد',desc:'وصف المنتج',image:'assets/products/_shared/product-placeholder.svg',visible:true,manualCreated:true,sortOrder:0,fulfillmentMode:'manual',manualDeliveryHours:24,manualDeliveryMessage:'',options:[{id:'option-'+Date.now().toString(36),name:'الخيار الأساسي',desc:'',flag:'✦',packs:[['باقة جديدة',1]]}]});
   renderCatalog();
   const details=[...$('catalogEditor').querySelectorAll('.product-editor')].at(-1);if(details)details.open=true;
   return;
  }
  if(button.dataset.removeProduct){
   const [ci,pi]=button.dataset.removeProduct.split('.').map(Number),category=state.catalog[ci],product=category?.items?.[pi];if(!product)return;
-  const supplierLinked=product.wamda?.provider==='wamda'||product.bestStore?.provider==='beststore';
+  const supplierLinked=product.wamda?.provider==='wamda'||product.seagm?.provider==='seagm'||product.bestStore?.provider==='beststore';
   if(supplierLinked){
    if(confirm('إخفاء المنتج من المتجر؟ سيبقى محفوظاً ومرتبطاً بالمورد، ولن يظهر للعملاء بعد المزامنة التالية.')){
     product.visible=false;renderCatalog();
@@ -1719,18 +1725,32 @@ function formatAmount(minor,currency){const amount=Number(BigInt(minor||0))/100;
 function statusTag(status){const m={paid:['مدفوع','green'],pending_payment:['بانتظار الدفع','orange'],expired:['منتهي','red'],cancelled:['ملغي','red']};const [t,c]=m[status]||[status,''];return `<span class="tag ${c}">${t}</span>`}
 function renderOrders(){
  const q=($('orderSearch').value||'').toLowerCase(),status=$('orderStatus').value;
- const rows=state.orders.filter(o=>(!status||o.status===status)&&[o.id,o.product_label,o.customer_name,o.invoice_number,o.supplier_order_id,o.supplier_status].some(v=>String(v||'').toLowerCase().includes(q)));
+ const rows=state.orders.filter(o=>(!status||o.status===status)&&[o.id,o.product_label,o.customer_name,o.invoice_number,o.supplier_order_id,o.supplier_status,o.supplier_provider].some(v=>String(v||'').toLowerCase().includes(q)));
  $('ordersBody').innerHTML=rows.length?rows.map(o=>{
-  const deliveryLabels={not_applicable:'—',pending_payment:'بعد تأكيد الدفع',pending:'بانتظار الإرسال',waiting:'قيد التنفيذ لدى SEAGM',completed:'تم التسليم',manual_review:'مراجعة الإدارة'};
-  const supplierLine=o.supplier_provider==='seagm'?'<small class="muted">SEAGM · '+esc(deliveryLabels[o.supplier_status]||o.supplier_status||'—')+'</small>':'';
-  const retry=o.supplier_provider==='seagm'&&o.status==='paid'&&o.supplier_status!=='completed'&&['manual_review','waiting'].includes(o.supplier_status)
+  const deliveryLabels={not_applicable:'—',pending_payment:'بعد تأكيد الدفع',pending:'بانتظار الإرسال',waiting:'قيد التنفيذ لدى المورد',manual_pending:'بانتظار التسليم اليدوي',completed:'تم التسليم',manual_review:'مراجعة الإدارة'};
+  const providerName={seagm:'SEAGM',wamda:'WAMDA',beststore:'Best Store',manual:'يدوي'}[o.supplier_provider]||o.supplier_provider;
+  const supplierLine=o.supplier_provider?'<small class="muted">'+esc(providerName)+' · '+esc(deliveryLabels[o.supplier_status]||o.supplier_status||'—')+(o.supplier_provider==='manual'&&o.delivery_eta_hours?' · خلال '+esc(o.delivery_eta_hours)+' ساعة':'')+'</small>':'';
+  const retry=['seagm','wamda','beststore'].includes(o.supplier_provider)&&o.status==='paid'&&o.supplier_status!=='completed'&&['manual_review','waiting'].includes(o.supplier_status)
    ?'<button class="btn soft" data-retry-fulfillment="'+esc(o.id)+'">إعادة فحص المورد</button>':'';
-  return '<tr><td class="ltr">'+esc(o.id)+'</td><td>'+esc(o.product_label)+'</td><td>'+esc(o.customer_name)+'<small class="muted"> · '+esc(o.customer_phone||'')+'</small></td><td>'+formatAmount(o.amountMinor,o.currency)+'</td><td>'+statusTag(o.status)+supplierLine+'</td><td class="ltr">'+esc(o.invoice_number||'—')+'</td><td>'+new Date(o.createdAt).toLocaleString('ar-SY')+'</td><td><div class="table-actions">'+(o.status==='pending_payment'?'<button class="btn danger" data-cancel-order="'+esc(o.id)+'">إلغاء</button>':'')+retry+'<button class="btn soft" data-order-detail="'+esc(o.id)+'">تفاصيل</button></div></td></tr>';
+  const manualDeliver=o.supplier_provider==='manual'&&o.status==='paid'&&o.supplier_status!=='completed'
+   ?'<button class="btn soft" data-manual-delivery="'+esc(o.id)+'">تسجيل التسليم</button>':'';
+  return '<tr><td class="ltr">'+esc(o.id)+'</td><td>'+esc(o.product_label)+'</td><td>'+esc(o.customer_name)+'<small class="muted"> · '+esc(o.customer_phone||'')+'</small></td><td>'+formatAmount(o.amountMinor,o.currency)+'</td><td>'+statusTag(o.status)+supplierLine+'</td><td class="ltr">'+esc(o.invoice_number||'—')+'</td><td>'+new Date(o.createdAt).toLocaleString('ar-SY')+'</td><td><div class="table-actions">'+(o.status==='pending_payment'?'<button class="btn danger" data-cancel-order="'+esc(o.id)+'">إلغاء</button>':'')+retry+manualDeliver+'<button class="btn soft" data-order-detail="'+esc(o.id)+'">تفاصيل</button></div></td></tr>';
  }).join(''):'<tr><td colspan="8"><div class="empty">لا توجد طلبات مطابقة.</div></td></tr>';
 }
 $('orderSearch').addEventListener('input',renderOrders);$('orderStatus').addEventListener('change',renderOrders);$('refreshOrdersBtn').addEventListener('click',loadOrders);
 $('ordersBody').addEventListener('click',async e=>{
- const cancel=e.target.closest('[data-cancel-order]'),detail=e.target.closest('[data-order-detail]'),retry=e.target.closest('[data-retry-fulfillment]');
+ const cancel=e.target.closest('[data-cancel-order]'),detail=e.target.closest('[data-order-detail]'),retry=e.target.closest('[data-retry-fulfillment]'),manual=e.target.closest('[data-manual-delivery]');
+ if(manual){
+  const orderId=manual.dataset.manualDelivery;
+  const details=prompt('أدخل بيانات الحساب أو مفتاح التفعيل أو تعليمات التسليم التي يجب أن يستلمها العميل. ستُحفظ مشفرة ولن تُعرض إلا لصاحب الطلب.');
+  if(details===null)return;
+  if(!details.trim()){toast('أدخل بيانات التسليم قبل الحفظ.');return;}
+  if(!confirm('هل تأكدت من صحة بيانات المنتج؟ بعد الإغلاق ستظهر للعميل ولن يمكن تسجيل التسليم مرة ثانية.'))return;
+  manual.disabled=true;
+  try{await api('/api/admin/orders/'+encodeURIComponent(orderId)+'/manual-delivery',{method:'POST',body:JSON.stringify({details})});await loadOrders();toast('تم تسجيل التسليم اليدوي وإتاحته للعميل.');}
+  catch(error){toast(error.message);manual.disabled=false;}
+  return;
+ }
  if(retry){
   if(!confirm('سيتم إعادة فحص الطلب لدى SEAGM باستخدام نفس رقم طلب المتجر. لن يتم إنشاء رقم شراء جديد.'))return;
   try{await api('/api/admin/orders/'+retry.dataset.retryFulfillment+'/fulfillment/retry',{method:'POST',body:'{}'});await loadOrders();toast('تمت جدولة إعادة فحص طلب المورد.')}

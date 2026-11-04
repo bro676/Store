@@ -209,6 +209,30 @@ test('catalog folders support nested parents, root departments, visibility and s
   assert.throws(()=>validateCatalog([{...nested[0],visible:'false'}]),/INVALID_CATEGORY_VISIBILITY/);
 });
 
+test('catalog validation constrains manual delivery settings and product provenance',()=>{
+  const valid={...catalog[0],items:[{...catalog[0].items[0],manualCreated:true,fulfillmentMode:'manual',manualDeliveryHours:6,manualDeliveryMessage:'سيصلك خلال {hours} ساعة'}]};
+  assert.doesNotThrow(()=>validateCatalog([valid]));
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...catalog[0].items[0],fulfillmentMode:'instant'}]}]),/INVALID_PRODUCT_FULFILLMENT_MODE/);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...catalog[0].items[0],manualDeliveryHours:0}]}]),/INVALID_PRODUCT_MANUAL_DELIVERY_HOURS/);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...catalog[0].items[0],manualDeliveryMessage:'x'.repeat(241)}]}]),/INVALID_PRODUCT_MANUAL_DELIVERY_MESSAGE/);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...catalog[0].items[0],manualCreated:'yes'}]}]),/INVALID_PRODUCT_MANUAL_CREATED/);
+});
+
+test('catalog refresh retains manual fulfillment preferences when supplier product is refreshed',()=>{
+  const message='تجهيز الحساب خلال {hours} ساعة';
+  const original=[{...catalog[0],id:'supplier-folder',items:[{
+    ...catalog[0].items[0],seagm:{provider:'seagm',kind:'card',categoryId:10,typeId:20},
+    fulfillmentMode:'manual',manualDeliveryHours:9,manualDeliveryMessage:message,
+    manualOverrides:{fulfillmentMode:'manual',manualDeliveryHours:9,manualDeliveryMessage:message},
+  }]}];
+  const incoming=[{...catalog[0],id:'supplier-folder',items:[{
+    ...catalog[0].items[0],seagm:{provider:'seagm',kind:'card',categoryId:10,typeId:20},
+  }]}];
+  const product=mergeCatalog(original,incoming)[0].items[0];
+  assert.equal(product.fulfillmentMode,'manual');
+  assert.equal(product.manualDeliveryHours,9);
+  assert.equal(product.manualDeliveryMessage,message);
+});
 test('catalog refresh preserves manually organized folder names, parent links and product visibility',()=>{
   const original=[{
     ...catalog[0],id:'source-folder',name:'اسم مجلد يدوي',parentId:'',departmentId:'games',visible:false,sortOrder:4,
@@ -231,6 +255,34 @@ test('catalog refresh preserves manually organized folder names, parent links an
   assert.ok(merged[0].sourceCategoryAliases.includes('Supplier category updated'));
 });
 
+test('replace sync retains manual products created inside supplier folders',()=>{
+  const manualProduct={...catalog[0].items[0],id:'manual-product',manualCreated:true,fulfillmentMode:'manual',manualDeliveryHours:8,manualDeliveryMessage:'سيصلك خلال {hours} ساعة'};
+  const current=[{...catalog[0],id:'supplier-category',items:[catalog[0].items[0],manualProduct]}];
+  const incoming=[{...catalog[0],id:'supplier-category',items:[catalog[0].items[0]]}];
+  const merged=mergeCatalog(current,incoming,'replace');
+  const retained=merged[0].items.find(product=>product.id==='manual-product');
+  assert.ok(retained);
+  assert.equal(retained.manualCreated,true);
+  assert.equal(retained.fulfillmentMode,'manual');
+  assert.equal(retained.manualDeliveryHours,8);
+});
+
+test('supplier refresh preserves manual fulfillment preferences on supplier products',()=>{
+  const manualDeliveryMessage='سيصلك خلال {hours} ساعة';
+  const original=[{...catalog[0],id:'supplier-category',items:[{
+    ...catalog[0].items[0],seagm:{provider:'seagm',kind:'card',categoryId:4,typeId:7},
+    fulfillmentMode:'manual',manualDeliveryHours:6,manualDeliveryMessage,
+    manualOverrides:{fulfillmentMode:'manual',manualDeliveryHours:6,manualDeliveryMessage},
+  }]}];
+  const incoming=[{...catalog[0],id:'supplier-category',items:[{
+    ...catalog[0].items[0],seagm:{provider:'seagm',kind:'card',categoryId:4,typeId:7},
+  }]}];
+  const merged=mergeCatalog(original,incoming);
+  const product=merged[0].items[0];
+  assert.equal(product.fulfillmentMode,'manual');
+  assert.equal(product.manualDeliveryHours,6);
+  assert.equal(product.manualDeliveryMessage,manualDeliveryMessage);
+});
 test('replace sync preserves manually-created nested folders that are not in supplier feed',()=>{
   const root={...catalog[0],id:'manual-root',name:'Manual root',parentId:'',departmentId:'games',folderManual:true,items:[]};
   const child={...catalog[0],id:'manual-child',name:'Manual child',parentId:'manual-root',items:[]};

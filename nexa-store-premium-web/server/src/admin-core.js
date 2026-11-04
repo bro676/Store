@@ -75,7 +75,7 @@ function validateUniqueIds(rows, label) {
 const MAX_CATALOG_CATEGORIES = 1000;
 const CATALOG_DEPARTMENT_IDS = new Set(['games','balance','apps','numbers','cards','vpn','verification','ai','social','web','other']);
 const CATEGORY_MANUAL_KEYS = ['name','desc','image','icon','parentId','departmentId','sortOrder','visible'];
-const PRODUCT_MANUAL_KEYS = ['name','desc','image','options','sortOrder','visible'];
+const PRODUCT_MANUAL_KEYS = ['name','desc','image','options','sortOrder','visible','fulfillmentMode','manualDeliveryHours','manualDeliveryMessage'];
 // Large supplier categories (such as Best Store's 955-item ZNET category) must remain publishable.
 const MAX_PRODUCTS_PER_CATEGORY = 2000;
 const MAX_CATALOG_PRODUCTS = 10000;
@@ -109,6 +109,10 @@ export function validateCatalog(input) {
       if (typeof product.desc !== 'string' || product.desc.length > 700) throw new Error('INVALID_PRODUCT_DESC');
       if (!isSafeCatalogImage(product.image)) throw new Error('INVALID_PRODUCT_IMAGE');
       if (product.visible !== undefined && typeof product.visible !== 'boolean') throw new Error('INVALID_PRODUCT_VISIBILITY');
+      if (product.manualCreated !== undefined && typeof product.manualCreated !== 'boolean') throw new Error('INVALID_PRODUCT_MANUAL_CREATED');
+      if (product.fulfillmentMode !== undefined && !['automatic','manual'].includes(product.fulfillmentMode)) throw new Error('INVALID_PRODUCT_FULFILLMENT_MODE');
+      if (product.manualDeliveryHours !== undefined && (!Number.isSafeInteger(product.manualDeliveryHours) || product.manualDeliveryHours < 1 || product.manualDeliveryHours > 720)) throw new Error('INVALID_PRODUCT_MANUAL_DELIVERY_HOURS');
+      if (product.manualDeliveryMessage !== undefined && (typeof product.manualDeliveryMessage !== 'string' || product.manualDeliveryMessage.length > 240 || /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(product.manualDeliveryMessage))) throw new Error('INVALID_PRODUCT_MANUAL_DELIVERY_MESSAGE');
       if (product.sortOrder !== undefined && (!Number.isSafeInteger(product.sortOrder) || Math.abs(product.sortOrder)>1_000_000)) throw new Error('INVALID_PRODUCT_SORT_ORDER');
       if (product.manualOverrides !== undefined && (!product.manualOverrides || typeof product.manualOverrides!=='object' || Array.isArray(product.manualOverrides))) throw new Error('INVALID_PRODUCT_MANUAL_OVERRIDES');
       if (!Array.isArray(product.options) || product.options.length > 100) throw new Error('INVALID_PRODUCT_OPTIONS');
@@ -193,7 +197,8 @@ function mergeSupplierProduct(previous, incoming) {
   };
   const overrides=previousProduct.manualOverrides&&typeof previousProduct.manualOverrides==='object'&&!Array.isArray(previousProduct.manualOverrides)
     ?{...previousProduct.manualOverrides}:{};
-  const product={...previousProduct,...source,apiSource};
+  const isManualCreated=previousProduct.manualCreated===true||source.manualCreated===true;
+  const product={...previousProduct,...source,apiSource,...(isManualCreated?{manualCreated:true}:{})};
   for(const key of PRODUCT_MANUAL_KEYS){
     if(Object.prototype.hasOwnProperty.call(overrides,key))product[key]=JSON.parse(JSON.stringify(overrides[key]));
   }
@@ -267,14 +272,18 @@ export function mergeCatalog(existing, incoming, mode = 'merge') {
   for(const incomingCategory of next){
     const index=result.findIndex(category=>category.id===incomingCategory.id);
     if(index<0){result.push(JSON.parse(JSON.stringify(incomingCategory)));continue;}
-    const previous=result[index];
+    const existingCategory=current.find(category=>category.id===incomingCategory.id)||null;
+    const previous=mode==='replace'?(existingCategory||result[index]):result[index];
     const sourceCategory=applyCategorySourceMerge(previous,incomingCategory);
     const oldProducts=new Map((previous.items||[]).map(product=>[product.id,product]));
     const incomingProducts=(incomingCategory.items||[]).map(product=>mergeSupplierProduct(oldProducts.get(product.id),product));
+    const incomingProductIds=new Set(incomingProducts.map(product=>product.id));
     let items=incomingProducts;
     if(mode==='merge'){
-      const incomingProductIds=new Set(incomingProducts.map(product=>product.id));
       items=[...incomingProducts,...(previous.items||[]).filter(product=>!incomingProductIds.has(product.id))];
+    }else{
+      const manualProducts=(previous.items||[]).filter(product=>product.manualCreated===true&&!incomingProductIds.has(product.id));
+      items=[...incomingProducts,...manualProducts];
     }
     result[index]={...sourceCategory,items};
   }
@@ -301,10 +310,11 @@ export function upsertCatalogProduct(existingCatalog, categoryId, productInput) 
   const validated = validateCatalog([{id:'api-products',name:'API Products',desc:'API validation',image:'assets/brand/logo.svg',items:[productInput]}])[0].items[0];
   const items = current[categoryIndex].items;
   const productIndex = items.findIndex(product=>product.id===validated.id);
-  if (productIndex < 0) items.push(validated);
+  if (productIndex < 0) { validated.manualCreated=true; items.push(validated); }
   else {
     const previous=items[productIndex];
     const overrides=previous.manualOverrides&&typeof previous.manualOverrides==='object'?previous.manualOverrides:{};
+    if(previous.manualCreated===true)validated.manualCreated=true;
     validated.apiSource={name:validated.name,desc:validated.desc,image:validated.image,options:validated.options};
     for(const key of ['name','desc','image','options'])if(Object.prototype.hasOwnProperty.call(overrides,key))validated[key]=overrides[key];
     if(Object.keys(overrides).length)validated.manualOverrides=overrides;

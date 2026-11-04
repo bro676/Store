@@ -117,7 +117,7 @@ test('product resolver does not guess between duplicate IDs when the supplied ex
   assert.equal(catalog.findProduct(categories, 'duplicate', 'old-category'), null);
 });
 
-test('internal catalog folders are sorted from the fewest products to the most', async () => {
+test('unranked folders auto-sort from the fewest products to the most', async () => {
   const catalog = await loadCatalogHelper();
   const rows = [
     { id:'large', name:'Large', items:[1,2,3] },
@@ -129,6 +129,24 @@ test('internal catalog folders are sorted from the fewest products to the most',
     catalog.sortCategoriesByProductCount(rows).map(row=>row.id),
     ['empty','small','medium','large']
   );
+});
+
+test('explicit display priority sorts folders and products before automatic fallback',async()=>{
+  const catalog=await loadCatalogHelper();
+  const folders=[
+    {id:'auto',name:'Auto',items:[]},
+    {id:'second',name:'Second',sortOrder:2,items:[]},
+    {id:'first',name:'First',sortOrder:1,items:[]},
+  ];
+  assert.deepEqual(catalog.sortCategoriesByProductCount(folders).map(row=>row.id),['first','second','auto']);
+  const products=[
+    {id:'auto-b',name:'B'},
+    {id:'second',name:'Second',sortOrder:2},
+    {id:'first',name:'First',sortOrder:1},
+    {id:'auto-a',name:'A'},
+  ];
+  assert.deepEqual(catalog.sortProductsByPriority(products).map(row=>row.id),['first','second','auto-a','auto-b']);
+  assert.deepEqual(catalog.sortProductEntriesByPriority(products).map(row=>row.index),[2,1,3,0]);
 });
 
 test('nested folder helpers inherit the root department and count products recursively', async () => {
