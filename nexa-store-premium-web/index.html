@@ -810,9 +810,12 @@ function renderFeatured(){
   if(list.length>=4)break;
  }
  if(list.length<4){
-    for(const cat of categories)for(const it of NexaCatalog.sortProductsByPriority(cat.items||[])){
-   if(it.visible===false||(it.wamda||it.seagm||it.bestStore)?.available===false||seen.has(String(it.id)))continue;
-   list.push({cat,it});seen.add(String(it.id));if(list.length>=4)break;
+  for(const cat of categories){
+   for(const it of NexaCatalog.sortProductsByPriority(cat.items||[])){
+    if(it.visible===false||(it.wamda||it.seagm||it.bestStore)?.available===false||seen.has(String(it.id)))continue;
+    list.push({cat,it});seen.add(String(it.id));if(list.length>=4)break;
+   }
+   if(list.length>=4)break;
   }
  }
  $('featuredGrid').innerHTML=list.length?list.map(({cat,it})=>{
@@ -1030,7 +1033,7 @@ function deliveryResultText(delivery){
  }
  return lines.join('\n\n').slice(0,8000);
 }
-function deliveryStatusLabel(status){return ({pending_payment:'بانتظار الدفع',pending:'بانتظار الإرسال إلى المورد',waiting:'قيد التنفيذ لدى المورد',manual_pending:'بانتظار التسليم اليدوي',completed:'تم التسليم',manual_review:'مراجعة الإدارة',not_applicable:'لا يحتاج تسليماً'})[status]||status||'غير محدد'}
+function deliveryStatusLabel(status){return ({pending_payment:'بانتظار الدفع',queued_after_payment:'تم تأكيد الدفع، بانتظار إرسال الطلب',pending:'بانتظار الإرسال إلى المورد',waiting:'قيد التنفيذ لدى المورد',manual_pending:'بانتظار التسليم اليدوي',completed:'تم التسليم',manual_review:'مراجعة الإدارة',not_applicable:'لا يحتاج تسليماً'})[status]||status||'غير محدد'}
 function renderOrders(){
  const d=storageRead(),rows=d.orders||[];$('orderBadge').textContent=rows.length;$('sideOrderBadge').textContent=rows.length;
  $('ordersTable').innerHTML=rows.length?rows.map(o=>{
