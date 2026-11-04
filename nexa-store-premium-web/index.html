@@ -1081,6 +1081,9 @@ function showSearchResults(q){
  const query=String(q||'').trim().toLocaleLowerCase('ar');if(!query)return;
  state.searchQuery=query;state.searchPage=1;state.searchResults=[];
  for(const c of categories)for(const i of c.items||[])if(`${i.name} ${i.desc} ${c.name}`.toLocaleLowerCase('ar').includes(query))state.searchResults.push({c,i});
+ state.searchResults=state.searchResults.map((row,index)=>({...row,index}))
+  .sort((a,b)=>NexaCatalog.sortPriority(a.i.sortOrder)-NexaCatalog.sortPriority(b.i.sortOrder)||a.index-b.index)
+  .map(({c,i})=>({c,i}));
  navigate('store');renderSearchResults();
 }
 let paymentConfigEnabled=false;let sypPerUsd=145;let customerAccount=null;let accountOrderRecords=null;const orderDeliveryCache=new Map();
@@ -1268,15 +1271,16 @@ async function watchSeagmDelivery(orderId){
    const data=await response.json();if(!data.ok||!data.delivery)continue;
    if(data.receipt)renderPaymentReceipt(data.receipt);
    const result=$('shamCashPaymentResult');
+   const providerName=({SEAGM:'SEAGM',WAMDA:'ومضة',BEST_STORE:'Best Store',MANUAL:'المتجر'})[data.delivery.provider]||'المورد';
    if(data.delivery.status==='completed'){
-    if(result){result.className='wallet-payment-result success';result.textContent='اكتمل التسليم بنجاح من SEAGM. تفاصيل البطاقة أو نتيجة الشحن موجودة في الوصل.'}
+    if(result){result.className='wallet-payment-result success';result.textContent='اكتمل التسليم بنجاح عبر '+providerName+'. تفاصيل الحساب أو الكود أصبحت متاحة في الوصل.'}
     return;
    }
    if(data.delivery.status==='manual_review'){
-    if(result){result.className='wallet-payment-result error';result.textContent='تم تأكيد دفعك لكن طلب المورد يحتاج مراجعة من الدعم. رقم طلبك محفوظ ولن تتم إعادة الشراء تلقائياً.'}
+    if(result){result.className='wallet-payment-result error';result.textContent='تم تأكيد دفعك لكن طلب '+providerName+' يحتاج مراجعة من فريق المتجر. رقم طلبك محفوظ ولن تتم إعادة الشراء تلقائياً.'}
     return;
    }
-   if(result)result.textContent='الدفع مؤكد، وطلبك قيد التنفيذ لدى SEAGM. يتم تحديث حالة التسليم تلقائياً…';
+   if(result)result.textContent='الدفع مؤكد، وطلبك قيد التنفيذ لدى '+providerName+'. يتم تحديث حالة التسليم تلقائياً…';
   }
  }catch{}
  finally{deliveryWatchers.delete(orderId)}
