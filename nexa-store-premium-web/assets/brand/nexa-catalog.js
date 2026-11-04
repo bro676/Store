@@ -81,11 +81,24 @@
   }
   if(categoryId!==null&&categoryId!==undefined&&normalizeId(categoryId)){
    const scoped=rows.find(row=>normalizeId(row?.id)===normalizeId(categoryId));
-   if(scoped)return matches.find(match=>match.category===scoped)||null;
+   if(scoped){
+    const scopedMatch=matches.find(match=>match.category===scoped);
+    if(scopedMatch)return scopedMatch;
+    // A product can move during supplier synchronization while its old
+    // category remains. Recover only when its ID is unique across the catalog.
+    return matches.length===1?matches[0]:null;
+   }
   }
-  // When no reliable category is supplied, never open the wrong item if two
-  // categories contain the same provider-generated product ID.
+  // Never guess between duplicate provider-generated product IDs.
   return matches.length===1?matches[0]:null;
+ }
+ function sortCategoriesByProductCount(categories){
+  const collator=new Intl.Collator('ar',{numeric:true,sensitivity:'base'});
+  return (Array.isArray(categories)?categories:[])
+   .map((category,index)=>({category,index}))
+   .sort((a,b)=>(Array.isArray(a.category?.items)?a.category.items.length:0)-(Array.isArray(b.category?.items)?b.category.items.length:0)||
+    collator.compare(String(a.category?.name||''),String(b.category?.name||''))||a.index-b.index)
+   .map(row=>row.category);
  }
  function getDepartmentSummaries(categories){
   const rows=new Map(DEPARTMENTS.map(row=>[row.id,{...row,categories:[],categoryCount:0,productCount:0}]));
@@ -93,7 +106,9 @@
    const row=rows.get(classifyCategory(category));row.categories.push(category);row.categoryCount++;
    row.productCount+=Array.isArray(category?.items)?category.items.length:0;
   }
-  return DEPARTMENTS.map(row=>rows.get(row.id)).filter(row=>row.categoryCount>0);
+  const collator=new Intl.Collator('ar',{numeric:true,sensitivity:'base'});
+  return DEPARTMENTS.map(row=>rows.get(row.id)).filter(row=>row.categoryCount>0)
+   .sort((a,b)=>a.productCount-b.productCount||a.categoryCount-b.categoryCount||collator.compare(a.name,b.name));
  }
  function safeImage(candidate){
   const value=String(candidate??'').trim();if(!value||placeholders.has(value))return '';
@@ -136,5 +151,5 @@
   if(pack)parts.push('packs','pack-'+slugify(pack?.[0]||'offer'));
   return parts.join('/');
  }
- window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
+ window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,sortCategoriesByProductCount,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
 })();
