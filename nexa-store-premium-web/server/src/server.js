@@ -23,6 +23,7 @@ import { verifyBestStoreWebhookSecret, parseBestStoreWebhookBody, isBestStoreWeb
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
 import { expirePendingOrders } from './order-expiry.js';
 import { resolveDeliveryPolicy, manualPendingMessage, validateManualDeliveryInput } from './delivery-policy.js';
+import { resolveDeliveryPolicy, manualPendingMessage, validateManualDeliveryInput } from './delivery-policy.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -211,10 +212,12 @@ function publicCatalog() {
   return catalog.filter(category=>isPublicCatalogCategory(category)).map(category => ({
     ...category,
     items: category.items.filter(product=>product.visible!==false).map(product => {
+      const deliveryPolicy=resolveDeliveryPolicy(product);
+      const publicDelivery={deliveryMode:deliveryPolicy.mode,deliveryEtaHours:deliveryPolicy.etaHours,deliveryMessage:deliveryPolicy.message};
       const { seagm, wamda, bestStore, manualOverrides, apiSource, ...publicProduct } = product;
       if (seagm?.provider === 'seagm') {
         return {
-          ...publicProduct,
+          ...publicProduct,...publicDelivery,
           seagm: {
             provider:'seagm',kind:seagm.kind === 'recharge' ? 'recharge' : 'card',
             minimumQuantity:Number(seagm.minimumQuantity || 1),maximumQuantity:Number(seagm.maximumQuantity || 1),
@@ -234,7 +237,7 @@ function publicCatalog() {
         };
       }
       if (wamda?.provider === 'wamda') {
-        return {...publicProduct,wamda:{
+        return {...publicProduct,...publicDelivery,wamda:{
           provider:'wamda',minimumQuantity:Number(wamda.minimumQuantity || 1),maximumQuantity:Number(wamda.maximumQuantity || 1),available:wamda.available!==false,
           fields:Array.isArray(wamda.fields)?wamda.fields.map(field=>({
             name:String(field.key || ''),submitField:String(field.key || ''),label:String(field.label || field.key || ''),
@@ -244,7 +247,7 @@ function publicCatalog() {
         }};
       }
       if(bestStore?.provider==='beststore'){
-        return {...publicProduct,bestStore:{
+        return {...publicProduct,...publicDelivery,bestStore:{
           provider:'beststore',productId:Number(bestStore.productId),available:bestStore.available!==false&&Boolean(bestStoreApiTokenRuntime)&&storeSettings?.bestStoreCurrencyConfirmed===true,
           minimumQuantity:Number(bestStore.minimumQuantity||1),maximumQuantity:Number(bestStore.maximumQuantity||1),
           allowedQuantities:Array.isArray(bestStore.allowedQuantities)?bestStore.allowedQuantities.map(Number).filter(value=>Number.isSafeInteger(value)&&value>0):[],
@@ -255,7 +258,7 @@ function publicCatalog() {
           })):[],
         }};
       }
-      return publicProduct;
+      return {...publicProduct,...publicDelivery};
     }),
   }));
 }
@@ -451,11 +454,14 @@ async function createOrder(input, customer = null) {
   const sourceProduct = sourceCategory?.items?.find(product => product.id === input.productId);
   const supplier = sourceProduct?.wamda?.provider === 'wamda' ? sourceProduct.wamda : (sourceProduct?.seagm?.provider === 'seagm' ? sourceProduct.seagm : (sourceProduct?.bestStore?.provider === 'beststore' ? sourceProduct.bestStore : null));
   const supplierProvider=supplier?.provider||'';
+  const deliveryPolicy=resolveDeliveryPolicy(sourceProduct);
+  const manualMessage=manualPendingMessage(deliveryPolicy);
+  const hasAutomaticSupplier=Boolean(supplier&&deliveryPolicy.mode==='automatic'&&['seagm','wamda','beststore'].includes(supplierProvider));
   let quantity=1,supplierFields={};
   if(supplierProvider==='wamda'){
     if(!Number.isSafeInteger(Number(supplier.productId))||Number(supplier.productId)<=0||!Number.isSafeInteger(Number(supplier.categoryId))||Number(supplier.categoryId)<0) return {error:'INVALID_WAMDA_PRODUCT',status:409,message:'بيانات ربط المنتج مع ومضة غير مكتملة. أعد مزامنته ونشره من لوحة الإدارة.'};
     if(supplier.available===false) return {error:'WAMDA_PRODUCT_UNAVAILABLE',status:409,message:'هذا المنتج غير متوفر حالياً لدى ومضة. حدّث الكتالوج واختر منتجاً متاحاً.'};
-    if(!wamdaApiTokenRuntime) return {error:'WAMDA_NOT_CONFIGURED',status:503,message:'أدخل API Token الخاص بومضة من لوحة الإدارة ثم اختبر الاتصال.'};
+    if(deliveryPolicy.mode==='automatic'&&!wamdaApiTokenRuntime) return {error:'WAMDA_NOT_CONFIGURED',status:503,message:'أدخل API Token الخاص بومضة من لوحة الإدارة ثم اختبر الاتصال.'};
     const min=Math.max(1,Number(supplier.minimumQuantity||1)),max=Math.min(1000,Math.max(min,Number(supplier.maximumQuantity||1)));
     quantity=Number(input.quantity??1);
     if(!Number.isSafeInteger(quantity)||quantity<min||quantity>max) return {error:'INVALID_QUANTITY',status:400,message:`الكمية يجب أن تكون بين ${min} و${max}.`};
@@ -463,7 +469,7 @@ async function createOrder(input, customer = null) {
     catch(error){return {error:'INVALID_SUPPLIER_FIELDS',status:error.status||400,message:error.message};}
   } else if(supplierProvider==='seagm'){
     if(!['card','recharge'].includes(supplier.kind)||!Number.isSafeInteger(Number(supplier.typeId))||Number(supplier.typeId)<=0||!Number.isSafeInteger(Number(supplier.categoryId))||Number(supplier.categoryId)<=0) return {error:'INVALID_SEAGM_PRODUCT',status:409,message:'بيانات ربط المنتج مع SEAGM غير مكتملة. أعد مزامنته ونشره من لوحة الإدارة.'};
-    if(!storeSettings?.seagmUid||!seagmSecretRuntime) return {error:'SEAGM_NOT_CONFIGURED',status:503,message:'منتج المورد غير متاح حالياً حتى يتم ضبط UID وSecret Key من لوحة الإدارة.'};
+    if(deliveryPolicy.mode==='automatic'&&(!storeSettings?.seagmUid||!seagmSecretRuntime)) return {error:'SEAGM_NOT_CONFIGURED',status:503,message:'منتج المورد غير متاح حالياً حتى يتم ضبط UID وSecret Key من لوحة الإدارة.'};
     const min=Math.max(1,Number(supplier.minimumQuantity||1)),max=Math.min(1000,Math.max(min,Number(supplier.maximumQuantity||1)));
     quantity=Number(input.quantity??1);
     if(!Number.isSafeInteger(quantity)||quantity<min||quantity>max) return {error:'INVALID_QUANTITY',status:400,message:`الكمية يجب أن تكون بين ${min} و${max}.`};
@@ -472,7 +478,7 @@ async function createOrder(input, customer = null) {
   } else if(supplierProvider==='beststore'){
     if(!Number.isSafeInteger(Number(supplier.productId))||Number(supplier.productId)<=0)return {error:'INVALID_BEST_STORE_PRODUCT',status:409,message:'بيانات ربط المنتج مع Best Store غير مكتملة. أعد مزامنته ونشره من لوحة الإدارة.'};
     if(supplier.available===false)return {error:'BEST_STORE_PRODUCT_UNAVAILABLE',status:409,message:'هذا المنتج غير متوفر حالياً لدى Best Store. حدّث الكتالوج واختر منتجاً متاحاً.'};
-    if(!bestStoreApiTokenRuntime||storeSettings?.bestStoreCurrencyConfirmed!==true)return {error:'BEST_STORE_NOT_CONFIGURED',status:503,message:'أدخل Best Store API Token وحدد عملة المورد وأكّدها من لوحة الإدارة قبل إتاحة الشراء.'};
+    if((deliveryPolicy.mode==='automatic'&&!bestStoreApiTokenRuntime)||storeSettings?.bestStoreCurrencyConfirmed!==true)return {error:'BEST_STORE_NOT_CONFIGURED',status:503,message:'أدخل Best Store API Token وحدد عملة المورد وأكّدها من لوحة الإدارة قبل إتاحة الشراء.'};
     const min=Math.max(1,Number(supplier.minimumQuantity||1)),max=Math.min(1000000,Math.max(min,Number(supplier.maximumQuantity||1)));
     quantity=Number(input.quantity??1);const allowed=Array.isArray(supplier.allowedQuantities)?supplier.allowedQuantities.map(Number):[];
     if(!Number.isSafeInteger(quantity)||quantity<min||quantity>max||(allowed.length&&!allowed.includes(quantity)))return {error:'INVALID_QUANTITY',status:400,message:allowed.length?'اختر إحدى الكميات المتاحة لهذا المنتج.':`الكمية يجب أن تكون بين ${min} و${max}.`};
@@ -501,7 +507,7 @@ async function createOrder(input, customer = null) {
     if(currency!=='SYP')return {error:'WALLET_CURRENCY_UNSUPPORTED',status:400,message:'الرصيد الداخلي حالياً بالليرة السورية الجديدة فقط. اختر SYP للدفع من الرصيد.'};
     const client=await pool.connect();
     const id=`NX-${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
-    const supplierOrderUuid=['wamda','beststore'].includes(supplierProvider)?crypto.randomUUID():id;
+    const supplierOrderUuid=deliveryPolicy.mode==='automatic'&&['wamda','beststore'].includes(supplierProvider)?crypto.randomUUID():id;
     try{
       await client.query('BEGIN');
       const locked=await client.query('SELECT balance_minor::text FROM nexa_customers WHERE id=$1 FOR UPDATE',[customer.id]);
@@ -510,36 +516,39 @@ async function createOrder(input, customer = null) {
       if(balance<pricedPack.amountMinor){await client.query('ROLLBACK');return {error:'WALLET_INSUFFICIENT_FUNDS',status:409,message:'رصيدك غير كافٍ لإتمام هذا الطلب. اشحن رصيدك أو اختر الدفع المباشر.',balanceMinor:balance.toString(),requiredMinor:pricedPack.amountMinor.toString()};}
       const debited=await client.query('UPDATE nexa_customers SET balance_minor=balance_minor-$2 WHERE id=$1 RETURNING balance_minor::text',[customer.id,pricedPack.amountMinor.toString()]);
       const nextBalance=String(debited.rows[0].balance_minor);
-      const supplierStatus=supplier?'pending':'not_applicable';
-      const supplierMessage=supplierProvider==='wamda'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى ومضة.':(supplierProvider==='seagm'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى SEAGM.':(supplierProvider==='beststore'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى Best Store.':''));
+      const supplierStatus=deliveryPolicy.mode==='manual'?'manual_pending':(supplier?'pending':'not_applicable');
+      const supplierMessage=deliveryPolicy.mode==='manual'?manualMessage:(supplierProvider==='wamda'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى ومضة.':(supplierProvider==='seagm'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى SEAGM.':(supplierProvider==='beststore'?'تم الدفع من رصيد الحساب. سيتم إرسال الطلب إلى Best Store.':'')));
       await client.query(`INSERT INTO nexa_orders (
         id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,
         customer_name,customer_phone,game_account,notes,status,expires_at,paid_at,
         supplier_provider,supplier_kind,supplier_category_id,supplier_type_id,supplier_quantity,
-        supplier_fields,supplier_mch_order_id,supplier_status,supplier_message,customer_id,payment_method
+        supplier_fields,supplier_mch_order_id,supplier_status,supplier_message,customer_id,payment_method,
+        delivery_mode,delivery_eta_hours,delivery_customer_message
       ) VALUES (
         $1,$2,$3,$4,$5,$6,$7,'SYP',$8,$9,$10,$11,'paid',NOW()+INTERVAL '365 days',NOW(),
-        $12,$13,$14,$15,$16,$17::jsonb,$18,$19,$20,$21,'wallet'
+        $12,$13,$14,$15,$16,$17::jsonb,$18,$19,$20,$21,'wallet',$22,$23,$24
       )`,[
         id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pricedPack.label,pricedPack.amountMinor.toString(),
         name,phone,gameAccount,notes,supplierProvider,supplier?.kind||'',supplier?(supplierProvider==='beststore'?null:Number(supplier.categoryId)):null,
         supplier?Number(supplier.typeId||supplier.productId):null,quantity,JSON.stringify(supplierFields),
-        supplier?supplierOrderUuid:null,supplierStatus,supplierMessage,customer.id
+        hasAutomaticSupplier?supplierOrderUuid:null,supplierStatus,supplierMessage,customer.id,
+        deliveryPolicy.mode,deliveryPolicy.etaHours,deliveryPolicy.message
       ]);
       await client.query(`INSERT INTO nexa_wallet_ledger(customer_id,kind,amount_minor,balance_after_minor,reference_order_id,note)
         VALUES($1,'purchase',$2,$3,$4,$5)`,[customer.id,pricedPack.amountMinor.toString(),nextBalance,id,pricedPack.label]);
-      if(['seagm','wamda','beststore'].includes(supplierProvider)){
+      if(hasAutomaticSupplier){
         await client.query(`INSERT INTO nexa_fulfillment_jobs(order_id,status,next_attempt_at)
           VALUES($1,'pending',NOW()) ON CONFLICT(order_id) DO NOTHING`,[id]);
       }
       await client.query('COMMIT');
-      if(['seagm','wamda','beststore'].includes(supplierProvider))runSeagmFulfillmentWorker().catch(error=>console.error('wallet purchase fulfillment failed',String(error?.message||'unknown').slice(0,120)));
+      if(hasAutomaticSupplier)runSeagmFulfillmentWorker().catch(error=>console.error('wallet purchase fulfillment failed',String(error?.message||'unknown').slice(0,120)));
+      const delivery=supplierDeliveryForOrder({supplier_provider:supplierProvider,delivery_mode:deliveryPolicy.mode,delivery_eta_hours:deliveryPolicy.etaHours,supplier_status:supplierStatus,supplier_message:supplierMessage});
       return {
         orderId:id,product:pricedPack.label,amountMinor:pricedPack.amountMinor.toString(),currency:'SYP',
         status:'paid',paymentMethod:'wallet',walletBalanceMinor:nextBalance,
-        deliveryProvider:supplierProvider==='wamda'?'WAMDA':(supplierProvider==='beststore'?'BEST_STORE':(supplier?'SEAGM':null)),
-        deliveryStatus:supplier?'pending':null,
-        receipt:{orderId:id,product:pricedPack.label,amountMinor:pricedPack.amountMinor.toString(),currency:'SYP',customerName:name,paymentMethod:'wallet',paidAt:new Date().toISOString(),...(supplier?{delivery:{provider:supplierProvider==='wamda'?'WAMDA':(supplierProvider==='beststore'?'BEST_STORE':'SEAGM'),status:'pending',message:supplierMessage}}:{})}
+        deliveryProvider:delivery?.provider||null,deliveryMode:deliveryPolicy.mode,deliveryEtaHours:deliveryPolicy.etaHours,
+        deliveryStatus:delivery?.status||null,
+        receipt:{orderId:id,product:pricedPack.label,amountMinor:pricedPack.amountMinor.toString(),currency:'SYP',customerName:name,paymentMethod:'wallet',paidAt:new Date().toISOString(),...(delivery?{delivery}:{})}
       };
     }catch(error){
       await client.query('ROLLBACK').catch(()=>{});
@@ -551,16 +560,17 @@ async function createOrder(input, customer = null) {
   try {
     wallet = await getWallet(true);
     id = `NX-${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
-    const supplierOrderUuid=['wamda','beststore'].includes(supplierProvider)?crypto.randomUUID():id;
+    const supplierOrderUuid=deliveryPolicy.mode==='automatic'&&['wamda','beststore'].includes(supplierProvider)?crypto.randomUUID():id;
     invoice = await createShamInvoice(id, pricedPack, wallet);
     await pool.query(`INSERT INTO nexa_orders (
       id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,
       customer_name,customer_phone,game_account,notes,expires_at,invoice_number,invoice_identifier,
       wallet_label,wallet_address,supplier_provider,supplier_kind,supplier_category_id,supplier_type_id,
-      supplier_quantity,supplier_fields,supplier_mch_order_id,supplier_status,supplier_message,customer_id,payment_method
+      supplier_quantity,supplier_fields,supplier_mch_order_id,supplier_status,supplier_message,customer_id,payment_method,
+      delivery_mode,delivery_eta_hours,delivery_customer_message
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,
-      $18,$19,$20,$21,$22,$23::jsonb,$24,$25,$26,$27,$28
+      $18,$19,$20,$21,$22,$23::jsonb,$24,$25,$26,$27,$28,$29,$30,$31
     )`,
     [
       id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pricedPack.label,
@@ -568,16 +578,19 @@ async function createOrder(input, customer = null) {
       invoice.expiresAt,invoice.invoiceNumber,invoice.identifier,invoice.walletLabel,invoice.walletAddress,
       supplierProvider,supplier?.kind || '',supplier ? (supplierProvider==='beststore'?null:Number(supplier.categoryId)) : null,
       supplier ? Number(supplier.typeId || supplier.productId) : null,quantity,JSON.stringify(supplierFields),
-      supplier ? supplierOrderUuid : null,supplier ? 'pending_payment' : 'not_applicable',
-      supplierProvider==='wamda'?'بانتظار تأكيد الدفع من شام كاش؛ سيتم إرسال الطلب إلى ومضة بعد التحقق.':(supplierProvider==='beststore'?'بانتظار تأكيد الدفع من شام كاش؛ سيتم إرسال الطلب إلى Best Store بعد التحقق.':(supplier?'بانتظار تأكيد الدفع من شام كاش.':'')),
-      customer?.id || null,'shamcash',
+      hasAutomaticSupplier ? supplierOrderUuid : null,
+      deliveryPolicy.mode==='manual'||supplier ? 'pending_payment' : 'not_applicable',
+      deliveryPolicy.mode==='manual'?'بانتظار تأكيد الدفع عبر شام كاش.':(supplierProvider==='wamda'?'بانتظار تأكيد الدفع من شام كاش؛ سيتم إرسال الطلب إلى ومضة بعد التحقق.':(supplierProvider==='beststore'?'بانتظار تأكيد الدفع من شام كاش؛ سيتم إرسال الطلب إلى Best Store بعد التحقق.':(supplier?'بانتظار تأكيد الدفع من شام كاش.':''))),
+      customer?.id || null,'shamcash',deliveryPolicy.mode,deliveryPolicy.etaHours,deliveryPolicy.message,
     ]);
     persisted = true;
     return {
       orderId:id, product:pricedPack.label, amountMinor:pricedPack.amountMinor.toString(), currency:pricedPack.currency,
       expiresAt:invoice.expiresAt.toISOString(),invoiceNumber:invoice.invoiceNumber,invoiceIdentifier:invoice.identifier,
       receiverLabel:invoice.walletLabel,receiverAddress:invoice.identifier,status:'pending_payment',
-      deliveryProvider:supplierProvider==='wamda'?'WAMDA':(supplierProvider==='beststore'?'BEST_STORE':(supplier?'SEAGM':null)),deliveryStatus:supplier?'queued_after_payment':null,
+      deliveryProvider:supplierProvider==='wamda'?'WAMDA':(supplierProvider==='beststore'?'BEST_STORE':(supplier?'SEAGM':null)),
+      deliveryMode:deliveryPolicy.mode,deliveryEtaHours:deliveryPolicy.etaHours,
+      deliveryStatus:deliveryPolicy.mode==='manual'?'pending_payment':(supplier?'queued_after_payment':null),
     };
   } catch (error) {
     if (invoice?.invoiceNumber && !persisted) {
@@ -632,13 +645,17 @@ async function verifyProviderInvoice(order, transactionRef) {
 }
 
 function supplierDeliveryForOrder(order) {
-  if (!['seagm','wamda','beststore'].includes(order?.supplier_provider)) return null;
+  const manual=order?.delivery_mode==='manual';
+  if (!manual && !['seagm','wamda','beststore'].includes(order?.supplier_provider)) return null;
   let result = null;
   if (order.supplier_status === 'completed' && order.supplier_result_encrypted) {
     try { result = JSON.parse(decryptSecret(order.supplier_result_encrypted, cfg.settingsEncryptionKey)); } catch {}
   }
   return {
-    provider:order.supplier_provider==='wamda'?'WAMDA':(order.supplier_provider==='beststore'?'BEST_STORE':'SEAGM'),status:String(order.supplier_status || 'pending'),
+    provider:order.supplier_provider==='wamda'?'WAMDA':(order.supplier_provider==='beststore'?'BEST_STORE':(order.supplier_provider==='seagm'?'SEAGM':'MANUAL')),
+    mode:manual?'manual':'automatic',
+    status:String(order.supplier_status || 'pending'),
+    etaHours:Number(order.delivery_eta_hours||24),
     message:String(order.supplier_message || ''),
     orderId:order.supplier_order_id ? String(order.supplier_order_id) : null,
     ...(result || {}),
