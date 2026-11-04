@@ -114,10 +114,10 @@ export function normalizeSupplierProductText(value) {
     .replace(/(?:أسابيع|اسابيع)/gu,' weeks ')
     .replace(/(?:أسبوعي|اسبوعي)/gu,' weekly ')
     .replace(/(?:أسبوع|اسبوع)/gu,' week ')
+    .replace(/(?:بريميوم)/gu,' premium ')
     .replace(/(?:أيام|ايام)/gu,' days ')
     .replace(/(?:يومي|يومية)/gu,' daily ')
-    .replace(/يوم/gu,' day ')
-    .replace(/(?:بريميوم|بريميوم)/gu,' premium ')
+    .replace(/(?<![\p{L}\p{N}])يوم(?![\p{L}\p{N}])/gu,' day ')
     .replace(/برايم/gu,' prime ')
     .replace(/(?:متابعين|متابعون|متابع)/gu,' followers ')
     .replace(/(?:مشاهدات|مشاهدة)/gu,' views ')
@@ -125,7 +125,7 @@ export function normalizeSupplierProductText(value) {
     .replace(/(?:تعليقات|تعليق)/gu,' comments ')
     .replace(/(?:أعضاء|اعضاء|عضو)/gu,' members ')
     .replace(/(?:تفاعلات|تفاعل)/gu,' reactions ')
-    .replace(/[\p{Extended_Pictographic}\p{Regional_Indicator}]+/gu,emoji =>
+    .replace(/[\p{Extended_Pictographic}\p{Emoji_Modifier}\p{Regional_Indicator}\uFE0F\u200D]+/gu,emoji =>
       ' emoji_' + Array.from(emoji).map(char=>char.codePointAt(0).toString(16)).join('_') + ' ');
   return normalizeSupplierText(text);
 }
