@@ -109,6 +109,7 @@ export function validateCatalog(input) {
       if (typeof product.desc !== 'string' || product.desc.length > 700) throw new Error('INVALID_PRODUCT_DESC');
       if (!isSafeCatalogImage(product.image)) throw new Error('INVALID_PRODUCT_IMAGE');
       if (product.visible !== undefined && typeof product.visible !== 'boolean') throw new Error('INVALID_PRODUCT_VISIBILITY');
+      if (product.manualCreated !== undefined && typeof product.manualCreated !== 'boolean') throw new Error('INVALID_PRODUCT_MANUAL_CREATED');
       if (product.fulfillmentMode !== undefined && !['automatic','manual'].includes(product.fulfillmentMode)) throw new Error('INVALID_PRODUCT_FULFILLMENT_MODE');
       if (product.manualDeliveryHours !== undefined && (!Number.isSafeInteger(product.manualDeliveryHours) || product.manualDeliveryHours < 1 || product.manualDeliveryHours > 720)) throw new Error('INVALID_PRODUCT_MANUAL_DELIVERY_HOURS');
       if (product.manualDeliveryMessage !== undefined && (typeof product.manualDeliveryMessage !== 'string' || product.manualDeliveryMessage.length > 240 || /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(product.manualDeliveryMessage))) throw new Error('INVALID_PRODUCT_MANUAL_DELIVERY_MESSAGE');
@@ -196,7 +197,8 @@ function mergeSupplierProduct(previous, incoming) {
   };
   const overrides=previousProduct.manualOverrides&&typeof previousProduct.manualOverrides==='object'&&!Array.isArray(previousProduct.manualOverrides)
     ?{...previousProduct.manualOverrides}:{};
-  const product={...previousProduct,...source,apiSource};
+  const isManualCreated=previousProduct.manualCreated===true||source.manualCreated===true;
+  const product={...previousProduct,...source,apiSource,...(isManualCreated?{manualCreated:true}:{})};
   for(const key of PRODUCT_MANUAL_KEYS){
     if(Object.prototype.hasOwnProperty.call(overrides,key))product[key]=JSON.parse(JSON.stringify(overrides[key]));
   }
@@ -274,10 +276,13 @@ export function mergeCatalog(existing, incoming, mode = 'merge') {
     const sourceCategory=applyCategorySourceMerge(previous,incomingCategory);
     const oldProducts=new Map((previous.items||[]).map(product=>[product.id,product]));
     const incomingProducts=(incomingCategory.items||[]).map(product=>mergeSupplierProduct(oldProducts.get(product.id),product));
+    const incomingProductIds=new Set(incomingProducts.map(product=>product.id));
     let items=incomingProducts;
     if(mode==='merge'){
-      const incomingProductIds=new Set(incomingProducts.map(product=>product.id));
       items=[...incomingProducts,...(previous.items||[]).filter(product=>!incomingProductIds.has(product.id))];
+    }else{
+      const manualProducts=(previous.items||[]).filter(product=>product.manualCreated===true&&!incomingProductIds.has(product.id));
+      items=[...incomingProducts,...manualProducts];
     }
     result[index]={...sourceCategory,items};
   }
@@ -304,7 +309,7 @@ export function upsertCatalogProduct(existingCatalog, categoryId, productInput) 
   const validated = validateCatalog([{id:'api-products',name:'API Products',desc:'API validation',image:'assets/brand/logo.svg',items:[productInput]}])[0].items[0];
   const items = current[categoryIndex].items;
   const productIndex = items.findIndex(product=>product.id===validated.id);
-  if (productIndex < 0) items.push(validated);
+  if (productIndex < 0) { validated.manualCreated=true; items.push(validated); }
   else {
     const previous=items[productIndex];
     const overrides=previous.manualOverrides&&typeof previous.manualOverrides==='object'?previous.manualOverrides:{};
