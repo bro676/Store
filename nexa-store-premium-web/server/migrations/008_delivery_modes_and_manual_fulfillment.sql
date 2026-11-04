@@ -3,10 +3,8 @@ ALTER TABLE nexa_orders
   ADD COLUMN IF NOT EXISTS delivery_eta_hours INTEGER NOT NULL DEFAULT 24,
   ADD COLUMN IF NOT EXISTS delivery_customer_message TEXT NOT NULL DEFAULT '';
 
-UPDATE nexa_orders
-SET delivery_mode = 'manual'
-WHERE COALESCE(supplier_provider, '') = ''
-  AND delivery_mode = 'automatic';
+-- Historical orders retain the compatibility default. New orders snapshot
+-- their chosen product delivery policy explicitly during checkout.
 
 UPDATE nexa_orders
 SET delivery_eta_hours = 24
