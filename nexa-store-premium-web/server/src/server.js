@@ -2878,7 +2878,14 @@ const server = http.createServer(async (req,res) => {
           else delete updated.manualOverrides;
           return updated;
         });
-        const updatedCategory={...category,items,apiSource:categoryApiSource};
+        const sourceCategoryAliases=Array.from(new Set([
+          ...(Array.isArray(previousCategory?.sourceCategoryAliases)?previousCategory.sourceCategoryAliases:[]),
+          ...(Array.isArray(category.sourceCategoryAliases)?category.sourceCategoryAliases:[]),
+          ...(categoryApiSource?.name?[categoryApiSource.name]:[]),
+          ...(previousCategory?.name?[previousCategory.name]:[]),
+          ...(category.name?[category.name]:[]),
+        ].filter(value=>typeof value==='string'&&value.trim()))).slice(0,40);
+        const updatedCategory={...category,items,apiSource:categoryApiSource,sourceCategoryAliases};
         if(Object.keys(categoryOverrides).length)updatedCategory.manualOverrides=categoryOverrides;
         else delete updatedCategory.manualOverrides;
         return updatedCategory;
