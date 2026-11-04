@@ -227,6 +227,8 @@ test('catalog refresh preserves manually organized folder names, parent links an
   assert.equal(merged[0].items[0].visible,false);
   assert.equal(merged[0].items[0].name,'اسم منتج يدوي');
   assert.equal(merged[0].apiSource.name,'Supplier category updated');
+  assert.ok(merged[0].sourceCategoryAliases.includes('Supplier category'));
+  assert.ok(merged[0].sourceCategoryAliases.includes('Supplier category updated'));
 });
 
 test('replace sync preserves manually-created nested folders that are not in supplier feed',()=>{
