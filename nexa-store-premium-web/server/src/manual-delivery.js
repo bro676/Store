@@ -56,7 +56,7 @@ export function buildManualDeliveryMessage(template = '', hours = 24) {
 
 export function normalizeManualDeliveryDetails(value) {
   const details = String(value ?? '').trim();
-  if (!details || details.length > 8000 ||
+  if (!details || details.length > 3000 ||
       /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(details)) {
     throw Object.assign(new Error('بيانات التسليم اليدوي فارغة أو أطول من الحد المسموح.'), {
       code: 'INVALID_MANUAL_DELIVERY_DETAILS',
