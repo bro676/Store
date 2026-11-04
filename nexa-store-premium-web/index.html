@@ -1158,7 +1158,8 @@ async function loadShamCashOrderSummary(){
   const r=await fetch('/api/orders/'+encodeURIComponent(orderId),{cache:'no-store'});
   const d=await r.json();
   if(!r.ok||!d.ok)throw new Error(d.message||'لم يتم العثور على الطلب.');
-  summary.innerHTML=`<span>المبلغ المطلوب · ${esc(d.status==='paid'?'مدفوع':d.status==='expired'?'منتهي':d.status==='cancelled'?'ملغي':'بانتظار الدفع')} · ${esc(d.currency)}</span><strong>${formatMinor(d.amountMinor,d.currency)}</strong><small>تنتهي الفاتورة في ${esc(new Date(d.expiresAt).toLocaleString('ar-SY'))}</small>`;
+  const summaryNote=d.status==='paid'?'تم تأكيد الدفع لهذا الطلب.':(d.status==='expired'?'انتهت صلاحية الفاتورة.':(d.status==='cancelled'?'تم إلغاء الطلب.':'تنتهي الفاتورة في '+new Date(d.expiresAt).toLocaleString('ar-SY')));
+  summary.innerHTML=`<span>المبلغ المطلوب · ${esc(d.status==='paid'?'مدفوع':d.status==='expired'?'منتهي':d.status==='cancelled'?'ملغي':'بانتظار الدفع')} · ${esc(d.currency)}</span><strong>${formatMinor(d.amountMinor,d.currency)}</strong><small>${esc(summaryNote)}</small>`;
   renderInvoiceDetails(d);
   if(d.receipt){renderPaymentReceipt(d.receipt);if(d.receipt.delivery?.mode==='automatic'&&!['completed','manual_review'].includes(d.receipt.delivery.status))watchSeagmDelivery(orderId)}
  }catch(e){summary.innerHTML='<span>ملخص الطلب</span><strong>تعذر تحميل تفاصيل الطلب</strong><small>تأكد من رقم الطلب أو أعد المحاولة.</small>'}
