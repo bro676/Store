@@ -140,9 +140,9 @@ test('nested folder helpers inherit the root department and count products recur
     { id:'apps-root', name:'Applications', departmentId:'apps', items:[{id:'spotify'}] },
   ];
   assert.equal(catalog.getCategoryDepartmentId(categories[2],categories),'games');
-  assert.deepEqual(catalog.categoryAncestors(categories[2],categories).map(row=>row.id),['games-root','pubg-folder','pubg-uc-folder']);
-  assert.deepEqual(catalog.getChildFolders(categories,'games-root').map(row=>row.id),['pubg-folder']);
-  assert.deepEqual(catalog.getChildFolders(categories,null,'apps').map(row=>row.id),['apps-root']);
+  assert.equal(catalog.categoryAncestors(categories[2],categories).map(row=>row.id).join(','),'games-root,pubg-folder,pubg-uc-folder');
+  assert.equal(catalog.getChildFolders(categories,'games-root').map(row=>row.id).join(','),'pubg-folder');
+  assert.equal(catalog.getChildFolders(categories,null,'apps').map(row=>row.id).join(','),'apps-root');
   assert.equal(catalog.getFolderProductCount(categories[0],categories),4);
   const product=catalog.resolveProductNavigation(categories,'pubg-uc-325','pubg-uc-folder');
   assert.equal(product.departmentId,'games');
@@ -157,7 +157,7 @@ test('hidden folder descendants are excluded from storefront folder navigation',
     { id:'hidden-child', name:'Child', parentId:'hidden-folder', items:[{id:'hidden-child-product'}] },
     { id:'visible-folder', name:'Visible', parentId:'games-root', items:[{id:'visible-product'}] },
   ];
-  assert.deepEqual(catalog.getChildFolders(categories,'games-root').map(row=>row.id),['visible-folder']);
+  assert.equal(catalog.getChildFolders(categories,'games-root').map(row=>row.id).join(','),'visible-folder');
   assert.equal(catalog.isCategoryVisible(categories[2],categories),false);
   assert.equal(catalog.getFolderProductCount(categories[0],categories),1);
 });
