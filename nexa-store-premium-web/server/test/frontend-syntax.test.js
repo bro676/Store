@@ -369,10 +369,18 @@ test('Nexa skyline redesign preserves all working storefront routes and adds rea
   }
   assert.ok(admin.includes('admin-rail-summary'), 'Admin dashboard has the new Nexa workspace summary');
 
-  assert.ok(store.includes('nexa-wamda-blue.css?v=20261104-nexa-skyline-v3'), 'Storefront uses the structural theme revision');
-  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261104-nexa-skyline-v3'), 'Admin uses the structural theme revision');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261104-nexa-skyline-v4'), 'Storefront uses the structural theme revision');
+  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261104-nexa-skyline-v4'), 'Admin uses the structural theme revision');
   assert.ok(theme.includes('.app-shell .sidebar-profile'), 'Customer account rail has its own visual system');
   assert.ok(theme.includes('.app-shell .nexa-home-search'), 'Homepage search has a dedicated visual system');
+  assert.ok(store.includes('data-open-assistant'), 'Assistant remains reachable as a real working tool from the account rail');
+  assert.ok(store.includes('class="catalog-grid"'), 'Nested folders and products use the canonical catalogue grid');
+  assert.ok(store.includes('class="option-list"'), 'The options/region level remains in the five-level product flow');
+  assert.ok(store.includes('class="pack-grid"'), 'The pack/price level remains in the five-level product flow');
+  assert.ok(theme.includes('.app-shell .catalog-grid{'), 'Nested category and product grids have explicit responsive layout rules');
+  assert.ok(theme.includes('.app-shell .option-list{'), 'Option cards have explicit responsive layout rules');
+  assert.ok(theme.includes('.app-shell .pack-grid{'), 'Pack/price cards have explicit responsive layout rules');
+
   assert.ok(theme.includes('grid-template-columns:repeat(4,minmax(0,1fr))'), 'Wide product/category grids use four columns');
   assert.ok(theme.includes(':root[data-theme="light"]'), 'Light theme is explicitly supported');
   assert.ok(theme.includes(':root[data-theme="dark"]'), 'Dark theme is explicitly supported');

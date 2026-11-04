@@ -1387,3 +1387,78 @@ body{font-family:Tahoma,"Segoe UI",Arial,sans-serif;overflow-x:hidden}
   body.admin-sidebar-open #app.shell .side{transform:translateX(0)!important}
   body.admin-sidebar-open #app.shell .admin-sidebar-backdrop{opacity:1!important;visibility:visible!important}
 }
+
+
+/* The reference uses card grids at every catalogue level, not only the homepage. */
+.app-shell .catalog-grid{
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  align-items:stretch!important;gap:15px!important;
+}
+.app-shell .catalog-grid .catalog-tile{min-width:0!important;width:100%!important;height:100%!important}
+.app-shell .option-list{
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  align-items:stretch!important;gap:14px!important;
+}
+.app-shell .option-list .option-card{
+  min-width:0!important;min-height:105px!important;width:100%!important;
+  display:flex!important;align-items:center!important;gap:13px!important;padding:13px!important;
+  border-radius:13px!important;background:var(--surface)!important;border:1px solid var(--line)!important;
+  color:var(--ink)!important;box-shadow:0 8px 22px rgba(18,76,105,.045)!important;
+}
+.app-shell .option-list .option-card:hover{
+  transform:translateY(-2px)!important;border-color:#6bc9ed!important;
+  box-shadow:0 13px 28px rgba(28,140,186,.11)!important;
+}
+.app-shell .option-list .option-card img{
+  width:70px!important;height:70px!important;flex:0 0 70px!important;
+  border-radius:11px!important;object-fit:cover!important;background:var(--surface-2)!important;
+}
+.app-shell .option-list .option-card strong{font-size:11px!important;color:var(--ink)!important}
+.app-shell .option-list .option-card small{font-size:9px!important;color:var(--muted)!important}
+.app-shell .option-list .option-flag{
+  margin-inline-start:auto!important;color:#1687b7!important;background:#e5f6fd!important;
+  border:1px solid #cceaf5!important;border-radius:10px!important;
+}
+.app-shell .pack-grid{
+  display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  align-items:stretch!important;gap:15px!important;
+}
+.app-shell .pack-grid .pack-card{
+  display:flex!important;flex-direction:column!important;min-width:0!important;height:100%!important;
+  overflow:hidden!important;border-radius:14px!important;background:var(--surface)!important;
+  border:1px solid var(--line)!important;box-shadow:0 9px 25px rgba(18,76,105,.05)!important;
+}
+.app-shell .pack-grid .pack-image{height:145px!important;position:relative!important;background:var(--surface-2)!important;overflow:hidden!important}
+.app-shell .pack-grid .pack-image img{width:100%!important;height:100%!important;object-fit:cover!important}
+.app-shell .pack-grid .pack-label{
+  position:absolute!important;top:10px!important;right:10px!important;border-radius:30px!important;
+  background:rgba(10,44,65,.78)!important;color:#dff7ff!important;padding:5px 9px!important;font-size:8px!important;
+}
+.app-shell .pack-grid .pack-body{display:flex!important;flex:1!important;flex-direction:column!important;padding:15px!important}
+.app-shell .pack-grid .pack-body h3{font-size:13px!important;color:var(--ink)!important}
+.app-shell .pack-grid .pack-body p{font-size:9px!important;color:var(--muted)!important;line-height:1.9!important}
+.app-shell .pack-grid .pack-price{margin-top:auto!important;padding:12px 0!important;color:#147eae!important;font-weight:1000!important;font-size:17px!important}
+.app-shell .pack-grid .pack-price small{display:block!important;color:var(--muted)!important;font-size:8px!important;font-weight:700!important}
+:root[data-theme="dark"] .app-shell .option-list .option-card,
+:root[data-theme="dark"] .app-shell .pack-grid .pack-card{background:#101f2e!important;border-color:#2b465a!important;color:#eaf7ff!important}
+:root[data-theme="dark"] .app-shell .option-list .option-card strong,
+:root[data-theme="dark"] .app-shell .pack-grid .pack-body h3{color:#edf8ff!important}
+:root[data-theme="dark"] .app-shell .option-list .option-card small,
+:root[data-theme="dark"] .app-shell .pack-grid .pack-body p{color:#95b1c1!important}
+:root[data-theme="dark"] .app-shell .option-list .option-flag{background:#173c54!important;color:#ace8ff!important;border-color:#2e5d76!important}
+:root[data-theme="dark"] .app-shell .pack-grid .pack-price{color:#9ee4ff!important}
+:root[data-theme="dark"] .app-shell .pack-grid .pack-price small{color:#91adbf!important}
+@media(max-width:1200px){
+  .app-shell .catalog-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .app-shell .option-list{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:650px){
+  .app-shell .catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+  .app-shell .option-list{grid-template-columns:1fr!important;gap:9px!important}
+  .app-shell .pack-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+  .app-shell .pack-grid .pack-image{height:112px!important}
+  .app-shell .pack-grid .pack-body{padding:10px!important}
+}
+@media(max-width:380px){
+  .app-shell .catalog-grid,.app-shell .pack-grid{grid-template-columns:1fr!important}
+}
