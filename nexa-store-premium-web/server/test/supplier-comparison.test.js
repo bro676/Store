@@ -12,6 +12,8 @@ test('same named product in the same game family compares across suppliers',()=>
   assert.notEqual(supplierProductMatchKey({name:'PUBG Mobile 60 UC'},'PUBG'),supplierProductMatchKey({name:'ببجي 60'},'PUBG Global'));
   assert.notEqual(supplierProductMatchKey({name:'PUBG Mobile 60 UC'},'PUBG'),supplierProductMatchKey({name:'60 UC'},'PUBG Global'));
   assert.equal(supplierCategoryMatchKey('PUBG Mobile'),supplierCategoryMatchKey('UC 60'));
+  assert.equal(supplierProductMatchKey({name:'UC 60'},'UC 60'),supplierProductMatchKey({name:'PUBG UC 60'},'PUBG Mobile'));
+  assert.notEqual(supplierProductMatchKey({name:'UC Browser Premium'},'Applications'),supplierProductMatchKey({name:'PUBG UC 60'},'PUBG Mobile'));
   assert.notEqual(supplierCategoryMatchKey('PUBG'),supplierCategoryMatchKey('Free Fire'));
 });
 
@@ -339,4 +341,21 @@ test('published legacy supplier keys can be found by the updated identity key',(
   const currentKey=sourceIndex.get('wamda:501');
   assert.equal(index.byMatchKey.get(currentKey).item.id,'published-old-key');
   assert.equal(index.byProviderProduct.get('wamda:501').item.id,'published-old-key');
+});
+
+
+test('Arabic duration variants and Persian digits normalize without losing denominations',()=>{
+  const a=supplierProductMatchKey({name:'PUBG Prime 6 Months'},'PUBG Mobile');
+  const b=supplierProductMatchKey({name:'برايم ٦ أشهر'},'PUBG Global');
+  assert.equal(a,b);
+  assert.notEqual(
+    supplierProductMatchKey({name:'Roblox 50 EUR'},'Roblox'),
+    supplierProductMatchKey({name:'Roblox 50 USD'},'Roblox')
+  );
+});
+
+test('emoji skin tone variants remain distinct supplier products',()=>{
+  const light=supplierProductMatchKey({name:'Telegram Reaction [👍🏻]'},'Telegram Reactions');
+  const dark=supplierProductMatchKey({name:'Telegram Reaction [👍🏿]'},'Telegram Reactions');
+  assert.notEqual(light,dark);
 });
