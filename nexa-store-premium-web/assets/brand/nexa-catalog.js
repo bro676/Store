@@ -61,6 +61,15 @@
    packCount:options.reduce((sum,option)=>sum+option.packs.filter(isValidPack).length,0)
   };
  }
+ function findProductControl(event){
+  const eventPath=typeof event?.composedPath==='function'?event.composedPath():[];
+  for(const node of eventPath){
+   if(node?.nodeType===1&&typeof node.matches==='function'&&node.matches('[data-open-item]'))return node;
+  }
+  const target=event?.target;
+  const element=target?.nodeType===1?target:target?.parentElement;
+  return element?.closest?.('[data-open-item]')||null;
+ }
  function findProduct(categories,productId,categoryId=null){
   const rows=Array.isArray(categories)?categories:[];
   const targetId=normalizeId(productId);
@@ -125,5 +134,5 @@
   if(pack)parts.push('packs','pack-'+slugify(pack?.[0]||'offer'));
   return parts.join('/');
  }
- window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
+ window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
 })();
