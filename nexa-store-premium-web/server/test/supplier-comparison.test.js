@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { compareSupplierCandidates, supplierProductMatchKey, supplierCategoryMatchKey, supplierCostInSyp, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey } from '../src/supplier-comparison.js';
+import { compareSupplierCandidates, supplierProductMatchKey, supplierCategoryMatchKey, supplierCostInSyp, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey, applyFirstPriceableSupplierCandidate } from '../src/supplier-comparison.js';
 
 test('same named product in the same game family compares across suppliers',()=>{
   const a={name:'PUBG UC 60'},b={name:'PUBG UC 60'};
@@ -66,4 +66,40 @@ test('explicit published supplierMatchKey takes precedence over the source index
   });
   assert.equal(existingSupplierMatchKey({supplierMatchKey:'explicit::key',wamda:{provider:'wamda',productId:101}},index),'explicit::key');
   assert.equal(existingSupplierMatchKey({id:'manual-product'},index),'');
+});
+
+
+test('unpriceable WAMDA winner falls back to the next supplier candidate',()=>{
+  const wamda={provider:'wamda',productId:11,costSyp:10};
+  const beststore={provider:'beststore',productId:22,costSyp:12};
+  const attempts=[];
+  const result=applyFirstPriceableSupplierCandidate({winner:wamda,candidates:[wamda,beststore]},candidate=>{
+    attempts.push(candidate.provider);
+    if(candidate.provider==='wamda')throw new Error('INVALID_WAMDA_CALCULATED_PRICE');
+    return {published:candidate.provider};
+  });
+  assert.deepEqual(attempts,['wamda','beststore']);
+  assert.equal(result.candidate.provider,'beststore');
+  assert.deepEqual(result.result,{published:'beststore'});
+  assert.deepEqual(result.unpriceableCandidates,[{
+    provider:'wamda',productId:11,categoryId:'',errorCode:'INVALID_WAMDA_CALCULATED_PRICE'
+  }]);
+});
+
+test('all unpriceable candidates skip only that product group',()=>{
+  const candidates=[
+    {provider:'wamda',productId:31},
+    {provider:'beststore',productId:32},
+  ];
+  const result=applyFirstPriceableSupplierCandidate({candidates},()=>{throw new Error('INVALID_WAMDA_CALCULATED_PRICE');});
+  assert.equal(result.candidate,null);
+  assert.equal(result.result,null);
+  assert.deepEqual(result.unpriceableCandidates.map(item=>item.productId),[31,32]);
+});
+
+test('supplier candidate application does not swallow unrelated publication failures',()=>{
+  assert.throws(
+    ()=>applyFirstPriceableSupplierCandidate({winner:{provider:'beststore'}},()=>{throw new Error('DATABASE_WRITE_FAILED');}),
+    /DATABASE_WRITE_FAILED/
+  );
 });
