@@ -291,3 +291,21 @@ test('folder deletion rejects product ID collisions in the destination',()=>{
   const destination={...catalog[0],id:'destination',items:[{...product}]};
   assert.throws(()=>deleteCatalogFolder([source,destination],'source','destination'),/PRODUCT_ID_COLLISION_IN_DESTINATION/);
 });
+
+test('product fulfillment settings are validated and bounded',()=>{
+  const manual={...catalog[0],items:[{...catalog[0].items[0],fulfillmentMode:'manual',manualDeliveryHours:36}]};
+  assert.equal(validateCatalog([manual])[0].items[0].manualDeliveryHours,36);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...catalog[0].items[0],fulfillmentMode:'instant'}]}]),/INVALID_PRODUCT_FULFILLMENT_MODE/);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...catalog[0].items[0],manualDeliveryHours:0}]}]),/INVALID_PRODUCT_MANUAL_DELIVERY_HOURS/);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...catalog[0].items[0],fulfillmentMode:'automatic'}]}]),/AUTOMATIC_FULFILLMENT_REQUIRES_SUPPORTED_SUPPLIER/);
+});
+
+test('catalogue sync preserves manual fulfillment choice and its delivery SLA',()=>{
+  const manualProduct={...catalog[0].items[0],fulfillmentMode:'manual',manualDeliveryHours:48,
+    manualOverrides:{fulfillmentMode:'manual',manualDeliveryHours:48}};
+  const original=[{...catalog[0],items:[manualProduct]}];
+  const incoming=[{...catalog[0],items:[{...catalog[0].items[0],fulfillmentMode:'automatic',manualDeliveryHours:24}]}];
+  const merged=mergeCatalog(original,incoming);
+  assert.equal(merged[0].items[0].fulfillmentMode,'manual');
+  assert.equal(merged[0].items[0].manualDeliveryHours,48);
+});
