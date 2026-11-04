@@ -682,7 +682,7 @@ async function verifyPayment(input) {
     if (order.status === 'paid') {
       const used = await client.query('SELECT transaction_id FROM nexa_payments WHERE order_id=$1',[orderId]);
       await client.query('COMMIT');
-      if (used.rowCount && used.rows[0].transaction_id === transactionRef) return {ok:true,alreadyPaid:true,orderId,transactionId:transactionRef,status:'paid',receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:order.paid_at ? new Date(order.paid_at).toISOString() : new Date().toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,...(['seagm','wamda','beststore'].includes(order.supplier_provider)?{delivery:supplierDeliveryForOrder(order)}:{})}};
+      if (used.rowCount && used.rows[0].transaction_id === transactionRef) return {ok:true,alreadyPaid:true,orderId,transactionId:transactionRef,status:'paid',receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:order.paid_at ? new Date(order.paid_at).toISOString() : new Date().toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,...(order.fulfillment_mode==='manual'||['seagm','wamda','beststore'].includes(order.supplier_provider)?{delivery:supplierDeliveryForOrder(order)}:{})}};
       return {error:'ORDER_ALREADY_PAID',status:409,message:'هذا الطلب مدفوع مسبقاً ولا يقبل رقم عملية آخر.'};
     }
     if (order.status !== 'pending_payment' || new Date(order.expires_at).getTime() <= Date.now()) {
@@ -756,7 +756,7 @@ async function verifyPayment(input) {
         paymentMethod:order.wallet_topup_customer_id?'shamcash_topup':'shamcash',
         ...(walletBalanceMinor!==null?{walletBalanceMinor}:{}),
         invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:paidAt.toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,
-        ...(order.supplier_provider==='wamda'?{delivery:{provider:'WAMDA',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.'}}:(order.supplier_provider==='beststore'?{delivery:{provider:'BEST_STORE',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى Best Store.'}}:(order.supplier_provider==='seagm'?{delivery:{provider:'SEAGM',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.'}}:{})))}};
+        ...(order.fulfillment_mode==='manual'?{delivery:supplierDeliveryForOrder({...order,supplier_status:'manual_pending',supplier_message:manualDeliveryMessage(order.manual_delivery_hours),paid_at:paidAt})}:(order.supplier_provider==='wamda'?{delivery:{provider:'WAMDA',mode:'automatic',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.'}}:(order.supplier_provider==='beststore'?{delivery:{provider:'BEST_STORE',mode:'automatic',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى Best Store.'}}:(order.supplier_provider==='seagm'?{delivery:{provider:'SEAGM',mode:'automatic',status:'pending',message:'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.'}}:{}))))}};
   } catch (error) {
     await client.query('ROLLBACK').catch(()=>{});
     if (error.code === '23505') return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'};
@@ -3192,7 +3192,7 @@ const server = http.createServer(async (req,res) => {
       const result = await pool.query(`SELECT o.id,o.product_label,o.amount_minor::text,o.currency,o.status,o.customer_name,o.customer_phone,o.game_account,o.notes,o.invoice_number,o.invoice_identifier,o.wallet_label,o.created_at,o.expires_at,o.paid_at,o.supplier_provider,o.supplier_kind,o.fulfillment_mode,o.manual_delivery_hours,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_mch_order_id,j.last_error AS supplier_error FROM nexa_orders o LEFT JOIN nexa_fulfillment_jobs j ON j.order_id=o.id ORDER BY o.created_at DESC LIMIT $1`,[limit]);
       return send(res,200,{ok:true,orders:result.rows.map(o=>({...o,amountMinor:o.amount_minor,createdAt:o.created_at,expiresAt:o.expires_at,paidAt:o.paid_at}))});
     }
-    const adminManualFulfillment = url.pathname.match(/^\\/api\\/admin\\/orders\\/(NX-[A-F0-9]{20})\\/fulfillment\\/complete$/);
+    const adminManualFulfillment = url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/fulfillment\/complete$/);
     if(req.method==='POST'&&adminManualFulfillment){
       if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
       const orderId=adminManualFulfillment[1],input=await bodyJson(req,12_000);
