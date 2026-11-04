@@ -39,7 +39,8 @@ export function manualPendingMessage(policy = {}) {
     ? Number(policy.etaHours)
     : 24;
   const custom = typeof policy.message === 'string' ? policy.message.trim().slice(0, 500) : '';
-  return custom || `تم تأكيد الدفع بنجاح. طلبك قيد التجهيز اليدوي، وسيتم إرسال بياناته خلال ${eta} ساعة كحد أقصى. ستجدها في صفحة «طلباتي».`;
+  const deadline=`المهلة القصوى للتسليم: ${eta} ساعة. ستظهر بيانات الطلب في صفحة «طلباتي» بعد اكتمال التجهيز.`;
+  return custom ? `${custom}\\n${deadline}` : `تم تأكيد الدفع بنجاح. طلبك قيد التجهيز اليدوي. ${deadline}`;
 }
 
 export function validateManualDeliveryInput(input = {}) {
