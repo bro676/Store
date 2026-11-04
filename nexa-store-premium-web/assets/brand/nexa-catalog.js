@@ -97,10 +97,9 @@
   const byId=new Map(rows.map(row=>[normalizeId(row?.id),row]));
   let current=category,steps=0;
   while(current&&steps++<=rows.length+1){
-   if(current.departmentId&&byId.has(normalizeId(current.id))&&byId.has(normalizeId(current.parentId||''))===false&&byId.get(normalizeId(current.id))?.departmentId)return current.departmentId;
    if(current.departmentId&&CATALOG_DEPARTMENT_IDS.has(current.departmentId))return current.departmentId;
    const parentId=normalizeId(current.parentId);
-   if(!parentId) return classifyCategory(current);
+   if(!parentId)return classifyCategory(current);
    current=byId.get(parentId)||null;
   }
   return 'other';
@@ -172,7 +171,7 @@
   try{const url=new URL(value);if(url.protocol==='https:')return url.href}catch{}
   return '';
  }
- function categoryImage(category){return safeImage(category?.image)||department(classifyCategory(category)).cover}
+ function categoryImage(category,categories=[]){return safeImage(category?.image)||department(getCategoryDepartmentId(category,categories)).cover}
  const icons=[
   [/(?:pubg|ببجي|بوبجي)/i,'assets/products/01-games/pubg/cover.svg'],
   [/(?:roblox|روبلوكس)/i,'assets/products/01-games/roblox/cover.svg'],
