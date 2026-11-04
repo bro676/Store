@@ -188,16 +188,16 @@
   [/(?:apple\s*card|itunes)/i,'assets/products/05-digital-cards/apple-card/cover.svg'],
   [/tiktok/i,'assets/products/09-social-marketing/tiktok/cover.svg']
  ];
- function productImage(product,category){
+ function productImage(product,category,categories=[]){
   const own=safeImage(product?.image);if(own)return own;
   const key=text([product?.name,product?.desc,category?.name].filter(Boolean).join(' '));
   for(const [pattern,src] of icons)if(pattern.test(key))return src;
-  return department(category?.departmentId||classifyCategory(category)).cover;
+  return department(getCategoryDepartmentId(category,categories)).cover;
  }
- function optionImage(option,product,category){return safeImage(option?.image)||productImage(product,category)}
+ function optionImage(option,product,category,categories=[]){return safeImage(option?.image)||productImage(product,category,categories)}
  function slugify(value){const result=text(value).replace(/[^\p{L}\p{N}]+/gu,'-').replace(/^-+|-+$/g,'').slice(0,64);return result||'item'}
- function folderFor(category,product,option,pack){
-  const group=department(classifyCategory(category));
+ function folderFor(category,product,option,pack,categories=[]){
+  const group=department(getCategoryDepartmentId(category,categories));
   const externalName=product?.apiSource?.name||product?.wamda?.externalName||product?.externalName||product?.sourceName||'';
   const externalPart=externalName&&text(externalName)!==text(product?.name)?'--source-'+slugify(externalName):'';
   const productFolder=slugify(product?.name)+externalPart+'--'+slugify(product?.id||'product');
