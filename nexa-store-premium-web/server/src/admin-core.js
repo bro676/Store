@@ -106,7 +106,7 @@ export function validateCatalog(input) {
           if (!Array.isArray(pack) || pack.length !== 2) throw new Error('INVALID_PACK');
           requiredText(pack[0], 120, 'PACK_NAME');
           const supplierLinked = product.wamda?.provider === 'wamda' || product.bestStore?.provider === 'beststore';
-          const maximumDecimals = supplierLinked ? 8 : 2;
+          const maximumDecimals = supplierLinked ? 12 : 2;
           if (!Number.isFinite(pack[1]) || pack[1] < 0 || pack[1] > 1_000_000_000 || !hasAtMostDecimalPlaces(pack[1], maximumDecimals)) throw new Error('INVALID_PACK_PRICE');
         }
       }
