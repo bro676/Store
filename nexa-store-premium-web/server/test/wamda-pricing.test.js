@@ -131,7 +131,7 @@ test('keeps sub-cent WAMDA unit prices and rounds only after quantity is applied
     fxRate:145,
     pricingRule:{mode:'percent',value:15},
   });
-  assert.equal(unitPrice,0.00477989);
+  assert.equal(unitPrice,0.00477988875);
   assert.equal(supplierUnitPriceToMinor(unitPrice,10),5n);
   assert.equal(supplierUnitPriceToMinor(unitPrice,1000),478n);
 });
