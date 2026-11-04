@@ -96,7 +96,7 @@ export function validateCatalog(input) {
       if (category.departmentId !== undefined && category.departmentId !== null && category.departmentId !== '') throw new Error('NESTED_CATEGORY_CANNOT_SET_DEPARTMENT');
     }
     if (category.departmentId !== undefined && category.departmentId !== null && category.departmentId !== '' && !CATALOG_DEPARTMENT_IDS.has(category.departmentId)) throw new Error('INVALID_CATEGORY_DEPARTMENT');
-    if (category.sortOrder !== undefined && (!Number.isSafeInteger(category.sortOrder) || Math.abs(category.sortOrder)>1_000_000)) throw new Error('INVALID_CATEGORY_SORT_ORDER');
+    if (category.sortOrder !== undefined && (!Number.isSafeInteger(category.sortOrder) || category.sortOrder<0 || category.sortOrder>1_000_000)) throw new Error('INVALID_CATEGORY_SORT_ORDER');
     if (category.visible !== undefined && typeof category.visible !== 'boolean') throw new Error('INVALID_CATEGORY_VISIBILITY');
     if (category.manualOverrides !== undefined && (!category.manualOverrides || typeof category.manualOverrides!=='object' || Array.isArray(category.manualOverrides))) throw new Error('INVALID_CATEGORY_MANUAL_OVERRIDES');
     if (category.sourceCategoryAliases !== undefined && (!Array.isArray(category.sourceCategoryAliases) || category.sourceCategoryAliases.length>40 || category.sourceCategoryAliases.some(value=>typeof value!=='string'||value.length>100))) throw new Error('INVALID_CATEGORY_SOURCE_ALIASES');
@@ -109,7 +109,7 @@ export function validateCatalog(input) {
       if (typeof product.desc !== 'string' || product.desc.length > 700) throw new Error('INVALID_PRODUCT_DESC');
       if (!isSafeCatalogImage(product.image)) throw new Error('INVALID_PRODUCT_IMAGE');
       if (product.visible !== undefined && typeof product.visible !== 'boolean') throw new Error('INVALID_PRODUCT_VISIBILITY');
-      if (product.sortOrder !== undefined && (!Number.isSafeInteger(product.sortOrder) || Math.abs(product.sortOrder)>1_000_000)) throw new Error('INVALID_PRODUCT_SORT_ORDER');
+      if (product.sortOrder !== undefined && (!Number.isSafeInteger(product.sortOrder) || product.sortOrder<0 || product.sortOrder>1_000_000)) throw new Error('INVALID_PRODUCT_SORT_ORDER');
       if (product.fulfillmentMode !== undefined && !['automatic','manual'].includes(product.fulfillmentMode)) throw new Error('INVALID_PRODUCT_FULFILLMENT_MODE');
       if (product.fulfillmentMode === 'automatic' && !(
         product.seagm?.provider === 'seagm' || product.wamda?.provider === 'wamda' || product.bestStore?.provider === 'beststore'
