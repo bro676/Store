@@ -301,10 +301,12 @@ test('product fulfillment settings are validated and bounded',()=>{
 });
 
 test('catalogue sync preserves manual fulfillment choice and its delivery SLA',()=>{
-  const manualProduct={...catalog[0].items[0],fulfillmentMode:'manual',manualDeliveryHours:48,
+  const supplierLink={provider:'seagm',kind:'card',categoryId:1,typeId:1};
+  const manualProduct={...catalog[0].items[0],seagm:supplierLink,fulfillmentMode:'manual',manualDeliveryHours:48,
     manualOverrides:{fulfillmentMode:'manual',manualDeliveryHours:48}};
   const original=[{...catalog[0],items:[manualProduct]}];
-  const incoming=[{...catalog[0],items:[{...catalog[0].items[0],fulfillmentMode:'automatic',manualDeliveryHours:24}]}];
+  const supplierProduct={...catalog[0].items[0],seagm:supplierLink,fulfillmentMode:'automatic',manualDeliveryHours:24};
+  const incoming=[{...catalog[0],items:[supplierProduct]}];
   const merged=mergeCatalog(original,incoming);
   assert.equal(merged[0].items[0].fulfillmentMode,'manual');
   assert.equal(merged[0].items[0].manualDeliveryHours,48);
