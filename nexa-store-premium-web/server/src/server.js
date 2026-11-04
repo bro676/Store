@@ -3195,7 +3195,7 @@ const server = http.createServer(async (req,res) => {
     const adminManualFulfillment = url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/fulfillment\/complete$/);
     if(req.method==='POST'&&adminManualFulfillment){
       if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
-      const orderId=adminManualFulfillment[1],input=await bodyJson(req,12_000);
+      const orderId=adminManualFulfillment[1],input=await bodyJson(req,36_000);
       const deliveryText=String(input.deliveryText||'').trim();
       if(!deliveryText||deliveryText.length>8_000)return send(res,400,{ok:false,error:'INVALID_DELIVERY_DATA',message:'أدخل بيانات التسليم من 1 إلى 8000 حرف.'});
       const encrypted=encryptSecret(JSON.stringify({deliveryText}),cfg.settingsEncryptionKey);
