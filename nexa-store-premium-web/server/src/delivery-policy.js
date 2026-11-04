@@ -40,7 +40,7 @@ export function manualPendingMessage(policy = {}) {
     : 24;
   const custom = typeof policy.message === 'string' ? policy.message.trim().slice(0, 500) : '';
   const deadline=`المهلة القصوى للتسليم: ${eta} ساعة. ستظهر بيانات الطلب في صفحة «طلباتي» بعد اكتمال التجهيز.`;
-  return custom ? `${custom}\\n${deadline}` : `تم تأكيد الدفع بنجاح. طلبك قيد التجهيز اليدوي. ${deadline}`;
+  return custom ? `${custom}\n${deadline}` : `تم تأكيد الدفع بنجاح. طلبك قيد التجهيز اليدوي. ${deadline}`;
 }
 
 export function validateManualDeliveryInput(input = {}) {
