@@ -145,7 +145,7 @@ test('storefront product navigation normalizes ids and keeps the originating cat
   assert.ok(store.includes('data-open-item=\"\'+esc(it.id)+\'\" data-open-category=\"\'+esc(cat.id)+\'\">استكشف'), 'Featured call-to-action retains its category id');
   assert.ok(store.includes("document.addEventListener('click',e=>{const favoriteControl=eventElement(e,'[data-favorite]')"), 'Home, catalogue/search, and favourites share document-level product click delegation');
   assert.ok(store.includes('const productControl=NexaCatalog.findProductControl(e)'), 'Product clicks use the canonical composed-path activation helper');
-  assert.ok(store.includes("openItem(control.getAttribute('data-open-item'),control.getAttribute('data-open-category')||null)"), 'The product handler passes both identifiers into the detail route');
+  assert.ok(store.includes("openItem(productControl.getAttribute('data-open-item'),productControl.getAttribute('data-open-category')||null)"), 'The product handler passes both identifiers into the detail route');
   const openItem = store.slice(store.indexOf('function openItem'), store.indexOf('function closestStoreTarget'));
   assert.ok(openItem.includes('NexaCatalog.resolveProductNavigation(categories,itemId,categoryId)'), 'Product selection uses the canonical API resolver');
   assert.ok(openItem.includes('state.category=resolved.categoryId;'), 'Product selection stores the canonical category identifier');
