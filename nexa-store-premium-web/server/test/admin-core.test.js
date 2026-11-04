@@ -135,6 +135,41 @@ test('catalog merge preserves existing products and appends products from incomi
   const merged = mergeCatalog(original,incoming);
   assert.deepEqual(merged[0].items.map(item=>item.id),['freefire','roblox','pubg']);
 });
+
+test('supplier catalogue sync preserves manual delivery mode, ETA, and customer message overrides',()=>{
+  const original=[{
+    ...catalog[0],
+    items:[{
+      ...catalog[0].items[0],
+      deliveryMode:'manual',
+      deliveryEtaHours:9,
+      deliveryMessage:'يتم التسليم خلال 9 ساعات.',
+      manualOverrides:{
+        deliveryMode:'manual',
+        deliveryEtaHours:9,
+        deliveryMessage:'يتم التسليم خلال 9 ساعات.',
+      },
+    }],
+  }];
+  const incoming=[{
+    ...catalog[0],
+    items:[{
+      ...catalog[0].items[0],
+      name:'Supplier updated name',
+      deliveryMode:'automatic',
+      deliveryEtaHours:24,
+      deliveryMessage:'',
+      seagm:{provider:'seagm',autoDelivery:true,kind:'card',typeId:10,categoryId:2},
+    }],
+  }];
+  const merged=mergeCatalog(original,incoming);
+  const product=merged[0].items[0];
+  assert.equal(product.name,'Supplier updated name');
+  assert.equal(product.deliveryMode,'manual');
+  assert.equal(product.deliveryEtaHours,9);
+  assert.equal(product.deliveryMessage,'يتم التسليم خلال 9 ساعات.');
+});
+
 test('catalog replace mode is explicit', () => {
   const replacement = [{...catalog[0],name:'Replaced'}];
   assert.equal(mergeCatalog(catalog,replacement,'replace')[0].name,'Replaced');
