@@ -811,23 +811,57 @@ function setPath(path,value){const parts=path.split('.');let node=state.catalog;
 function field(label,path,value,opts={}){const type=opts.type||'text';return `<div class="field ${opts.full?'full':''}"><label>${label}</label>${type==='textarea'?`<textarea data-path="${path}" placeholder="${esc(opts.placeholder||'')}" maxlength="${opts.max||700}">${esc(value)}</textarea>`:`<input data-path="${path}" type="${type}" value="${esc(value)}" ${opts.step?`step="${opts.step}"`:''} ${opts.min!==undefined?`min="${opts.min}"`:''} ${opts.max!==undefined?`max="${opts.max}"`:''}>`}</div>`}
 function activeCategory(){return state.categoryIndex>=0?state.catalog[state.categoryIndex]||null:null}
 function categoryDepartmentId(category){return NexaCatalog.getCategoryDepartmentId(category,state.catalog)}
-function adminFolderChildren(parentId=null,departmentId=null,indexById=null){
- const indexMap=indexById||new Map(state.catalog.map((category,index)=>[category.id,index]));
- const rows=state.catalog.filter(category=>
-  String(category.parentId||'')===String(parentId||'')&&
-  (parentId!==null?true:categoryDepartmentId(category)===departmentId)
- );
- return rows.map(category=>({category,index:indexMap.get(category.id)??-1,count:NexaCatalog.getFolderProductCount(category,state.catalog)}))
-  .sort((a,b)=>NexaCatalog.sortPriority(a.category.sortOrder)-NexaCatalog.sortPriority(b.category.sortOrder)||a.count-b.count||
-   String(a.category.name||'').localeCompare(String(b.category.name||''),'ar',{numeric:true,sensitivity:'base'}));
+function buildAdminFolderIndex(){
+ const byId=new Map();
+ const indexById=new Map();
+ const childrenByParent=new Map();
+ const rootsByDepartment=new Map();
+ for(let index=0;index<state.catalog.length;index++){
+  const category=state.catalog[index],id=String(category.id);
+  byId.set(id,category);indexById.set(id,index);
+  if(category.parentId){
+   const parent=String(category.parentId);
+   if(!childrenByParent.has(parent))childrenByParent.set(parent,[]);
+   childrenByParent.get(parent).push(category);
+  }else{
+   const department=categoryDepartmentId(category);
+   if(!rootsByDepartment.has(department))rootsByDepartment.set(department,[]);
+   rootsByDepartment.get(department).push(category);
+  }
+ }
+ const countById=new Map();
+ function countProducts(id,visiting=new Set()){
+  if(countById.has(id))return countById.get(id);
+  if(visiting.has(id))return 0;
+  const category=byId.get(id);if(!category)return 0;
+  visiting.add(id);
+  let total=Array.isArray(category.items)?category.items.length:0;
+  for(const child of childrenByParent.get(id)||[])total+=countProducts(String(child.id),visiting);
+  visiting.delete(id);countById.set(id,total);return total;
+ }
+ for(const category of state.catalog)countProducts(String(category.id));
+ return {indexById,childrenByParent,rootsByDepartment,countById};
 }
-function renderFolderBranch(parentId,departmentId,depth=0,indexById=null){
- const indexMap=indexById||new Map(state.catalog.map((category,index)=>[category.id,index]));
- return adminFolderChildren(parentId,departmentId,indexMap).map(({category,index,count})=>
+function adminFolderChildren(parentId=null,departmentId=null,treeIndex){
+ const rows=parentId
+  ?(treeIndex.childrenByParent.get(String(parentId))||[])
+  :(treeIndex.rootsByDepartment.get(String(departmentId))||[]);
+ return rows.map(category=>({
+  category,
+  index:treeIndex.indexById.get(String(category.id))??-1,
+  count:treeIndex.countById.get(String(category.id))||0,
+ })).sort((a,b)=>
+  NexaCatalog.sortPriority(a.category.sortOrder)-NexaCatalog.sortPriority(b.category.sortOrder)||
+  a.count-b.count||
+  String(a.category.name||'').localeCompare(String(b.category.name||''),'ar',{numeric:true,sensitivity:'base'})
+ );
+}
+function renderFolderBranch(parentId,departmentId,depth=0,treeIndex){
+ return adminFolderChildren(parentId,departmentId,treeIndex).map(({category,index,count})=>
   '<button type="button" class="category-choice folder-choice '+(index===state.categoryIndex?'active':'')+'" data-category-index="'+index+'" style="padding-right:'+(11+depth*15)+'px">'+
    '<span>'+esc(category.icon||'📁')+'</span><strong>'+esc(category.name)+'</strong><span>'+count+'</span>'+
    (category.visible===false?'<small class="tag red">مخفي</small>':'')+'</button>'+
-   renderFolderBranch(category.id,null,depth+1,indexMap)
+   renderFolderBranch(category.id,null,depth+1,treeIndex)
  ).join('');
 }
 function categoryPathLabel(category){
@@ -845,13 +879,13 @@ function folderDescendantIds(category){
 }
 function renderCatalog(){
  const cat=activeCategory();
- const catalogIndexById=new Map(state.catalog.map((category,index)=>[category.id,index]));
+ const folderIndex=buildAdminFolderIndex();
  const departments=NexaCatalog.departments;
  $('categoryList').innerHTML=departments.map(department=>{
   const count=state.catalog.filter(row=>categoryDepartmentId(row)===department.id).reduce((sum,row)=>sum+(row.items||[]).length,0);
   const active=state.selectedDepartmentId===department.id&&(state.categoryIndex<0||categoryDepartmentId(cat)===department.id);
   return '<button type="button" class="category-choice department-choice '+(active?'active':'')+'" data-department-id="'+esc(department.id)+'"><span>'+esc(department.icon)+'</span><strong>'+esc(department.name)+'</strong><span>'+count+'</span></button>'+
-   renderFolderBranch(null,department.id,1,catalogIndexById);
+   renderFolderBranch(null,department.id,1,folderIndex);
  }).join('')||'<div class="empty">لا توجد مجلدات.</div>';
  if(!cat){
   $('addProductBtn').disabled=true;
