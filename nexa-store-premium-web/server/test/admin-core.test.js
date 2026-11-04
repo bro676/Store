@@ -262,10 +262,16 @@ test('deleting a non-empty folder rehomes products and child folders without cha
   assert.equal(result.find(row=>row.id==='leaf-folder').parentId,'child-folder');
 });
 
-test('deleting an empty folder needs no destination',()=>{
+test('deleting an empty folder needs no destination when another folder remains',()=>{
   const empty={...catalog[0],id:'empty-folder',name:'Empty',parentId:'',departmentId:'games',items:[]};
-  const result=deleteCatalogFolder([empty],'empty-folder');
-  assert.deepEqual(result,[]);
+  const retained={...catalog[0],id:'retained-folder',name:'Retained',parentId:'',departmentId:'games',items:[]};
+  const result=deleteCatalogFolder([empty,retained],'empty-folder');
+  assert.deepEqual(result.map(row=>row.id),['retained-folder']);
+});
+
+test('deleting the final empty folder is rejected to keep the catalog non-empty',()=>{
+  const empty={...catalog[0],id:'only-folder',name:'Only',parentId:'',departmentId:'games',items:[]};
+  assert.throws(()=>deleteCatalogFolder([empty],'only-folder'),/LAST_CATALOG_FOLDER_CANNOT_DELETE/);
 });
 
 test('deleting a non-empty folder without a destination is rejected',()=>{
