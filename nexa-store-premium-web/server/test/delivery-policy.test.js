@@ -48,7 +48,7 @@ test('manual delivery accepts bounded non-empty text only', () => {
     customerMessage:'تم تجهيز طلبك.',
   });
   assert.throws(()=>validateManualDeliveryInput({deliveryData:'   '}),{status:400});
-  assert.throws(()=>validateManualDeliveryInput({deliveryData:'credential\\0token'}),{status:400});
+  assert.throws(()=>validateManualDeliveryInput({deliveryData:'credential\0token'}),{status:400});
   assert.throws(()=>validateManualDeliveryInput({deliveryData: 'x'.repeat(8001)}),{status:400});
   assert.throws(()=>validateManualDeliveryInput({deliveryData:'ok',customerMessage:'x'.repeat(501)}),{status:400});
 });
