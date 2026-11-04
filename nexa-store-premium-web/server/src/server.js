@@ -15,7 +15,7 @@ import { createSeagmClient } from './seagm-api.js';
 import { createWamdaClient } from './wamda-api.js';
 import { createBestStoreClient, normalizeBestStoreProduct } from './best-store-api.js';
 import { bestStoreOrderDecision, classifyBestStoreError } from './best-store-fulfillment.js';
-import { compareSupplierCandidates, supplierProductMatchKey, supplierCategoryMatchKey, normalizeSupplierText, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey, applyFirstPriceableSupplierCandidate } from './supplier-comparison.js';
+import { compareSupplierCandidates, supplierProductMatchKey, supplierCategoryMatchKey, normalizeSupplierText, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey, applyFirstPriceableSupplierCandidate, buildSupplierCatalogIndex, registerSupplierCatalogCategory, updateSupplierCatalogIndex } from './supplier-comparison.js';
 import { wamdaOrderDecision, classifyWamdaError } from './wamda-fulfillment.js';
 import { normalizeWamdaMargin, normalizeWamdaPricingRule, resolveWamdaPricingRule, calculateWamdaSellPriceSyp, calculateWamdaSellUnitPriceSyp, supplierUnitPriceToMinor, updateWamdaPublishedProduct, markWamdaProductUnavailable } from './wamda-pricing.js';
 import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSignature } from './seagm-webhook.js';
@@ -1339,10 +1339,15 @@ function collectSupplierCandidates(settings=storeSettings){
   }
   return candidates;
 }
-function applySupplierWinnerToCatalog(nextCatalog,winner,pricingSettings=storeSettings,sourceMatchIndex=buildSupplierSourceMatchKeyIndex(pricingSettings)){
+function applySupplierWinnerToCatalog(nextCatalog,winner,pricingSettings=storeSettings,sourceMatchIndex=buildSupplierSourceMatchKeyIndex(pricingSettings),catalogIndex=null){
   const {provider,product:source,categoryName,categoryImage,categoryId,productId,matchKey}=winner;
-  const existing=nextCatalog.flatMap(category=>category.items||[]).find(item=>existingSupplierMatchKey(item,sourceMatchIndex)===matchKey)||
-    nextCatalog.flatMap(category=>category.items||[]).find(item=>provider==='wamda'?item.wamda?.provider==='wamda'&&Number(item.wamda.productId)===productId:item.bestStore?.provider==='beststore'&&Number(item.bestStore.productId)===productId)||null;
+  const existingEntry=catalogIndex
+    ? (catalogIndex.byMatchKey.get(matchKey)||catalogIndex.byProviderProduct.get(`${provider}:${productId}`)||null)
+    : null;
+  const existing=existingEntry?.item||(catalogIndex?null:(
+    nextCatalog.flatMap(category=>category.items||[]).find(item=>existingSupplierMatchKey(item,sourceMatchIndex)===matchKey)||
+    nextCatalog.flatMap(category=>category.items||[]).find(item=>provider==='wamda'?item.wamda?.provider==='wamda'&&Number(item.wamda.productId)===productId:item.bestStore?.provider==='beststore'&&Number(item.bestStore.productId)===productId)||null
+  ));
   const manual={...(existing?.manualOverrides&&typeof existing.manualOverrides==='object'?existing.manualOverrides:{})};
   const previousApi=existing?.apiSource&&typeof existing.apiSource==='object'?existing.apiSource:{};
   if(existing){
@@ -1387,18 +1392,35 @@ function applySupplierWinnerToCatalog(nextCatalog,winner,pricingSettings=storeSe
         fields:Array.isArray(source.fields)?source.fields:[],available:source.available!==false,priceMode:manualPrice?'manual':'auto',manualPriceSyp:manualPrice,
         calculatedSellPriceSyp:calculatedPrice,pricingOverride:override}};
   }
-  const existingParent=existing?nextCatalog.find(category=>(category.items||[]).some(item=>item.id===existing.id)):null;
+  const existingParent=existingEntry?.category||(existing?nextCatalog.find(category=>(category.items||[]).some(item=>item.id===existing.id)):null);
   const normalizedCategory=normalizeSupplierText(categoryName||'خدمات رقمية متنوعة');
   const categoryMatch=supplierCategoryMatchKey(categoryName||'خدمات رقمية متنوعة');
-  const exactCategory=nextCatalog.find(category=>normalizeSupplierText(category.name||'')===normalizedCategory);
-  const familyCategory=nextCatalog.find(category=>supplierCategoryMatchKey(category.name||'')===categoryMatch);
+  const exactCategory=catalogIndex?.categoryByName.get(normalizedCategory)||nextCatalog.find(category=>normalizeSupplierText(category.name||'')===normalizedCategory);
+  const familyCategory=catalogIndex?.categoryByFamily.get(categoryMatch)||nextCatalog.find(category=>supplierCategoryMatchKey(category.name||'')===categoryMatch);
   // Keep an already-published product in its current storefront category when the
   // winning supplier changes. Otherwise merge categories from equivalent game families.
   const targetId=existingParent?.id||exactCategory?.id||familyCategory?.id||('supplier-category-'+bestStoreCategoryKey(categoryName||'خدمات رقمية متنوعة'));
-  let target=nextCatalog.find(category=>category.id===targetId);
-  if(!target){target={id:targetId,name:String(categoryName||'خدمات رقمية متنوعة').slice(0,100),desc:'منتجات رقمية متزامنة من الموردين المتاحين.',image:safeBestStoreImage(categoryImage)||'assets/products/_shared/category-placeholder.svg',icon:'✦',items:[]};nextCatalog.push(target);}
-  for(const category of nextCatalog)category.items=(category.items||[]).filter(item=>item.id!==updated.id&&existingSupplierMatchKey(item,sourceMatchIndex)!==matchKey);
-  target.items=target.items||[];target.items.push(updated);return {catalog:nextCatalog,created:!existing,updated,existing};
+  let target=existingParent||exactCategory||familyCategory||nextCatalog.find(category=>category.id===targetId);
+  if(!target){
+    target={id:targetId,name:String(categoryName||'خدمات رقمية متنوعة').slice(0,100),desc:'منتجات رقمية متزامنة من الموردين المتاحين.',image:safeBestStoreImage(categoryImage)||'assets/products/_shared/category-placeholder.svg',icon:'✦',items:[]};
+    nextCatalog.push(target);if(catalogIndex)registerSupplierCatalogCategory(catalogIndex,target);
+  }
+  target.items=target.items||[];
+  if(catalogIndex){
+    let itemIndex=-1;
+    if(existingEntry&&existingEntry.category===target&&target.items[existingEntry.index]?.id===updated.id){
+      itemIndex=existingEntry.index;target.items[itemIndex]=updated;
+    }else{
+      itemIndex=existingEntry?target.items.findIndex(item=>item.id===updated.id):-1;
+      if(itemIndex>=0)target.items[itemIndex]=updated;
+      else{target.items.push(updated);itemIndex=target.items.length-1;}
+    }
+    updateSupplierCatalogIndex(catalogIndex,existingEntry,updated,target,itemIndex,matchKey);
+  }else{
+    for(const category of nextCatalog)category.items=(category.items||[]).filter(item=>item.id!==updated.id&&existingSupplierMatchKey(item,sourceMatchIndex)!==matchKey);
+    target.items.push(updated);
+  }
+  return {catalog:nextCatalog,created:!existing,updated,existing};
 }
 async function publishCheapestSupplierProduct(input){
   if(wamdaBulkPublishInProgress||supplierCompareSyncInProgress)throw Object.assign(new Error('توجد مقارنة أو عملية نشر جماعي قيد التنفيذ.'),{status:409});
@@ -1429,10 +1451,10 @@ async function compareAndPublishSupplierCatalog({refresh=true,source='manual'}={
     if(!groups.length&&!candidates.length)throw Object.assign(new Error('لم يُرجع أي مورد منتجات قابلة للمقارنة.'),{status:409});
     wamdaBulkPublishInProgress=true;let created=0,updated=0,compared=0,bestStoreWins=0,wamdaWins=0,skippedUnpriceable=0;
     let nextCatalog=catalog.map(category=>({...category,items:[...(category.items||[])]}));
-    const sourceMatchIndex=buildSupplierSourceMatchKeyIndex(storeSettings),unpriceableKeys=new Set();
+    const sourceMatchIndex=buildSupplierSourceMatchKeyIndex(storeSettings),catalogIndex=buildSupplierCatalogIndex(nextCatalog,sourceMatchIndex),unpriceableKeys=new Set();
     for(const group of groups){
       const applied=applyFirstPriceableSupplierCandidate(group,candidate=>
-        applySupplierWinnerToCatalog(nextCatalog,candidate,storeSettings,sourceMatchIndex));
+        applySupplierWinnerToCatalog(nextCatalog,candidate,storeSettings,sourceMatchIndex,catalogIndex));
       for(const skipped of applied.unpriceableCandidates){
         console.warn('supplier candidate skipped: invalid calculated selling price',JSON.stringify({
           provider:skipped.provider,productId:skipped.productId,categoryId:skipped.categoryId,errorCode:skipped.errorCode

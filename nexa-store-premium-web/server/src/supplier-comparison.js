@@ -90,6 +90,71 @@ export function existingSupplierMatchKey(product, sourceMatchIndex = new Map()) 
   if (!Number.isSafeInteger(productId) || productId <= 0) return '';
   return sourceMatchIndex instanceof Map ? (sourceMatchIndex.get(`${provider}:${productId}`) || '') : '';
 }
+
+function supplierProviderProductKeys(product) {
+  const keys=[];
+  if(product?.wamda?.provider==='wamda'){
+    const id=Number(product.wamda.productId);
+    if(Number.isSafeInteger(id)&&id>0)keys.push(`wamda:${id}`);
+  }
+  if(product?.bestStore?.provider==='beststore'){
+    const id=Number(product.bestStore.productId);
+    if(Number.isSafeInteger(id)&&id>0)keys.push(`beststore:${id}`);
+  }
+  return keys;
+}
+
+export function registerSupplierCatalogCategory(index, category) {
+  if(!index||!category)return;
+  const normalized=normalizeSupplierText(category.name||'');
+  if(normalized&&!index.categoryByName.has(normalized))index.categoryByName.set(normalized,category);
+  const family=supplierCategoryMatchKey(category.name||'');
+  if(family&&!index.categoryByFamily.has(family))index.categoryByFamily.set(family,category);
+}
+
+/**
+ * One-pass index of the existing storefront catalog. Bulk publication uses
+ * this to avoid scanning thousands of catalog rows for every supplier SKU.
+ */
+export function buildSupplierCatalogIndex(catalog, sourceMatchIndex = new Map()) {
+  const index={
+    byMatchKey:new Map(),
+    byProviderProduct:new Map(),
+    categoryByName:new Map(),
+    categoryByFamily:new Map(),
+    sourceMatchIndex,
+  };
+  for(const category of Array.isArray(catalog)?catalog:[]){
+    registerSupplierCatalogCategory(index,category);
+    const items=Array.isArray(category?.items)?category.items:[];
+    for(let position=0;position<items.length;position++){
+      const item=items[position],entry={category,index:position,item};
+      const key=existingSupplierMatchKey(item,sourceMatchIndex);
+      if(key&&!index.byMatchKey.has(key))index.byMatchKey.set(key,entry);
+      for(const providerKey of supplierProviderProductKeys(item)){
+        if(!index.byProviderProduct.has(providerKey))index.byProviderProduct.set(providerKey,entry);
+      }
+    }
+  }
+  return index;
+}
+
+/** Update the in-memory lookup maps after an item is replaced or inserted. */
+export function updateSupplierCatalogIndex(index, previousEntry, product, category, itemIndex, matchKey) {
+  if(!index||!category||!product)return null;
+  if(previousEntry?.item){
+    const oldKey=existingSupplierMatchKey(previousEntry.item,index.sourceMatchIndex);
+    if(oldKey&&index.byMatchKey.get(oldKey)===previousEntry)index.byMatchKey.delete(oldKey);
+    for(const providerKey of supplierProviderProductKeys(previousEntry.item)){
+      if(index.byProviderProduct.get(providerKey)===previousEntry)index.byProviderProduct.delete(providerKey);
+    }
+  }
+  const nextEntry={category,index:itemIndex,item:product};
+  if(matchKey)index.byMatchKey.set(String(matchKey),nextEntry);
+  for(const providerKey of supplierProviderProductKeys(product))index.byProviderProduct.set(providerKey,nextEntry);
+  registerSupplierCatalogCategory(index,category);
+  return nextEntry;
+}
 export function supplierCostInSyp(candidate, fxRate = 145) {
   const cost = Number(candidate?.sourceCost ?? candidate?.unitPrice ?? candidate?.price);
   if (!Number.isFinite(cost) || cost <= 0) return null;
