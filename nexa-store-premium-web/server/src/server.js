@@ -49,6 +49,8 @@ const cfg = {
   databaseUrl: process.env.DATABASE_URL || '',
   databaseSsl: String(process.env.DATABASE_SSL || 'true').toLowerCase() === 'true',
   paymentsEnabled: String(process.env.PAYMENTS_ENABLED || 'false').toLowerCase() === 'true',
+  // Customer registration is intentionally disabled until the owner approves launch.
+  customerRegistrationEnabled: String(process.env.CUSTOMER_REGISTRATION_ENABLED || 'false').toLowerCase() === 'true',
   maxAgeMs: Number(process.env.PAYMENT_MAX_AGE_MINUTES || 15) * 60_000,
   futureSkewMs: Number(process.env.PAYMENT_FUTURE_SKEW_SECONDS || 90) * 1000,
   orderTtlMinutes: Number(process.env.PAYMENT_ORDER_TTL_MINUTES || 15),
@@ -2510,6 +2512,7 @@ const server = http.createServer(async (req,res) => {
     });
 
     if(req.method==='POST'&&url.pathname==='/api/account/register'){
+      if(!cfg.customerRegistrationEnabled)return send(res,403,{ok:false,error:'REGISTRATION_DISABLED',message:'إنشاء الحسابات الجديدة متوقف مؤقتاً. يمكنك تسجيل الدخول برقم الهاتف وكلمة المرور إذا كان لديك حساب.'});
       if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED',message:'خدمة الحسابات غير جاهزة حالياً.'});
       if(rateLimit(req,res,'account-register:'+ip,5,10*60_000))return;
       const input=await bodyJson(req,4096);
