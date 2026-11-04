@@ -2,6 +2,66 @@ function roundMoney(value) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+function roundUnitMoney(value) {
+  return Math.round((value + Number.EPSILON) * 100_000_000) / 100_000_000;
+}
+
+/**
+ * Calculate a sell price for one supplier unit. Keep the existing 2-decimal
+ * rule for normal unit prices, but preserve up to 8 decimal places when
+ * rounding a tiny per-unit cost to cents would turn it into zero.
+ */
+export function calculateWamdaSellUnitPriceSyp({
+  unitPriceUsd,
+  fxRate,
+  marginPercent = 0,
+  pricingRule,
+} = {}) {
+  const costUsd = Number(unitPriceUsd);
+  const exchangeRate = Number(fxRate);
+  if (!Number.isFinite(costUsd) || costUsd <= 0 || costUsd > 1_000_000_000) {
+    throw Object.assign(new Error('INVALID_WAMDA_UNIT_PRICE'), { status:422 });
+  }
+  if (!Number.isFinite(exchangeRate) || exchangeRate <= 0 || exchangeRate > 1_000_000) {
+    throw Object.assign(new Error('INVALID_WAMDA_FX_RATE'), { status:422 });
+  }
+  const rule = pricingRule
+    ? normalizeWamdaPricingRule(pricingRule)
+    : { mode:'percent', value:normalizeWamdaMargin(marginPercent) };
+  const baseCostSyp = costUsd * exchangeRate;
+  const calculated = rule.mode === 'fixed_price'
+    ? rule.value
+    : rule.mode === 'fixed_profit'
+      ? baseCostSyp + rule.value
+      : baseCostSyp * (1 + rule.value / 100);
+  const centsRounded = roundMoney(calculated);
+  const unitPrice = centsRounded > 0 ? centsRounded : roundUnitMoney(calculated);
+  if (!Number.isFinite(unitPrice) || unitPrice <= 0 || unitPrice > 1_000_000_000) {
+    throw Object.assign(new Error('INVALID_WAMDA_CALCULATED_PRICE'), { status:422 });
+  }
+  return unitPrice;
+}
+
+/**
+ * Convert a supplier unit price to minor currency units only after applying
+ * the requested quantity. This prevents per-unit sub-cent prices from being
+ * rounded to zero before the customer's minimum/selected quantity is applied.
+ */
+export function supplierUnitPriceToMinor(unitPriceSyp, quantity) {
+  const unit = Number(unitPriceSyp);
+  const qty = Number(quantity);
+  if (!Number.isFinite(unit) || unit <= 0 || unit > 1_000_000_000 ||
+      !Number.isSafeInteger(qty) || qty <= 0 || qty > 1_000_000) {
+    throw Object.assign(new Error('INVALID_SUPPLIER_UNIT_PRICE'), { status:422 });
+  }
+  const fixed = unit.toFixed(8);
+  const [whole, fraction = ''] = fixed.split('.');
+  const scale = 100_000_000n;
+  const unitScaled = BigInt(whole) * scale + BigInt((fraction + '00000000').slice(0, 8));
+  const totalScaled = unitScaled * BigInt(qty);
+  return (totalScaled * 100n + scale / 2n) / scale;
+}
+
 export function normalizeWamdaMargin(value) {
   const margin = Number(value);
   if (!Number.isFinite(margin) || margin < 0 || margin > 1000) {
@@ -97,7 +157,7 @@ export function updateWamdaPublishedProduct(existing, source, {
     categoryRule,
     productRule:normalizedOverride,
   });
-  const calculatedPriceSyp = calculateWamdaSellPriceSyp({
+  const calculatedPriceSyp = calculateWamdaSellUnitPriceSyp({
     unitPriceUsd:source.unitPrice,
     fxRate,
     pricingRule:resolved.rule,
