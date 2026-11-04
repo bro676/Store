@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createAdminSession, verifyAdminSession, encryptSecret, decryptSecret,
-  isSafeCatalogImage, validateCatalog, mergeCatalog, upsertCatalogProduct, getJsonPath, validateCatalogApiUrl, normalizeFxRate,
+  isSafeCatalogImage, validateCatalog, mergeCatalog, deleteCatalogFolder, upsertCatalogProduct, getJsonPath, validateCatalogApiUrl, normalizeFxRate,
 } from '../src/admin-core.js';
 
 const secret = 'a-strong-admin-key-for-tests-only-2026';
@@ -237,4 +237,51 @@ test('replace sync preserves manually-created nested folders that are not in sup
   const replacement=[{...catalog[0],id:'supplier-feed-category',name:'Supplier feed',items:[]}];
   const merged=mergeCatalog([root,child],replacement,'replace');
   assert.deepEqual(merged.map(row=>row.id),['supplier-feed-category','manual-root','manual-child']);
+});
+
+test('deleting a non-empty folder rehomes products and child folders without changing supplier metadata',()=>{
+  const root={...catalog[0],id:'games-root',name:'Games',parentId:'',departmentId:'games',items:[]};
+  const supplierProduct={
+    ...catalog[0].items[0],id:'freefire-10',supplierMatchKey:'freefire::10',
+    bestStore:{provider:'beststore',productId:501,available:true},
+    manualOverrides:{name:'اسم يدوي',image:'assets/products/freefire.svg'},
+  };
+  const source={...catalog[0],id:'old-folder',name:'Old folder',parentId:'games-root',items:[supplierProduct],sourceCategoryAliases:['Supplier folder']};
+  const destination={...catalog[0],id:'new-folder',name:'New folder',parentId:'games-root',items:[]};
+  const child={...catalog[0],id:'child-folder',name:'Child',parentId:'old-folder',items:[]};
+  const leaf={...catalog[0],id:'leaf-folder',name:'Leaf',parentId:'child-folder',items:[]};
+  const result=deleteCatalogFolder([root,source,destination,child,leaf],'old-folder','new-folder');
+  assert.equal(result.some(row=>row.id==='old-folder'),false);
+  const target=result.find(row=>row.id==='new-folder');
+  assert.equal(target.items[0].id,'freefire-10');
+  assert.equal(target.items[0].supplierMatchKey,'freefire::10');
+  assert.equal(target.items[0].bestStore.productId,501);
+  assert.equal(target.items[0].manualOverrides.name,'اسم يدوي');
+  assert.ok(target.sourceCategoryAliases.includes('Supplier folder'));
+  assert.equal(result.find(row=>row.id==='child-folder').parentId,'new-folder');
+  assert.equal(result.find(row=>row.id==='leaf-folder').parentId,'child-folder');
+});
+
+test('deleting an empty folder needs no destination',()=>{
+  const empty={...catalog[0],id:'empty-folder',name:'Empty',parentId:'',departmentId:'games',items:[]};
+  const result=deleteCatalogFolder([empty],'empty-folder');
+  assert.deepEqual(result,[]);
+});
+
+test('deleting a non-empty folder without a destination is rejected',()=>{
+  const source={...catalog[0],id:'source',items:[catalog[0].items[0]]};
+  assert.throws(()=>deleteCatalogFolder([source],'source'),/FOLDER_DELETE_DESTINATION_REQUIRED/);
+});
+
+test('folder deletion rejects destinations inside the deleted subtree',()=>{
+  const source={...catalog[0],id:'source',items:[]};
+  const child={...catalog[0],id:'child',parentId:'source',items:[]};
+  assert.throws(()=>deleteCatalogFolder([source,child],'source','child'),/INVALID_FOLDER_DELETE_DESTINATION/);
+});
+
+test('folder deletion rejects product ID collisions in the destination',()=>{
+  const product={...catalog[0].items[0],id:'same-product'};
+  const source={...catalog[0],id:'source',items:[product]};
+  const destination={...catalog[0],id:'destination',items:[{...product}]};
+  assert.throws(()=>deleteCatalogFolder([source,destination],'source','destination'),/PRODUCT_ID_COLLISION_IN_DESTINATION/);
 });
