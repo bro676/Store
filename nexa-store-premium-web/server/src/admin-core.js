@@ -67,7 +67,8 @@ function validateUniqueIds(rows, label) {
 }
 
 const MAX_CATALOG_CATEGORIES = 1000;
-const MAX_PRODUCTS_PER_CATEGORY = 500;
+// Large supplier categories (such as Best Store's 955-item ZNET category) must remain publishable.
+const MAX_PRODUCTS_PER_CATEGORY = 2000;
 const MAX_CATALOG_PRODUCTS = 10000;
 
 export function validateCatalog(input) {
