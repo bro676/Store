@@ -23,7 +23,6 @@ import { verifyBestStoreWebhookSecret, parseBestStoreWebhookBody, isBestStoreWeb
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
 import { expirePendingOrders } from './order-expiry.js';
 import { resolveDeliveryPolicy, manualPendingMessage, validateManualDeliveryInput } from './delivery-policy.js';
-import { resolveDeliveryPolicy, manualPendingMessage, validateManualDeliveryInput } from './delivery-policy.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
