@@ -384,7 +384,19 @@ export function buildSupplierComparisonPlan(input, fxRate = 145) {
       sourceStats.invalidPrice++;
     }
     if (!candidate.matchKey) {
+      // A product name may contain only a platform alias or a denomination
+      // (for example "IMO" or "5"). Do not drop an available, priceable SKU,
+      // and do not fuzzy-match it to another provider's item. Its provider SKU
+      // is a safe identity for publishing it as a one-source product.
       stats.unmatchableProducts++;
+      const isolatedMatchKey = `source::${candidate.sourceProductKey}`;
+      const isolatedCandidate = {
+        ...candidate,
+        matchKey:isolatedMatchKey,
+        publishMatchKey:isolatedMatchKey,
+        unmatchableIdentity:true,
+      };
+      grouped.set(isolatedMatchKey,[isolatedCandidate]);
       continue;
     }
     const group=grouped.get(candidate.matchKey)||[];

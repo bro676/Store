@@ -394,3 +394,46 @@ test('supplier-generated product IDs remain provider-SKU specific for ambiguous 
   assert.notEqual(a,b);
   assert.ok(a.length<=50&&b.length<=50);
 });
+
+
+test('unmatchable available supplier names are published as source-SKU singletons instead of being dropped',()=>{
+  const rows=[
+    {provider:'wamda',productId:581,product:{id:581,name:'5'},categoryName:'Mobile Legends Global',sourceCost:0.09453,currency:'USD',available:true},
+    {provider:'beststore',productId:1291,product:{id:1291,name:'تيك توك'},categoryName:'charging applications',sourceCost:0.010812,currency:'SYP',available:false},
+    {provider:'beststore',productId:1658,product:{id:1658,name:'IMO'},categoryName:'charging applications',sourceCost:0.0180588,currency:'SYP',available:true},
+  ];
+  const plan=buildSupplierComparisonPlan(rows,145);
+  assert.equal(plan.stats.unmatchableProducts,3);
+  assert.equal(plan.stats.uniqueSourceProducts,3);
+  assert.equal(plan.groups.length,2,'both available SKUs must publish, unavailable SKU must not');
+  assert.equal(plan.stats.singleSourceGroups,2);
+  assert.equal(plan.stats.comparedGroups,0);
+  assert.deepEqual(
+    plan.groups.map(group=>group.winner.sourceProductKey).sort(),
+    ['beststore:1658','wamda:581']
+  );
+  assert.ok(plan.groups.every(group=>group.unmatchable===undefined||group.winner.unmatchableIdentity));
+});
+
+test('unmatchable same-name products from different suppliers are never cross-matched',()=>{
+  const plan=buildSupplierComparisonPlan([
+    {provider:'wamda',productId:700,product:{id:700,name:'IMO'},categoryName:'Applications',sourceCost:1,currency:'SYP',available:true},
+    {provider:'beststore',productId:900,product:{id:900,name:'IMO'},categoryName:'Applications',sourceCost:0.5,currency:'SYP',available:true},
+  ],145);
+  assert.equal(plan.stats.unmatchableProducts,2);
+  assert.equal(plan.stats.comparedGroups,0);
+  assert.equal(plan.groups.length,2);
+  assert.equal(plan.stats.singleSourceGroups,2);
+  assert.equal(new Set(plan.groups.map(group=>group.publishMatchKey)).size,2);
+  assert.deepEqual(new Set(plan.groups.map(group=>group.winner.provider)),new Set(['wamda','beststore']));
+});
+
+test('unmatchable unique products remain separate even when a supplier name is only a denomination',()=>{
+  const plan=buildSupplierComparisonPlan([
+    {provider:'wamda',productId:581,product:{id:581,name:'5'},categoryName:'Mobile Legends Global',sourceCost:0.09453,currency:'USD',available:true},
+    {provider:'wamda',productId:582,product:{id:582,name:'10'},categoryName:'Mobile Legends Global',sourceCost:0.15,currency:'USD',available:true},
+  ],145);
+  assert.equal(plan.groups.length,2);
+  assert.equal(plan.stats.comparedGroups,0);
+  assert.deepEqual(plan.groups.map(group=>group.winner.productId).sort((a,b)=>a-b),[581,582]);
+});
