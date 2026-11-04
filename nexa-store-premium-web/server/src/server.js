@@ -2863,7 +2863,13 @@ const server = http.createServer(async (req,res) => {
         return send(res,200,{ok:true,message:'تم حذف المجلد ونقل منتجاته ومجلداته الفرعية إلى المجلد المحدد مع الحفاظ على بيانات الموردين.',catalog});
       }catch(error){
         if(Number.isInteger(error?.status)&&error.status>=400&&error.status<600)
-          return send(res,error.status,{ok:false,error:String(error.message||'FOLDER_DELETE_FAILED')});
+          return send(res,error.status,{
+            ok:false,
+            error:String(error.message||'FOLDER_DELETE_FAILED'),
+            message:error.message==='LAST_CATALOG_FOLDER_CANNOT_DELETE'
+              ?'لا يمكن حذف آخر مجلد في الكتالوج. أنشئ مجلداً بديلاً أولاً.'
+              :'تعذر حذف المجلد أو نقل محتوياته. تحقق من المجلد الهدف ثم حاول مرة أخرى.',
+          });
         throw error;
       }
     }
