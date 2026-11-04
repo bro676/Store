@@ -54,6 +54,12 @@ export function isSafeCatalogImage(image) {
 function requiredText(value, max, label) {
   if (typeof value !== 'string' || !value.trim() || value.length > max) throw new Error(`INVALID_${label}`);
 }
+
+function hasAtMostDecimalPlaces(value, maximum) {
+  const [mantissa, exponentText = '0'] = String(value).toLowerCase().split('e');
+  const decimalPlaces = (mantissa.split('.')[1] || '').length - Number(exponentText);
+  return Number.isFinite(decimalPlaces) && Math.max(0, decimalPlaces) <= maximum;
+}
 function validId(value, label) {
   if (typeof value !== 'string' || !ID_RE.test(value)) throw new Error(`INVALID_${label}_ID`);
 }
@@ -99,7 +105,9 @@ export function validateCatalog(input) {
         for (const pack of option.packs) {
           if (!Array.isArray(pack) || pack.length !== 2) throw new Error('INVALID_PACK');
           requiredText(pack[0], 120, 'PACK_NAME');
-          if (!Number.isFinite(pack[1]) || pack[1] < 0 || pack[1] > 1_000_000_000 || !/^\d+(?:\.\d{1,2})?$/.test(String(pack[1]))) throw new Error('INVALID_PACK_PRICE');
+          const supplierLinked = product.wamda?.provider === 'wamda' || product.bestStore?.provider === 'beststore';
+          const maximumDecimals = supplierLinked ? 8 : 2;
+          if (!Number.isFinite(pack[1]) || pack[1] < 0 || pack[1] > 1_000_000_000 || !hasAtMostDecimalPlaces(pack[1], maximumDecimals)) throw new Error('INVALID_PACK_PRICE');
         }
       }
     }
