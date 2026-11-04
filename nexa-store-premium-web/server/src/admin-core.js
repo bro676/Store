@@ -73,6 +73,9 @@ function validateUniqueIds(rows, label) {
 }
 
 const MAX_CATALOG_CATEGORIES = 1000;
+const CATALOG_DEPARTMENT_IDS = new Set(['games','balance','apps','numbers','cards','vpn','verification','ai','social','web','other']);
+const CATEGORY_MANUAL_KEYS = ['name','desc','image','icon','parentId','departmentId','sortOrder','visible'];
+const PRODUCT_MANUAL_KEYS = ['name','desc','image','options','sortOrder','visible'];
 // Large supplier categories (such as Best Store's 955-item ZNET category) must remain publishable.
 const MAX_PRODUCTS_PER_CATEGORY = 2000;
 const MAX_CATALOG_PRODUCTS = 10000;
@@ -80,12 +83,23 @@ const MAX_CATALOG_PRODUCTS = 10000;
 export function validateCatalog(input) {
   if (!Array.isArray(input) || input.length < 1 || input.length > MAX_CATALOG_CATEGORIES) throw new Error('INVALID_CATALOG');
   validateUniqueIds(input, 'CATEGORY');
+  const categoriesById = new Map(input.map(category=>[category.id,category]));
   let totalProducts = 0;
   for (const category of input) {
     requiredText(category.name, 100, 'CATEGORY_NAME');
     if (typeof category.desc !== 'string' || category.desc.length > 500) throw new Error('INVALID_CATEGORY_DESC');
     if (!isSafeCatalogImage(category.image)) throw new Error('INVALID_CATEGORY_IMAGE');
     if (category.icon !== undefined && (typeof category.icon !== 'string' || category.icon.length > 12)) throw new Error('INVALID_CATEGORY_ICON');
+    if (category.parentId !== undefined && category.parentId !== null && category.parentId !== '') {
+      validId(category.parentId,'CATEGORY_PARENT');
+      if (category.parentId===category.id || !categoriesById.has(category.parentId)) throw new Error('INVALID_CATEGORY_PARENT');
+      if (category.departmentId !== undefined && category.departmentId !== null && category.departmentId !== '') throw new Error('NESTED_CATEGORY_CANNOT_SET_DEPARTMENT');
+    }
+    if (category.departmentId !== undefined && category.departmentId !== null && category.departmentId !== '' && !CATALOG_DEPARTMENT_IDS.has(category.departmentId)) throw new Error('INVALID_CATEGORY_DEPARTMENT');
+    if (category.sortOrder !== undefined && (!Number.isSafeInteger(category.sortOrder) || Math.abs(category.sortOrder)>1_000_000)) throw new Error('INVALID_CATEGORY_SORT_ORDER');
+    if (category.visible !== undefined && typeof category.visible !== 'boolean') throw new Error('INVALID_CATEGORY_VISIBILITY');
+    if (category.manualOverrides !== undefined && (!category.manualOverrides || typeof category.manualOverrides!=='object' || Array.isArray(category.manualOverrides))) throw new Error('INVALID_CATEGORY_MANUAL_OVERRIDES');
+    if (category.sourceCategoryAliases !== undefined && (!Array.isArray(category.sourceCategoryAliases) || category.sourceCategoryAliases.length>40 || category.sourceCategoryAliases.some(value=>typeof value!=='string'||value.length>100))) throw new Error('INVALID_CATEGORY_SOURCE_ALIASES');
     if (!Array.isArray(category.items) || category.items.length > MAX_PRODUCTS_PER_CATEGORY) throw new Error('INVALID_CATEGORY_ITEMS');
     totalProducts += category.items.length;
     if (totalProducts > MAX_CATALOG_PRODUCTS) throw new Error('CATALOG_PRODUCT_LIMIT_EXCEEDED');
@@ -94,6 +108,9 @@ export function validateCatalog(input) {
       requiredText(product.name, 120, 'PRODUCT_NAME');
       if (typeof product.desc !== 'string' || product.desc.length > 700) throw new Error('INVALID_PRODUCT_DESC');
       if (!isSafeCatalogImage(product.image)) throw new Error('INVALID_PRODUCT_IMAGE');
+      if (product.visible !== undefined && typeof product.visible !== 'boolean') throw new Error('INVALID_PRODUCT_VISIBILITY');
+      if (product.sortOrder !== undefined && (!Number.isSafeInteger(product.sortOrder) || Math.abs(product.sortOrder)>1_000_000)) throw new Error('INVALID_PRODUCT_SORT_ORDER');
+      if (product.manualOverrides !== undefined && (!product.manualOverrides || typeof product.manualOverrides!=='object' || Array.isArray(product.manualOverrides))) throw new Error('INVALID_PRODUCT_MANUAL_OVERRIDES');
       if (!Array.isArray(product.options) || product.options.length > 100) throw new Error('INVALID_PRODUCT_OPTIONS');
       validateUniqueIds(product.options, 'OPTION');
       for (const option of product.options) {
@@ -110,6 +127,17 @@ export function validateCatalog(input) {
           if (!Number.isFinite(pack[1]) || pack[1] < 0 || pack[1] > 1_000_000_000 || !hasAtMostDecimalPlaces(pack[1], maximumDecimals)) throw new Error('INVALID_PACK_PRICE');
         }
       }
+    }
+  }
+  // Category parent references must form a tree: reject cycles before the
+  // catalog is persisted, otherwise a recursive storefront/admin tree could loop.
+  for (const category of input) {
+    const visited = new Set([category.id]);
+    let parentId = category.parentId || '';
+    while (parentId) {
+      if (visited.has(parentId)) throw new Error('CATALOG_FOLDER_CYCLE');
+      visited.add(parentId);
+      parentId = categoriesById.get(parentId)?.parentId || '';
     }
   }
   return JSON.parse(JSON.stringify(input));
@@ -131,44 +159,80 @@ export function validateCatalogApiUrl(raw) {
   return url;
 }
 
-export function mergeCatalog(existing, incoming, mode = 'merge') {
-  const current = validateCatalog(existing);
-  const next = validateCatalog(incoming);
-  if (mode === 'replace') return next;
-  if (mode !== 'merge') throw new Error('INVALID_CATALOG_SYNC_MODE');
-  const merged = current.map(category => JSON.parse(JSON.stringify(category)));
-  for (const incomingCategory of next) {
-    const categoryIndex = merged.findIndex(category => category.id === incomingCategory.id);
-    if (categoryIndex < 0) {
-      merged.push(JSON.parse(JSON.stringify(incomingCategory)));
-      continue;
+function applyCategorySourceMerge(previousCategory,incomingCategory) {
+  const source=JSON.parse(JSON.stringify(incomingCategory));
+  const previous=previousCategory||{};
+  const sourceSnapshot={name:source.name,desc:source.desc,image:source.image,icon:source.icon};
+  const overrides=previous.manualOverrides&&typeof previous.manualOverrides==='object'&&!Array.isArray(previous.manualOverrides)
+    ?{...previous.manualOverrides}:{};
+  const oldSource=previous.apiSource&&typeof previous.apiSource==='object'?previous.apiSource:null;
+  if(oldSource){
+    for(const key of CATEGORY_MANUAL_KEYS){
+      if(!Object.prototype.hasOwnProperty.call(overrides,key)&&Object.prototype.hasOwnProperty.call(oldSource,key)&&
+          Object.prototype.hasOwnProperty.call(previous,key)&&JSON.stringify(previous[key])!==JSON.stringify(oldSource[key]))overrides[key]=previous[key];
     }
-    const oldCategory = merged[categoryIndex];
-    const oldProducts = new Map(oldCategory.items.map(product => [product.id, product]));
-    const incomingIds = new Set(incomingCategory.items.map(product => product.id));
-    const items = incomingCategory.items.map(product => {
-      const previous=oldProducts.get(product.id)||{};
-      const next=JSON.parse(JSON.stringify(product));
-      const apiSource={
-        name:next.name,desc:next.desc,image:next.image,
-        options:Array.isArray(next.options)?next.options.map(option=>({...option,packs:(option.packs||[]).map(pack=>[...pack])})):[],
-      };
-      const overrides=previous.manualOverrides&&typeof previous.manualOverrides==='object'&&!Array.isArray(previous.manualOverrides)
-        ?previous.manualOverrides:{};
-      const merged={...previous,...next,apiSource};
-      for(const key of ['name','desc','image','options']){
-        if(Object.prototype.hasOwnProperty.call(overrides,key))merged[key]=JSON.parse(JSON.stringify(overrides[key]));
-      }
-      if(Object.keys(overrides).length)merged.manualOverrides=overrides;
-      else delete merged.manualOverrides;
-      return merged;
-    });
-    for (const oldProduct of oldCategory.items) {
-      if (!incomingIds.has(oldProduct.id)) items.push(oldProduct);
-    }
-    merged[categoryIndex] = { ...oldCategory, ...JSON.parse(JSON.stringify(incomingCategory)), items };
   }
-  return validateCatalog(merged);
+  const category={...previous,...source,apiSource:sourceSnapshot,sourceCategoryAliases:Array.from(new Set([
+    ...(Array.isArray(previous.sourceCategoryAliases)?previous.sourceCategoryAliases:[]),
+    ...(previous.apiSource?.name?[previous.apiSource.name]:[]),source.name
+  ].filter(value=>typeof value==='string'&&value.trim()))).slice(0,40)};
+  for(const key of CATEGORY_MANUAL_KEYS){
+    if(Object.prototype.hasOwnProperty.call(overrides,key))category[key]=JSON.parse(JSON.stringify(overrides[key]));
+  }
+  if(Object.keys(overrides).length)category.manualOverrides=overrides;
+  else delete category.manualOverrides;
+  return category;
+}
+
+function mergeSupplierProduct(previous, incoming) {
+  const source=JSON.parse(JSON.stringify(incoming));
+  const previousProduct=previous||{};
+  const apiSource={
+    name:source.name,desc:source.desc,image:source.image,
+    options:Array.isArray(source.options)?source.options.map(option=>({...option,packs:(option.packs||[]).map(pack=>[...pack])})):[],
+  };
+  const overrides=previousProduct.manualOverrides&&typeof previousProduct.manualOverrides==='object'&&!Array.isArray(previousProduct.manualOverrides)
+    ?{...previousProduct.manualOverrides}:{};
+  const product={...previousProduct,...source,apiSource};
+  for(const key of PRODUCT_MANUAL_KEYS){
+    if(Object.prototype.hasOwnProperty.call(overrides,key))product[key]=JSON.parse(JSON.stringify(overrides[key]));
+  }
+  if(Object.keys(overrides).length)product.manualOverrides=overrides;
+  else delete product.manualOverrides;
+  return product;
+}
+
+export function mergeCatalog(existing, incoming, mode = 'merge') {
+  const current=validateCatalog(existing),next=validateCatalog(incoming);
+  if(!['merge','replace'].includes(mode))throw new Error('INVALID_CATALOG_SYNC_MODE');
+  const result=mode==='replace'
+    ?next.map(category=>JSON.parse(JSON.stringify(category)))
+    :current.map(category=>JSON.parse(JSON.stringify(category)));
+  const incomingIds=new Set(next.map(category=>category.id));
+  for(const incomingCategory of next){
+    const index=result.findIndex(category=>category.id===incomingCategory.id);
+    if(index<0){result.push(JSON.parse(JSON.stringify(incomingCategory)));continue;}
+    const previous=result[index];
+    const sourceCategory=applyCategorySourceMerge(previous,incomingCategory);
+    const oldProducts=new Map((previous.items||[]).map(product=>[product.id,product]));
+    const incomingProducts=(incomingCategory.items||[]).map(product=>mergeSupplierProduct(oldProducts.get(product.id),product));
+    let items=incomingProducts;
+    if(mode==='merge'){
+      const incomingProductIds=new Set(incomingProducts.map(product=>product.id));
+      items=[...incomingProducts,...(previous.items||[]).filter(product=>!incomingProductIds.has(product.id))];
+    }
+    result[index]={...sourceCategory,items};
+  }
+  if(mode==='replace'){
+    // Preserve manually-created/moved folder nodes that are not part of the
+    // upstream feed; they are part of the store's organization, not the feed.
+    for(const category of current){
+      if(incomingIds.has(category.id))continue;
+      const hasManualStructure=Boolean(category.parentId||category.departmentId||category.manualOverrides||category.folderManual);
+      if(hasManualStructure)result.push(JSON.parse(JSON.stringify(category)));
+    }
+  }
+  return validateCatalog(result);
 }
 
 

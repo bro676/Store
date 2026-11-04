@@ -370,6 +370,18 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
 :root[data-theme="dark"] .admin-sidebar-backdrop{background:rgba(0,0,0,.55)}
 :root[data-theme="dark"] .nexa-ai-panel .notice.info a{color:#9cc8f5;text-decoration:underline}
 @media(max-width:820px){:root[data-theme="light"] .side{background:linear-gradient(180deg,#183d63,#22557b 75%,#263f74)}}
+
+/* Nested catalog folder manager */
+.catalog-layout{grid-template-columns:285px minmax(0,1fr)}
+.category-list.folder-tree{display:grid;gap:5px;max-height:calc(100vh - 220px);overflow:auto;padding:2px}
+.folder-choice{min-width:0;justify-content:flex-start;border-color:transparent;background:#fbfcfa;padding-top:8px;padding-bottom:8px}
+.folder-choice strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.folder-choice .tag{margin-right:auto}
+.department-choice{margin-top:8px;background:#edf4ed;border-color:#dce8dc;color:#315f49}
+.category-editor{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.category-editor .toolbar{margin:0}
+.category-editor h3{font-size:16px}
+@media(max-width:820px){.catalog-layout{grid-template-columns:1fr}.category-list.folder-tree{max-height:340px}.folder-choice{min-width:180px}.department-choice{min-width:190px}}
 </style>
 <link rel="stylesheet" href="/assets/brand/nexa-luxury.css?v=20261102-01">
 </head>
@@ -442,7 +454,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
       <section class="page hidden" id="page-catalog">
         <div class="page-head"><div><div class="eyebrow">PRODUCT MANAGEMENT</div><h2>الكتالوج والأسعار والصور</h2><p>التغييرات تنعكس على المتجر بعد الحفظ، وتبقى محفوظة بعد إعادة التشغيل.</p></div><button class="btn primary" id="saveCatalogBtn">حفظ كل التعديلات ✓</button></div>
         <div class="catalog-layout">
-          <section class="panel"><div class="panel-head"><div><h3>الأقسام</h3><p>اختر القسم لتعديل محتواه.</p></div><button class="icon-btn" id="addCategoryBtn" title="إضافة قسم">＋</button></div><div class="category-list" id="categoryList"></div></section>
+          <section class="panel"><div class="panel-head"><div><h3>شجرة المجلدات</h3><p>اختر القسم أو المجلد لإدارته.</p></div><button class="icon-btn" id="addCategoryBtn" title="إضافة مجلد داخل الموقع المحدد">＋</button></div><div class="category-list folder-tree" id="categoryList"></div></section>
           <section class="panel"><div class="toolbar"><div><h3 style="margin:0">محرر القسم</h3><small class="muted">اسم القسم ووصفه وصورته والمنتجات الموجودة تحته.</small></div><button class="btn soft" id="addProductBtn">＋ إضافة منتج</button></div><div id="catalogEditor" class="loading">جارٍ تحميل الكتالوج…</div></section>
         </div>
       </section>
@@ -752,6 +764,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
   </main>
 </div>
 <div id="toast" class="toast"></div>
+<script src="/assets/brand/nexa-catalog.js?v=20261104-folder-tree-v1"></script>
 <script>
 const $=id=>document.getElementById(id);
 const ADMIN_THEME_KEY='nexa-admin-color-mode';
@@ -770,7 +783,7 @@ function initializeAdminColorMode(){
  window.addEventListener('storage',event=>{if(event.key===ADMIN_THEME_KEY&&event.newValue)setAdminColorMode(event.newValue,{persist:false});});
 }
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={catalog:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},bestStoreCatalog:[],bestStoreMeta:{},bestStoreCatalogQuery:'',bestStoreCatalogFilter:'all',wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',categoryIndex:0,page:'overview',busy:false};
+const state={catalog:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},bestStoreCatalog:[],bestStoreMeta:{},bestStoreCatalogQuery:'',bestStoreCatalogFilter:'all',wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',categoryIndex:0,selectedDepartmentId:'games',page:'overview',busy:false};
 const pageTitles={overview:'نظرة عامة',catalog:'المنتجات والأسعار','catalog-api':'ربط المنتجات عبر API',orders:'الطلبات والإيصالات',payments:'شام كاش والمحفظة',exchange:'سعر الصرف'};
 let toastTimer;
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2800)}
@@ -785,31 +798,105 @@ document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',(
 async function loadAll(){showApp();await Promise.all([loadOverview(),loadCatalog(),loadSettings(),loadOrders(),loadWamdaCatalog(),loadSeagmCatalog(),loadBestStoreCatalog()]);}
 async function loadOverview(){const d=await api('/api/admin/overview');const o=d.orders||{};const cards=[['إجمالي الطلبات',o.total||0,'▤','كل الطلبات المسجلة'],['مدفوع ومتحقق',o.paid||0,'✓','دفعات أكدها API'],['بانتظار الدفع',o.pending||0,'◷','فواتير فعالة أو قيد المتابعة'],['عدد المنتجات',d.products||0,'▦',`${d.categories||0} أقسام`]];$('stats').innerHTML=cards.map(([t,v,ico,sub])=>`<article class="stat"><div class="stat-top"><span>${t}</span><i class="stat-icon">${ico}</i></div><strong>${Number(v).toLocaleString('en-US')}</strong><small>${sub}</small></article>`).join('');const max=Math.max(1,o.total||0);$('orderBars').innerHTML=[['مدفوع',o.paid||0],['بانتظار الدفع',o.pending||0],['منتهي',o.expired||0],['ملغي',(o.total||0)-(o.paid||0)-(o.pending||0)-(o.expired||0)]].map(([label,v])=>`<div class="bar-row"><span>${label}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Number(v)/max*100)}%"></div></div><b>${v}</b></div>`).join('');$('topStatus').textContent=d.paymentsReady?'الدفع جاهز':'تحقق من الدفع';}
 async function loadCatalog(){const d=await api('/api/admin/catalog');state.catalog=d.catalog||[];state.categoryIndex=Math.min(state.categoryIndex,Math.max(0,state.catalog.length-1));renderCatalog()}
-function activeCategory(){return state.catalog[state.categoryIndex]||null}
 function setPath(path,value){const parts=path.split('.');let node=state.catalog;for(let i=0;i<parts.length-1;i++)node=node[parts[i]];node[parts.at(-1)]=value}
 function field(label,path,value,opts={}){const type=opts.type||'text';return `<div class="field ${opts.full?'full':''}"><label>${label}</label>${type==='textarea'?`<textarea data-path="${path}" placeholder="${esc(opts.placeholder||'')}" maxlength="${opts.max||700}">${esc(value)}</textarea>`:`<input data-path="${path}" type="${type}" value="${esc(value)}" ${opts.step?`step="${opts.step}"`:''} ${opts.min!==undefined?`min="${opts.min}"`:''} ${opts.max!==undefined?`max="${opts.max}"`:''}>`}</div>`}
-function renderCatalog(){const cat=activeCategory();const orderedCategories=state.catalog.map((category,index)=>({category,index})).sort((a,b)=>(a.category.items||[]).length-(b.category.items||[]).length||String(a.category.name||'').localeCompare(String(b.category.name||''),'ar',{numeric:true,sensitivity:'base'})||a.index-b.index);$('categoryList').innerHTML=orderedCategories.map(({category:c,index:i})=>`<button class="category-choice ${i===state.categoryIndex?'active':''}" data-category-index="${i}"><span>${esc(c.icon||'✦')}</span><strong>${esc(c.name)}</strong><span>${(c.items||[]).length}</span></button>`).join('')||'<div class="empty">لا توجد أقسام بعد.</div>';if(!cat){$('catalogEditor').innerHTML='<div class="empty">أضف قسم جديداً للبدء.</div>';$('addProductBtn').disabled=true;return}$('addProductBtn').disabled=false;
- const ci=state.categoryIndex;
+function activeCategory(){return state.categoryIndex>=0?state.catalog[state.categoryIndex]||null:null}
+function categoryDepartmentId(category){return NexaCatalog.getCategoryDepartmentId(category,state.catalog)}
+function adminFolderChildren(parentId=null,departmentId=null){
+ const rows=state.catalog.filter(category=>
+  String(category.parentId||'')===String(parentId||'')&&
+  (parentId!==null?true:categoryDepartmentId(category)===departmentId)
+ );
+ return rows.map((category,index)=>({category,index,count:NexaCatalog.getFolderProductCount(category,state.catalog)}))
+  .sort((a,b)=>a.count-b.count||Number(a.category.sortOrder||0)-Number(b.category.sortOrder||0)||
+   String(a.category.name||'').localeCompare(String(b.category.name||''),'ar',{numeric:true,sensitivity:'base'}));
+}
+function renderFolderBranch(parentId,departmentId,depth=0){
+ return adminFolderChildren(parentId,departmentId).map(({category,index,count})=>
+  '<button type="button" class="category-choice folder-choice '+(index===state.categoryIndex?'active':'')+'" data-category-index="'+index+'" style="padding-right:'+(11+depth*15)+'px">'+
+   '<span>'+esc(category.icon||'📁')+'</span><strong>'+esc(category.name)+'</strong><span>'+count+'</span>'+
+   (category.visible===false?'<small class="tag red">مخفي</small>':'')+'</button>'+
+   renderFolderBranch(category.id,null,depth+1)
+ ).join('');
+}
+function categoryPathLabel(category){
+ const path=NexaCatalog.categoryAncestors(category,state.catalog);
+ return path.map(row=>row.name).join(' / ');
+}
+function folderDescendantIds(category){
+ const ids=new Set([category.id]);
+ let changed=true;
+ while(changed){
+  changed=false;
+  for(const row of state.catalog)if(row.parentId&&ids.has(row.parentId)&&!ids.has(row.id)){ids.add(row.id);changed=true;}
+ }
+ return ids;
+}
+function renderCatalog(){
+ const cat=activeCategory();
+ const departments=NexaCatalog.departments;
+ $('categoryList').innerHTML=departments.map(department=>{
+  const count=state.catalog.filter(row=>categoryDepartmentId(row)===department.id).reduce((sum,row)=>sum+(row.items||[]).length,0);
+  const active=state.selectedDepartmentId===department.id&&(state.categoryIndex<0||categoryDepartmentId(cat)===department.id);
+  return '<button type="button" class="category-choice department-choice '+(active?'active':'')+'" data-department-id="'+esc(department.id)+'"><span>'+esc(department.icon)+'</span><strong>'+esc(department.name)+'</strong><span>'+count+'</span></button>'+
+   renderFolderBranch(null,department.id,1);
+ }).join('')||'<div class="empty">لا توجد مجلدات.</div>';
+ if(!cat){
+  $('addProductBtn').disabled=true;
+  const department=departments.find(row=>row.id===state.selectedDepartmentId)||departments.find(row=>row.id==='other');
+  $('catalogEditor').innerHTML='<div class="category-editor"><div><span class="eyebrow">MAIN DEPARTMENT</span><h3>'+esc(department.name)+'</h3><p class="muted">أنشئ مجلداً رئيسياً في هذا القسم، ثم أضف تحته مجلدات فرعية ومنتجات.</p></div><div><span class="tag">'+state.catalog.filter(row=>categoryDepartmentId(row)===department.id).length+' مجلدات</span></div></div>'+
+   '<div class="empty"><strong>لم يتم اختيار مجلد بعد</strong><p>اختر مجلداً من الشجرة لتعديل اسمه وصورته وإعداداته وإدارة منتجاته، أو اضغط ＋ لإنشاء مجلد هنا.</p></div>';
+  return;
+ }
+ $('addProductBtn').disabled=false;
+ const ci=state.categoryIndex,descendants=folderDescendantIds(cat);
+ const parentOptions=state.catalog.filter(row=>row.id!==cat.id&&!descendants.has(row.id));
+ const parentSelect='<div class="field"><label>المجلد الأب</label><select data-path="'+ci+'.parentId"><option value="">داخل القسم الرئيسي مباشرة</option>'+parentOptions.map(row=>'<option value="'+esc(row.id)+'" '+(cat.parentId===row.id?'selected':'')+'>'+esc(categoryPathLabel(row))+'</option>').join('')+'</select></div>';
+ const departmentId=categoryDepartmentId(cat);
+ const departmentSelect='<div class="field"><label>القسم الرئيسي</label><select data-path="'+ci+'.departmentId" '+(cat.parentId?'disabled':'')+'>'+departments.map(row=>'<option value="'+row.id+'" '+(departmentId===row.id?'selected':'')+'>'+esc(row.name)+'</option>').join('')+'</select></div>';
+ const childCount=state.catalog.filter(row=>row.parentId===cat.id).length;
+ const hasContents=(cat.items||[]).length>0||childCount>0;
  $('catalogEditor').innerHTML=`
  <div class="category-editor">
-  ${field('اسم القسم',`${ci}.name`,cat.name)}
-  ${field('وصف القسم',`${ci}.desc`,cat.desc)}
-  ${field('الأيقونة',`${ci}.icon`,cat.icon||'✦')}
+  <div><span class="eyebrow">FOLDER SETTINGS</span><h3 style="margin:3px 0">${esc(cat.name)}</h3><small class="muted">${esc(categoryPathLabel(cat))}</small></div>
+  <div class="toolbar"><span class="tag">${NexaCatalog.getFolderProductCount(cat,state.catalog)} منتجات داخل هذا المجلد وشُعبه</span><span class="tag">${childCount} مجلدات فرعية</span></div>
  </div>
- <div class="toolbar"><span class="muted">صورة القسم</span><div class="image-row" style="max-width:360px"><img class="image-preview" src="${esc(cat.image)}" alt=""><div><input data-path="${ci}.image" value="${esc(cat.image)}" placeholder="رابط صورة HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${ci}.image"></label></div></div><button class="btn danger" data-remove-category="${ci}">حذف القسم</button></div>
- <div class="product-grid">${(cat.items||[]).map((p,pi)=>renderProduct(p,ci,pi)).join('')}</div>`;
+ <div class="form-grid">
+  ${field('اسم المجلد',ci+'.name',cat.name)}
+  ${field('الأيقونة',ci+'.icon',cat.icon||'📁')}
+  ${field('ترتيب يدوي عند تساوي عدد المنتجات',ci+'.sortOrder',cat.sortOrder||0,{type:'number',step:1})}
+  ${field('الوصف',ci+'.desc',cat.desc,{type:'textarea',full:true})}
+  ${parentSelect}
+  ${departmentSelect}
+  <label class="inline-check"><input type="checkbox" data-path="${ci}.visible" ${cat.visible===false?'':'checked'}> إظهار هذا المجلد في المتجر</label>
+ </div>
+ <div class="toolbar"><span class="muted">صورة المجلد</span><div class="image-row" style="max-width:360px"><img class="image-preview" src="${esc(cat.image)}" alt=""><div><input data-path="${ci}.image" value="${esc(cat.image)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${ci}.image"></label></div></div>
+  <button class="btn danger" data-remove-category="${ci}" ${hasContents?'disabled title="انقل المنتجات والمجلدات الفرعية أولاً"':''}>حذف المجلد الفارغ</button>
+ </div>
+ ${hasContents?'<div class="notice info">لا يمكن حذف مجلد يحتوي منتجات أو مجلدات فرعية. انقل محتوياته أولاً حتى لا تضيع المنتجات أو روابطها.</div>':''}
+ <div class="toolbar"><div><h3 style="margin:0">المنتجات داخل المجلد</h3><small class="muted">يمكنك إضافة منتج يدوي أو نقله من مجلد آخر مع الحفاظ على ربط المورد.</small></div><button class="btn soft" id="addProductInlineBtn">＋ إضافة منتج</button></div>
+ <div class="product-grid">${(cat.items||[]).map((p,pi)=>renderProduct(p,ci,pi)).join('')||'<div class="empty">لا توجد منتجات هنا بعد. يمكن نقل المنتجات إلى هذا المجلد أو إضافة منتج يدوياً.</div>'}</div>`;
 }
-function renderProduct(p,ci,pi){const base=`${ci}.items.${pi}`;return `
-<details class="product-editor"><summary><img class="product-thumb" src="${esc(p.image)}" alt=""><span><strong>${esc(p.name)}</strong><small>${(p.options||[]).length} خيارات · ${(p.options||[]).reduce((n,o)=>n+(o.packs||[]).length,0)} باقات</small></span><span class="icon-btn product-editor-chevron" aria-hidden="true">⌄</span></summary>
+function renderProduct(p,ci,pi){
+ const base=`${ci}.items.${pi}`;
+ const destinations=state.catalog.filter(category=>category.id!==state.catalog[ci].id);
+ const moveSelect='<div class="field full"><label>نقل المنتج إلى مجلد آخر</label><select data-move-product="'+esc(p.id)+'" data-source-category="'+esc(state.catalog[ci].id)+'"><option value="">اختر مجلداً للنقل...</option>'+destinations.map(category=>'<option value="'+esc(category.id)+'">'+esc(categoryPathLabel(category))+'</option>').join('')+'</select></div>';
+ const supplierLinked=p.wamda?.provider==='wamda'||p.bestStore?.provider==='beststore';
+ return `
+<details class="product-editor"><summary><img class="product-thumb" src="${esc(p.image)}" alt=""><span><strong>${esc(p.name)}</strong><small>${(p.options||[]).length} خيارات · ${(p.options||[]).reduce((n,o)=>n+(o.packs||[]).length,0)} باقات · ${supplierLinked?'مرتبط بمورد':'منتج يدوي'}</small></span><span class="icon-btn product-editor-chevron" aria-hidden="true">⌄</span></summary>
 <div class="product-body"><div class="form-grid">
-${field('معرّف المنتج',base+'.id',p.id)}
+<div class="field"><label>معرّف المنتج الثابت</label><input value="${esc(p.id)}" readonly></div>
 ${field('اسم المنتج',base+'.name',p.name)}
+${field('ترتيب المنتج',base+'.sortOrder',p.sortOrder||0,{type:'number',step:1})}
 ${field('الوصف',base+'.desc',p.desc,{type:'textarea',full:true})}
-<div class="field full"><label>صورة المنتج</label><div class="image-row"><img class="image-preview" src="${esc(p.image)}" alt=""><div><input data-path="${base}.image" value="${esc(p.image)}" placeholder="رابط صورة HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${base}.image"></label></div></div></div>
+<div class="field full"><label>صورة المنتج</label><div class="image-row"><img class="image-preview" src="${esc(p.image)}" alt=""><div><input data-path="${base}.image" value="${esc(p.image)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${base}.image"></label></div></div></div>
+${moveSelect}
+<label class="inline-check"><input type="checkbox" data-path="${base}.visible" ${p.visible===false?'':'checked'}> إظهار المنتج في المتجر</label>
 </div>
 <div class="option-list">${(p.options||[]).map((o,oi)=>renderOption(o,base,oi,p.image)).join('')}</div>
-<div class="toolbar" style="margin-top:12px"><button class="add-row" data-add-option="${ci}.${pi}">＋ إضافة منطقة / خطة</button>${Object.keys(p.manualOverrides||{}).length?'<button class="btn soft" type="button" data-reset-manual="'+ci+'.'+pi+'">استعادة بيانات API</button>':''}<button class="btn danger" data-remove-product="${ci}.${pi}">حذف المنتج</button></div>
-</div></details>`;}
+<div class="toolbar" style="margin-top:12px"><button class="add-row" data-add-option="${ci}.${pi}">＋ إضافة منطقة / خطة</button>${Object.keys(p.manualOverrides||{}).length?'<button class="btn soft" type="button" data-reset-manual="'+ci+'.'+pi+'">استعادة بيانات API</button>':''}<button class="btn danger" data-remove-product="${ci}.${pi}">${supplierLinked?'إخفاء من المتجر':'حذف المنتج'}</button></div>
+</div></details>`;
+}
 function renderOption(o,base,oi,fallbackImage){const path=base+`.options.${oi}`;return `
 <div class="option-editor"><div class="option-head"><strong>الخيار ${oi+1}</strong><button class="icon-btn" data-remove-option="${path}" title="حذف الخيار">×</button></div>
 <div class="form-grid">
@@ -822,34 +909,148 @@ ${field('العلم / الرمز',path+'.flag',o.flag||'✦')}
 <div class="pack-list">${(o.packs||[]).map((pack,pi)=>`<div class="pack-row"><input data-pack-label="${path}.packs.${pi}" value="${esc(pack[0])}" placeholder="اسم الباقة"><input type="number" min="0" step="0.01" data-pack-price="${path}.packs.${pi}" value="${esc(pack[1])}" placeholder="السعر بالليرة الجديدة"><button class="icon-btn" data-remove-pack="${path}.packs.${pi}">×</button></div>`).join('')}</div>
 <button class="add-row" data-add-pack="${path}">＋ إضافة باقة</button>
 </div>`;}
-$('categoryList').addEventListener('click',e=>{const b=e.target.closest('[data-category-index]');if(!b)return;state.categoryIndex=Number(b.dataset.categoryIndex);renderCatalog()});
+$('categoryList').addEventListener('click',e=>{
+ const departmentButton=e.target.closest('[data-department-id]');
+ if(departmentButton){state.selectedDepartmentId=departmentButton.dataset.departmentId;state.categoryIndex=-1;renderCatalog();return;}
+ const b=e.target.closest('[data-category-index]');if(!b)return;
+ state.categoryIndex=Number(b.dataset.categoryIndex);
+ state.selectedDepartmentId=categoryDepartmentId(activeCategory())||'other';
+ renderCatalog();
+});
 $('catalogEditor').addEventListener('click',async e=>{
- const button=e.target.closest('[data-reset-manual]');if(!button)return;
- const [ci,pi]=button.dataset.resetManual.split('.').map(Number);
- const category=state.catalog[ci],product=category?.items?.[pi];if(!category||!product)return;
- if(!confirm('استعادة الاسم والوصف والصورة والخيارات من آخر نسخة API؟ ستُحذف التعديلات اليدوية لهذا المنتج.'))return;
- button.disabled=true;
- try{
-  await api('/api/admin/catalog/'+encodeURIComponent(category.id)+'/'+encodeURIComponent(product.id)+'/restore-api',{method:'POST',body:'{}'});
-  await loadCatalog();toast('تمت استعادة بيانات المنتج من API.');
- }catch(error){toast(error.message);button.disabled=false;}
+ const reset=e.target.closest('[data-reset-manual]');
+ if(reset){
+  const [ci,pi]=reset.dataset.resetManual.split('.').map(Number);
+  const category=state.catalog[ci],product=category?.items?.[pi];if(!category||!product)return;
+  if(!confirm('استعادة الاسم والوصف والصورة والخيارات من آخر نسخة API؟ ستُحذف التعديلات اليدوية لهذا المنتج.'))return;
+  reset.disabled=true;
+  try{await api('/api/admin/catalog/'+encodeURIComponent(category.id)+'/'+encodeURIComponent(product.id)+'/restore-api',{method:'POST',body:'{}'});await loadCatalog();toast('تمت استعادة بيانات المنتج من API.');}
+  catch(error){toast(error.message);reset.disabled=false;}
+  return;
+ }
+ const button=e.target.closest('button');if(!button)return;
+ if(button.dataset.removeCategory!==undefined){
+  const ci=Number(button.dataset.removeCategory),category=state.catalog[ci];
+  if(!category)return;
+  const children=state.catalog.some(row=>row.parentId===category.id);
+  if((category.items||[]).length||children){toast('انقل المنتجات والمجلدات الفرعية قبل حذف هذا المجلد.');return;}
+  if(confirm('حذف المجلد الفارغ «'+category.name+'»؟')){state.catalog.splice(ci,1);state.categoryIndex=-1;renderCatalog();}
+  return;
+ }
+ if(button.id==='addProductInlineBtn'||button.dataset.addProduct!==undefined){
+  const category=activeCategory();if(!category)return;
+  const id='product-'+Date.now().toString(36);
+  category.items.push({id,name:'منتج جديد',desc:'وصف المنتج',image:'assets/products/_shared/product-placeholder.svg',visible:true,options:[{id:'option-'+Date.now().toString(36),name:'الخيار الأساسي',desc:'',flag:'✦',packs:[['باقة جديدة',1]]}]});
+  renderCatalog();
+  const details=[...$('catalogEditor').querySelectorAll('.product-editor')].at(-1);if(details)details.open=true;
+  return;
+ }
+ if(button.dataset.removeProduct){
+  const [ci,pi]=button.dataset.removeProduct.split('.').map(Number),category=state.catalog[ci],product=category?.items?.[pi];if(!product)return;
+  const supplierLinked=product.wamda?.provider==='wamda'||product.bestStore?.provider==='beststore';
+  if(supplierLinked){
+   if(confirm('إخفاء المنتج من المتجر؟ سيبقى محفوظاً ومرتبطاً بالمورد، ولن يظهر للعملاء بعد المزامنة التالية.')){
+    product.visible=false;renderCatalog();
+   }
+  }else if(confirm('حذف المنتج وخياراته وباقاته نهائياً من الكتالوج؟')){category.items.splice(pi,1);renderCatalog();}
+  return;
+ }
+ if(button.dataset.addOption){const [ci,pi]=button.dataset.addOption.split('.').map(Number);state.catalog[ci].items[pi].options.push({id:'option-'+Date.now().toString(36),name:'خيار جديد',desc:'',flag:'✦',packs:[['باقة جديدة',1]]});renderCatalog();return;}
+ if(button.dataset.removeOption){
+  const parts=button.dataset.removeOption.split('.'),ci=Number(parts[0]),pi=Number(parts[2]),oi=Number(parts[4]),options=state.catalog[ci].items[pi].options;
+  if(options.length===1){toast('يجب الإبقاء على خيار واحد على الأقل.');return}
+  options.splice(oi,1);renderCatalog();return;
+ }
+ if(button.dataset.addPack){
+  const parts=button.dataset.addPack.split('.'),ci=Number(parts[0]),pi=Number(parts[2]),oi=Number(parts[4]);
+  state.catalog[ci].items[pi].options[oi].packs.push(['باقة جديدة',1]);renderCatalog();return;
+ }
+ if(button.dataset.removePack){
+  const parts=button.dataset.removePack.split('.'),ci=Number(parts[0]),pi=Number(parts[2]),oi=Number(parts[4]),ki=Number(parts[6]),packs=state.catalog[ci].items[pi].options[oi].packs;
+  if(packs.length===1){toast('يجب الإبقاء على باقة واحدة على الأقل.');return}
+  packs.splice(ki,1);renderCatalog();return;
+ }
 });
-$('catalogEditor').addEventListener('input',e=>{const el=e.target;if(el.dataset.path){let value=el.value;const parts=el.dataset.path.split('.');if(['image','id','name','desc','icon','flag'].includes(parts.at(-1))&&value.length>700)return;if(el.type==='number')value=Number(value);setPath(el.dataset.path,value)}});
-$('catalogEditor').addEventListener('change',e=>{const el=e.target;if(el.dataset.imagePath)handleImageUpload(el)});
-async function handleImageUpload(input){const file=input.files?.[0];if(!file)return;if(file.size>10*1024*1024){toast('الصورة أكبر من 10 ميغابايت.');input.value='';return}try{const data=await compressImage(file);setPath(input.dataset.imagePath,data);renderCatalog();toast('تم تجهيز الصورة. اضغط حفظ التعديلات لنشرها.')}catch{toast('تعذر قراءة الصورة.')}input.value=''}
-function compressImage(file){return new Promise((resolve,reject)=>{const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{const scale=Math.min(1,1200/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);resolve(canvas.toDataURL('image/jpeg',.82))};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('BAD_IMAGE'))};img.src=url})}
-$('catalogEditor').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
- if(b.dataset.removeCategory!==undefined){if(state.catalog.length===1){toast('يجب الإبقاء على قسم واحد على الأقل.');return}if(confirm('حذف القسم وجميع المنتجات التابعة له؟')){state.catalog.splice(Number(b.dataset.removeCategory),1);state.categoryIndex=Math.max(0,state.categoryIndex-1);renderCatalog()}return}
- if(b.dataset.removeProduct){const [ci,pi]=b.dataset.removeProduct.split('.').map(Number);if(confirm('حذف المنتج وجميع خياراته؟')){state.catalog[ci].items.splice(pi,1);renderCatalog()}return}
- if(b.dataset.addOption){const [ci,pi]=b.dataset.addOption.split('.').map(Number);state.catalog[ci].items[pi].options.push({id:'option-'+Date.now().toString(36),name:'خيار جديد',desc:'',flag:'✦',packs:[['باقة جديدة',0]]});renderCatalog();return}
- if(b.dataset.removeOption){const parts=b.dataset.removeOption.split('.').map((v,i)=>i===0?Number(v):i===2?Number(v):v);const [ci,_,pi]=parts;if(state.catalog[ci].items[Number(parts[2])].options.length===1){toast('يجب الإبقاء على خيار واحد على الأقل.');return}const oi=Number(parts[4]);state.catalog[ci].items[Number(parts[2])].options.splice(oi,1);renderCatalog();return}
- if(b.dataset.addPack){const parts=b.dataset.addPack.split('.').map((v,i)=>i%2===0?Number(v):v);const [ci,_,pi,__,oi]=parts;state.catalog[ci].items[pi].options[oi].packs.push(['باقة جديدة',0]);renderCatalog();return}
- if(b.dataset.removePack){const parts=b.dataset.removePack.split('.');const ci=Number(parts[0]),pi=Number(parts[2]),oi=Number(parts[4]),ki=Number(parts[6]);const packs=state.catalog[ci].items[pi].options[oi].packs;if(packs.length===1){toast('يجب الإبقاء على باقة واحدة على الأقل.');return}packs.splice(ki,1);renderCatalog();return}
+$('catalogEditor').addEventListener('input',e=>{
+ const el=e.target;
+ if(el.dataset.path){
+  let value=el.type==='checkbox'?el.checked:el.value;
+  const parts=el.dataset.path.split('.');
+  if(['image','id','name','desc','icon','flag'].includes(parts.at(-1))&&String(value).length>700)return;
+  if(el.type==='number')value=Number(value);
+  setPath(el.dataset.path,value);
+ }
+ if(el.dataset.packLabel||el.dataset.packPrice){
+  const parts=(el.dataset.packLabel||el.dataset.packPrice).split('.');
+  const [ci,pi,oi,ki]=[Number(parts[0]),Number(parts[2]),Number(parts[4]),Number(parts[6])];
+  if(el.dataset.packLabel)state.catalog[ci].items[pi].options[oi].packs[ki][0]=el.value;
+  else state.catalog[ci].items[pi].options[oi].packs[ki][1]=Number(el.value);
+ }
 });
-$('catalogEditor').addEventListener('input',e=>{if(e.target.dataset.packLabel){const parts=e.target.dataset.packLabel.split('.');const [ci,pi,oi,ki]=[Number(parts[0]),Number(parts[2]),Number(parts[4]),Number(parts[6])];state.catalog[ci].items[pi].options[oi].packs[ki][0]=e.target.value}if(e.target.dataset.packPrice){const parts=e.target.dataset.packPrice.split('.');const [ci,pi,oi,ki]=[Number(parts[0]),Number(parts[2]),Number(parts[4]),Number(parts[6])];state.catalog[ci].items[pi].options[oi].packs[ki][1]=Number(e.target.value)}});
-$('addCategoryBtn').addEventListener('click',()=>{state.catalog.push({id:'category-'+Date.now().toString(36),name:'قسم جديد',desc:'وصف القسم',image:'assets/categories/custom.svg',icon:'✦',items:[]});state.categoryIndex=state.catalog.length-1;renderCatalog()});
-$('addProductBtn').addEventListener('click',()=>{const c=activeCategory();if(!c)return;c.items.push({id:'product-'+Date.now().toString(36),name:'منتج جديد',desc:'وصف المنتج',image:'assets/products/10-websites-programming/website/cover.svg',options:[{id:'option-'+Date.now().toString(36),name:'الخيار الأساسي',desc:'',flag:'✦',packs:[['باقة جديدة',0]]}]});renderCatalog()});
-$('saveCatalogBtn').addEventListener('click',async()=>{const b=$('saveCatalogBtn');b.disabled=true;try{await api('/api/admin/catalog',{method:'PUT',body:JSON.stringify({catalog:state.catalog})});toast('تم حفظ الكتالوج والصور على قاعدة البيانات.')}catch(e){toast(e.message)}finally{b.disabled=false}});
+$('catalogEditor').addEventListener('change',async e=>{
+ const el=e.target;
+ if(el.dataset.imagePath){await handleImageUpload(el);return;}
+ if(el.dataset.path){
+  const parts=el.dataset.path.split('.');
+  let value=el.type==='checkbox'?el.checked:el.value;
+  if(el.type==='number')value=Number(value);
+  setPath(el.dataset.path,value);
+  if(parts.at(-1)==='parentId'){
+   const category=state.catalog[Number(parts[0])];
+   if(category.parentId)category.departmentId='';
+  }
+  if(parts.at(-1)==='departmentId'){
+   const category=state.catalog[Number(parts[0])];
+   category.parentId='';
+  }
+  if(parts.at(-1)==='parentId'||parts.at(-1)==='departmentId')renderCatalog();
+ }
+ if(el.dataset.moveProduct){
+  const destinationCategoryId=el.value;
+  if(!destinationCategoryId)return;
+  const sourceCategoryId=el.dataset.sourceCategory,productId=el.dataset.moveProduct;
+  el.disabled=true;
+  try{
+   await api('/api/admin/catalog',{method:'PUT',body:JSON.stringify({catalog:state.catalog})});
+   await api('/api/admin/catalog/move-product',{method:'POST',body:JSON.stringify({sourceCategoryId,destinationCategoryId,productId})});
+   await loadCatalog();toast('تم نقل المنتج مع الحفاظ على بيانات المورد.');
+  }catch(error){toast(error.message);el.disabled=false;}
+ }
+});
+async function handleImageUpload(input){
+ const file=input.files?.[0];if(!file)return;
+ if(file.size>10*1024*1024){toast('الصورة أكبر من 10 ميغابايت.');input.value='';return;}
+ try{const data=await compressImage(file);setPath(input.dataset.imagePath,data);renderCatalog();toast('تم تجهيز الصورة. اضغط حفظ التعديلات لنشرها.');}
+ catch{toast('تعذر قراءة الصورة.');}
+ input.value='';
+}
+function compressImage(file){
+ return new Promise((resolve,reject)=>{
+  const url=URL.createObjectURL(file),img=new Image();
+  img.onload=()=>{const scale=Math.min(1,1200/Math.max(img.width,img.height)),canvas=document.createElement('canvas');
+   canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
+   canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);resolve(canvas.toDataURL('image/jpeg',.82));};
+  img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('BAD_IMAGE'));};img.src=url;
+ });
+}
+$('addCategoryBtn').addEventListener('click',()=>{
+ const parent=activeCategory(),departmentId=parent?categoryDepartmentId(parent):(state.selectedDepartmentId||'other');
+ const folder={id:'folder-'+Date.now().toString(36),name:'مجلد جديد',desc:'وصف المجلد',image:'assets/products/_shared/category-placeholder.svg',icon:'📁',parentId:parent?.id||'',departmentId:parent?'':departmentId,folderManual:true,visible:true,items:[]};
+ state.catalog.push(folder);state.categoryIndex=state.catalog.length-1;state.selectedDepartmentId=departmentId;renderCatalog();
+});
+$('addProductBtn').addEventListener('click',()=>{
+ const category=activeCategory();if(!category)return;
+ const id='product-'+Date.now().toString(36);
+ category.items.push({id,name:'منتج جديد',desc:'وصف المنتج',image:'assets/products/_shared/product-placeholder.svg',visible:true,options:[{id:'option-'+Date.now().toString(36),name:'الخيار الأساسي',desc:'',flag:'✦',packs:[['باقة جديدة',1]]}]});
+ renderCatalog();
+});
+async function saveCatalogChanges(){
+ const button=$('saveCatalogBtn');button.disabled=true;
+ try{await api('/api/admin/catalog',{method:'PUT',body:JSON.stringify({catalog:state.catalog})});toast('تم حفظ شجرة المجلدات والمنتجات والإعدادات اليدوية.');}
+ catch(error){toast(error.message);throw error;}
+ finally{button.disabled=false;}
+}
+$('saveCatalogBtn').addEventListener('click',async()=>{try{await saveCatalogChanges()}catch{}});
 async function loadSettings(){const d=await api('/api/admin/settings');state.settings=d.settings||{};renderSettings(d);renderNexaAiSettings()}
 
 function renderNexaAiSettings(){

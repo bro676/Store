@@ -13,6 +13,7 @@
   {id:'other',name:'خدمات رقمية متنوعة',icon:'✦',description:'أقسام إضافية لا تندرج تحت الأقسام الرئيسية.',folder:'11-other-services',cover:'assets/products/11-other-services/cover.svg'}
  ];
  const byId=new Map(DEPARTMENTS.map(row=>[row.id,row]));
+ const CATALOG_DEPARTMENT_IDS=new Set(DEPARTMENTS.map(row=>row.id));
  const placeholders=new Set(['assets/brand/logo.svg','assets/products/logo.svg','assets/products/_shared/logo.svg','assets/products/_shared/product-placeholder.svg','assets/products/_shared/category-placeholder.svg']);
  const rules=[
   ['ai',/(?:ذكاء\s*اصطناعي|ذكاء\s*صناعي|chat\s*gpt|chatgpt|claude|gemini|gamma\s*ai|midjourney|ai\s*assistant)/i],
@@ -53,7 +54,7 @@
   return {
    category:match.category,
    item:match.item,
-   departmentId:classifyCategory(match.category),
+   departmentId:getCategoryDepartmentId(match.category,categories),
    categoryId:normalizeId(match.category.id),
    itemId:normalizeId(match.item.id),
    optionId:options.length===1?normalizeId(options[0].id):null,
@@ -92,19 +93,73 @@
   // Never guess between duplicate provider-generated product IDs.
   return matches.length===1?matches[0]:null;
  }
- function sortCategoriesByProductCount(categories){
+ function getCategoryDepartmentId(category,categories=[]){
+  const rows=Array.isArray(categories)?categories:[];
+  const byId=new Map(rows.map(row=>[normalizeId(row?.id),row]));
+  let current=category,steps=0;
+  while(current&&steps++<=rows.length+1){
+   if(current.departmentId&&CATALOG_DEPARTMENT_IDS.has(current.departmentId))return current.departmentId;
+   const parentId=normalizeId(current.parentId);
+   if(!parentId)return classifyCategory(current);
+   current=byId.get(parentId)||null;
+  }
+  return 'other';
+ }
+ function categoryAncestors(category,categories=[]){
+  const rows=Array.isArray(categories)?categories:[];
+  const byId=new Map(rows.map(row=>[normalizeId(row?.id),row]));
+  const path=[],seen=new Set();let current=category;
+  while(current){
+   const id=normalizeId(current.id);
+   if(!id||seen.has(id))return [];
+   seen.add(id);path.unshift(current);
+   const parentId=normalizeId(current.parentId);
+   current=parentId?byId.get(parentId)||null:null;
+  }
+  return path;
+ }
+ function isCategoryVisible(category,categories=[]){
+  return categoryAncestors(category,categories).every(row=>row.visible!==false);
+ }
+ function getFolderProductCount(category,categories=[],visited=new Set()){
+  if(!category||visited.has(normalizeId(category.id)))return 0;
+  const nextVisited=new Set(visited);nextVisited.add(normalizeId(category.id));
+  const rows=Array.isArray(categories)?categories:[];
+  const own=(category.items||[]).filter(product=>product.visible!==false).length;
+  return own+rows.filter(child=>normalizeId(child.parentId)===normalizeId(category.id)&&child.visible!==false&&isCategoryVisible(child,rows))
+   .reduce((sum,child)=>sum+getFolderProductCount(child,rows,nextVisited),0);
+ }
+ function sortCategoriesByProductCount(categories,allCategories=null){
+  const rows=Array.isArray(categories)?categories:[];
+  const all=Array.isArray(allCategories)?allCategories:rows;
   const collator=new Intl.Collator('ar',{numeric:true,sensitivity:'base'});
-  return (Array.isArray(categories)?categories:[])
-   .map((category,index)=>({category,index}))
-   .sort((a,b)=>(Array.isArray(a.category?.items)?a.category.items.length:0)-(Array.isArray(b.category?.items)?b.category.items.length:0)||
+  return rows.map((category,index)=>({category,index,count:getFolderProductCount(category,all)}))
+   .sort((a,b)=>a.count-b.count||Number(a.category?.sortOrder||0)-Number(b.category?.sortOrder||0)||
     collator.compare(String(a.category?.name||''),String(b.category?.name||''))||a.index-b.index)
    .map(row=>row.category);
  }
+ function getChildFolders(categories,parentId=null,departmentId=null){
+  const rows=Array.isArray(categories)?categories:[];
+  const children=rows.filter(category=>
+   normalizeId(category?.parentId||'')===normalizeId(parentId||'')&&
+   category.visible!==false&&isCategoryVisible(category,rows)&&
+   (parentId!==null&&parentId!==undefined?true:getCategoryDepartmentId(category,rows)===departmentId)
+  );
+  return sortCategoriesByProductCount(children,rows);
+ }
  function getDepartmentSummaries(categories){
-  const rows=new Map(DEPARTMENTS.map(row=>[row.id,{...row,categories:[],categoryCount:0,productCount:0}]));
-  for(const category of Array.isArray(categories)?categories:[]){
-   const row=rows.get(classifyCategory(category));row.categories.push(category);row.categoryCount++;
-   row.productCount+=Array.isArray(category?.items)?category.items.length:0;
+  const rows=new Map(DEPARTMENTS.map(row=>[row.id,{...row,categories:[],categoryCount:0,productCount:0,rootFolderCount:0}]));
+  const source=Array.isArray(categories)?categories:[];
+  for(const category of source){
+   if(!isCategoryVisible(category,source))continue;
+   const id=getCategoryDepartmentId(category,source),row=rows.get(id)||rows.get('other');
+   row.categories.push(category);row.categoryCount++;
+   row.productCount+=(category.items||[]).filter(product=>product.visible!==false).length;
+   if(!normalizeId(category.parentId))row.rootFolderCount++;
+  }
+  for(const row of rows.values()){
+   row.productCount=source.filter(category=>isCategoryVisible(category,source)&&getCategoryDepartmentId(category,source)===row.id)
+    .reduce((sum,category)=>sum+(category.items||[]).filter(product=>product.visible!==false).length,0);
   }
   const collator=new Intl.Collator('ar',{numeric:true,sensitivity:'base'});
   return DEPARTMENTS.map(row=>rows.get(row.id)).filter(row=>row.categoryCount>0)
@@ -117,7 +172,7 @@
   try{const url=new URL(value);if(url.protocol==='https:')return url.href}catch{}
   return '';
  }
- function categoryImage(category){return safeImage(category?.image)||department(classifyCategory(category)).cover}
+ function categoryImage(category,categories=[]){return safeImage(category?.image)||department(getCategoryDepartmentId(category,categories)).cover}
  const icons=[
   [/(?:pubg|ببجي|بوبجي)/i,'assets/products/01-games/pubg/cover.svg'],
   [/(?:roblox|روبلوكس)/i,'assets/products/01-games/roblox/cover.svg'],
@@ -133,16 +188,16 @@
   [/(?:apple\s*card|itunes)/i,'assets/products/05-digital-cards/apple-card/cover.svg'],
   [/tiktok/i,'assets/products/09-social-marketing/tiktok/cover.svg']
  ];
- function productImage(product,category){
+ function productImage(product,category,categories=[]){
   const own=safeImage(product?.image);if(own)return own;
   const key=text([product?.name,product?.desc,category?.name].filter(Boolean).join(' '));
   for(const [pattern,src] of icons)if(pattern.test(key))return src;
-  return department(classifyCategory(category)).cover;
+  return department(getCategoryDepartmentId(category,categories)).cover;
  }
- function optionImage(option,product,category){return safeImage(option?.image)||productImage(product,category)}
+ function optionImage(option,product,category,categories=[]){return safeImage(option?.image)||productImage(product,category,categories)}
  function slugify(value){const result=text(value).replace(/[^\p{L}\p{N}]+/gu,'-').replace(/^-+|-+$/g,'').slice(0,64);return result||'item'}
- function folderFor(category,product,option,pack){
-  const group=department(classifyCategory(category));
+ function folderFor(category,product,option,pack,categories=[]){
+  const group=department(getCategoryDepartmentId(category,categories));
   const externalName=product?.apiSource?.name||product?.wamda?.externalName||product?.externalName||product?.sourceName||'';
   const externalPart=externalName&&text(externalName)!==text(product?.name)?'--source-'+slugify(externalName):'';
   const productFolder=slugify(product?.name)+externalPart+'--'+slugify(product?.id||'product');
@@ -151,5 +206,5 @@
   if(pack)parts.push('packs','pack-'+slugify(pack?.[0]||'offer'));
   return parts.join('/');
  }
- window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,sortCategoriesByProductCount,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
+ window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,getCategoryDepartmentId,categoryAncestors,isCategoryVisible,getFolderProductCount,sortCategoriesByProductCount,getChildFolders,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
 })();

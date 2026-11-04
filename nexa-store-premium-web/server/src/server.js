@@ -195,10 +195,21 @@ function pricePack(pack, currency) {
   return { ...pack, currency, amountMinor };
 }
 
+function isPublicCatalogCategory(category, rows=catalog) {
+  const byId=new Map(rows.map(row=>[String(row.id),row]));
+  const visited=new Set();let current=category;
+  while(current){
+    const id=String(current.id||'');
+    if(!id||visited.has(id)||current.visible===false)return false;
+    visited.add(id);
+    current=current.parentId?byId.get(String(current.parentId))||null:null;
+  }
+  return true;
+}
 function publicCatalog() {
-  return catalog.map(category => ({
+  return catalog.filter(category=>isPublicCatalogCategory(category)).map(category => ({
     ...category,
-    items: category.items.map(product => {
+    items: category.items.filter(product=>product.visible!==false).map(product => {
       const { seagm, wamda, bestStore, manualOverrides, apiSource, ...publicProduct } = product;
       if (seagm?.provider === 'seagm') {
         return {
@@ -1400,14 +1411,18 @@ function applySupplierWinnerToCatalog(nextCatalog,winner,pricingSettings=storeSe
   const existingParent=existingEntry?.category||(existing?nextCatalog.find(category=>(category.items||[]).some(item=>item.id===existing.id)):null);
   const normalizedCategory=normalizeSupplierText(categoryName||'خدمات رقمية متنوعة');
   const categoryMatch=supplierCategoryMatchKey(categoryName||'خدمات رقمية متنوعة');
-  const exactCategory=catalogIndex?.categoryByName.get(normalizedCategory)||nextCatalog.find(category=>normalizeSupplierText(category.name||'')===normalizedCategory);
-  const familyCategory=catalogIndex?.categoryByFamily.get(categoryMatch)||nextCatalog.find(category=>supplierCategoryMatchKey(category.name||'')===categoryMatch);
+  const exactCategory=catalogIndex?.categoryByName.get(normalizedCategory)||nextCatalog.find(category=>
+    normalizeSupplierText(category.name||'')===normalizedCategory||
+    (Array.isArray(category.sourceCategoryAliases)&&category.sourceCategoryAliases.some(alias=>normalizeSupplierText(alias)===normalizedCategory)));
+  const familyCategory=catalogIndex?.categoryByFamily.get(categoryMatch)||nextCatalog.find(category=>
+    supplierCategoryMatchKey(category.name||'')===categoryMatch||
+    (Array.isArray(category.sourceCategoryAliases)&&category.sourceCategoryAliases.some(alias=>supplierCategoryMatchKey(alias)===categoryMatch)));
   // Keep an already-published product in its current storefront category when the
   // winning supplier changes. Otherwise merge categories from equivalent game families.
   const targetId=existingParent?.id||exactCategory?.id||familyCategory?.id||('supplier-category-'+bestStoreCategoryKey(categoryName||'خدمات رقمية متنوعة'));
   let target=existingParent||exactCategory||familyCategory||nextCatalog.find(category=>category.id===targetId);
   if(!target){
-    target={id:targetId,name:String(categoryName||'خدمات رقمية متنوعة').slice(0,100),desc:'منتجات رقمية متزامنة من الموردين المتاحين.',image:safeBestStoreImage(categoryImage)||'assets/products/_shared/category-placeholder.svg',icon:'✦',items:[]};
+    target={id:targetId,name:String(categoryName||'خدمات رقمية متنوعة').slice(0,100),desc:'منتجات رقمية متزامنة من الموردين المتاحين.',image:safeBestStoreImage(categoryImage)||'assets/products/_shared/category-placeholder.svg',icon:'✦',sourceCategoryAliases:[String(categoryName||'').slice(0,100)].filter(Boolean),items:[]};
     nextCatalog.push(target);if(catalogIndex)registerSupplierCatalogCategory(catalogIndex,target);
   }
   target.items=target.items||[];
@@ -2796,7 +2811,7 @@ const server = http.createServer(async (req,res) => {
           const source=product.apiSource;
           if(!source)return product;
           const restored={...product};
-          for(const key of ['name','desc','image','options'])if(Object.prototype.hasOwnProperty.call(source,key))restored[key]=source[key];
+          for(const key of ['name','desc','image','options','visible','sortOrder'])if(Object.prototype.hasOwnProperty.call(source,key))restored[key]=source[key];
           delete restored.manualOverrides;
           return restored;
         })
@@ -2807,6 +2822,31 @@ const server = http.createServer(async (req,res) => {
       await persistCatalog(nextCatalog);
       return send(res,200,{ok:true,message:'تمت استعادة بيانات المنتج من آخر نسخة API.',catalog});
     }
+    if(req.method==='POST'&&url.pathname==='/api/admin/catalog/move-product'){
+      if(rateLimit(req,res,`catalog-move:${ip}`,60,60_000))return;
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      if(supplierCompareSyncInProgress||wamdaBulkPublishInProgress||wamdaCatalogSyncInProgress||bestStoreCatalogSyncInProgress||catalogApiSyncInProgress)
+        return send(res,409,{ok:false,error:'CATALOG_SYNC_IN_PROGRESS',message:'انتظر انتهاء مزامنة المنتجات قبل نقلها.'});
+      const input=await bodyJson(req,16_384);
+      const sourceCategoryId=String(input.sourceCategoryId||''),destinationCategoryId=String(input.destinationCategoryId||''),productId=String(input.productId||'');
+      if(!sourceCategoryId||!destinationCategoryId||!productId||sourceCategoryId===destinationCategoryId)
+        return send(res,400,{ok:false,error:'INVALID_PRODUCT_MOVE',message:'حدد المنتج والمجلد المصدر والمجلد الهدف.'});
+      const sourceCategory=catalog.find(category=>category.id===sourceCategoryId);
+      const destinationCategory=catalog.find(category=>category.id===destinationCategoryId);
+      if(!sourceCategory||!destinationCategory)return send(res,404,{ok:false,error:'CATALOG_FOLDER_NOT_FOUND',message:'المجلد المصدر أو الهدف غير موجود.'});
+      const productIndex=sourceCategory.items.findIndex(product=>product.id===productId);
+      if(productIndex<0)return send(res,404,{ok:false,error:'PRODUCT_NOT_FOUND',message:'المنتج غير موجود في المجلد المصدر.'});
+      if(destinationCategory.items.some(product=>product.id===productId))
+        return send(res,409,{ok:false,error:'DUPLICATE_PRODUCT_IN_FOLDER',message:'يوجد منتج بالمعرّف نفسه داخل المجلد الهدف.'});
+      const nextCatalog=catalog.map(category=>({...category,items:[...(category.items||[])]}));
+      const source=nextCatalog.find(category=>category.id===sourceCategoryId);
+      const destination=nextCatalog.find(category=>category.id===destinationCategoryId);
+      const [product]=source.items.splice(productIndex,1);
+      destination.items.push(product);
+      const validated=validateCatalog(nextCatalog);
+      await persistCatalog(validated);
+      return send(res,200,{ok:true,message:'تم نقل المنتج مع الحفاظ على ربط المورد وخياراته وأسعاره.',catalog});
+    }
     if (req.method === 'GET' && url.pathname === '/api/admin/catalog') {
       return send(res,200,{ok:true,catalog});
     }
@@ -2816,19 +2856,39 @@ const server = http.createServer(async (req,res) => {
       const requestedCatalog = validateCatalog(input.catalog);
       const nextCatalog = requestedCatalog.map(category=>{
         const previousCategory=catalog.find(item=>item.id===category.id);
-        return {...category,items:category.items.map(product=>{
-          const previous=previousCategory?.items.find(item=>item.id===product.id);
+        const categoryApiSource=previousCategory?.apiSource||{
+          name:previousCategory?.name||category.name,desc:previousCategory?.desc||category.desc,
+          image:previousCategory?.image||category.image,icon:previousCategory?.icon||category.icon,
+        };
+        const categoryOverrides={...(previousCategory?.manualOverrides||{})};
+        for(const key of ['name','desc','image','icon','parentId','departmentId','sortOrder','visible']){
+          if(JSON.stringify(category[key]??null)!==JSON.stringify(previousCategory?.[key]??null))categoryOverrides[key]=category[key]??null;
+        }
+        const previousProducts=new Map((previousCategory?.items||[]).map(product=>[product.id,product]));
+        const items=category.items.map(product=>{
+          const previous=previousProducts.get(product.id);
           if(!previous)return product;
           const apiSource=previous.apiSource||{name:previous.name,desc:previous.desc,image:previous.image,options:previous.options};
           const overrides={...(previous.manualOverrides||{})};
-          for(const key of ['name','desc','image','options']){
-            if(JSON.stringify(product[key])!==JSON.stringify(previous[key]))overrides[key]=product[key];
+          for(const key of ['name','desc','image','options','visible','sortOrder']){
+            if(JSON.stringify(product[key]??null)!==JSON.stringify(previous[key]??null))overrides[key]=product[key]??null;
           }
-          const next={...product,apiSource};
-          if(Object.keys(overrides).length)next.manualOverrides=overrides;
-          else delete next.manualOverrides;
-          return next;
-        })};
+          const updated={...product,apiSource};
+          if(Object.keys(overrides).length)updated.manualOverrides=overrides;
+          else delete updated.manualOverrides;
+          return updated;
+        });
+        const sourceCategoryAliases=Array.from(new Set([
+          ...(Array.isArray(previousCategory?.sourceCategoryAliases)?previousCategory.sourceCategoryAliases:[]),
+          ...(Array.isArray(category.sourceCategoryAliases)?category.sourceCategoryAliases:[]),
+          ...(categoryApiSource?.name?[categoryApiSource.name]:[]),
+          ...(previousCategory?.name?[previousCategory.name]:[]),
+          ...(category.name?[category.name]:[]),
+        ].filter(value=>typeof value==='string'&&value.trim()))).slice(0,40);
+        const updatedCategory={...category,items,apiSource:categoryApiSource,sourceCategoryAliases};
+        if(Object.keys(categoryOverrides).length)updatedCategory.manualOverrides=categoryOverrides;
+        else delete updatedCategory.manualOverrides;
+        return updatedCategory;
       });
       await persistCatalog(validateCatalog(nextCatalog));
       return send(res,200,{ok:true,message:'تم حفظ الكتالوج والتعديلات اليدوية مع الاحتفاظ ببيانات API.',catalog});
