@@ -231,6 +231,34 @@ test('catalog refresh preserves manually organized folder names, parent links an
   assert.ok(merged[0].sourceCategoryAliases.includes('Supplier category updated'));
 });
 
+test('replace sync retains manual products created inside supplier folders',()=>{
+  const manualProduct={...catalog[0].items[0],id:'manual-product',manualCreated:true,fulfillmentMode:'manual',manualDeliveryHours:8,manualDeliveryMessage:'سيصلك خلال {hours} ساعة'};
+  const current=[{...catalog[0],id:'supplier-category',items:[catalog[0].items[0],manualProduct]}];
+  const incoming=[{...catalog[0],id:'supplier-category',items:[catalog[0].items[0]]}];
+  const merged=mergeCatalog(current,incoming,'replace');
+  const retained=merged[0].items.find(product=>product.id==='manual-product');
+  assert.ok(retained);
+  assert.equal(retained.manualCreated,true);
+  assert.equal(retained.fulfillmentMode,'manual');
+  assert.equal(retained.manualDeliveryHours,8);
+});
+
+test('supplier refresh preserves manual fulfillment preferences on supplier products',()=>{
+  const manualDeliveryMessage='سيصلك خلال {hours} ساعة';
+  const original=[{...catalog[0],id:'supplier-category',items:[{
+    ...catalog[0].items[0],seagm:{provider:'seagm',kind:'card',categoryId:4,typeId:7},
+    fulfillmentMode:'manual',manualDeliveryHours:6,manualDeliveryMessage,
+    manualOverrides:{fulfillmentMode:'manual',manualDeliveryHours:6,manualDeliveryMessage},
+  }]}];
+  const incoming=[{...catalog[0],id:'supplier-category',items:[{
+    ...catalog[0].items[0],seagm:{provider:'seagm',kind:'card',categoryId:4,typeId:7},
+  }]}];
+  const merged=mergeCatalog(original,incoming);
+  const product=merged[0].items[0];
+  assert.equal(product.fulfillmentMode,'manual');
+  assert.equal(product.manualDeliveryHours,6);
+  assert.equal(product.manualDeliveryMessage,manualDeliveryMessage);
+});
 test('replace sync preserves manually-created nested folders that are not in supplier feed',()=>{
   const root={...catalog[0],id:'manual-root',name:'Manual root',parentId:'',departmentId:'games',folderManual:true,items:[]};
   const child={...catalog[0],id:'manual-child',name:'Manual child',parentId:'manual-root',items:[]};
