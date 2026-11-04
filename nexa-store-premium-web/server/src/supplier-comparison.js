@@ -193,11 +193,17 @@ export function buildSupplierCatalogIndex(catalog, sourceMatchIndex = new Map())
     const items=Array.isArray(category?.items)?category.items:[];
     for(let position=0;position<items.length;position++){
       const item=items[position],entry={category,index:position,item};
-      const key=existingSupplierMatchKey(item,sourceMatchIndex);
-      if(key&&!index.byMatchKey.has(key))index.byMatchKey.set(key,entry);
-      for(const providerKey of supplierProviderProductKeys(item)){
+      const providerKeys=supplierProviderProductKeys(item);
+      const keys=new Set([existingSupplierMatchKey(item,sourceMatchIndex)]);
+      // Old catalog rows keep their persisted legacy key. Also index the new
+      // key derived from the current supplier cache so a cross-provider winner
+      // updates that old row instead of creating a duplicate storefront item.
+      for(const providerKey of providerKeys){
+        const currentSourceKey=sourceMatchIndex instanceof Map?sourceMatchIndex.get(providerKey):'';
+        if(currentSourceKey)keys.add(currentSourceKey);
         if(!index.byProviderProduct.has(providerKey))index.byProviderProduct.set(providerKey,entry);
       }
+      for(const key of keys)if(key&&!index.byMatchKey.has(key))index.byMatchKey.set(key,entry);
     }
   }
   return index;
@@ -207,11 +213,13 @@ export function buildSupplierCatalogIndex(catalog, sourceMatchIndex = new Map())
 export function updateSupplierCatalogIndex(index, previousEntry, product, category, itemIndex, matchKey) {
   if(!index||!category||!product)return null;
   if(previousEntry?.item){
-    const oldKey=existingSupplierMatchKey(previousEntry.item,index.sourceMatchIndex);
-    if(oldKey&&index.byMatchKey.get(oldKey)===previousEntry)index.byMatchKey.delete(oldKey);
+    const keys=new Set([existingSupplierMatchKey(previousEntry.item,index.sourceMatchIndex)]);
     for(const providerKey of supplierProviderProductKeys(previousEntry.item)){
+      const currentSourceKey=index.sourceMatchIndex instanceof Map?index.sourceMatchIndex.get(providerKey):'';
+      if(currentSourceKey)keys.add(currentSourceKey);
       if(index.byProviderProduct.get(providerKey)===previousEntry)index.byProviderProduct.delete(providerKey);
     }
+    for(const oldKey of keys)if(oldKey&&index.byMatchKey.get(oldKey)===previousEntry)index.byMatchKey.delete(oldKey);
   }
   const nextEntry={category,index:itemIndex,item:product};
   if(matchKey)index.byMatchKey.set(String(matchKey),nextEntry);
