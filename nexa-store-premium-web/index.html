@@ -1115,7 +1115,7 @@ async function doOrder(e){
   d.orders.unshift(order);storageSave(d);
   if(data.paymentMethod==='wallet'){
    closeModal();renderOrders();
-   if(data.receipt){$('paymentReceipt').classList.remove('hidden');renderPaymentReceipt(data.receipt);}
+   if(data.receipt){$('paymentReceipt').classList.remove('hidden');renderPaymentReceipt(data.receipt);if(data.receipt.delivery&&!['completed','manual_pending','manual_review'].includes(data.receipt.delivery.status))watchSeagmDelivery(data.orderId);}
    await refreshCustomerAccount();navigate('wallet');showToast('تم الدفع من رصيد حسابك بنجاح.');return;
   }
   state.pendingOrder=data.orderId;$('paymentOrderId').value=data.orderId;
@@ -1249,7 +1249,7 @@ async function watchSeagmDelivery(orderId){
    if(data.receipt)renderPaymentReceipt(data.receipt);
    const result=$('shamCashPaymentResult');
    if(data.delivery.status==='completed'){
-    if(result){result.className='wallet-payment-result success';result.textContent='اكتمل التسليم بنجاح من SEAGM. تفاصيل البطاقة أو نتيجة الشحن موجودة في الوصل.'}
+    if(result){result.className='wallet-payment-result success';result.textContent='اكتمل التسليم بنجاح. بيانات المنتج متاحة في الوصل.'}
     return;
    }
    if(data.delivery.status==='manual_pending'){
@@ -1260,7 +1260,7 @@ async function watchSeagmDelivery(orderId){
     if(result){result.className='wallet-payment-result error';result.textContent='تم تأكيد دفعك لكن طلب المورد يحتاج مراجعة من الدعم. رقم طلبك محفوظ ولن تتم إعادة الشراء تلقائياً.'}
     return;
    }
-   if(result)result.textContent='الدفع مؤكد، وطلبك قيد التنفيذ لدى SEAGM. يتم تحديث حالة التسليم تلقائياً…';
+   if(result)result.textContent='الدفع مؤكد، وطلبك قيد التنفيذ لدى المورد. يتم تحديث حالة التسليم تلقائياً…';
   }
  }catch{}
  finally{deliveryWatchers.delete(orderId)}
