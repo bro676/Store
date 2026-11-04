@@ -783,7 +783,7 @@ body{
 <script src="/assets/brand/nexa-catalog.js?v=20261102-02"></script>
 <script>
 let categories=[];
-const $=id=>document.getElementById(id);const money=v=>v>0?new Intl.NumberFormat('en-US').format(v)+' ل.س جديدة':'يحدد لاحقاً';const formatMinor=(minor,currency='SYP')=>{const value=Number(BigInt(minor||0))/100;return currency==='USD'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value):new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value)+' ل.س جديدة'};const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $=id=>document.getElementById(id);const money=v=>v>0?new Intl.NumberFormat('en-US',{maximumFractionDigits:Number(v)<0.01?8:2}).format(v)+' ل.س جديدة':'يحدد لاحقاً';const formatMinor=(minor,currency='SYP')=>{const value=Number(BigInt(minor||0))/100;return currency==='USD'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value):new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value)+' ل.س جديدة'};const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let state={view:'home',department:null,category:null,item:null,option:null,selectedPack:null,pendingOrder:null,catalogPage:1,catalogQuery:'',categoryPage:1,categoryQuery:'',productPage:1,productQuery:'',searchResults:[],searchPage:1};let toastTimer;let memoryData={orders:[],favs:[],supportTickets:[]};const deliveryWatchers=new Set();
 function getCategory(id){return categories.find(x=>String(x.id)===String(id))||null}function getItem(id,categoryId=state.category){const scoped=categoryId==null?null:getCategory(categoryId);if(scoped){const match=(scoped.items||[]).find(x=>String(x.id)===String(id));if(match)return match;}for(const c of categories){const it=(c.items||[]).find(x=>String(x.id)===String(id));if(it)return it}return null}function getOption(id){const it=state.item&&getItem(state.item,state.category);return NexaCatalog.getProductOptions(it).find(x=>String(x.id)===String(id))||null}
 function storageRead(){try{const raw=localStorage.getItem('nexa-store-client');if(raw){memoryData=JSON.parse(raw);return memoryData}}catch{}return memoryData}function storageSave(d){memoryData=d;try{localStorage.setItem('nexa-store-client',JSON.stringify(d))}catch{}}
@@ -1022,14 +1022,14 @@ function renderCurrencyPreview(){
  const quantity=p.supplier?Math.max(1,Number($('orderQuantity')?.value||1)):1;
  if(paymentMethod==='wallet'){
   $('orderCurrency').value='SYP';$('orderCurrency').disabled=true;
-  preview.textContent=money(p.price*quantity);
+  const walletTotal=p.supplier?Math.round((p.price*quantity+Number.EPSILON)*100)/100:p.price*quantity;preview.textContent=money(walletTotal);
   hint.textContent='سيتم خصم المبلغ بالليرة السورية الجديدة من رصيد حسابك بعد التحقق من كفايته.';
   $('paymentMethodHint').textContent=customerAccount?'سيتم الدفع مباشرة من رصيد حسابك.':'سجّل الدخول إلى حسابك لاستخدام الرصيد.';
   return;
  }
  $('orderCurrency').disabled=false;
  $('paymentMethodHint').textContent='الدفع المباشر ينشئ فاتورة شام كاش مستقلة لهذا الطلب.';
- const totalSyp=p.price*quantity;
+ const rawTotalSyp=p.price*quantity;const totalSyp=p.supplier?Math.round((rawTotalSyp+Number.EPSILON)*100)/100:rawTotalSyp;
  if(choice==='USD'){
   if(!(sypPerUsd>0)){preview.textContent='سعر الدولار غير متاح حالياً';hint.textContent='لن يتم إنشاء فاتورة بالدولار قبل ضبط سعر التحويل على الخادم.';return;}
   const usd=Math.round((totalSyp/sypPerUsd)*100)/100;
