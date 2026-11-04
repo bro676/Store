@@ -798,7 +798,6 @@ document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',(
 async function loadAll(){showApp();await Promise.all([loadOverview(),loadCatalog(),loadSettings(),loadOrders(),loadWamdaCatalog(),loadSeagmCatalog(),loadBestStoreCatalog()]);}
 async function loadOverview(){const d=await api('/api/admin/overview');const o=d.orders||{};const cards=[['إجمالي الطلبات',o.total||0,'▤','كل الطلبات المسجلة'],['مدفوع ومتحقق',o.paid||0,'✓','دفعات أكدها API'],['بانتظار الدفع',o.pending||0,'◷','فواتير فعالة أو قيد المتابعة'],['عدد المنتجات',d.products||0,'▦',`${d.categories||0} أقسام`]];$('stats').innerHTML=cards.map(([t,v,ico,sub])=>`<article class="stat"><div class="stat-top"><span>${t}</span><i class="stat-icon">${ico}</i></div><strong>${Number(v).toLocaleString('en-US')}</strong><small>${sub}</small></article>`).join('');const max=Math.max(1,o.total||0);$('orderBars').innerHTML=[['مدفوع',o.paid||0],['بانتظار الدفع',o.pending||0],['منتهي',o.expired||0],['ملغي',(o.total||0)-(o.paid||0)-(o.pending||0)-(o.expired||0)]].map(([label,v])=>`<div class="bar-row"><span>${label}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Number(v)/max*100)}%"></div></div><b>${v}</b></div>`).join('');$('topStatus').textContent=d.paymentsReady?'الدفع جاهز':'تحقق من الدفع';}
 async function loadCatalog(){const d=await api('/api/admin/catalog');state.catalog=d.catalog||[];state.categoryIndex=Math.min(state.categoryIndex,Math.max(0,state.catalog.length-1));renderCatalog()}
-function activeCategory(){return state.catalog[state.categoryIndex]||null}
 function setPath(path,value){const parts=path.split('.');let node=state.catalog;for(let i=0;i<parts.length-1;i++)node=node[parts[i]];node[parts.at(-1)]=value}
 function field(label,path,value,opts={}){const type=opts.type||'text';return `<div class="field ${opts.full?'full':''}"><label>${label}</label>${type==='textarea'?`<textarea data-path="${path}" placeholder="${esc(opts.placeholder||'')}" maxlength="${opts.max||700}">${esc(value)}</textarea>`:`<input data-path="${path}" type="${type}" value="${esc(value)}" ${opts.step?`step="${opts.step}"`:''} ${opts.min!==undefined?`min="${opts.min}"`:''} ${opts.max!==undefined?`max="${opts.max}"`:''}>`}</div>`}
 function activeCategory(){return state.categoryIndex>=0?state.catalog[state.categoryIndex]||null:null}
@@ -1004,6 +1003,7 @@ $('catalogEditor').addEventListener('change',async e=>{
    const category=state.catalog[Number(parts[0])];
    category.parentId='';
   }
+  if(parts.at(-1)==='parentId'||parts.at(-1)==='departmentId')renderCatalog();
  }
  if(el.dataset.moveProduct){
   const destinationCategoryId=el.value;
