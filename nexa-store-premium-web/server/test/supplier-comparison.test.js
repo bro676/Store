@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { compareSupplierCandidates, supplierProductMatchKey, supplierCategoryMatchKey, supplierCostInSyp, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey, applyFirstPriceableSupplierCandidate } from '../src/supplier-comparison.js';
+import { compareSupplierCandidates, supplierProductMatchKey, supplierCategoryMatchKey, supplierCostInSyp, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey, applyFirstPriceableSupplierCandidate, buildSupplierCatalogIndex, updateSupplierCatalogIndex } from '../src/supplier-comparison.js';
 
 test('same named product in the same game family compares across suppliers',()=>{
   const a={name:'PUBG UC 60'},b={name:'PUBG UC 60'};
@@ -102,4 +102,41 @@ test('supplier candidate application does not swallow unrelated publication fail
     ()=>applyFirstPriceableSupplierCandidate({winner:{provider:'beststore'}},()=>{throw new Error('DATABASE_WRITE_FAILED');}),
     /DATABASE_WRITE_FAILED/
   );
+});
+
+
+test('supplier catalog index finds existing legacy products and storefront categories in one pass',()=>{
+  const catalog=[
+    {id:'games',name:'PUBG',items:[
+      {id:'legacy-wamda',name:'PUBG UC 60',wamda:{provider:'wamda',productId:101}},
+    ]},
+    {id:'cards',name:'Gift Cards',items:[
+      {id:'legacy-beststore',name:'Steam Wallet 10 USD',bestStore:{provider:'beststore',productId:202}},
+    ]},
+  ];
+  const sourceIndex=buildSupplierSourceMatchKeyIndex({
+    wamdaCatalogCache:[{name:'PUBG',products:[{id:101,name:'PUBG UC 60'}]}],
+    bestStoreCatalogCache:[{name:'Steam',products:[{id:202,name:'Steam Wallet 10 USD'}]}],
+  });
+  const index=buildSupplierCatalogIndex(catalog,sourceIndex);
+  assert.equal(index.byProviderProduct.get('wamda:101').item.id,'legacy-wamda');
+  assert.equal(index.byProviderProduct.get('beststore:202').item.id,'legacy-beststore');
+  assert.equal(index.categoryByName.get('pubg').id,'games');
+  assert.equal(index.categoryByFamily.get('pubg')?.id,'games');
+});
+
+test('supplier catalog index updates replaced items and registers inserted supplier products',()=>{
+  const category={id:'games',name:'PUBG',items:[{id:'old',name:'PUBG UC 60',wamda:{provider:'wamda',productId:101}}]};
+  const sourceIndex=buildSupplierSourceMatchKeyIndex({
+    wamdaCatalogCache:[{name:'PUBG',products:[{id:101,name:'PUBG UC 60'}]}],
+    bestStoreCatalogCache:[{name:'PUBG Mobile',products:[{id:202,name:'PUBG UC 60'}]}],
+  });
+  const index=buildSupplierCatalogIndex([category],sourceIndex);
+  const previous=index.byProviderProduct.get('wamda:101');
+  const replacement={id:'old',name:'PUBG UC 60',supplierMatchKey:'pubg::60',bestStore:{provider:'beststore',productId:202}};
+  category.items[0]=replacement;
+  updateSupplierCatalogIndex(index,previous,replacement,category,0,'pubg::60');
+  assert.equal(index.byMatchKey.get('pubg::60').item,replacement);
+  assert.equal(index.byProviderProduct.has('wamda:101'),false);
+  assert.equal(index.byProviderProduct.get('beststore:202').item,replacement);
 });
