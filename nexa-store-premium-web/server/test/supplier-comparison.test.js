@@ -122,7 +122,7 @@ test('supplier catalog index finds existing legacy products and storefront categ
   assert.equal(index.byProviderProduct.get('wamda:101').item.id,'legacy-wamda');
   assert.equal(index.byProviderProduct.get('beststore:202').item.id,'legacy-beststore');
   assert.equal(index.categoryByName.get('pubg').id,'games');
-  assert.equal(index.categoryByFamily.get('pubg')?.id,'games');
+  assert.equal(index.categoryByFamily.get(supplierCategoryMatchKey('PUBG'))?.id,'games');
 });
 
 test('supplier catalog index updates replaced items and registers inserted supplier products',()=>{
