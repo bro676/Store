@@ -3,12 +3,12 @@ function roundMoney(value) {
 }
 
 function roundUnitMoney(value) {
-  return Math.round((value + Number.EPSILON) * 100_000_000) / 100_000_000;
+  return Math.round((value + Number.EPSILON) * 1_000_000_000_000) / 1_000_000_000_000;
 }
 
 /**
  * Calculate a sell price for one supplier unit. Keep the existing 2-decimal
- * rule for normal unit prices, but preserve up to 8 decimal places when
+ * rule for normal unit prices, but preserve up to 12 decimal places when
  * rounding a tiny per-unit cost to cents would turn it into zero.
  */
 export function calculateWamdaSellUnitPriceSyp({
@@ -54,10 +54,10 @@ export function supplierUnitPriceToMinor(unitPriceSyp, quantity) {
       !Number.isSafeInteger(qty) || qty <= 0 || qty > 1_000_000) {
     throw Object.assign(new Error('INVALID_SUPPLIER_UNIT_PRICE'), { status:422 });
   }
-  const fixed = unit.toFixed(8);
+  const fixed = unit.toFixed(12);
   const [whole, fraction = ''] = fixed.split('.');
-  const scale = 100_000_000n;
-  const unitScaled = BigInt(whole) * scale + BigInt((fraction + '00000000').slice(0, 8));
+  const scale = 1_000_000_000_000n;
+  const unitScaled = BigInt(whole) * scale + BigInt((fraction + '000000000000').slice(0, 12));
   const totalScaled = unitScaled * BigInt(qty);
   return (totalScaled * 100n + scale / 2n) / scale;
 }
