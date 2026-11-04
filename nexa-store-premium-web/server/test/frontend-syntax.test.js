@@ -92,6 +92,24 @@ test('Store and admin assets are revalidated instead of serving a stale theme', 
 });
 
 
+test('admin catalog exposes a recursive folder tree and safe manual organization controls', async () => {
+  const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  assert.ok(admin.includes('nexa-catalog.js?v=20261104-folder-tree-v1'), 'Admin loads the same folder hierarchy helper as storefront');
+  assert.ok(admin.includes('function renderFolderBranch(parentId,departmentId,depth=0)'), 'Admin renders nested folders recursively');
+  assert.ok(admin.includes('data-move-product='), 'Products can be moved between folders');
+  assert.ok(admin.includes('data-path="${ci}.parentId"'), 'A folder can be moved under another folder');
+  assert.ok(admin.includes('إظهار هذا المجلد في المتجر'), 'Folders can be hidden without deleting their source records');
+  assert.ok(admin.includes('إظهار المنتج في المتجر'), 'Products can be hidden individually');
+  assert.ok(admin.includes('folderManual:true'), 'Manually created folders are marked to survive supplier replace sync');
+});
+
+test('storefront renders child folders and products together inside each folder', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  assert.ok(store.includes('NexaCatalog.getChildFolders(categories,cat.id)'), 'A folder can contain recursively nested folders');
+  assert.ok(store.includes('المنتجات داخل'), 'Products are rendered alongside child folders');
+  assert.ok(store.includes('NexaCatalog.getCategoryDepartmentId(getCategory(el.dataset.browseCategory),categories)'), 'Nested navigation inherits the original root department');
+});
+
 test('admin catalog product disclosures use a valid native summary without nested buttons', async () => {
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const productRenderer = admin.match(/function renderProduct\(p,ci,pi\)\{([\s\S]*?)\nfunction renderOption/);
@@ -238,7 +256,7 @@ test('product images and canonical folders use category-specific paths and prese
 
 test('storefront image lookup replaces the old logo placeholder in every primary surface', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
-  assert.ok(store.includes('/assets/brand/nexa-catalog.js?v=20261104-navigation-folder-sort'), 'Updated image and hierarchy helper loads before page scripts');
+  assert.ok(store.includes('/assets/brand/nexa-catalog.js?v=20261104-folder-tree-v1'), 'Updated image and hierarchy helper loads before page scripts');
   assert.ok(store.includes('NexaCatalog.categoryImage(c)'), 'Homepage and catalog use department/category covers');
   assert.ok(store.includes('NexaCatalog.productImage(product,cat)'), 'Product tiles use product-specific images');
   assert.ok(store.includes('NexaCatalog.optionImage(o,it,cat)'), 'Option tiles use option artwork or the product fallback');
@@ -317,5 +335,5 @@ test('storefront product cards use robust document-level delegated click and key
   assert.ok(store.includes("openItem(productControl.getAttribute('data-open-item'),productControl.getAttribute('data-open-category')||null)"), 'Product navigation forwards the exact product and category IDs');
   assert.ok(!store.includes("root?.addEventListener('click',handleStoreProductActivation,true)"), 'The click flow no longer depends on stable rendering roots');
   assert.ok(store.includes('document.addEventListener(\'keydown\',e=>'), 'Keyboard activation remains supported');
-  assert.ok(store.includes('nexa-catalog.js?v=20261104-navigation-folder-sort'), 'Updated product navigation helper bypasses stale browser assets');
+  assert.ok(store.includes('nexa-catalog.js?v=20261104-folder-tree-v1'), 'Updated product navigation helper bypasses stale browser assets');
 });
