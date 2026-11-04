@@ -3220,7 +3220,7 @@ const server = http.createServer(async (req,res) => {
       runSeagmFulfillmentWorker().catch(error=>console.error('manual supplier retry failed',String(error?.message||'unknown').slice(0,120)));
       return send(res,200,{ok:true,message:'تمت جدولة إعادة فحص الطلب باستخدام رقم المورد الأصلي؛ لن يتم إنشاء رقم طلب مختلف.'});
     }
-    const adminManualDeliveryMatch = url.pathname.match(/^\\/api\\/admin\\/orders\\/(NX-[A-F0-9]{20})\\/fulfillment\\/manual-complete$/);
+    const adminManualDeliveryMatch = url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/fulfillment\/manual-complete$/);
     if (req.method === 'POST' && adminManualDeliveryMatch) {
       if (!pool) return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
       if (rateLimit(req,res,'manual-delivery:'+ip,10,60_000)) return;
