@@ -15,7 +15,7 @@ import { createSeagmClient } from './seagm-api.js';
 import { createWamdaClient } from './wamda-api.js';
 import { createBestStoreClient, normalizeBestStoreProduct } from './best-store-api.js';
 import { bestStoreOrderDecision, classifyBestStoreError } from './best-store-fulfillment.js';
-import { compareSupplierCandidates, supplierProductMatchKey, supplierCategoryMatchKey, normalizeSupplierText } from './supplier-comparison.js';
+import { compareSupplierCandidates, supplierProductMatchKey, supplierCategoryMatchKey, normalizeSupplierText, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey } from './supplier-comparison.js';
 import { wamdaOrderDecision, classifyWamdaError } from './wamda-fulfillment.js';
 import { normalizeWamdaMargin, normalizeWamdaPricingRule, resolveWamdaPricingRule, calculateWamdaSellPriceSyp, updateWamdaPublishedProduct, markWamdaProductUnavailable } from './wamda-pricing.js';
 import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSignature } from './seagm-webhook.js';
@@ -1328,21 +1328,9 @@ function collectSupplierCandidates(settings=storeSettings){
   }
   return candidates;
 }
-function existingSupplierMatchKey(product,settings=storeSettings){
-  if(product?.supplierMatchKey)return String(product.supplierMatchKey);
-  if(product?.wamda?.provider==='wamda'){
-    const source=(settings?.wamdaCatalogCache||[]).flatMap(category=>(category.products||[]).map(item=>({item,category}))).find(row=>Number(row.item.id)===Number(product.wamda.productId));
-    return source?supplierProductMatchKey(source.item,source.category.name||''):'';
-  }
-  if(product?.bestStore?.provider==='beststore'){
-    const source=(settings?.bestStoreCatalogCache||[]).flatMap(category=>(category.products||[]).map(item=>({item,category}))).find(row=>Number(row.item.id)===Number(product.bestStore.productId));
-    return source?supplierProductMatchKey(source.item,source.category.name||''):'';
-  }
-  return '';
-}
-function applySupplierWinnerToCatalog(nextCatalog,winner,pricingSettings=storeSettings){
+function applySupplierWinnerToCatalog(nextCatalog,winner,pricingSettings=storeSettings,sourceMatchIndex=buildSupplierSourceMatchKeyIndex(pricingSettings)){
   const {provider,product:source,categoryName,categoryImage,categoryId,productId,matchKey}=winner;
-  const existing=nextCatalog.flatMap(category=>category.items||[]).find(item=>existingSupplierMatchKey(item,pricingSettings)===matchKey)||
+  const existing=nextCatalog.flatMap(category=>category.items||[]).find(item=>existingSupplierMatchKey(item,sourceMatchIndex)===matchKey)||
     nextCatalog.flatMap(category=>category.items||[]).find(item=>provider==='wamda'?item.wamda?.provider==='wamda'&&Number(item.wamda.productId)===productId:item.bestStore?.provider==='beststore'&&Number(item.bestStore.productId)===productId)||null;
   const manual={...(existing?.manualOverrides&&typeof existing.manualOverrides==='object'?existing.manualOverrides:{})};
   const previousApi=existing?.apiSource&&typeof existing.apiSource==='object'?existing.apiSource:{};
@@ -1398,7 +1386,7 @@ function applySupplierWinnerToCatalog(nextCatalog,winner,pricingSettings=storeSe
   const targetId=existingParent?.id||exactCategory?.id||familyCategory?.id||('supplier-category-'+bestStoreCategoryKey(categoryName||'خدمات رقمية متنوعة'));
   let target=nextCatalog.find(category=>category.id===targetId);
   if(!target){target={id:targetId,name:String(categoryName||'خدمات رقمية متنوعة').slice(0,100),desc:'منتجات رقمية متزامنة من الموردين المتاحين.',image:safeBestStoreImage(categoryImage)||'assets/products/_shared/category-placeholder.svg',icon:'✦',items:[]};nextCatalog.push(target);}
-  for(const category of nextCatalog)category.items=(category.items||[]).filter(item=>item.id!==updated.id&&existingSupplierMatchKey(item,pricingSettings)!==matchKey);
+  for(const category of nextCatalog)category.items=(category.items||[]).filter(item=>item.id!==updated.id&&existingSupplierMatchKey(item,sourceMatchIndex)!==matchKey);
   target.items=target.items||[];target.items.push(updated);return {catalog:nextCatalog,created:!existing,updated,existing};
 }
 async function publishCheapestSupplierProduct(input){
@@ -1430,10 +1418,11 @@ async function compareAndPublishSupplierCatalog({refresh=true,source='manual'}={
     if(!groups.length&&!candidates.length)throw Object.assign(new Error('لم يُرجع أي مورد منتجات قابلة للمقارنة.'),{status:409});
     wamdaBulkPublishInProgress=true;let created=0,updated=0,compared=0,bestStoreWins=0,wamdaWins=0;
     let nextCatalog=catalog.map(category=>({...category,items:[...(category.items||[])]}));
-    for(const group of groups){const winner=group.winner,result=applySupplierWinnerToCatalog(nextCatalog,winner);nextCatalog=result.catalog;if(result.created)created++;else updated++;if(group.compared)compared++;if(winner.provider==='beststore')bestStoreWins++;else wamdaWins++;}
+    const sourceMatchIndex=buildSupplierSourceMatchKeyIndex(storeSettings);
+    for(const group of groups){const winner=group.winner,result=applySupplierWinnerToCatalog(nextCatalog,winner,storeSettings,sourceMatchIndex);nextCatalog=result.catalog;if(result.created)created++;else updated++;if(group.compared)compared++;if(winner.provider==='beststore')bestStoreWins++;else wamdaWins++;}
     const allCandidateKeys=new Set(candidates.map(candidate=>candidate.matchKey));
     for(const category of nextCatalog)for(const item of category.items||[]){
-      const key=item.supplierMatchKey||existingSupplierMatchKey(item);
+      const key=item.supplierMatchKey||existingSupplierMatchKey(item,sourceMatchIndex);
       if(!key||!allCandidateKeys.has(key)||availableCandidateKeys.has(key))continue;
       if(item.wamda?.provider==='wamda')item.wamda={...item.wamda,available:false};
       if(item.bestStore?.provider==='beststore')item.bestStore={...item.bestStore,available:false};
