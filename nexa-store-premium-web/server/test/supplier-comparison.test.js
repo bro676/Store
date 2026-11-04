@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { compareSupplierCandidates, buildSupplierComparisonPlan, supplierProductMatchKey, supplierCategoryMatchKey, supplierCostInSyp, isSupplierAvailable, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey, applyFirstPriceableSupplierCandidate, buildSupplierCatalogIndex, updateSupplierCatalogIndex } from '../src/supplier-comparison.js';
+import { compareSupplierCandidates, buildSupplierComparisonPlan, supplierProductMatchKey, supplierCategoryMatchKey, supplierCostInSyp, isSupplierAvailable, buildSupplierSourceMatchKeyIndex, existingSupplierMatchKey, applyFirstPriceableSupplierCandidate, buildSupplierCatalogIndex, updateSupplierCatalogIndex, uniqueSupplierCatalogProductId } from '../src/supplier-comparison.js';
 
 test('same named product in the same game family compares across suppliers',()=>{
   const a={name:'PUBG UC 60'},b={name:'PUBG UC 60'};
@@ -358,4 +358,39 @@ test('emoji skin tone variants remain distinct supplier products',()=>{
   const light=supplierProductMatchKey({name:'Telegram Reaction [👍🏻]'},'Telegram Reactions');
   const dark=supplierProductMatchKey({name:'Telegram Reaction [👍🏿]'},'Telegram Reactions');
   assert.notEqual(light,dark);
+});
+
+
+test('supplier-generated product IDs preserve legacy items and use a deterministic unique fallback',()=>{
+  const catalog=[{
+    id:'apps',name:'Applications',items:[
+      {id:'wamda-12',name:'Legacy Best Store product migrated from WAMDA',bestStore:{provider:'beststore',productId:777}},
+    ],
+  }];
+  const first=uniqueSupplierCatalogProductId(catalog,'wamda-12','wamda:12:rooh-chat');
+  const second=uniqueSupplierCatalogProductId(catalog,'wamda-12','wamda:12:rooh-chat');
+  assert.notEqual(first,'wamda-12');
+  assert.equal(first,second);
+  assert.match(first,/^wamda-12-[a-z0-9-]+$/);
+  assert.ok(first.length<=50);
+  assert.equal(catalog[0].items[0].id,'wamda-12','the legacy storefront product must not be renamed or removed');
+});
+
+test('supplier-generated product ID fallback handles a deterministic hash collision safely',()=>{
+  const preferred='beststore-284';
+  const identity='beststore:284:roblox-50-usd';
+  const first=uniqueSupplierCatalogProductId([{items:[{id:preferred,name:'legacy'}]}],preferred,identity);
+  const second=uniqueSupplierCatalogProductId([{items:[{id:preferred,name:'legacy'},{id:first,name:'another legacy'}]}],preferred,identity);
+  assert.notEqual(first,preferred);
+  assert.notEqual(second,preferred);
+  assert.notEqual(second,first);
+  assert.ok(second.length<=50);
+});
+
+test('supplier-generated product IDs remain provider-SKU specific for ambiguous same-name products',()=>{
+  const catalog=[{items:[{id:'wamda-101',name:'legacy'}]}];
+  const a=uniqueSupplierCatalogProductId(catalog,'wamda-101','wamda:101:product::dana chat::source:wamda:101');
+  const b=uniqueSupplierCatalogProductId(catalog,'wamda-101','wamda:102:product::dana chat::source:wamda:102');
+  assert.notEqual(a,b);
+  assert.ok(a.length<=50&&b.length<=50);
 });
