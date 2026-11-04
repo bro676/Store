@@ -575,27 +575,30 @@ async function createOrder(input, customer = null) {
       id,category_id,product_id,option_id,pack_index,product_label,amount_minor,currency,
       customer_name,customer_phone,game_account,notes,expires_at,invoice_number,invoice_identifier,
       wallet_label,wallet_address,supplier_provider,supplier_kind,supplier_category_id,supplier_type_id,
-      supplier_quantity,supplier_fields,supplier_mch_order_id,supplier_status,supplier_message,customer_id,payment_method
+      supplier_quantity,supplier_fields,supplier_mch_order_id,supplier_status,supplier_message,customer_id,payment_method,
+      delivery_eta_hours,delivery_due_at,manual_delivery_message
     ) VALUES (
       $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,
-      $18,$19,$20,$21,$22,$23::jsonb,$24,$25,$26,$27,$28
+      $18,$19,$20,$21,$22,$23::jsonb,$24,$25,$26,$27,$28,$29,NULL,$30
     )`,
     [
       id,input.categoryId,input.productId,input.optionId,Number(input.packIndex),pricedPack.label,
       pricedPack.amountMinor.toString(),pricedPack.currency,name,phone,gameAccount,notes,
       invoice.expiresAt,invoice.invoiceNumber,invoice.identifier,invoice.walletLabel,invoice.walletAddress,
-      supplierProvider,supplier?.kind || '',supplier ? (supplierProvider==='beststore'?null:Number(supplier.categoryId)) : null,
-      supplier ? Number(supplier.typeId || supplier.productId) : null,quantity,JSON.stringify(supplierFields),
-      supplier ? supplierOrderUuid : null,supplier ? 'pending_payment' : 'not_applicable',
-      supplierProvider==='wamda'?'بانتظار تأكيد الدفع من شام كاش؛ سيتم إرسال الطلب إلى ومضة بعد التحقق.':(supplierProvider==='beststore'?'بانتظار تأكيد الدفع من شام كاش؛ سيتم إرسال الطلب إلى Best Store بعد التحقق.':(supplier?'بانتظار تأكيد الدفع من شام كاش.':'')),
-      customer?.id || null,'shamcash',
+      supplierProvider,supplier?.kind || '',supplierProvider==='manual'?null:(supplier ? (supplierProvider==='beststore'?null:Number(supplier.categoryId)) : null),
+      supplierProvider==='manual'?null:(supplier ? Number(supplier.typeId || supplier.productId) : null),quantity,JSON.stringify(supplierFields),
+      supplierProvider==='manual'?null:(supplier ? supplierOrderUuid : null),
+      supplierProvider==='manual'?'pending_payment':(supplier ? 'pending_payment' : 'not_applicable'),
+      supplierProvider==='manual'?'بانتظار تأكيد الدفع لإكمال التسليم اليدوي.':(supplierProvider==='wamda'?'بانتظار تأكيد الدفع من شام كاش؛ سيتم إرسال الطلب إلى ومضة بعد التحقق.':(supplierProvider==='beststore'?'بانتظار تأكيد الدفع من شام كاش؛ سيتم إرسال الطلب إلى Best Store بعد التحقق.':(supplier?'بانتظار تأكيد الدفع من شام كاش.':''))),
+      customer?.id || null,'shamcash',deliveryEtaHours,manualDeliveryTemplate,
     ]);
     persisted = true;
     return {
       orderId:id, product:pricedPack.label, amountMinor:pricedPack.amountMinor.toString(), currency:pricedPack.currency,
       expiresAt:invoice.expiresAt.toISOString(),invoiceNumber:invoice.invoiceNumber,invoiceIdentifier:invoice.identifier,
       receiverLabel:invoice.walletLabel,receiverAddress:invoice.identifier,status:'pending_payment',
-      deliveryProvider:supplierProvider==='wamda'?'WAMDA':(supplierProvider==='beststore'?'BEST_STORE':(supplier?'SEAGM':null)),deliveryStatus:supplier?'queued_after_payment':null,
+      deliveryProvider:supplierProvider==='manual'?'MANUAL':(supplierProvider==='wamda'?'WAMDA':(supplierProvider==='beststore'?'BEST_STORE':(supplier?'SEAGM':null))),
+      deliveryStatus:supplier?'queued_after_payment':null,deliveryEtaHours:supplierProvider==='manual'?deliveryEtaHours:undefined,
     };
   } catch (error) {
     if (invoice?.invoiceNumber && !persisted) {
