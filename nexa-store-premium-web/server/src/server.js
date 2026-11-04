@@ -1439,7 +1439,10 @@ async function publishCheapestSupplierProduct(input){
     candidate.provider===provider&&Number(candidate.productId)===productId&&String(candidate.categoryId)===categoryId));
   if(!group)throw Object.assign(new Error('لا يوجد سعر مورد صالح للمقارنة لهذا المنتج، أو أن تطابقه ملتبس ويحتاج اختياراً مستقلاً.'),{status:409});
   wamdaBulkPublishInProgress=true;
-  try{const result=applySupplierWinnerToCatalog(catalog,group.winner),validated=validateCatalog(result.catalog);await persistCatalog(validated);
+  try{
+    const sourceMatchIndex=buildSupplierSourceMatchKeyIndex(storeSettings);
+    const catalogIndex=buildSupplierCatalogIndex(catalog,sourceMatchIndex);
+    const result=applySupplierWinnerToCatalog(catalog,group.winner,storeSettings,sourceMatchIndex,catalogIndex),validated=validateCatalog(result.catalog);await persistCatalog(validated);
     return {ok:true,created:result.created,winner:group.winner.provider,sourceCost:group.winner.sourceCost,currency:group.winner.currency,costSyp:group.winner.costSyp,
       compared:group.candidates.length,publishedProductId:result.updated.id,sellPriceSyp:result.updated.options?.[0]?.packs?.[0]?.[1]??null,
       message:group.candidates.length>1?'تمت مقارنة الموردين ونشر النسخة الأرخص قبل إضافة هامش الربح.':'تم نشر المنتج؛ لا يوجد له منتج مطابق في المورد الآخر.'};
