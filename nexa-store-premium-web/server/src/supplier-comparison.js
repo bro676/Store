@@ -25,7 +25,7 @@ const FAMILY_RULES = [
   ['pinterest',/(?:pinterest|بنترست)/],
   ['reddit',/(?:reddit|ريديت)/],
   ['viber',/(?:viber|فايبر)/],
-  ['imo',/(?:\\bimo\\b|ايمو)/],
+  ['imo',/(?:\bimo\b|ايمو)/],
   ['apple',/(?:apple|ابل|آبل)/],
   ['amazon',/(?:amazon|امازون)/],
   ['microsoft',/(?:microsoft|مايكروسوفت)/],
