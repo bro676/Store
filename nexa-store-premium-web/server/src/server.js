@@ -676,7 +676,7 @@ async function verifyPayment(input) {
     if (order.status === 'paid') {
       const used = await client.query('SELECT transaction_id FROM nexa_payments WHERE order_id=$1',[orderId]);
       await client.query('COMMIT');
-      if (used.rowCount && used.rows[0].transaction_id === transactionRef) return {ok:true,alreadyPaid:true,orderId,transactionId:transactionRef,status:'paid',receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:order.paid_at ? new Date(order.paid_at).toISOString() : new Date().toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,...(['seagm','wamda','beststore'].includes(order.supplier_provider)?{delivery:supplierDeliveryForOrder(order)}:{})}};
+      if (used.rowCount && used.rows[0].transaction_id === transactionRef) return {ok:true,alreadyPaid:true,orderId,transactionId:transactionRef,status:'paid',receipt:{orderId,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,customerName:order.customer_name,invoiceNumber:order.invoice_number,transactionId:transactionRef,paidAt:order.paid_at ? new Date(order.paid_at).toISOString() : new Date().toISOString(),receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,...((order.delivery_mode==='manual'||['seagm','wamda','beststore'].includes(order.supplier_provider))?{delivery:supplierDeliveryForOrder(order)}:{})}};
       return {error:'ORDER_ALREADY_PAID',status:409,message:'هذا الطلب مدفوع مسبقاً ولا يقبل رقم عملية آخر.'};
     }
     if (order.status !== 'pending_payment' || new Date(order.expires_at).getTime() <= Date.now()) {
