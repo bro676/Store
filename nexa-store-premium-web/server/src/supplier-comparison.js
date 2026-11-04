@@ -55,6 +55,41 @@ export function supplierProductMatchKey(product, categoryName = '') {
   const identity = FAMILY_TERMS[family] ? normalizeSupplierText(name.replace(FAMILY_TERMS[family], ' ')) : name;
   return family + '::' + (identity || name);
 }
+
+/**
+ * Build a single-pass index for resolving legacy published products that do
+ * not yet carry supplierMatchKey. The previous implementation rescanned and
+ * flattened the entire supplier cache for every catalogue product.
+ */
+export function buildSupplierSourceMatchKeyIndex(settings = {}) {
+  const index = new Map();
+  const providers = [
+    ['wamda', settings?.wamdaCatalogCache],
+    ['beststore', settings?.bestStoreCatalogCache],
+  ];
+  for (const [provider, categories] of providers) {
+    for (const category of Array.isArray(categories) ? categories : []) {
+      for (const product of Array.isArray(category?.products) ? category.products : []) {
+        const productId = Number(product?.id);
+        if (!Number.isSafeInteger(productId) || productId <= 0) continue;
+        const matchKey = supplierProductMatchKey(product, category?.name || product?.categoryName || '');
+        if (matchKey) index.set(`${provider}:${productId}`, matchKey);
+      }
+    }
+  }
+  return index;
+}
+
+export function existingSupplierMatchKey(product, sourceMatchIndex = new Map()) {
+  if (product?.supplierMatchKey) return String(product.supplierMatchKey);
+  const provider = product?.wamda?.provider === 'wamda'
+    ? 'wamda'
+    : (product?.bestStore?.provider === 'beststore' ? 'beststore' : '');
+  if (!provider) return '';
+  const productId = Number(provider === 'wamda' ? product.wamda.productId : product.bestStore.productId);
+  if (!Number.isSafeInteger(productId) || productId <= 0) return '';
+  return sourceMatchIndex instanceof Map ? (sourceMatchIndex.get(`${provider}:${productId}`) || '') : '';
+}
 export function supplierCostInSyp(candidate, fxRate = 145) {
   const cost = Number(candidate?.sourceCost ?? candidate?.unitPrice ?? candidate?.price);
   if (!Number.isFinite(cost) || cost <= 0) return null;
