@@ -162,6 +162,6 @@ test('publishes WAMDA products whose per-unit calculated price is below one cent
     id:10417,categoryId:5,name:'Telegram Reaction',unitPrice:0.000028665,
     sourcePrice:0.028665,pricePerQuantity:1000,available:true,fields:[],
   },{fxRate:145,globalRule:{mode:'percent',value:15}});
-  assert.equal(product.options[0].packs[0][1],0.00477989);
+  assert.equal(product.options[0].packs[0][1],0.00477988875);
   assert.equal(product.wamda.minimumQuantity,1);
 });
