@@ -16,6 +16,3 @@ BEGIN
   END IF;
 END $$;
 
-CREATE INDEX IF NOT EXISTS nexa_orders_manual_delivery_due_idx
-  ON nexa_orders(delivery_due_at)
-  WHERE supplier_provider = 'manual' AND status = 'paid' AND supplier_status = 'manual_pending';
