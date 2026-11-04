@@ -723,8 +723,8 @@ body { font-family: Tahoma, "Segoe UI", Arial, sans-serif; }
    artwork, names, products or proprietary content.
    ============================================================ */
 :root{
-  --nexa-sidebar-width:clamp(320px,26.2vw,510px);
-  --nexa-admin-sidebar-width:clamp(290px,23.2vw,430px);
+  --nexa-sidebar-width:clamp(300px,18.4vw,360px);
+  --nexa-admin-sidebar-width:clamp(280px,18.1vw,350px);
   --nexa-sky:#74d3f5;
   --nexa-sky-strong:#2598cc;
   --nexa-cyan:#a4e9ff;
@@ -1461,4 +1461,86 @@ body{font-family:Tahoma,"Segoe UI",Arial,sans-serif;overflow-x:hidden}
 }
 @media(max-width:380px){
   .app-shell .catalog-grid,.app-shell .pack-grid{grid-template-columns:1fr!important}
+}
+
+
+/* Reference-accurate home banner and measured fixed account rail. */
+.app-shell .home-intro{
+  position:relative!important;display:flex!important;flex-direction:column!important;
+  align-items:center!important;justify-content:center!important;text-align:center!important;
+  min-height:clamp(390px,34vw,520px)!important;
+  padding:clamp(28px,4vw,58px) clamp(20px,5vw,72px)!important;
+  overflow:hidden!important;border-radius:19px!important;border:1px solid rgba(105,202,237,.34)!important;
+  background-color:#d6f1fb!important;
+  background-image:
+    radial-gradient(ellipse at 50% 48%,rgba(170,235,255,.5),transparent 44%),
+    linear-gradient(115deg,rgba(223,247,255,.83),rgba(191,231,247,.86)),
+    url("./nexa-hero-banner.svg")!important;
+  background-repeat:no-repeat!important;background-size:cover!important;background-position:center!important;
+  box-shadow:0 22px 50px rgba(21,106,146,.12)!important;
+}
+.app-shell .home-intro:before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.55;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.17) 50%,transparent);
+}
+.app-shell .home-intro:after{
+  content:"";position:absolute;inset:16px;border:1px solid rgba(45,155,199,.16);
+  border-radius:14px;pointer-events:none;box-shadow:0 0 0 18px rgba(67,183,224,.025),0 0 0 42px rgba(67,183,224,.018);
+}
+.app-shell .home-intro-copy{
+  position:relative!important;z-index:2!important;width:min(100%,920px)!important;
+  max-width:920px!important;margin-inline:auto!important;text-align:center!important;
+}
+.app-shell .home-intro-brand-mark{
+  display:grid!important;place-items:center!important;width:76px!important;height:76px!important;
+  margin:0 auto 14px!important;padding:0!important;border-radius:21px!important;
+  background:linear-gradient(145deg,#fafdff,#bcecff)!important;
+  border:1px solid rgba(27,143,190,.25)!important;
+  box-shadow:0 13px 30px rgba(30,131,174,.17)!important;overflow:hidden!important;
+}
+.app-shell .home-intro-brand-mark img{
+  display:block!important;width:100%!important;height:100%!important;object-fit:contain!important;
+  border-radius:19px!important;
+}
+.app-shell .home-intro-kicker{
+  margin-inline:auto!important;justify-content:center!important;
+  background:rgba(255,255,255,.76)!important;border-color:#bfe6f4!important;color:#147da9!important;
+}
+.app-shell .home-intro h1{
+  font-size:clamp(32px,4.1vw,58px)!important;line-height:1.35!important;
+  max-width:880px!important;margin:16px auto 9px!important;text-align:center!important;
+  color:#103b56!important;letter-spacing:-.7px!important;
+}
+.app-shell .home-intro h1 span{color:#168dc2!important;-webkit-text-fill-color:#168dc2!important}
+.app-shell .home-intro p{
+  max-width:770px!important;margin:0 auto!important;text-align:center!important;
+  font-size:clamp(11px,1.1vw,13px)!important;line-height:2.05!important;color:#456e84!important;
+}
+.app-shell .home-intro-actions{justify-content:center!important;margin-top:22px!important}
+.app-shell .home-intro-note{justify-content:center!important;flex-wrap:wrap!important;margin:18px auto 0!important;text-align:center!important;color:#5f8297!important}
+.app-shell .home-intro-note b{font-size:15px!important;color:#117fad!important}
+.app-shell .home-intro-side{display:none!important}
+:root[data-theme="dark"] .app-shell .home-intro{
+  background-color:#071b2d!important;
+  background-image:
+    radial-gradient(ellipse at 50% 48%,rgba(30,143,191,.25),transparent 47%),
+    linear-gradient(115deg,rgba(5,18,31,.84),rgba(6,35,54,.79)),
+    url("./nexa-hero-banner.svg")!important;
+  border-color:#2a5a74!important;box-shadow:0 24px 56px rgba(0,0,0,.28)!important;
+}
+:root[data-theme="dark"] .app-shell .home-intro:after{border-color:rgba(111,211,244,.19)!important;box-shadow:0 0 0 18px rgba(67,183,224,.035),0 0 0 42px rgba(67,183,224,.025)!important}
+:root[data-theme="dark"] .app-shell .home-intro-brand-mark{background:linear-gradient(145deg,#e1f8ff,#6dcef0)!important;border-color:#3f86a5!important;box-shadow:0 13px 30px rgba(18,139,190,.23)!important}
+:root[data-theme="dark"] .app-shell .home-intro-kicker{background:rgba(20,65,88,.74)!important;border-color:#36708d!important;color:#a6e9ff!important}
+:root[data-theme="dark"] .app-shell .home-intro h1{color:#f0faff!important}
+:root[data-theme="dark"] .app-shell .home-intro h1 span{color:#84ddfa!important;-webkit-text-fill-color:#84ddfa!important}
+:root[data-theme="dark"] .app-shell .home-intro p{color:#b4d3e2!important}
+:root[data-theme="dark"] .app-shell .home-intro-note{color:#a2c4d5!important}
+:root[data-theme="dark"] .app-shell .home-intro-note b{color:#9be5ff!important}
+@media(max-width:650px){
+  .app-shell .home-intro{min-height:425px!important;padding:24px 17px!important}
+  .app-shell .home-intro-brand-mark{width:62px!important;height:62px!important;margin-bottom:10px!important}
+  .app-shell .home-intro h1{font-size:29px!important;margin:12px auto 8px!important}
+  .app-shell .home-intro p{font-size:10px!important}
+  .app-shell .home-intro-actions{gap:8px!important;margin-top:16px!important}
+  .app-shell .home-intro-note{font-size:9px!important;gap:6px!important}
 }

@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="560" viewBox="0 0 1600 560" fill="none">
+  <defs>
+    <linearGradient id="beamA" x1="30" y1="470" x2="1470" y2="80" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2A9FD5" stop-opacity="0"/>
+      <stop offset=".32" stop-color="#65D5F7" stop-opacity=".75"/>
+      <stop offset=".68" stop-color="#B7F1FF" stop-opacity=".92"/>
+      <stop offset="1" stop-color="#2A9FD5" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="beamB" x1="150" y1="20" x2="1450" y2="520" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8BE5FF" stop-opacity="0"/>
+      <stop offset=".46" stop-color="#47B9E7" stop-opacity=".6"/>
+      <stop offset=".78" stop-color="#D0F7FF" stop-opacity=".85"/>
+      <stop offset="1" stop-color="#2C9CCD" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="core" cx="0" cy="0" r="1" gradientTransform="matrix(0 280 -410 0 800 275)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#64CFF1" stop-opacity=".22"/>
+      <stop offset=".58" stop-color="#1C82B7" stop-opacity=".08"/>
+      <stop offset="1" stop-color="#0A2B44" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ring" x1="520" y1="110" x2="1080" y2="455" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D7F8FF" stop-opacity=".75"/>
+      <stop offset=".42" stop-color="#58C7EE" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#1689C1" stop-opacity=".12"/>
+    </linearGradient>
+    <pattern id="grid" width="44" height="44" patternUnits="userSpaceOnUse">
+      <path d="M44 0H0V44" stroke="#8ADFFF" stroke-opacity=".11" stroke-width="1"/>
+      <circle cx="2" cy="2" r="1.25" fill="#C4F2FF" fill-opacity=".35"/>
+    </pattern>
+    <filter id="blur24" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="24"/>
+    </filter>
+    <filter id="blur8" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="560" fill="url(#core)"/>
+  <rect width="1600" height="560" fill="url(#grid)" opacity=".62"/>
+
+  <g opacity=".52" filter="url(#blur24)">
+    <path d="M-120 420C140 40 360 630 690 325C1010 28 1220 60 1730 180" stroke="#2BA8DB" stroke-width="34" stroke-linecap="round"/>
+    <path d="M-80 150C210 470 430 20 770 278C1110 545 1330 390 1700 280" stroke="#7ADFFF" stroke-width="24" stroke-linecap="round"/>
+    <path d="M-50 520C245 255 460 455 750 150C1025 -120 1290 210 1660 35" stroke="#1E91C9" stroke-width="19" stroke-linecap="round"/>
+  </g>
+
+  <g stroke-linecap="round">
+    <path d="M-130 430C145 62 350 617 690 324C1015 47 1230 57 1720 177" stroke="url(#beamA)" stroke-width="4"/>
+    <path d="M-80 150C210 463 425 27 770 278C1104 521 1330 390 1700 280" stroke="url(#beamB)" stroke-width="3"/>
+    <path d="M-80 508C240 247 452 462 748 159C1034 -116 1290 207 1685 30" stroke="url(#beamA)" stroke-width="2"/>
+    <path d="M-85 360C205 175 405 535 732 390C1075 237 1305 108 1680 370" stroke="url(#beamB)" stroke-width="2" opacity=".55"/>
+    <path d="M-50 235C248 535 435 110 800 250C1135 378 1340 500 1660 425" stroke="url(#beamA)" stroke-width="1.5" opacity=".55"/>
+  </g>
+
+  <g stroke="url(#ring)" stroke-width="2">
+    <ellipse cx="800" cy="278" rx="302" ry="178" transform="rotate(-13 800 278)" opacity=".58"/>
+    <ellipse cx="800" cy="278" rx="250" ry="126" transform="rotate(18 800 278)" opacity=".43"/>
+    <ellipse cx="800" cy="278" rx="360" ry="214" transform="rotate(6 800 278)" opacity=".2"/>
+    <ellipse cx="800" cy="278" rx="180" ry="275" transform="rotate(29 800 278)" opacity=".28"/>
+  </g>
+
+  <g fill="#BDF0FF">
+    <circle cx="515" cy="139" r="4"/><circle cx="1085" cy="144" r="4"/>
+    <circle cx="1260" cy="358" r="3.5"/><circle cx="340" cy="360" r="3.5"/>
+    <circle cx="690" cy="68" r="2.5"/><circle cx="940" cy="480" r="2.5"/>
+    <circle cx="1455" cy="248" r="3"/><circle cx="155" cy="250" r="3"/>
+  </g>
+  <g fill="#69D2F7" opacity=".85">
+    <path d="M320 104l28-16-7 31 22 22-31-5-22 22 5-31-22-22Z"/>
+    <path d="M1260 84l24-14-5 27 20 19-27-3-18 20 4-27-20-18Z" opacity=".76"/>
+    <path d="M1380 427l17-10-4 19 14 14-19-3-14 14 2-19-14-13Z" opacity=".56"/>
+  </g>
+  <g stroke="#86DFFC" stroke-opacity=".22" stroke-width="1">
+    <path d="M120 0v560M280 0v560M1320 0v560M1480 0v560"/>
+    <path d="M0 120h1600M0 440h1600"/>
+  </g>
+  <g fill="#A8E9FF" opacity=".44">
+    <rect x="170" y="276" width="54" height="9" rx="4.5" transform="rotate(-20 170 276)"/>
+    <rect x="1320" y="198" width="68" height="8" rx="4" transform="rotate(-20 1320 198)"/>
+    <rect x="1145" y="464" width="44" height="7" rx="3.5" transform="rotate(-12 1145 464)"/>
+    <rect x="420" y="65" width="38" height="6" rx="3" transform="rotate(18 420 65)"/>
+  </g>
+</svg>
