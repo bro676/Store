@@ -1020,10 +1020,15 @@ function closeModal(){$('orderModal').classList.remove('open');document.body.sty
 function deliveryResultText(delivery){
  if(!delivery)return '';
  if(Array.isArray(delivery.cards)&&delivery.cards.length)return delivery.cards.map((card,index)=>['البطاقة '+(index+1),'رقم البطاقة: '+String(card.cardNumber||''),'PIN: '+String(card.cardPin||''),'الانتهاء: '+String(card.expired||'—')].join('\n')).join('\n\n');
+ const lines=[];
+ if(delivery.deliveredAmount!==undefined&&delivery.deliveredAmount!==null&&String(delivery.deliveredAmount)!=='')lines.push('الكمية التي تم شحنها: '+String(delivery.deliveredAmount));
+ if(delivery.sentAt)lines.push('وقت تنفيذ الشحن: '+String(delivery.sentAt));
  const value=delivery.details??delivery.deliveredData??delivery.data??delivery.result??null;
- if(value===null||value===undefined||value==='')return '';
- if(typeof value==='string')return value.slice(0,8000);
- try{return JSON.stringify(value,null,2).slice(0,8000)}catch{return String(value).slice(0,8000)}
+ if(value!==null&&value!==undefined&&value!==''){
+  if(typeof value==='string')lines.push(value.slice(0,8000));
+  else{try{lines.push(JSON.stringify(value,null,2).slice(0,8000))}catch{lines.push(String(value).slice(0,8000))}}
+ }
+ return lines.join('\n\n').slice(0,8000);
 }
 function deliveryStatusLabel(status){return ({pending_payment:'بانتظار الدفع',pending:'بانتظار الإرسال إلى المورد',waiting:'قيد التنفيذ لدى المورد',manual_pending:'بانتظار التسليم اليدوي',completed:'تم التسليم',manual_review:'مراجعة الإدارة',not_applicable:'لا يحتاج تسليماً'})[status]||status||'غير محدد'}
 function renderOrders(){
