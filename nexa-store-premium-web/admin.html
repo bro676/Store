@@ -1724,16 +1724,29 @@ function renderOrders(){
  const q=($('orderSearch').value||'').toLowerCase(),status=$('orderStatus').value;
  const rows=state.orders.filter(o=>(!status||o.status===status)&&[o.id,o.product_label,o.customer_name,o.invoice_number,o.supplier_order_id,o.supplier_status].some(v=>String(v||'').toLowerCase().includes(q)));
  $('ordersBody').innerHTML=rows.length?rows.map(o=>{
-  const deliveryLabels={not_applicable:'—',pending_payment:'بعد تأكيد الدفع',pending:'بانتظار الإرسال',waiting:'قيد التنفيذ لدى SEAGM',completed:'تم التسليم',manual_review:'مراجعة الإدارة'};
-  const supplierLine=o.supplier_provider==='seagm'?'<small class="muted">SEAGM · '+esc(deliveryLabels[o.supplier_status]||o.supplier_status||'—')+'</small>':'';
-  const retry=o.supplier_provider==='seagm'&&o.status==='paid'&&o.supplier_status!=='completed'&&['manual_review','waiting'].includes(o.supplier_status)
+  const deliveryLabels={not_applicable:'—',pending_payment:'بانتظار تأكيد الدفع',pending:'بانتظار الإرسال',waiting:'قيد التنفيذ لدى المورد',manual_pending:'بانتظار التجهيز اليدوي',completed:'تم التسليم',manual_review:'مراجعة الإدارة'};
+  const providerLabels={seagm:'SEAGM',wamda:'ومضة',beststore:'Best Store',manual:'يدوي'};
+  const supplierName=providerLabels[o.supplier_provider]||'';
+  const supplierLine=o.fulfillment_mode==='manual'
+   ?'<small class="muted">تسليم يدوي · '+esc(deliveryLabels[o.supplier_status]||o.supplier_status||'—')+' · خلال '+esc(o.manual_delivery_hours||24)+' ساعة</small>'
+   :(supplierName?'<small class="muted">'+esc(supplierName)+' · '+esc(deliveryLabels[o.supplier_status]||o.supplier_status||'—')+'</small>':'');
+  const retry=o.fulfillment_mode!=='manual'&&['seagm','wamda','beststore'].includes(o.supplier_provider)&&o.status==='paid'&&o.supplier_status!=='completed'&&['manual_review','waiting'].includes(o.supplier_status)
    ?'<button class="btn soft" data-retry-fulfillment="'+esc(o.id)+'">إعادة فحص المورد</button>':'';
-  return '<tr><td class="ltr">'+esc(o.id)+'</td><td>'+esc(o.product_label)+'</td><td>'+esc(o.customer_name)+'<small class="muted"> · '+esc(o.customer_phone||'')+'</small></td><td>'+formatAmount(o.amountMinor,o.currency)+'</td><td>'+statusTag(o.status)+supplierLine+'</td><td class="ltr">'+esc(o.invoice_number||'—')+'</td><td>'+new Date(o.createdAt).toLocaleString('ar-SY')+'</td><td><div class="table-actions">'+(o.status==='pending_payment'?'<button class="btn danger" data-cancel-order="'+esc(o.id)+'">إلغاء</button>':'')+retry+'<button class="btn soft" data-order-detail="'+esc(o.id)+'">تفاصيل</button></div></td></tr>';
+  const manualDelivery=o.fulfillment_mode==='manual'&&o.status==='paid'&&o.supplier_status!=='completed'
+   ?'<button class="btn soft" data-manual-delivery="'+esc(o.id)+'">إرسال بيانات العميل</button>':'';
+  return '<tr><td class="ltr">'+esc(o.id)+'</td><td>'+esc(o.product_label)+'</td><td>'+esc(o.customer_name)+'<small class="muted"> · '+esc(o.customer_phone||'')+'</small></td><td>'+formatAmount(o.amountMinor,o.currency)+'</td><td>'+statusTag(o.status)+supplierLine+'</td><td class="ltr">'+esc(o.invoice_number||'—')+'</td><td>'+new Date(o.createdAt).toLocaleString('ar-SY')+'</td><td><div class="table-actions">'+(o.status==='pending_payment'?'<button class="btn danger" data-cancel-order="'+esc(o.id)+'">إلغاء</button>':'')+retry+manualDelivery+'<button class="btn soft" data-order-detail="'+esc(o.id)+'">تفاصيل</button></div></td></tr>';
  }).join(''):'<tr><td colspan="8"><div class="empty">لا توجد طلبات مطابقة.</div></td></tr>';
 }
 $('orderSearch').addEventListener('input',renderOrders);$('orderStatus').addEventListener('change',renderOrders);$('refreshOrdersBtn').addEventListener('click',loadOrders);
 $('ordersBody').addEventListener('click',async e=>{
- const cancel=e.target.closest('[data-cancel-order]'),detail=e.target.closest('[data-order-detail]'),retry=e.target.closest('[data-retry-fulfillment]');
+ const cancel=e.target.closest('[data-cancel-order]'),detail=e.target.closest('[data-order-detail]'),retry=e.target.closest('[data-retry-fulfillment]'),manual=e.target.closest('[data-manual-delivery]');
+ if(manual){
+  const deliveryText=prompt('أدخل بيانات الحساب أو رمز التفعيل الذي اشتراه العميل. ستُحفظ البيانات مشفّرة ولن يراها إلا صاحب الطلب:');
+  if(deliveryText===null)return;
+  if(!deliveryText.trim()){toast('لم تُرسل بيانات فارغة.');return;}
+  try{await api('/api/admin/orders/'+manual.dataset.manualDelivery+'/fulfillment/complete',{method:'POST',body:JSON.stringify({deliveryText})});await loadOrders();toast('تم حفظ بيانات التسليم وإتاحتها لصاحب الطلب فقط.');}
+  catch(err){toast(err.message)}
+ }
  if(retry){
   if(!confirm('سيتم إعادة فحص الطلب لدى SEAGM باستخدام نفس رقم طلب المتجر. لن يتم إنشاء رقم شراء جديد.'))return;
   try{await api('/api/admin/orders/'+retry.dataset.retryFulfillment+'/fulfillment/retry',{method:'POST',body:'{}'});await loadOrders();toast('تمت جدولة إعادة فحص طلب المورد.')}
