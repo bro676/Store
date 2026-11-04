@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const read=path=>readFile(new URL(path,import.meta.url),'utf8');
@@ -11,7 +10,7 @@ test('manual fulfillment is isolated from the automatic supplier purchase queue'
   assert.match(server,/o\.delivery_mode='automatic'/);
   assert.match(server,/order\.delivery_mode!=='manual'\s*&&\s*\['seagm','wamda','beststore'\]/);
   assert.match(server,/deliveryPolicy\.mode==='manual'\?'manual_pending'/);
-  assert.match(server,/delivery_mode==='manual'\s*\?\s*'manual_pending'/);
+  assert.match(server,/CASE WHEN delivery_mode='manual' THEN 'manual_pending'/);
 });
 
 test('manual delivery is admin-only, locked, encrypted, and idempotent',async()=>{
