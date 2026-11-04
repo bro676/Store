@@ -812,7 +812,6 @@ function renderFeatured(){
  if(list.length<4){
     for(const cat of categories)for(const it of NexaCatalog.sortProductsByPriority(cat.items||[])){
    if(it.visible===false||(it.wamda||it.seagm||it.bestStore)?.available===false||seen.has(String(it.id)))continue;
-   if((it.wamda||it.bestStore)?.available===false||seen.has(String(it.id)))continue;
    list.push({cat,it});seen.add(String(it.id));if(list.length>=4)break;
   }
  }
@@ -897,10 +896,7 @@ function renderCatalog(){
   state.categoryPage=Math.min(Math.max(1,Number(state.categoryPage)||1),folderPageCount);
   const folderRows=filteredFolders.slice((state.categoryPage-1)*folderPageSize,state.categoryPage*folderPageSize);
   const allProducts=cat.items||[],productQuery=String(state.productQuery||'').trim().toLocaleLowerCase('ar');
-    const sortedProducts=NexaCatalog.sortProductsByPriority(allProducts);
-   .sort((a,b)=>Number(a.product.sortOrder||0)-Number(b.product.sortOrder||0)||
-    String(a.product.name||'').localeCompare(String(b.product.name||''),'ar',{numeric:true,sensitivity:'base'})||a.index-b.index)
-   .map(row=>row.product);
+  const sortedProducts=NexaCatalog.sortProductsByPriority(allProducts);
   const filteredProducts=sortedProducts.filter(product=>!productQuery||[product.name,product.desc,product.id].some(value=>String(value||'').toLocaleLowerCase('ar').includes(productQuery)));
   const productPageSize=36,productPageCount=Math.max(1,Math.ceil(filteredProducts.length/productPageSize));
   state.productPage=Math.min(Math.max(1,Number(state.productPage)||1),productPageCount);
