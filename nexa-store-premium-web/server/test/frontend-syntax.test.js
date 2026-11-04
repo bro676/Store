@@ -93,14 +93,16 @@ test('Store and admin assets are revalidated instead of serving a stale theme', 
 
 
 test('admin catalog exposes a recursive folder tree and safe manual organization controls', async () => {
+  const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   assert.ok(admin.includes('nexa-catalog.js?v=20261104-folder-tree-v1'), 'Admin loads the same folder hierarchy helper as storefront');
   assert.ok(admin.includes('function renderFolderBranch(parentId,departmentId,depth=0)'), 'Admin renders nested folders recursively');
   assert.ok(admin.includes('data-move-product='), 'Products can be moved between folders');
-  assert.ok(admin.includes('data-path="${ci}.parentId"'), 'A folder can be moved under another folder');
+  assert.ok(admin.includes("data-path=\"'+ci+'.parentId\""), 'A folder can be moved under another folder');
   assert.ok(admin.includes('إظهار هذا المجلد في المتجر'), 'Folders can be hidden without deleting their source records');
   assert.ok(admin.includes('إظهار المنتج في المتجر'), 'Products can be hidden individually');
   assert.ok(admin.includes('folderManual:true'), 'Manually created folders are marked to survive supplier replace sync');
+  assert.ok(server.includes("url.pathname==='/api/admin/catalog/move-product'"), 'The server moves products without recreating their supplier records');
 });
 
 test('storefront renders child folders and products together inside each folder', async () => {
@@ -257,7 +259,7 @@ test('product images and canonical folders use category-specific paths and prese
 test('storefront image lookup replaces the old logo placeholder in every primary surface', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   assert.ok(store.includes('/assets/brand/nexa-catalog.js?v=20261104-folder-tree-v1'), 'Updated image and hierarchy helper loads before page scripts');
-  assert.ok(store.includes('NexaCatalog.categoryImage(c,categories)'), 'Homepage and catalog use department/category covers');
+  assert.ok(store.includes('NexaCatalog.categoryImage(folder,categories)'), 'Homepage and catalog use department/category covers');
   assert.ok(store.includes('NexaCatalog.productImage(product,cat,categories)'), 'Product tiles use product-specific images');
   assert.ok(store.includes('NexaCatalog.optionImage(o,it,cat,categories)'), 'Option tiles use option artwork or the product fallback');
   assert.ok(store.includes('NexaCatalog.productImage(it,getCategory(state.category),categories)'), 'Order modal receives the selected product image');
