@@ -84,7 +84,7 @@ test('unpriceable WAMDA winner falls back to the next supplier candidate',()=>{
   assert.equal(result.candidate.provider,'beststore');
   assert.deepEqual(result.result,{published:'beststore'});
   assert.deepEqual(result.unpriceableCandidates,[{
-    provider:'wamda',productId:11,categoryId:'',errorCode:'INVALID_WAMDA_CALCULATED_PRICE'
+    provider:'wamda',productId:11,categoryId:'',sourceProductKey:'',errorCode:'INVALID_WAMDA_CALCULATED_PRICE'
   }]);
 });
 
