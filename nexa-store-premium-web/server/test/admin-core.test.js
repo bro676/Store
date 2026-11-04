@@ -193,3 +193,46 @@ test('catalogue validator accepts up to twelve decimal places for supplier unit 
   }];
   assert.throws(()=>validateCatalog(ordinaryCategory),/INVALID_PACK_PRICE/);
 });
+
+test('catalog folders support nested parents, root departments, visibility and safe tree validation',()=>{
+  const nested=[
+    {...catalog[0],id:'games-root',name:'Games folder',parentId:'',departmentId:'games',items:[]},
+    {...catalog[0],id:'pubg-folder',name:'PUBG folder',parentId:'games-root',items:[]},
+    {...catalog[0],id:'pubg-products',name:'PUBG packs',parentId:'pubg-folder',items:[{...catalog[0].items[0],id:'pubg-uc'}]},
+  ];
+  const validated=validateCatalog(nested);
+  assert.equal(validated[2].parentId,'pubg-folder');
+  assert.equal(validated[0].departmentId,'games');
+  assert.throws(()=>validateCatalog([{...nested[0],id:'bad-child',parentId:'missing-parent'}]),/INVALID_CATEGORY_PARENT/);
+  assert.throws(()=>validateCatalog([{...nested[0],id:'loop-a',parentId:'loop-b',departmentId:undefined},{...nested[1],id:'loop-b',parentId:'loop-a'}]),/CATALOG_FOLDER_CYCLE/);
+  assert.throws(()=>validateCatalog([{...nested[1],id:'bad-nested',parentId:'games-root',departmentId:'apps'}]),/NESTED_CATEGORY_CANNOT_SET_DEPARTMENT/);
+  assert.throws(()=>validateCatalog([{...nested[0],visible:'false'}]),/INVALID_CATEGORY_VISIBILITY/);
+});
+
+test('catalog refresh preserves manually organized folder names, parent links and product visibility',()=>{
+  const original=[{
+    ...catalog[0],id:'source-folder',name:'اسم مجلد يدوي',parentId:'',departmentId:'games',visible:false,sortOrder:4,
+    apiSource:{name:'Supplier category',desc:'Supplier description',image:'assets/categories/games.svg',icon:'🎮'},
+    manualOverrides:{name:'اسم مجلد يدوي',parentId:'',departmentId:'games',visible:false,sortOrder:4},
+    items:[{...catalog[0].items[0],visible:false,manualOverrides:{visible:false}}],
+  }];
+  const incoming=[{
+    ...catalog[0],id:'source-folder',name:'Supplier category updated',desc:'Updated',items:[{...catalog[0].items[0],name:'API product updated'}],
+  }];
+  const merged=mergeCatalog(original,incoming);
+  assert.equal(merged[0].name,'اسم مجلد يدوي');
+  assert.equal(merged[0].parentId,'');
+  assert.equal(merged[0].departmentId,'games');
+  assert.equal(merged[0].visible,false);
+  assert.equal(merged[0].items[0].visible,false);
+  assert.equal(merged[0].items[0].name,catalog[0].items[0].name);
+  assert.equal(merged[0].apiSource.name,'Supplier category updated');
+});
+
+test('replace sync preserves manually-created nested folders that are not in supplier feed',()=>{
+  const root={...catalog[0],id:'manual-root',name:'Manual root',parentId:'',departmentId:'games',folderManual:true,items:[]};
+  const child={...catalog[0],id:'manual-child',name:'Manual child',parentId:'manual-root',items:[]};
+  const replacement=[{...catalog[0],id:'supplier-feed-category',name:'Supplier feed',items:[]}];
+  const merged=mergeCatalog([root,child],replacement,'replace');
+  assert.deepEqual(merged.map(row=>row.id),['supplier-feed-category','manual-root','manual-child']);
+});
