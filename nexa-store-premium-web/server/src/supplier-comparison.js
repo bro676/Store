@@ -491,3 +491,47 @@ export function applyFirstPriceableSupplierCandidate(group, applyCandidate) {
   }
   return { candidate:null, result:null, unpriceableCandidates };
 }
+
+
+/**
+ * Make a supplier-derived storefront ID unique without changing the IDs of
+ * existing/manual products. Legacy catalog rows can retain a WAMDA prefix
+ * after the product has moved to Best Store, so a new WAMDA SKU can collide
+ * with an old row even when the source product IDs are otherwise unique.
+ *
+ * The fallback is deterministic for (preferredId, identity), which keeps
+ * the generated ID stable across retries. Existing source SKU metadata is
+ * still the primary lookup key on later synchronizations.
+ */
+export function uniqueSupplierCatalogProductId(catalog, preferredId, identity = '') {
+  const used = new Set();
+  for (const category of Array.isArray(catalog) ? catalog : []) {
+    for (const product of Array.isArray(category?.items) ? category.items : []) {
+      if (product?.id != null) used.add(String(product.id));
+    }
+  }
+
+  const preferred = String(preferredId || '').trim();
+  if (!/^[a-z0-9][a-z0-9_-]{0,49}$/i.test(preferred)) {
+    throw new Error('INVALID_SUPPLIER_CATALOG_PRODUCT_ID');
+  }
+  if (!used.has(preferred)) return preferred;
+
+  // FNV-1a over Unicode code points. The digest is only a deterministic
+  // disambiguator; collision checks below remain authoritative.
+  const input = String(identity || preferred);
+  let hash = 0x811c9dc5;
+  for (const character of input) {
+    hash ^= character.codePointAt(0);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  const digest = (hash >>> 0).toString(36);
+  for (let attempt = 0; attempt < 10_000; attempt++) {
+    const tail = attempt === 0 ? digest : `${digest}-${attempt + 1}`;
+    const prefixLength = 50 - tail.length - 1;
+    if (prefixLength < 1) throw new Error('SUPPLIER_CATALOG_ID_SPACE_EXHAUSTED');
+    const candidate = `${preferred.slice(0, prefixLength)}-${tail}`;
+    if (!used.has(candidate)) return candidate;
+  }
+  throw new Error('SUPPLIER_CATALOG_ID_SPACE_EXHAUSTED');
+}
