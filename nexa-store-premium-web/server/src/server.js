@@ -1329,13 +1329,13 @@ function collectSupplierCandidates(settings=storeSettings){
   if(wamdaApiTokenRuntime)for(const category of Array.isArray(settings?.wamdaCatalogCache)?settings.wamdaCatalogCache:[])for(const product of category.products||[]){
     const candidate={provider:'wamda',categoryId:Number(category.id),categoryName:category.name||product.categoryName||'منتجات ومضة',categoryImage:category.image||'',product,productId:Number(product.id),
       sourceCost:Number(product.unitPrice),currency:'USD',available:isSupplierAvailable(product.available),matchKey:supplierProductMatchKey(product,category.name||product.categoryName||'')};
-    if(candidate.matchKey)candidates.push(candidate);
+    candidates.push(candidate);
   }
   const currency=getBestStorePricingContext(settings).currency;
   if(bestStoreApiTokenRuntime&&settings?.bestStoreCurrencyConfirmed===true)for(const category of Array.isArray(settings?.bestStoreCatalogCache)?settings.bestStoreCatalogCache:[])for(const product of category.products||[]){
     const candidate={provider:'beststore',categoryId:String(category.id),categoryName:category.name||product.categoryName||'خدمات رقمية متنوعة',categoryImage:category.image||product.categoryImage||'',product,productId:Number(product.id),
       sourceCost:Number(product.sourceCost??product.basePrice??product.price),currency,available:isSupplierAvailable(product.available),matchKey:supplierProductMatchKey(product,category.name||product.categoryName||'')};
-    if(candidate.matchKey)candidates.push(candidate);
+    candidates.push(candidate);
   }
   return candidates;
 }
