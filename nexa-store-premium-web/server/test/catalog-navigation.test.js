@@ -131,6 +131,25 @@ test('internal catalog folders are sorted from the fewest products to the most',
   );
 });
 
+test('explicit folder priorities come before automatic product-count ordering', async () => {
+  const catalog = await loadCatalogHelper();
+  const rows = [
+    { id:'auto', name:'Auto', items:[] },
+    { id:'rank-3', name:'Rank 3', sortOrder:3, items:[1,2,3,4] },
+    { id:'rank-1', name:'Rank 1', sortOrder:1, items:[1] },
+    { id:'rank-2', name:'Rank 2', sortOrder:2, items:[1,2] },
+    { id:'auto-b', name:'Auto B', items:[1,2] },
+    { id:'zero', name:'Zero priority', sortOrder:0, items:[] },
+  ];
+  assert.deepEqual(
+    catalog.sortCategoriesByProductCount(rows).map(row=>row.id),
+    ['rank-1','rank-2','rank-3','auto','zero','auto-b']
+  );
+  assert.equal(catalog.sortPriority(1),1);
+  assert.equal(catalog.sortPriority(0),Number.MAX_SAFE_INTEGER);
+  assert.equal(catalog.sortPriority(undefined),Number.MAX_SAFE_INTEGER);
+});
+
 test('nested folder helpers inherit the root department and count products recursively', async () => {
   const catalog = await loadCatalogHelper();
   const categories = [
