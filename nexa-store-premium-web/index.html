@@ -1021,7 +1021,36 @@ function openOrder(packIndex){
  $('orderModal').classList.add('open');document.body.style.overflow='hidden';setTimeout(()=>$('customerName').focus(),80);
 }
 function closeModal(){$('orderModal').classList.remove('open');document.body.style.overflow=''}
-function renderOrders(){const d=storageRead(),rows=d.orders||[];$('orderBadge').textContent=rows.length;$('sideOrderBadge').textContent=rows.length;$('ordersTable').innerHTML=rows.length?rows.map(o=>`<tr><td class="ltr">${esc(o.id)}</td><td>${esc(o.name)}</td><td>${esc(o.date)}</td><td>${o.amountMinor?formatMinor(o.amountMinor,o.currency||'SYP'):money(o.price)}</td><td><span class="status">${o.status==='paid'?'مدفوع ومتحقق':o.status==='expired'?'منتهي':'بانتظار الدفع'}</span></td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:#828b99;padding:25px">لا توجد طلبات حتى الآن.</td></tr>'}
+function deliveryResultText(delivery){
+ if(!delivery)return '';
+ if(Array.isArray(delivery.cards)&&delivery.cards.length)return delivery.cards.map((card,index)=>['البطاقة '+(index+1),'رقم البطاقة: '+String(card.cardNumber||''),'PIN: '+String(card.cardPin||''),'الانتهاء: '+String(card.expired||'—')].join('\n')).join('\n\n');
+ const value=delivery.details??delivery.deliveredData??delivery.data??delivery.result??null;
+ if(value===null||value===undefined||value==='')return '';
+ if(typeof value==='string')return value.slice(0,8000);
+ try{return JSON.stringify(value,null,2).slice(0,8000)}catch{return String(value).slice(0,8000)}
+}
+function deliveryStatusLabel(status){return ({pending_payment:'بانتظار الدفع',pending:'بانتظار الإرسال إلى المورد',waiting:'قيد التنفيذ لدى المورد',manual_pending:'بانتظار التسليم اليدوي',completed:'تم التسليم',manual_review:'مراجعة الإدارة',not_applicable:'لا يحتاج تسليماً'})[status]||status||'غير محدد'}
+function renderOrders(){
+ const d=storageRead(),rows=d.orders||[];$('orderBadge').textContent=rows.length;$('sideOrderBadge').textContent=rows.length;
+ $('ordersTable').innerHTML=rows.length?rows.map(o=>{
+  const deliveryLine=o.supplierProvider?'<small>'+esc(deliveryStatusLabel(o.supplierStatus))+'</small>':'',
+   action=o.status==='paid'&&o.supplierProvider?'<button type="button" class="btn btn-soft order-delivery-view" data-customer-order-delivery="'+esc(o.id)+'">عرض التسليم</button>':'';
+  return `<tr><td class="ltr">${esc(o.id)}</td><td>${esc(o.name)}</td><td>${esc(o.date)}</td><td>${o.amountMinor?formatMinor(o.amountMinor,o.currency||'SYP'):money(o.price)}</td><td><span class="status">${o.status==='paid'?'مدفوع ومتحقق':o.status==='expired'?'منتهي':'بانتظار الدفع'}</span>${deliveryLine}${action}</td></tr>`;
+ }).join(''):'<tr><td colspan="5" style="text-align:center;color:#828b99;padding:25px">لا توجد طلبات حتى الآن.</td></tr>'
+}
+$('ordersTable').addEventListener('click',async event=>{
+ const button=event.target.closest('[data-customer-order-delivery]');if(!button)return;
+ const orderId=button.dataset.customerOrderDelivery;button.disabled=true;
+ try{
+  const response=await fetch('/api/account/orders/'+encodeURIComponent(orderId),{credentials:'same-origin',cache:'no-store'});
+  const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'تعذر تحميل التسليم.');
+  const delivery=data.delivery;
+  if(!delivery){alert('لا توجد بيانات تسليم لهذا الطلب حالياً.');return}
+  const result=deliveryResultText(delivery);
+  const due=delivery.dueAt?new Date(delivery.dueAt).toLocaleString('ar-SY'):'';
+  alert(['حالة الطلب: '+deliveryStatusLabel(delivery.status),delivery.message||'',delivery.etaHours?'مدة التسليم: '+delivery.etaHours+' ساعة':'',due?'آخر موعد متوقع: '+due:'',result?'\nبيانات التسليم:\n'+result:''].filter(Boolean).join('\n'));
+ }catch(error){showToast(error.message||'تعذر تحميل بيانات التسليم.')}finally{button.disabled=false}
+});
 function syncFavorites(){const favs=storageRead().favs||[];document.querySelectorAll('[data-favorite]').forEach(b=>{const active=favs.includes(b.dataset.favorite);b.classList.toggle('active',active);b.textContent=active?'♥':'♡'})}
 function renderFavorites(){const d=storageRead(),ids=d.favs||[],items=ids.map(id=>({id,item:getItem(id)})).filter(x=>x.item);$('favoritesGrid').innerHTML=items.length?items.map(({id,item})=>{const cat=categories.find(c=>(c.items||[]).some(i=>String(i.id)===String(id)&&i===item))||categories.find(c=>(c.items||[]).some(i=>String(i.id)===String(id)));if(!cat)return '';const image=NexaCatalog.productImage(item,cat,categories);return `<article class="product-card" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}" role="button" tabindex="0" aria-label="عرض المنتج ${esc(item.name)}"><div class="product-image"><img src="${esc(image)}" alt=""><span class="product-badge">${esc(cat.name)}</span><button type="button" class="favorite active" data-favorite="${esc(item.id)}" aria-label="إزالة من المفضلة">♥</button></div><div class="product-info"><div class="product-meta"><span class="product-category">${esc(cat.name)}</span><span class="product-label">محفوظ</span></div><h3>${esc(item.name)}</h3><p>${esc(item.desc)}</p><div class="product-foot"><span class="price">خيارات متعددة<small>السعر بعد اختيار المنطقة</small></span><button type="button" class="mini-choose" data-open-item="${esc(item.id)}" data-open-category="${esc(cat.id)}">استكشف ←</button></div></div></article>`}).join(''):`<div class="empty-state"><strong>المفضلة فارغة</strong><p>احفظ المنتجات التي تهمك من بطاقاتها.</p><button type="button" class="btn btn-soft" data-page="store">استكشف المتجر</button></div>`;syncFavorites()}
 function toggleFavorite(id){const d=storageRead();d.favs=d.favs||[];d.favs=d.favs.includes(id)?d.favs.filter(x=>x!==id):[...d.favs,id];storageSave(d);syncFavorites();if(state.view==='favorites')renderFavorites();showToast(d.favs.includes(id)?'تمت الإضافة إلى المفضلة':'تمت الإزالة من المفضلة')}
@@ -1150,7 +1179,7 @@ async function loadShamCashOrderSummary(){
   if(!r.ok||!d.ok)throw new Error(d.message||'لم يتم العثور على الطلب.');
   summary.innerHTML=`<span>المبلغ المطلوب · ${esc(d.status==='paid'?'مدفوع':d.status==='expired'?'منتهي':d.status==='cancelled'?'ملغي':'بانتظار الدفع')} · ${esc(d.currency)}</span><strong>${formatMinor(d.amountMinor,d.currency)}</strong><small>تنتهي الفاتورة في ${esc(new Date(d.expiresAt).toLocaleString('ar-SY'))}</small>`;
   renderInvoiceDetails(d);
-  if(d.receipt){renderPaymentReceipt(d.receipt);if(d.receipt.delivery&&!['completed','manual_review'].includes(d.receipt.delivery.status))watchSeagmDelivery(orderId)}
+  if(d.receipt){renderPaymentReceipt(d.receipt);if(d.receipt.delivery&&!['completed','manual_review','manual_pending'].includes(d.receipt.delivery.status))watchSeagmDelivery(orderId)}
  }catch(e){summary.innerHTML='<span>ملخص الطلب</span><strong>تعذر تحميل تفاصيل الطلب</strong><small>تأكد من رقم الطلب أو أعد المحاولة.</small>'}
 }
 
@@ -1167,13 +1196,13 @@ async function verifyShamCashPayment(e){
   const d=await r.json();
   if(!r.ok||!d.ok){const retry=r.headers.get('Retry-After');throw new Error(retry?`${d.message||'تعذر التحقق'} (انتظر ${retry} ثانية قبل إعادة المحاولة)`:d.message||'لم يتم قبول العملية.')}
   result.className='wallet-payment-result success';
-  result.textContent=d.receipt?.delivery?'تم تأكيد الدفع بنجاح. نرسل طلبك الآن إلى SEAGM ونحدّثك بنتيجة التسليم.':'تم التحقق من الفاتورة ورقم العملية ومحفظة الاستلام. طلبك مدفوع ومؤكد.';
+  result.textContent=d.receipt?.delivery?.provider==='MANUAL'?(d.receipt.delivery.message||'تم تأكيد الدفع. طلبك قيد التجهيز اليدوي.'):(d.receipt?.delivery?'تم تأكيد الدفع وإرسال طلبك إلى المورد. سيتم تحديث حالة التسليم تلقائياً.':'تم التحقق من الفاتورة ورقم العملية ومحفظة الاستلام. طلبك مدفوع ومؤكد.');
   if(d.receipt)renderPaymentReceipt(d.receipt);
   if(d.walletBalanceMinor!==undefined||customerAccount)await refreshCustomerAccount();
   const saved=storageRead();const order=(saved.orders||[]).find(o=>o.id===orderId);
   if(order){order.status='paid';storageSave(saved);renderOrders()}
   showToast('تم اعتماد الدفع وإصدار وصل إلكتروني.');
-  if(d.receipt?.delivery)watchSeagmDelivery(orderId);
+  if(d.receipt?.delivery&&!['completed','manual_review','manual_pending'].includes(d.receipt.delivery.status))watchSeagmDelivery(orderId);
  }catch(err){result.className='wallet-payment-result error';result.textContent=err.message||'تعذر التحقق. لم يتم تأكيد الدفع.'}
  finally{button.disabled=false;button.textContent='تحقق واعتماد الدفع ←'}
 }
@@ -1183,14 +1212,16 @@ function renderPaymentReceipt(receipt){
  const delivery=receipt.delivery||null;
  let deliveryHtml='';
  if(delivery){
-  const deliveryStatus={pending:'بانتظار إرسال الطلب',waiting:'الطلب قيد التنفيذ لدى SEAGM',completed:'تم التسليم بنجاح',manual_review:'الطلب قيد مراجعة الدعم'}[delivery.status]||delivery.message||'جارٍ تنفيذ الطلب';
-  const cards=Array.isArray(delivery.cards)?delivery.cards:[];
-  deliveryHtml='<section class="receipt-delivery"><h4>حالة التسليم عبر SEAGM</h4><strong>'+esc(deliveryStatus)+'</strong><p>'+esc(delivery.message||'')+'</p>'+
-   (delivery.status==='completed'&&cards.length?'<div class="receipt-cards">'+cards.map((card,index)=>'<div class="receipt-card"><b>البطاقة '+(index+1)+'</b><span>رقم البطاقة</span><strong class="ltr">'+esc(card.cardNumber)+'</strong><span>PIN</span><strong class="ltr">'+esc(card.cardPin)+'</strong><span>تاريخ الانتهاء</span><strong>'+esc(card.expired||'—')+'</strong></div>').join('')+'</div>':'')+
-   (delivery.status==='completed'&&!cards.length?'<p>أكد المورد اكتمال عملية الشحن للحساب الذي أدخلته.</p>':'')+'</section>';
+  const labels={pending_payment:'بانتظار تأكيد الدفع',pending:'بانتظار إرسال الطلب إلى المورد',waiting:'قيد التنفيذ لدى المورد',manual_pending:'طلبك قيد التجهيز اليدوي',completed:'تم التسليم بنجاح',manual_review:'الطلب قيد مراجعة الدعم'};
+  const deliveryStatus=labels[delivery.status]||delivery.message||'جارٍ تنفيذ الطلب';
+  const resultText=delivery.status==='completed'?deliveryResultText(delivery):'';
+  const due=delivery.dueAt?new Date(delivery.dueAt).toLocaleString('ar-SY'):'';
+  deliveryHtml='<section class="receipt-delivery"><h4>حالة تسليم المنتج · '+esc(delivery.provider||'')+'</h4><strong>'+esc(deliveryStatus)+'</strong><p>'+esc(delivery.message||'')+'</p>'+
+   (delivery.etaHours?'<p>المدة المحددة: '+esc(delivery.etaHours)+' ساعة'+(due?' · الموعد المتوقع حتى '+esc(due):'')+'</p>':'')+
+   (resultText?'<pre class="receipt-delivery-data" dir="auto">'+esc(resultText)+'</pre>':(delivery.status==='completed'?'<p>أكد النظام اكتمال عملية التسليم بنجاح.</p>':''))+'</section>';
  }
  box.innerHTML=`<div class="receipt-top"><div class="receipt-brand"><img src="assets/brand/logo.svg" alt=""><span><strong>NEXA STORE</strong><small>DIGITAL PAYMENT RECEIPT</small></span></div><span class="receipt-stamp">✓ مدفوع ومتحقق</span></div>
- <div class="receipt-title"><h3>وصل دفع إلكتروني</h3><p>تم التأكد من الدفع لدى مزوّد شام كاش عبر API.</p></div>
+ <div class="receipt-title"><h3>وصل دفع إلكتروني</h3><p>تم التأكد من الدفع لدى مزوّد شام كاش.</p></div>
  <div class="receipt-amount"><span>المبلغ المدفوع</span><strong>${esc(amount)}</strong></div>
  <div class="receipt-grid">
   <div class="receipt-field"><span>رقم الطلب</span><strong class="ltr">${esc(receipt.orderId)}</strong></div>
@@ -1202,11 +1233,10 @@ function renderPaymentReceipt(receipt){
   <div class="receipt-field"><span>محفظة الاستلام</span><strong>${esc(receipt.receiverLabel||'Sham Cash')}</strong></div>
   <div class="receipt-field"><span>عنوان الاستلام</span><strong class="ltr">${esc(receipt.receiverAddress||'—')}</strong></div>
  </div>${deliveryHtml}
- <div class="receipt-note">هذا الوصل يثبت أن Nexa Store تحقّق من الدفع والمبلغ والمستلم. احتفظ برقم الطلب والفاتورة للرجوع إليهما. بيانات البطاقة الرقمية لا تظهر إلا بعد تأكيد المورد اكتمال التسليم.</div>
+ <div class="receipt-note">هذا الوصل يثبت تأكيد الدفع وحالة تسليم المنتج. عند اكتمال التسليم ستظهر بيانات الحساب أو البطاقة هنا، ويمكنك الرجوع إليها من سجل طلبات حسابك.</div>
  <div class="receipt-actions"><button class="btn btn-soft" type="button" data-print-receipt>طباعة / حفظ PDF ↓</button></div>`;
  box.classList.remove('hidden');
 }
-
 async function watchSeagmDelivery(orderId){
  if(!orderId||deliveryWatchers.has(orderId))return;
  deliveryWatchers.add(orderId);
@@ -1220,6 +1250,10 @@ async function watchSeagmDelivery(orderId){
    const result=$('shamCashPaymentResult');
    if(data.delivery.status==='completed'){
     if(result){result.className='wallet-payment-result success';result.textContent='اكتمل التسليم بنجاح من SEAGM. تفاصيل البطاقة أو نتيجة الشحن موجودة في الوصل.'}
+    return;
+   }
+   if(data.delivery.status==='manual_pending'){
+    if(result){result.className='wallet-payment-result success';result.textContent=data.delivery.message||'طلبك قيد التجهيز اليدوي.';}
     return;
    }
    if(data.delivery.status==='manual_review'){
