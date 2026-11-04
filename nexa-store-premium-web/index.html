@@ -1142,7 +1142,9 @@ async function doOrder(e){
   if(data.paymentMethod==='wallet'){
    closeModal();renderOrders();
    if(data.receipt){$('paymentReceipt').classList.remove('hidden');renderPaymentReceipt(data.receipt);}
-   await refreshCustomerAccount();navigate('wallet');showToast('تم الدفع من رصيد حسابك بنجاح.');return;
+   await refreshCustomerAccount();
+   if(data.receipt?.delivery&&data.receipt.delivery.mode!=='manual'&&!['completed','manual_review'].includes(data.receipt.delivery.status))watchSeagmDelivery(data.orderId);
+   navigate('wallet');showToast('تم الدفع من رصيد حسابك بنجاح.');return;
   }
   state.pendingOrder=data.orderId;$('paymentOrderId').value=data.orderId;
   $('paymentOrderSummary').innerHTML=`<span>المبلغ المطلوب · ${esc(data.currency)}</span><strong>${formatMinor(data.amountMinor,data.currency)}</strong><small>الفاتورة صالحة حتى ${esc(new Date(data.expiresAt).toLocaleString('ar-SY'))}</small>`;
@@ -1222,7 +1224,11 @@ async function verifyShamCashPayment(e){
   const d=await r.json();
   if(!r.ok||!d.ok){const retry=r.headers.get('Retry-After');throw new Error(retry?`${d.message||'تعذر التحقق'} (انتظر ${retry} ثانية قبل إعادة المحاولة)`:d.message||'لم يتم قبول العملية.')}
   result.className='wallet-payment-result success';
-  result.textContent=d.receipt?.delivery?'تم تأكيد الدفع بنجاح. نرسل طلبك الآن إلى SEAGM ونحدّثك بنتيجة التسليم.':'تم التحقق من الفاتورة ورقم العملية ومحفظة الاستلام. طلبك مدفوع ومؤكد.';
+  const paidDelivery=d.receipt?.delivery;
+  const paidProvider=({SEAGM:'SEAGM',WAMDA:'ومضة',BEST_STORE:'Best Store',MANUAL:'المتجر'})[paidDelivery?.provider]||'المورد';
+  result.textContent=paidDelivery
+   ?(paidDelivery.mode==='manual'?'تم تأكيد الدفع. '+(paidDelivery.message||'طلبك قيد التجهيز اليدوي.'):'تم تأكيد الدفع بنجاح. أرسلنا طلبك إلى '+paidProvider+' وسنحدّثك بنتيجة التسليم.')
+   :'تم التحقق من الفاتورة ورقم العملية ومحفظة الاستلام. طلبك مدفوع ومؤكد.';
   if(d.receipt)renderPaymentReceipt(d.receipt);
   if(d.walletBalanceMinor!==undefined||customerAccount)await refreshCustomerAccount();
   const saved=storageRead();const order=(saved.orders||[]).find(o=>o.id===orderId);
@@ -1273,6 +1279,7 @@ async function watchSeagmDelivery(orderId){
    const result=$('shamCashPaymentResult');
    const providerName=({SEAGM:'SEAGM',WAMDA:'ومضة',BEST_STORE:'Best Store',MANUAL:'المتجر'})[data.delivery.provider]||'المورد';
    if(data.delivery.status==='completed'){
+    if(customerAccount)await refreshAccountOrders();
     if(result){result.className='wallet-payment-result success';result.textContent='اكتمل التسليم بنجاح عبر '+providerName+'. تفاصيل الحساب أو الكود أصبحت متاحة في الوصل.'}
     return;
    }
