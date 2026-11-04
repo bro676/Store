@@ -272,7 +272,8 @@ export function mergeCatalog(existing, incoming, mode = 'merge') {
   for(const incomingCategory of next){
     const index=result.findIndex(category=>category.id===incomingCategory.id);
     if(index<0){result.push(JSON.parse(JSON.stringify(incomingCategory)));continue;}
-    const previous=result[index];
+    const existingCategory=current.find(category=>category.id===incomingCategory.id)||null;
+    const previous=mode==='replace'?(existingCategory||result[index]):result[index];
     const sourceCategory=applyCategorySourceMerge(previous,incomingCategory);
     const oldProducts=new Map((previous.items||[]).map(product=>[product.id,product]));
     const incomingProducts=(incomingCategory.items||[]).map(product=>mergeSupplierProduct(oldProducts.get(product.id),product));
