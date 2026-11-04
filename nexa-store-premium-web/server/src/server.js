@@ -78,7 +78,7 @@ let pool;
 if (cfg.databaseUrl) {
   pool = new Pool({ connectionString: cfg.databaseUrl, ssl: cfg.databaseSsl ? { rejectUnauthorized: true } : false,
     max: 10, idleTimeoutMillis: 30_000, connectionTimeoutMillis: 8_000 });
-  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql']) {
+  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql', '008_manual_fulfillment.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
   }
 }
@@ -736,7 +736,7 @@ async function verifyPayment(input) {
       VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING RETURNING id`,
       [transactionRef,orderId,tx.amountMinor.toString(),tx.currency,String(wallet.id),tx.occurredAt,JSON.stringify({invoiceNumber:order.invoice_number,transactionId:transactionRef,amountMinor:tx.amountMinor.toString(),currency:tx.currency,receiverAddress:tx.receiverAddress,type:tx.type,occurredAt:tx.occurredAt.toISOString(),paidAt:paidAt.toISOString()})]);
     if (!inserted.rowCount) { await client.query('ROLLBACK'); return {error:'TRAN_ID_USED',status:409,message:'رقم العملية مستخدم مسبقاً ولا يمكن استخدامه مرة ثانية.'}; }
-    await client.query("UPDATE nexa_orders SET status='paid',paid_at=$2,supplier_status=CASE WHEN supplier_provider IN ('seagm','wamda','beststore') THEN 'pending' ELSE supplier_status END,supplier_message=CASE WHEN supplier_provider='wamda' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.' WHEN supplier_provider='seagm' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.' WHEN supplier_provider='beststore' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى Best Store.' ELSE supplier_message END WHERE id=$1",[orderId,paidAt]);
+    await client.query("UPDATE nexa_orders SET status='paid',paid_at=$2,supplier_status=CASE WHEN fulfillment_mode='manual' THEN 'manual_pending' WHEN supplier_provider IN ('seagm','wamda','beststore') THEN 'pending' ELSE supplier_status END,supplier_message=CASE WHEN fulfillment_mode='manual' THEN CONCAT('تم تأكيد الدفع. سيجهّز فريق المتجر طلبك ويرسل بيانات التسليم خلال ',manual_delivery_hours,' ساعة كحد أقصى.') WHEN supplier_provider='wamda' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى ومضة.' WHEN supplier_provider='seagm' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى SEAGM.' WHEN supplier_provider='beststore' THEN 'تم التحقق من الدفع. سيتم إرسال الطلب إلى Best Store.' ELSE supplier_message END WHERE id=$1",[orderId,paidAt]);
     let walletBalanceMinor=null;
     if(order.wallet_topup_customer_id){
       const credited=await client.query('UPDATE nexa_customers SET balance_minor=balance_minor+$2 WHERE id=$1 RETURNING balance_minor::text',[order.wallet_topup_customer_id,String(order.amount_minor)]);
@@ -745,7 +745,7 @@ async function verifyPayment(input) {
       await client.query(`INSERT INTO nexa_wallet_ledger(customer_id,kind,amount_minor,balance_after_minor,reference_order_id,note)
         VALUES($1,'topup',$2,$3,$4,'شحن رصيد عبر شام كاش')`,[order.wallet_topup_customer_id,String(order.amount_minor),walletBalanceMinor,orderId]);
     }
-    if (['seagm','wamda','beststore'].includes(order.supplier_provider)) {
+    if (order.fulfillment_mode!=='manual' && ['seagm','wamda','beststore'].includes(order.supplier_provider)) {
       await client.query(`INSERT INTO nexa_fulfillment_jobs(order_id,status,next_attempt_at)
         VALUES($1,'pending',NOW()) ON CONFLICT(order_id) DO NOTHING`,[orderId]);
     }
@@ -3189,15 +3189,36 @@ const server = http.createServer(async (req,res) => {
     if (req.method === 'GET' && url.pathname === '/api/admin/orders') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const limit = Math.min(200,Math.max(1,Number(url.searchParams.get('limit')||100)));
-      const result = await pool.query(`SELECT o.id,o.product_label,o.amount_minor::text,o.currency,o.status,o.customer_name,o.customer_phone,o.game_account,o.notes,o.invoice_number,o.invoice_identifier,o.wallet_label,o.created_at,o.expires_at,o.paid_at,o.supplier_provider,o.supplier_kind,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_mch_order_id,j.last_error AS supplier_error FROM nexa_orders o LEFT JOIN nexa_fulfillment_jobs j ON j.order_id=o.id ORDER BY o.created_at DESC LIMIT $1`,[limit]);
+      const result = await pool.query(`SELECT o.id,o.product_label,o.amount_minor::text,o.currency,o.status,o.customer_name,o.customer_phone,o.game_account,o.notes,o.invoice_number,o.invoice_identifier,o.wallet_label,o.created_at,o.expires_at,o.paid_at,o.supplier_provider,o.supplier_kind,o.fulfillment_mode,o.manual_delivery_hours,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_mch_order_id,j.last_error AS supplier_error FROM nexa_orders o LEFT JOIN nexa_fulfillment_jobs j ON j.order_id=o.id ORDER BY o.created_at DESC LIMIT $1`,[limit]);
       return send(res,200,{ok:true,orders:result.rows.map(o=>({...o,amountMinor:o.amount_minor,createdAt:o.created_at,expiresAt:o.expires_at,paidAt:o.paid_at}))});
+    }
+    const adminManualFulfillment = url.pathname.match(/^\\/api\\/admin\\/orders\\/(NX-[A-F0-9]{20})\\/fulfillment\\/complete$/);
+    if(req.method==='POST'&&adminManualFulfillment){
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const orderId=adminManualFulfillment[1],input=await bodyJson(req,12_000);
+      const deliveryText=String(input.deliveryText||'').trim();
+      if(!deliveryText||deliveryText.length>8_000)return send(res,400,{ok:false,error:'INVALID_DELIVERY_DATA',message:'أدخل بيانات التسليم من 1 إلى 8000 حرف.'});
+      const encrypted=encryptSecret(JSON.stringify({deliveryText}),cfg.settingsEncryptionKey);
+      const saved=await pool.query(`UPDATE nexa_orders SET supplier_status='completed',
+        supplier_message='تم تجهيز بيانات التسليم. افتح تفاصيل الطلب لعرض معلومات حسابك.',
+        supplier_result_encrypted=$2,supplier_completed_at=NOW()
+        WHERE id=$1 AND status='paid' AND fulfillment_mode='manual' AND supplier_status<>'completed'
+        RETURNING id`,[orderId,encrypted]);
+      if(!saved.rowCount){
+        const current=await pool.query('SELECT status,fulfillment_mode,supplier_status FROM nexa_orders WHERE id=$1',[orderId]);
+        if(!current.rowCount)return send(res,404,{ok:false,error:'ORDER_NOT_FOUND',message:'الطلب غير موجود.'});
+        if(current.rows[0].status!=='paid')return send(res,409,{ok:false,error:'ORDER_NOT_PAID',message:'لا يمكن تسليم الطلب قبل تأكيد الدفع.'});
+        if(current.rows[0].fulfillment_mode!=='manual')return send(res,409,{ok:false,error:'NOT_MANUAL_FULFILLMENT',message:'هذا المنتج مضبوط على التسليم الآلي.'});
+        return send(res,409,{ok:false,error:'DELIVERY_ALREADY_COMPLETED',message:'تم تسليم هذا الطلب مسبقاً.'});
+      }
+      return send(res,200,{ok:true,message:'تم حفظ بيانات التسليم بشكل مشفّر، وأصبحت ظاهرة لصاحب الطلب فقط.'});
     }
     const adminFulfillmentRetry = url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/fulfillment\/retry$/);
     if (req.method === 'POST' && adminFulfillmentRetry) {
       if (!pool) return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
       const orderId=adminFulfillmentRetry[1];
-      const found=await pool.query(`SELECT status,supplier_provider,supplier_status FROM nexa_orders WHERE id=$1`,[orderId]);
-      if (!found.rowCount || found.rows[0].status!=='paid' || !['seagm','wamda','beststore'].includes(found.rows[0].supplier_provider)) {
+      const found=await pool.query(`SELECT status,supplier_provider,supplier_status,fulfillment_mode FROM nexa_orders WHERE id=$1`,[orderId]);
+      if (!found.rowCount || found.rows[0].status!=='paid' || found.rows[0].fulfillment_mode==='manual' || !['seagm','wamda','beststore'].includes(found.rows[0].supplier_provider)) {
         return send(res,409,{ok:false,error:'FULFILLMENT_NOT_RETRYABLE',message:'لا يمكن إعادة محاولة هذا الطلب قبل تأكيد الدفع وربطه بمورد رقمي.'});
       }
       if (found.rows[0].supplier_status==='completed') return send(res,409,{ok:false,error:'FULFILLMENT_ALREADY_COMPLETED',message:'تم تسليم هذا الطلب بالفعل؛ لا يمكن إعادة شرائه.'});
@@ -3247,10 +3268,11 @@ const server = http.createServer(async (req,res) => {
     const orderLookup = url.pathname.match(/^\/api\/orders\/(NX-[A-F0-9]{20})$/);
     if (req.method === 'GET' && orderLookup) {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
-      const q = await pool.query(`SELECT o.id,o.product_label,o.amount_minor,o.currency,o.status,o.payment_method,o.expires_at,o.invoice_number,o.invoice_identifier,o.wallet_label,o.wallet_address,o.customer_name,o.paid_at,p.transaction_id,o.supplier_provider,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_result_encrypted
+      const q = await pool.query(`SELECT o.id,o.product_label,o.amount_minor,o.currency,o.status,o.payment_method,o.expires_at,o.invoice_number,o.invoice_identifier,o.wallet_label,o.wallet_address,o.customer_name,o.customer_id,o.paid_at,p.transaction_id,o.supplier_provider,o.fulfillment_mode,o.manual_delivery_hours,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_result_encrypted
         FROM nexa_orders o LEFT JOIN nexa_payments p ON p.order_id=o.id WHERE o.id=$1`,[orderLookup[1]]);
       if (!q.rowCount) return send(res,404,{error:'ORDER_NOT_FOUND',message:'لم يتم العثور على الطلب.'});
       const o=q.rows[0];
+      if(o.customer_id){const customer=await currentCustomer(req);if(!customer||String(customer.id)!==String(o.customer_id))return send(res,404,{error:'ORDER_NOT_FOUND',message:'لم يتم العثور على الطلب.'});}
       const delivery=o.status==='paid'?supplierDeliveryForOrder(o):null;
       const receipt = o.status === 'paid' ? {orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,customerName:o.customer_name,paymentMethod:o.payment_method||'shamcash',invoiceNumber:o.invoice_number,transactionId:o.transaction_id,paidAt:o.paid_at ? new Date(o.paid_at).toISOString() : null,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier,...(delivery?{delivery}:{})} : null;
       return send(res,200,{ok:true,orderId:o.id,product:o.product_label,amountMinor:String(o.amount_minor),currency:o.currency,status:o.status,expiresAt:new Date(o.expires_at).toISOString(),invoiceNumber:o.invoice_number,invoiceIdentifier:o.invoice_identifier,receiverLabel:o.wallet_label,receiverAddress:o.invoice_identifier,delivery,receipt});
