@@ -51,6 +51,18 @@ test('product write API adds a valid product and upserts matching product IDs', 
   assert.equal(updated.catalog[0].items.at(-1).name,'API Product Updated');
   assert.throws(() => upsertCatalogProduct(catalog,'missing',product),/CATEGORY_NOT_FOUND/);
 });
+
+test('manual delivery settings are validated and preserved across product upserts',()=>{
+  const product={...catalog[0].items[0],deliveryMode:'manual',deliveryEtaHours:12,deliveryMessage:'يصل خلال 12 ساعة'};
+  const input=[{...catalog[0],items:[product]}];
+  assert.equal(validateCatalog(input)[0].items[0].deliveryMode,'manual');
+  assert.equal(validateCatalog(input)[0].items[0].deliveryEtaHours,12);
+  assert.equal(upsertCatalogProduct(input,'games',{...product,name:'Updated title'}).catalog[0].items[0].deliveryEtaHours,12);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...product,deliveryMode:'later'}]}]),/INVALID_PRODUCT_DELIVERY_MODE/);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...product,deliveryEtaHours:0}]}]),/INVALID_PRODUCT_DELIVERY_ETA/);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...product,deliveryMessage:'x'.repeat(501)}]}]),/INVALID_PRODUCT_DELIVERY_MESSAGE/);
+});
+
 test('catalogue validator supports the full imported supplier catalogue with safe aggregate limits',()=>{
   const supplierCatalog=Array.from({length:661},(_,categoryIndex)=>({
     id:'wamda-category-'+categoryIndex,
