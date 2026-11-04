@@ -437,3 +437,27 @@ test('unmatchable unique products remain separate even when a supplier name is o
   assert.equal(plan.stats.comparedGroups,0);
   assert.deepEqual(plan.groups.map(group=>group.winner.productId).sort((a,b)=>a-b),[581,582]);
 });
+
+test('Free Fire matching ignores punctuation but never merges different denominations',()=>{
+  const rows=[
+    supplierCandidate('wamda',4101,'Free Fire-100','Free Fire',1,'SYP'),
+    supplierCandidate('beststore',5101,'FREE FIRE — 100','Garena Free Fire',0.9,'SYP'),
+    supplierCandidate('wamda',4102,'Free Fire 200','Free Fire',1.5,'SYP'),
+    supplierCandidate('beststore',5102,'Free-Fire-200','Garena Free Fire',1.2,'SYP'),
+  ];
+  const plan=buildSupplierComparisonPlan(rows,145);
+  assert.equal(
+    supplierProductMatchKey({name:'Free Fire-100'},'Free Fire'),
+    supplierProductMatchKey({name:'FREE FIRE 100'},'Garena Free Fire')
+  );
+  assert.notEqual(
+    supplierProductMatchKey({name:'Free Fire 100'},'Free Fire'),
+    supplierProductMatchKey({name:'Free Fire 200'},'Free Fire')
+  );
+  assert.equal(plan.stats.sharedProductKeys,2);
+  assert.equal(plan.stats.comparedGroups,2);
+  assert.equal(plan.groups.length,2);
+  assert.ok(plan.groups.every(group=>group.candidates.length===2));
+  assert.equal(plan.groups.find(group=>group.matchKey.endsWith('::100')).winner.productId,5101);
+  assert.equal(plan.groups.find(group=>group.matchKey.endsWith('::200')).winner.productId,5102);
+});

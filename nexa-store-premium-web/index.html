@@ -780,7 +780,7 @@ body{
   </div>
 </section>
 <div class="toast" id="toast"></div>
-<script src="/assets/brand/nexa-catalog.js?v=20261104-product-click"></script>
+<script src="/assets/brand/nexa-catalog.js?v=20261104-navigation-folder-sort"></script>
 <script>
 let categories=[];
 const $=id=>document.getElementById(id);const money=v=>v>0?new Intl.NumberFormat('en-US',{maximumFractionDigits:Number(v)<0.01?8:2}).format(v)+' ل.س جديدة':'يحدد لاحقاً';const formatMinor=(minor,currency='SYP')=>{const value=Number(BigInt(minor||0))/100;return currency==='USD'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value):new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value)+' ل.س جديدة'};const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -866,7 +866,7 @@ function renderCatalog(){
    (all.length?'<div class="department-grid catalog-department-grid">'+all.map(renderDepartmentCard).join('')+'</div>':'<div class="empty-state"><strong>لا توجد أقسام مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>');
  }else if(!cat){
   const query=String(state.categoryQuery||'').trim().toLocaleLowerCase('ar');
-  const all=categories.filter(category=>NexaCatalog.classifyCategory(category)===department.id);
+  const all=NexaCatalog.sortCategoriesByProductCount(categories.filter(category=>NexaCatalog.classifyCategory(category)===department.id));
   const filtered=all.filter(category=>!query||[category.name,category.desc,category.id].some(value=>String(value||'').toLocaleLowerCase('ar').includes(query)));
   const pageSize=36,pageCount=Math.max(1,Math.ceil(filtered.length/pageSize));
   state.categoryPage=Math.min(Math.max(1,Number(state.categoryPage)||1),pageCount);
@@ -1258,7 +1258,7 @@ async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'})
   return element?.closest?.(selector)||null;
  }
  document.addEventListener('click',e=>{const favoriteControl=eventElement(e,'[data-favorite]');if(favoriteControl){toggleFavorite(favoriteControl.dataset.favorite);return;}
- const productControl=NexaCatalog.findProductControl(e);
+ const productControl=NexaCatalog.findProductControl(e)||eventElement(e,'[data-open-item]');
  if(productControl){
   e.preventDefault();e.stopPropagation();
   openItem(productControl.getAttribute('data-open-item'),productControl.getAttribute('data-open-category')||null);
@@ -1298,7 +1298,7 @@ document.addEventListener('click',e=>{if(e.target.closest('[data-print-receipt]'
 $('orderQuantity').addEventListener('input',renderCurrencyPreview);$('shamCashPaymentForm').addEventListener('submit',verifyShamCashPayment);$('paymentOrderId').addEventListener('change',loadShamCashOrderSummary);$('paymentOrderId').addEventListener('blur',loadShamCashOrderSummary);$('supportForm').addEventListener('submit',submitSupportTicket);$('supportLookupForm').addEventListener('submit',lookupSupportOrder);$('assistantLauncher').addEventListener('click',openAssistant);$('assistantClose').addEventListener('click',closeAssistant);$('assistantForm').addEventListener('submit',e=>{e.preventDefault();const input=$('assistantInput');const value=input.value.trim();if(!value)return;input.value='';sendAssistantPrompt(value)});$('modalClose').addEventListener('click',closeModal);$('modalCancel').addEventListener('click',closeModal);$('orderModal').addEventListener('click',e=>{if(e.target===$('orderModal'))closeModal()});document.addEventListener('keydown',e=>{
  if(e.key==='Escape'){closeModal();closeMenu();closeAssistant();return;}
  if(e.key!=='Enter'&&e.key!==' ')return;
- const productControl=NexaCatalog.findProductControl(e);
+ const productControl=NexaCatalog.findProductControl(e)||eventElement(e,'[data-open-item]');
  if(!productControl||closestStoreTarget(e,'[data-favorite]'))return;
  e.preventDefault();openItem(productControl.getAttribute('data-open-item'),productControl.getAttribute('data-open-category')||null);
  });$('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){showSearchResults(e.currentTarget.value)}});$('globalSearch').addEventListener('search',e=>{if(!e.currentTarget.value){navigate('home')}});$('menuToggle').addEventListener('click',()=>{const opened=document.body.classList.toggle('sidebar-open');$('menuToggle').setAttribute('aria-expanded',String(opened))});$('sidebarBackdrop').addEventListener('click',closeMenu);

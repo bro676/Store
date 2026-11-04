@@ -95,3 +95,38 @@ test('product navigation resolver returns canonical identifiers and skips the re
   assert.equal(invalid.packCount, 0);
   assert.equal(catalog.resolveProductNavigation(categories, 'unknown-product'), null);
 });
+
+test('product resolver recovers a unique product when its old category still exists but no longer contains it', async () => {
+  const catalog = await loadCatalogHelper();
+  const categories = [
+    { id:'old-games-category', name:'Old category', items:[] },
+    { id:'new-apps-category', name:'New category', items:[{ id:'moved-product', name:'Moved product' }] },
+  ];
+  const resolved = catalog.resolveProductNavigation(categories, 'moved-product', 'old-games-category');
+  assert.equal(resolved.categoryId, 'new-apps-category');
+  assert.equal(resolved.itemId, 'moved-product');
+});
+
+test('product resolver does not guess between duplicate IDs when the supplied existing category has no match', async () => {
+  const catalog = await loadCatalogHelper();
+  const categories = [
+    { id:'old-category', items:[] },
+    { id:'first', items:[{ id:'duplicate', name:'First' }] },
+    { id:'second', items:[{ id:'duplicate', name:'Second' }] },
+  ];
+  assert.equal(catalog.findProduct(categories, 'duplicate', 'old-category'), null);
+});
+
+test('internal catalog folders are sorted from the fewest products to the most', async () => {
+  const catalog = await loadCatalogHelper();
+  const rows = [
+    { id:'large', name:'Large', items:[1,2,3] },
+    { id:'small', name:'Small', items:[1] },
+    { id:'empty', name:'Empty', items:[] },
+    { id:'medium', name:'Medium', items:[1,2] },
+  ];
+  assert.deepEqual(
+    catalog.sortCategoriesByProductCount(rows).map(row=>row.id),
+    ['empty','small','medium','large']
+  );
+});
