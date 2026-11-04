@@ -1032,6 +1032,11 @@ function orderDeliveryMarkup(delivery){
   }else{
    let payload=delivery.deliveredData??delivery.data??null;
    if(payload===null&&(delivery.deliveredAmount!==undefined||delivery.sentAt))payload={amount:delivery.deliveredAmount??'',sentAt:delivery.sentAt??''};
+   if(payload===null){
+    const metadataKeys=new Set(['provider','mode','status','etaHours','message','orderId','cards']);
+    const providerData=Object.fromEntries(Object.entries(delivery).filter(([key,value])=>!metadataKeys.has(key)&&value!==null&&value!==undefined));
+    if(Object.keys(providerData).length)payload=providerData;
+   }
    if(payload!==null){
     const content=typeof payload==='string'?payload:JSON.stringify(payload,null,2);
     details='<pre class="receipt-delivery-data" dir="auto">'+esc(String(content).slice(0,8000))+'</pre>';
