@@ -51,6 +51,18 @@ test('product write API adds a valid product and upserts matching product IDs', 
   assert.equal(updated.catalog[0].items.at(-1).name,'API Product Updated');
   assert.throws(() => upsertCatalogProduct(catalog,'missing',product),/CATEGORY_NOT_FOUND/);
 });
+
+test('manual delivery settings are validated and preserved across product upserts',()=>{
+  const product={...catalog[0].items[0],deliveryMode:'manual',deliveryEtaHours:12,deliveryMessage:'يصل خلال 12 ساعة'};
+  const input=[{...catalog[0],items:[product]}];
+  assert.equal(validateCatalog(input)[0].items[0].deliveryMode,'manual');
+  assert.equal(validateCatalog(input)[0].items[0].deliveryEtaHours,12);
+  assert.equal(upsertCatalogProduct(input,'games',{...product,name:'Updated title'}).catalog[0].items[0].deliveryEtaHours,12);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...product,deliveryMode:'later'}]}]),/INVALID_PRODUCT_DELIVERY_MODE/);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...product,deliveryEtaHours:0}]}]),/INVALID_PRODUCT_DELIVERY_ETA/);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...product,deliveryMessage:'x'.repeat(501)}]}]),/INVALID_PRODUCT_DELIVERY_MESSAGE/);
+});
+
 test('catalogue validator supports the full imported supplier catalogue with safe aggregate limits',()=>{
   const supplierCatalog=Array.from({length:661},(_,categoryIndex)=>({
     id:'wamda-category-'+categoryIndex,
@@ -123,6 +135,41 @@ test('catalog merge preserves existing products and appends products from incomi
   const merged = mergeCatalog(original,incoming);
   assert.deepEqual(merged[0].items.map(item=>item.id),['freefire','roblox','pubg']);
 });
+
+test('supplier catalogue sync preserves manual delivery mode, ETA, and customer message overrides',()=>{
+  const original=[{
+    ...catalog[0],
+    items:[{
+      ...catalog[0].items[0],
+      deliveryMode:'manual',
+      deliveryEtaHours:9,
+      deliveryMessage:'يتم التسليم خلال 9 ساعات.',
+      manualOverrides:{
+        deliveryMode:'manual',
+        deliveryEtaHours:9,
+        deliveryMessage:'يتم التسليم خلال 9 ساعات.',
+      },
+    }],
+  }];
+  const incoming=[{
+    ...catalog[0],
+    items:[{
+      ...catalog[0].items[0],
+      name:'Supplier updated name',
+      deliveryMode:'automatic',
+      deliveryEtaHours:24,
+      deliveryMessage:'',
+      seagm:{provider:'seagm',autoDelivery:true,kind:'card',typeId:10,categoryId:2},
+    }],
+  }];
+  const merged=mergeCatalog(original,incoming);
+  const product=merged[0].items[0];
+  assert.equal(product.name,'Supplier updated name');
+  assert.equal(product.deliveryMode,'manual');
+  assert.equal(product.deliveryEtaHours,9);
+  assert.equal(product.deliveryMessage,'يتم التسليم خلال 9 ساعات.');
+});
+
 test('catalog replace mode is explicit', () => {
   const replacement = [{...catalog[0],name:'Replaced'}];
   assert.equal(mergeCatalog(catalog,replacement,'replace')[0].name,'Replaced');

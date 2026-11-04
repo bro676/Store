@@ -129,13 +129,17 @@
   return own+rows.filter(child=>normalizeId(child.parentId)===normalizeId(category.id)&&child.visible!==false&&isCategoryVisible(child,rows))
    .reduce((sum,child)=>sum+getFolderProductCount(child,rows,nextVisited),0);
  }
+ function sortPriority(value){
+  const priority=Number(value);
+  return Number.isSafeInteger(priority)&&priority>0?priority:Number.MAX_SAFE_INTEGER;
+ }
  function sortCategoriesByProductCount(categories,allCategories=null){
   const rows=Array.isArray(categories)?categories:[];
   const all=Array.isArray(allCategories)?allCategories:rows;
   const collator=new Intl.Collator('ar',{numeric:true,sensitivity:'base'});
   return rows.map((category,index)=>({category,index,count:getFolderProductCount(category,all)}))
-   .sort((a,b)=>a.count-b.count||Number(a.category?.sortOrder||0)-Number(b.category?.sortOrder||0)||
-    collator.compare(String(a.category?.name||''),String(b.category?.name||''))||a.index-b.index)
+   .sort((a,b)=>sortPriority(a.category?.sortOrder)-sortPriority(b.category?.sortOrder)||
+    a.count-b.count||collator.compare(String(a.category?.name||''),String(b.category?.name||''))||a.index-b.index)
    .map(row=>row.category);
  }
  function getChildFolders(categories,parentId=null,departmentId=null){
@@ -206,5 +210,5 @@
   if(pack)parts.push('packs','pack-'+slugify(pack?.[0]||'offer'));
   return parts.join('/');
  }
- window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,getCategoryDepartmentId,categoryAncestors,isCategoryVisible,getFolderProductCount,sortCategoriesByProductCount,getChildFolders,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
+ window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,getCategoryDepartmentId,categoryAncestors,isCategoryVisible,getFolderProductCount,sortPriority,sortCategoriesByProductCount,getChildFolders,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
 })();
