@@ -711,7 +711,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
         </section>
       </section>
       <section class="page hidden" id="page-orders">
-        <div class="page-head"><div><div class="eyebrow">ORDERS & RECEIPTS</div><h2>الطلبات والفواتير</h2><p>عرض حالة الدفع والتسليم من SEAGM. لا يمكن اعتماد الدفع يدوياً من لوحة الإدارة، ويمكن إعادة فحص طلب المورد عند الحاجة.</p></div><button class="btn soft" id="refreshOrdersBtn">تحديث القائمة ↻</button></div>
+        <div class="page-head"><div><div class="eyebrow">ORDERS & RECEIPTS</div><h2>الطلبات والفواتير</h2><p>تابع الدفع والتسليم الآلي واليدوي. تُدخل بيانات التسليم اليدوي بعد تأكيد الدفع فقط، ويمكن إعادة فحص طلب المورد دون تكرار الشراء.</p></div><button class="btn soft" id="refreshOrdersBtn">تحديث القائمة ↻</button></div>
         <section class="panel"><div class="toolbar"><input id="orderSearch" placeholder="ابحث برقم الطلب أو الاسم أو رقم الفاتورة"><select id="orderStatus" class="field" style="margin:0;width:145px"><option value="">كل الحالات</option><option value="paid">مدفوع</option><option value="pending_payment">بانتظار الدفع</option><option value="expired">منتهي</option><option value="cancelled">ملغي</option></select></div><div class="table-wrap"><table><thead><tr><th>رقم الطلب</th><th>المنتج</th><th>العميل</th><th>المبلغ</th><th>الحالة</th><th>الفاتورة</th><th>التاريخ</th><th>إجراء</th></tr></thead><tbody id="ordersBody"><tr><td colspan="8">جارٍ التحميل…</td></tr></tbody></table></div></section>
       </section>
       <section class="page hidden" id="page-payments">
@@ -1725,18 +1725,32 @@ function formatAmount(minor,currency){const amount=Number(BigInt(minor||0))/100;
 function statusTag(status){const m={paid:['مدفوع','green'],pending_payment:['بانتظار الدفع','orange'],expired:['منتهي','red'],cancelled:['ملغي','red']};const [t,c]=m[status]||[status,''];return `<span class="tag ${c}">${t}</span>`}
 function renderOrders(){
  const q=($('orderSearch').value||'').toLowerCase(),status=$('orderStatus').value;
- const rows=state.orders.filter(o=>(!status||o.status===status)&&[o.id,o.product_label,o.customer_name,o.invoice_number,o.supplier_order_id,o.supplier_status].some(v=>String(v||'').toLowerCase().includes(q)));
+ const rows=state.orders.filter(o=>(!status||o.status===status)&&[o.id,o.product_label,o.customer_name,o.invoice_number,o.supplier_order_id,o.supplier_status,o.supplier_provider].some(v=>String(v||'').toLowerCase().includes(q)));
  $('ordersBody').innerHTML=rows.length?rows.map(o=>{
-  const deliveryLabels={not_applicable:'—',pending_payment:'بعد تأكيد الدفع',pending:'بانتظار الإرسال',waiting:'قيد التنفيذ لدى SEAGM',completed:'تم التسليم',manual_review:'مراجعة الإدارة'};
-  const supplierLine=o.supplier_provider==='seagm'?'<small class="muted">SEAGM · '+esc(deliveryLabels[o.supplier_status]||o.supplier_status||'—')+'</small>':'';
-  const retry=o.supplier_provider==='seagm'&&o.status==='paid'&&o.supplier_status!=='completed'&&['manual_review','waiting'].includes(o.supplier_status)
+  const deliveryLabels={not_applicable:'—',pending_payment:'بعد تأكيد الدفع',pending:'بانتظار الإرسال',waiting:'قيد التنفيذ لدى المورد',manual_pending:'بانتظار التسليم اليدوي',completed:'تم التسليم',manual_review:'مراجعة الإدارة'};
+  const providerName={seagm:'SEAGM',wamda:'WAMDA',beststore:'Best Store',manual:'يدوي'}[o.supplier_provider]||o.supplier_provider;
+  const supplierLine=o.supplier_provider?'<small class="muted">'+esc(providerName)+' · '+esc(deliveryLabels[o.supplier_status]||o.supplier_status||'—')+(o.supplier_provider==='manual'&&o.delivery_eta_hours?' · خلال '+esc(o.delivery_eta_hours)+' ساعة':'')+'</small>':'';
+  const retry=['seagm','wamda','beststore'].includes(o.supplier_provider)&&o.status==='paid'&&o.supplier_status!=='completed'&&['manual_review','waiting'].includes(o.supplier_status)
    ?'<button class="btn soft" data-retry-fulfillment="'+esc(o.id)+'">إعادة فحص المورد</button>':'';
-  return '<tr><td class="ltr">'+esc(o.id)+'</td><td>'+esc(o.product_label)+'</td><td>'+esc(o.customer_name)+'<small class="muted"> · '+esc(o.customer_phone||'')+'</small></td><td>'+formatAmount(o.amountMinor,o.currency)+'</td><td>'+statusTag(o.status)+supplierLine+'</td><td class="ltr">'+esc(o.invoice_number||'—')+'</td><td>'+new Date(o.createdAt).toLocaleString('ar-SY')+'</td><td><div class="table-actions">'+(o.status==='pending_payment'?'<button class="btn danger" data-cancel-order="'+esc(o.id)+'">إلغاء</button>':'')+retry+'<button class="btn soft" data-order-detail="'+esc(o.id)+'">تفاصيل</button></div></td></tr>';
+  const manualDeliver=o.supplier_provider==='manual'&&o.status==='paid'&&o.supplier_status!=='completed'
+   ?'<button class="btn soft" data-manual-delivery="'+esc(o.id)+'">تسجيل التسليم</button>':'';
+  return '<tr><td class="ltr">'+esc(o.id)+'</td><td>'+esc(o.product_label)+'</td><td>'+esc(o.customer_name)+'<small class="muted"> · '+esc(o.customer_phone||'')+'</small></td><td>'+formatAmount(o.amountMinor,o.currency)+'</td><td>'+statusTag(o.status)+supplierLine+'</td><td class="ltr">'+esc(o.invoice_number||'—')+'</td><td>'+new Date(o.createdAt).toLocaleString('ar-SY')+'</td><td><div class="table-actions">'+(o.status==='pending_payment'?'<button class="btn danger" data-cancel-order="'+esc(o.id)+'">إلغاء</button>':'')+retry+manualDeliver+'<button class="btn soft" data-order-detail="'+esc(o.id)+'">تفاصيل</button></div></td></tr>';
  }).join(''):'<tr><td colspan="8"><div class="empty">لا توجد طلبات مطابقة.</div></td></tr>';
 }
 $('orderSearch').addEventListener('input',renderOrders);$('orderStatus').addEventListener('change',renderOrders);$('refreshOrdersBtn').addEventListener('click',loadOrders);
 $('ordersBody').addEventListener('click',async e=>{
- const cancel=e.target.closest('[data-cancel-order]'),detail=e.target.closest('[data-order-detail]'),retry=e.target.closest('[data-retry-fulfillment]');
+ const cancel=e.target.closest('[data-cancel-order]'),detail=e.target.closest('[data-order-detail]'),retry=e.target.closest('[data-retry-fulfillment]'),manual=e.target.closest('[data-manual-delivery]');
+ if(manual){
+  const orderId=manual.dataset.manualDelivery;
+  const details=prompt('أدخل بيانات الحساب أو مفتاح التفعيل أو تعليمات التسليم التي يجب أن يستلمها العميل. ستُحفظ مشفرة ولن تُعرض إلا لصاحب الطلب.');
+  if(details===null)return;
+  if(!details.trim()){toast('أدخل بيانات التسليم قبل الحفظ.');return;}
+  if(!confirm('هل تأكدت من صحة بيانات المنتج؟ بعد الإغلاق ستظهر للعميل ولن يمكن تسجيل التسليم مرة ثانية.'))return;
+  manual.disabled=true;
+  try{await api('/api/admin/orders/'+encodeURIComponent(orderId)+'/manual-delivery',{method:'POST',body:JSON.stringify({details})});await loadOrders();toast('تم تسجيل التسليم اليدوي وإتاحته للعميل.');}
+  catch(error){toast(error.message);manual.disabled=false;}
+  return;
+ }
  if(retry){
   if(!confirm('سيتم إعادة فحص الطلب لدى SEAGM باستخدام نفس رقم طلب المتجر. لن يتم إنشاء رقم شراء جديد.'))return;
   try{await api('/api/admin/orders/'+retry.dataset.retryFulfillment+'/fulfillment/retry',{method:'POST',body:'{}'});await loadOrders();toast('تمت جدولة إعادة فحص طلب المورد.')}
