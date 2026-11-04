@@ -75,7 +75,7 @@ function validateUniqueIds(rows, label) {
 const MAX_CATALOG_CATEGORIES = 1000;
 const CATALOG_DEPARTMENT_IDS = new Set(['games','balance','apps','numbers','cards','vpn','verification','ai','social','web','other']);
 const CATEGORY_MANUAL_KEYS = ['name','desc','image','icon','parentId','departmentId','sortOrder','visible'];
-const PRODUCT_MANUAL_KEYS = ['name','desc','image','options','sortOrder','visible'];
+const PRODUCT_MANUAL_KEYS = ['name','desc','image','options','sortOrder','visible','deliveryMode','deliveryEtaHours','deliveryMessage'];
 // Large supplier categories (such as Best Store's 955-item ZNET category) must remain publishable.
 const MAX_PRODUCTS_PER_CATEGORY = 2000;
 const MAX_CATALOG_PRODUCTS = 10000;
@@ -109,6 +109,9 @@ export function validateCatalog(input) {
       if (typeof product.desc !== 'string' || product.desc.length > 700) throw new Error('INVALID_PRODUCT_DESC');
       if (!isSafeCatalogImage(product.image)) throw new Error('INVALID_PRODUCT_IMAGE');
       if (product.visible !== undefined && typeof product.visible !== 'boolean') throw new Error('INVALID_PRODUCT_VISIBILITY');
+      if (product.deliveryMode !== undefined && !['automatic','manual'].includes(product.deliveryMode)) throw new Error('INVALID_PRODUCT_DELIVERY_MODE');
+      if (product.deliveryEtaHours !== undefined && (!Number.isSafeInteger(product.deliveryEtaHours) || product.deliveryEtaHours < 1 || product.deliveryEtaHours > 720)) throw new Error('INVALID_PRODUCT_DELIVERY_ETA');
+      if (product.deliveryMessage !== undefined && (typeof product.deliveryMessage !== 'string' || product.deliveryMessage.length > 500)) throw new Error('INVALID_PRODUCT_DELIVERY_MESSAGE');
       if (product.sortOrder !== undefined && (!Number.isSafeInteger(product.sortOrder) || Math.abs(product.sortOrder)>1_000_000)) throw new Error('INVALID_PRODUCT_SORT_ORDER');
       if (product.manualOverrides !== undefined && (!product.manualOverrides || typeof product.manualOverrides!=='object' || Array.isArray(product.manualOverrides))) throw new Error('INVALID_PRODUCT_MANUAL_OVERRIDES');
       if (!Array.isArray(product.options) || product.options.length > 100) throw new Error('INVALID_PRODUCT_OPTIONS');
@@ -306,7 +309,7 @@ export function upsertCatalogProduct(existingCatalog, categoryId, productInput) 
     const previous=items[productIndex];
     const overrides=previous.manualOverrides&&typeof previous.manualOverrides==='object'?previous.manualOverrides:{};
     validated.apiSource={name:validated.name,desc:validated.desc,image:validated.image,options:validated.options};
-    for(const key of ['name','desc','image','options'])if(Object.prototype.hasOwnProperty.call(overrides,key))validated[key]=overrides[key];
+    for(const key of ['name','desc','image','options','deliveryMode','deliveryEtaHours','deliveryMessage'])if(Object.prototype.hasOwnProperty.call(overrides,key))validated[key]=overrides[key];
     if(Object.keys(overrides).length)validated.manualOverrides=overrides;
     items[productIndex]=validated;
   }
