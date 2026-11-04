@@ -9,7 +9,7 @@ import { httpStatusForResult, isHttpErrorResult, safeHttpStatus } from './http-s
 import { convertSypMinorToUsdMinor } from './exchange-rate.js';
 import {
   createAdminSession, verifyAdminSession, encryptSecret, decryptSecret,
-  validateCatalog, mergeCatalog, upsertCatalogProduct, isSafeCatalogImage, getJsonPath, normalizeFxRate, validateCatalogApiUrl,
+  validateCatalog, mergeCatalog, upsertCatalogProduct, deleteCatalogFolder, isSafeCatalogImage, getJsonPath, normalizeFxRate, validateCatalogApiUrl,
 } from './admin-core.js';
 import { createSeagmClient } from './seagm-api.js';
 import { createWamdaClient } from './wamda-api.js';
@@ -2846,6 +2846,26 @@ const server = http.createServer(async (req,res) => {
       const validated=validateCatalog(nextCatalog);
       await persistCatalog(validated);
       return send(res,200,{ok:true,message:'تم نقل المنتج مع الحفاظ على ربط المورد وخياراته وأسعاره.',catalog});
+    }
+    if(req.method==='POST'&&url.pathname==='/api/admin/catalog/delete-folder'){
+      if(rateLimit(req,res,`catalog-delete-folder:${ip}`,30,60_000))return;
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      if(supplierCompareSyncInProgress||wamdaBulkPublishInProgress||wamdaCatalogSyncInProgress||bestStoreCatalogSyncInProgress||catalogApiSyncInProgress)
+        return send(res,409,{ok:false,error:'CATALOG_SYNC_IN_PROGRESS',message:'انتظر انتهاء مزامنة الموردين قبل حذف المجلد.'});
+      const input=await bodyJson(req,16_384);
+      try{
+        const nextCatalog=deleteCatalogFolder(
+          catalog,
+          String(input.categoryId||''),
+          String(input.destinationCategoryId||'')
+        );
+        await persistCatalog(nextCatalog);
+        return send(res,200,{ok:true,message:'تم حذف المجلد ونقل منتجاته ومجلداته الفرعية إلى المجلد المحدد مع الحفاظ على بيانات الموردين.',catalog});
+      }catch(error){
+        if(Number.isInteger(error?.status)&&error.status>=400&&error.status<600)
+          return send(res,error.status,{ok:false,error:String(error.message||'FOLDER_DELETE_FAILED')});
+        throw error;
+      }
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/catalog') {
       return send(res,200,{ok:true,catalog});
