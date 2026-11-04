@@ -12,9 +12,10 @@ test('SEAGM products respect the supplier automatic-delivery capability by defau
   assert.equal(resolveDeliveryPolicy({ seagm:{provider:'seagm',autoDelivery:false} }).mode,'manual');
 });
 
-test('Wamda and Best Store integrations default to automatic fulfillment', () => {
+test('Wamda and Best Store integrations default to automatic fulfillment and match order routing precedence', () => {
   assert.equal(resolveDeliveryPolicy({ wamda:{provider:'wamda'} }).mode,'automatic');
   assert.equal(resolveDeliveryPolicy({ bestStore:{provider:'beststore'} }).mode,'automatic');
+  assert.equal(resolveDeliveryPolicy({wamda:{provider:'wamda'},seagm:{provider:'seagm',autoDelivery:false}}).provider,'wamda');
 });
 
 test('manual products default to store fulfillment and cannot be forced to auto without a supplier', () => {
@@ -47,6 +48,7 @@ test('manual delivery accepts bounded non-empty text only', () => {
     customerMessage:'تم تجهيز طلبك.',
   });
   assert.throws(()=>validateManualDeliveryInput({deliveryData:'   '}),{status:400});
+  assert.throws(()=>validateManualDeliveryInput({deliveryData:'credential\\0token'}),{status:400});
   assert.throws(()=>validateManualDeliveryInput({deliveryData: 'x'.repeat(8001)}),{status:400});
   assert.throws(()=>validateManualDeliveryInput({deliveryData:'ok',customerMessage:'x'.repeat(501)}),{status:400});
 });
