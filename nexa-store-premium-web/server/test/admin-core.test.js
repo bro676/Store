@@ -311,3 +311,8 @@ test('catalogue sync preserves manual fulfillment choice and its delivery SLA',(
   assert.equal(merged[0].items[0].fulfillmentMode,'manual');
   assert.equal(merged[0].items[0].manualDeliveryHours,48);
 });
+
+test('catalog sort priorities are non-negative integers',()=>{
+  assert.throws(()=>validateCatalog([{...catalog[0],sortOrder:-1}]),/INVALID_CATEGORY_SORT_ORDER/);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...catalog[0].items[0],sortOrder:-1}]}]),/INVALID_PRODUCT_SORT_ORDER/);
+});
