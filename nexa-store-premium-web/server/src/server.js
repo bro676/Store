@@ -2584,9 +2584,27 @@ const server = http.createServer(async (req,res) => {
       if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك.'});
       const result=await pool.query(`SELECT o.id,o.product_label,o.amount_minor::text AS "amountMinor",o.currency,o.status,
         o.payment_method AS "paymentMethod",o.created_at AS "createdAt",o.paid_at AS "paidAt",
-        o.supplier_status AS "supplierStatus",o.supplier_message AS "supplierMessage"
+        o.supplier_provider AS "supplierProvider",o.supplier_status AS "supplierStatus",
+        o.supplier_message AS "supplierMessage",o.delivery_eta_hours AS "deliveryEtaHours",
+        o.delivery_due_at AS "deliveryDueAt"
         FROM nexa_orders o WHERE o.customer_id=$1 ORDER BY o.created_at DESC LIMIT 100`,[customer.id]);
       return send(res,200,{ok:true,orders:result.rows});
+    }
+    const accountOrderDetailsMatch=url.pathname.match(/^\/api\/account\/orders\/(NX-[A-F0-9]{20})$/);
+    if(req.method==='GET'&&accountOrderDetailsMatch){
+      const customer=await currentCustomer(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك.'});
+      const found=await pool.query(`SELECT o.*,p.transaction_id
+        FROM nexa_orders o LEFT JOIN nexa_payments p ON p.order_id=o.id
+        WHERE o.id=$1 AND o.customer_id=$2`,[accountOrderDetailsMatch[1],customer.id]);
+      if(!found.rowCount)return send(res,404,{ok:false,error:'ORDER_NOT_FOUND',message:'لم يتم العثور على طلب مرتبط بحسابك.'});
+      const order=found.rows[0];
+      const delivery=order.status==='paid'?supplierDeliveryForOrder(order):null;
+      const receipt=order.status==='paid'?{orderId:order.id,product:order.product_label,amountMinor:String(order.amount_minor),currency:order.currency,
+        customerName:order.customer_name,paymentMethod:order.payment_method||'shamcash',invoiceNumber:order.invoice_number,
+        transactionId:order.transaction_id,paidAt:order.paid_at?new Date(order.paid_at).toISOString():null,
+        receiverLabel:order.wallet_label,receiverAddress:order.invoice_identifier,...(delivery?{delivery}:{})}:null;
+      return send(res,200,{ok:true,orderId:order.id,status:order.status,delivery,receipt});
     }
     if(req.method==='GET'&&url.pathname==='/api/wallet/transactions'){
       const customer=await currentCustomer(req);
@@ -3215,8 +3233,31 @@ const server = http.createServer(async (req,res) => {
     if (req.method === 'GET' && url.pathname === '/api/admin/orders') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
       const limit = Math.min(200,Math.max(1,Number(url.searchParams.get('limit')||100)));
-      const result = await pool.query(`SELECT o.id,o.product_label,o.amount_minor::text,o.currency,o.status,o.customer_name,o.customer_phone,o.game_account,o.notes,o.invoice_number,o.invoice_identifier,o.wallet_label,o.created_at,o.expires_at,o.paid_at,o.supplier_provider,o.supplier_kind,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_mch_order_id,j.last_error AS supplier_error FROM nexa_orders o LEFT JOIN nexa_fulfillment_jobs j ON j.order_id=o.id ORDER BY o.created_at DESC LIMIT $1`,[limit]);
+      const result = await pool.query(`SELECT o.id,o.product_label,o.amount_minor::text,o.currency,o.status,o.customer_name,o.customer_phone,o.game_account,o.notes,o.invoice_number,o.invoice_identifier,o.wallet_label,o.created_at,o.expires_at,o.paid_at,o.supplier_provider,o.supplier_kind,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_mch_order_id,o.delivery_eta_hours,o.delivery_due_at,j.last_error AS supplier_error FROM nexa_orders o LEFT JOIN nexa_fulfillment_jobs j ON j.order_id=o.id ORDER BY o.created_at DESC LIMIT $1`,[limit]);
       return send(res,200,{ok:true,orders:result.rows.map(o=>({...o,amountMinor:o.amount_minor,createdAt:o.created_at,expiresAt:o.expires_at,paidAt:o.paid_at}))});
+    }
+    const adminManualDeliveryMatch=url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/manual-delivery$/);
+    if(req.method==='POST'&&adminManualDeliveryMatch){
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const input=await bodyJson(req,12_000);
+      let details;
+      try{details=normalizeManualDeliveryDetails(input.details);}
+      catch(error){return send(res,error.status||400,{ok:false,error:error.code||'INVALID_MANUAL_DELIVERY_DETAILS',message:error.message});}
+      const client=await pool.connect();
+      try{
+        await client.query('BEGIN');
+        const found=await client.query('SELECT id,status,supplier_provider,supplier_status FROM nexa_orders WHERE id=$1 FOR UPDATE',[adminManualDeliveryMatch[1]]);
+        if(!found.rowCount){await client.query('ROLLBACK');return send(res,404,{ok:false,error:'ORDER_NOT_FOUND',message:'لم يتم العثور على الطلب.'});}
+        const order=found.rows[0];
+        if(order.status!=='paid'||order.supplier_provider!=='manual'){await client.query('ROLLBACK');return send(res,409,{ok:false,error:'MANUAL_DELIVERY_NOT_ALLOWED',message:'هذا الطلب ليس طلب تسليم يدوي مدفوعاً.'});}
+        if(order.supplier_status==='completed'){await client.query('ROLLBACK');return send(res,409,{ok:false,error:'MANUAL_DELIVERY_ALREADY_COMPLETED',message:'تم إغلاق التسليم لهذا الطلب مسبقاً.'});}
+        const deliveredAt=new Date().toISOString();
+        const encrypted=encryptSecret(JSON.stringify({provider:'MANUAL',details,deliveredAt}),cfg.settingsEncryptionKey);
+        await client.query(`UPDATE nexa_orders SET supplier_status='completed',supplier_message='تم تسليم المنتج يدوياً بواسطة إدارة المتجر.',supplier_result_encrypted=$2,supplier_completed_at=NOW() WHERE id=$1`,[order.id,encrypted]);
+        await client.query('COMMIT');
+        return send(res,200,{ok:true,orderId:order.id,message:'تم تسجيل التسليم بنجاح. ستظهر بيانات التسليم للعميل داخل طلبه.'});
+      }catch(error){await client.query('ROLLBACK').catch(()=>{});throw error;}
+      finally{client.release();}
     }
     const adminFulfillmentRetry = url.pathname.match(/^\/api\/admin\/orders\/(NX-[A-F0-9]{20})\/fulfillment\/retry$/);
     if (req.method === 'POST' && adminFulfillmentRetry) {
@@ -3273,7 +3314,7 @@ const server = http.createServer(async (req,res) => {
     const orderLookup = url.pathname.match(/^\/api\/orders\/(NX-[A-F0-9]{20})$/);
     if (req.method === 'GET' && orderLookup) {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
-      const q = await pool.query(`SELECT o.id,o.product_label,o.amount_minor,o.currency,o.status,o.payment_method,o.expires_at,o.invoice_number,o.invoice_identifier,o.wallet_label,o.wallet_address,o.customer_name,o.paid_at,p.transaction_id,o.supplier_provider,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_result_encrypted
+      const q = await pool.query(`SELECT o.id,o.product_label,o.amount_minor,o.currency,o.status,o.payment_method,o.expires_at,o.invoice_number,o.invoice_identifier,o.wallet_label,o.wallet_address,o.customer_name,o.paid_at,p.transaction_id,o.supplier_provider,o.supplier_status,o.supplier_message,o.supplier_order_id,o.supplier_result_encrypted,o.delivery_eta_hours,o.delivery_due_at
         FROM nexa_orders o LEFT JOIN nexa_payments p ON p.order_id=o.id WHERE o.id=$1`,[orderLookup[1]]);
       if (!q.rowCount) return send(res,404,{error:'ORDER_NOT_FOUND',message:'لم يتم العثور على الطلب.'});
       const o=q.rows[0];
