@@ -209,6 +209,30 @@ test('catalog folders support nested parents, root departments, visibility and s
   assert.throws(()=>validateCatalog([{...nested[0],visible:'false'}]),/INVALID_CATEGORY_VISIBILITY/);
 });
 
+test('catalog validation constrains manual delivery settings and product provenance',()=>{
+  const valid={...catalog[0],items:[{...catalog[0].items[0],manualCreated:true,fulfillmentMode:'manual',manualDeliveryHours:6,manualDeliveryMessage:'سيصلك خلال {hours} ساعة'}]};
+  assert.doesNotThrow(()=>validateCatalog([valid]));
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...catalog[0].items[0],fulfillmentMode:'instant'}]}]),/INVALID_PRODUCT_FULFILLMENT_MODE/);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...catalog[0].items[0],manualDeliveryHours:0}]}]),/INVALID_PRODUCT_MANUAL_DELIVERY_HOURS/);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...catalog[0].items[0],manualDeliveryMessage:'x'.repeat(241)}]}]),/INVALID_PRODUCT_MANUAL_DELIVERY_MESSAGE/);
+  assert.throws(()=>validateCatalog([{...catalog[0],items:[{...catalog[0].items[0],manualCreated:'yes'}]}]),/INVALID_PRODUCT_MANUAL_CREATED/);
+});
+
+test('catalog refresh retains manual fulfillment preferences when supplier product is refreshed',()=>{
+  const message='تجهيز الحساب خلال {hours} ساعة';
+  const original=[{...catalog[0],id:'supplier-folder',items:[{
+    ...catalog[0].items[0],seagm:{provider:'seagm',kind:'card',categoryId:10,typeId:20},
+    fulfillmentMode:'manual',manualDeliveryHours:9,manualDeliveryMessage:message,
+    manualOverrides:{fulfillmentMode:'manual',manualDeliveryHours:9,manualDeliveryMessage:message},
+  }]}];
+  const incoming=[{...catalog[0],id:'supplier-folder',items:[{
+    ...catalog[0].items[0],seagm:{provider:'seagm',kind:'card',categoryId:10,typeId:20},
+  }]}];
+  const product=mergeCatalog(original,incoming)[0].items[0];
+  assert.equal(product.fulfillmentMode,'manual');
+  assert.equal(product.manualDeliveryHours,9);
+  assert.equal(product.manualDeliveryMessage,message);
+});
 test('catalog refresh preserves manually organized folder names, parent links and product visibility',()=>{
   const original=[{
     ...catalog[0],id:'source-folder',name:'اسم مجلد يدوي',parentId:'',departmentId:'games',visible:false,sortOrder:4,
