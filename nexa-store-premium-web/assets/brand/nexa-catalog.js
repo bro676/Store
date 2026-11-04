@@ -129,14 +129,34 @@
   return own+rows.filter(child=>normalizeId(child.parentId)===normalizeId(category.id)&&child.visible!==false&&isCategoryVisible(child,rows))
    .reduce((sum,child)=>sum+getFolderProductCount(child,rows,nextVisited),0);
  }
- function sortCategoriesByProductCount(categories,allCategories=null){
+ function compareDisplayPriority(a,b){
+  const aPriority=Number.isSafeInteger(Number(a?.sortOrder))&&Number(a.sortOrder)>0?Number(a.sortOrder):0;
+  const bPriority=Number.isSafeInteger(Number(b?.sortOrder))&&Number(b.sortOrder)>0?Number(b.sortOrder):0;
+  if(aPriority&&bPriority&&aPriority!==bPriority)return aPriority-bPriority;
+  if(aPriority&&!bPriority)return -1;
+  if(!aPriority&&bPriority)return 1;
+  return 0;
+ }
+ function sortCategoryEntriesByDisplayPriority(categories,allCategories=null){
   const rows=Array.isArray(categories)?categories:[];
   const all=Array.isArray(allCategories)?allCategories:rows;
   const collator=new Intl.Collator('ar',{numeric:true,sensitivity:'base'});
   return rows.map((category,index)=>({category,index,count:getFolderProductCount(category,all)}))
-   .sort((a,b)=>a.count-b.count||Number(a.category?.sortOrder||0)-Number(b.category?.sortOrder||0)||
-    collator.compare(String(a.category?.name||''),String(b.category?.name||''))||a.index-b.index)
-   .map(row=>row.category);
+   .sort((a,b)=>compareDisplayPriority(a.category,b.category)||a.count-b.count||
+    collator.compare(String(a.category?.name||''),String(b.category?.name||''))||a.index-b.index);
+ }
+ function sortCategoriesByProductCount(categories,allCategories=null){
+  return sortCategoryEntriesByDisplayPriority(categories,allCategories).map(row=>row.category);
+ }
+ function sortProductEntriesByPriority(products){
+  const rows=Array.isArray(products)?products:[];
+  const collator=new Intl.Collator('ar',{numeric:true,sensitivity:'base'});
+  return rows.map((product,index)=>({product,index}))
+   .sort((a,b)=>compareDisplayPriority(a.product,b.product)||
+    collator.compare(String(a.product?.name||''),String(b.product?.name||''))||a.index-b.index);
+ }
+ function sortProductsByPriority(products){
+  return sortProductEntriesByPriority(products).map(row=>row.product);
  }
  function getChildFolders(categories,parentId=null,departmentId=null){
   const rows=Array.isArray(categories)?categories:[];
@@ -206,5 +226,5 @@
   if(pack)parts.push('packs','pack-'+slugify(pack?.[0]||'offer'));
   return parts.join('/');
  }
- window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,getCategoryDepartmentId,categoryAncestors,isCategoryVisible,getFolderProductCount,sortCategoriesByProductCount,getChildFolders,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
+ window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,getCategoryDepartmentId,categoryAncestors,isCategoryVisible,getFolderProductCount,sortCategoriesByProductCount,sortCategoryEntriesByDisplayPriority,sortProductEntriesByPriority,sortProductsByPriority,getChildFolders,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
 })();
