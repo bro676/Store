@@ -231,7 +231,7 @@ test('homepage departments link into the five-level product hierarchy', async ()
   for (const selector of ['function renderCatalog(){','if(!department){','}else if(!cat){','}else if(!it){','}else if(!opt){']) {
     assert.ok(store.includes(selector), 'Missing hierarchy stage: ' + selector);
   }
-  assert.ok(store.includes("const steps=['القسم الرئيسي','قسم المورد','المنتج','الخيار / المنطقة','الباقة والسعر']"), 'Breadcrumb progress identifies all five steps');
+  assert.ok(store.includes("const steps=['القسم الرئيسي','المجلدات المتداخلة','المنتج','الخيار / المنطقة','الباقة والسعر']"), 'Breadcrumb progress identifies all five steps');
 });
 
 test('product images and canonical folders use category-specific paths and preserve source names', async () => {
