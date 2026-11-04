@@ -257,10 +257,10 @@ test('product images and canonical folders use category-specific paths and prese
 test('storefront image lookup replaces the old logo placeholder in every primary surface', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   assert.ok(store.includes('/assets/brand/nexa-catalog.js?v=20261104-folder-tree-v1'), 'Updated image and hierarchy helper loads before page scripts');
-  assert.ok(store.includes('NexaCatalog.categoryImage(c)'), 'Homepage and catalog use department/category covers');
-  assert.ok(store.includes('NexaCatalog.productImage(product,cat)'), 'Product tiles use product-specific images');
-  assert.ok(store.includes('NexaCatalog.optionImage(o,it,cat)'), 'Option tiles use option artwork or the product fallback');
-  assert.ok(store.includes('NexaCatalog.productImage(it,getCategory(state.category))'), 'Order modal receives the selected product image');
+  assert.ok(store.includes('NexaCatalog.categoryImage(c,categories)'), 'Homepage and catalog use department/category covers');
+  assert.ok(store.includes('NexaCatalog.productImage(product,cat,categories)'), 'Product tiles use product-specific images');
+  assert.ok(store.includes('NexaCatalog.optionImage(o,it,cat,categories)'), 'Option tiles use option artwork or the product fallback');
+  assert.ok(store.includes('NexaCatalog.productImage(it,getCategory(state.category),categories)'), 'Order modal receives the selected product image');
 });
 
 
