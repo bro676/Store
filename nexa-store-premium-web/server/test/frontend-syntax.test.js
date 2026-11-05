@@ -86,8 +86,8 @@ test('Store and admin assets are revalidated instead of serving a stale theme', 
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
   assert.ok(!store.includes('nexa-luxury.css') && !admin.includes('nexa-luxury.css'), 'The old luxury theme is no longer loaded by either live interface');
-  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-responsive-v5'), 'Storefront loads the new full-shell theme');
-  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-responsive-v5'), 'Admin loads the same new full-shell theme');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-drawer-v6'), 'Storefront loads the new full-shell theme');
+  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-drawer-v6'), 'Admin loads the same new full-shell theme');
   assert.ok(server.includes("const cacheControl = extension === '.html' ? 'no-store'"), 'HTML responses are not cached');
   assert.ok(server.includes("'Cache-Control':cacheControl"), 'Static files send explicit cache policy');
 });
@@ -396,7 +396,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(admin.includes('admin-rail-summary'), 'The existing admin workspace summary remains in place');
   assert.ok(admin.includes('adminThemeToggle'), 'The admin keeps its independent theme control');
 
-  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-responsive-v5';
+  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-drawer-v6';
   assert.ok(store.includes(themeRef), 'Storefront uses the rebuilt structural theme revision');
   assert.ok(admin.includes(themeRef), 'Admin uses the same rebuilt structural theme revision');
   assert.ok(theme.includes('.app-shell .sidebar{') && theme.includes('position:fixed!important;'), 'The customer account rail is fixed on desktop');
@@ -458,7 +458,7 @@ test('Wamda drawer is compact, closable at every viewport, and scrolls as one su
   const theme = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-wamda-blue.css'), 'utf8');
 
   assert.ok(theme.includes('--rail-width:clamp(260px,19vw,296px)'), 'Desktop account drawer stays compact');
-  assert.ok(theme.includes('body.sidebar-closed .app-shell .sidebar{transform:translate3d(110%,0,0)!important}'), 'Desktop drawer can slide closed');
+  assert.ok(/body\.sidebar-closed \.app-shell \.sidebar\{\s*transform:translate3d\(110%,0,0\)!important;/.test(theme), 'Desktop drawer can slide closed');
   assert.ok(theme.includes('body.sidebar-closed .app-shell .app-main{'), 'The content expands when the desktop drawer closes');
   assert.ok(theme.includes('.app-shell .menu-toggle{') && theme.includes('display:grid!important;'), 'The drawer can be reopened at desktop widths');
   assert.ok(theme.includes('.app-shell .sidebar{') && theme.includes('overflow-y:auto!important;'), 'The outer drawer owns vertical scrolling');
