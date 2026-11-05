@@ -2601,3 +2601,128 @@ body{color-scheme:inherit}
 }
 
 /* End Wamda precision pass. */
+
+
+/* WAMDA FINAL DETAIL PASS — storefront inner pages and admin light rail. */
+.app-shell .catalog-count{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  min-height:31px!important;padding:6px 12px!important;
+  background:var(--surface-2)!important;color:var(--brand-teal)!important;
+  border:1px solid var(--line)!important;border-radius:var(--radius-pill)!important;
+  font-size:10px!important;font-weight:900!important;
+}
+:root[data-theme="light"] .app-shell .catalog-count{
+  background:var(--drawer-active)!important;color:#007986!important;border-color:var(--drawer-line)!important;
+}
+.app-shell .breadcrumbs button{color:var(--brand-teal)!important}
+.app-shell .breadcrumbs button:hover{color:#007986!important}
+.app-shell .store-catalog-toolbar input{
+  background:var(--surface-2)!important;color:var(--ink)!important;
+  border:1px solid var(--line)!important;border-radius:var(--radius-pill)!important;
+}
+:root[data-theme="light"] .app-shell .store-catalog-toolbar input{
+  background:var(--surface-2)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+.app-shell input:focus,.app-shell select:focus,.app-shell textarea:focus{
+  border-color:var(--brand-teal)!important;box-shadow:var(--focus)!important;
+}
+:root[data-theme="light"] .app-shell input:focus,
+:root[data-theme="light"] .app-shell select:focus,
+:root[data-theme="light"] .app-shell textarea:focus{
+  background:var(--surface)!important;border-color:var(--brand-teal)!important;box-shadow:var(--focus)!important;
+}
+.app-shell .status-pill{
+  background:rgba(35,138,105,.12)!important;color:var(--brand-success)!important;
+  border:1px solid rgba(35,138,105,.2)!important;border-radius:var(--radius-pill)!important;
+}
+.app-shell .account-status-pill{
+  background:var(--surface-2)!important;color:var(--muted)!important;
+  border:1px solid var(--line)!important;border-radius:var(--radius-pill)!important;
+}
+.app-shell .reference-status{
+  background:rgba(0,149,164,.1)!important;color:var(--brand-teal)!important;
+  border:1px solid rgba(0,149,164,.2)!important;border-radius:var(--radius-pill)!important;
+}
+.app-shell .reference-status.pending{
+  background:rgba(185,130,62,.12)!important;color:var(--brand-warning)!important;
+  border-color:rgba(185,130,62,.24)!important;
+}
+:root[data-theme="light"] .app-shell .reference-status.pending{
+  background:#f8efe1!important;color:#956a2c!important;border-color:#ead8bc!important;
+}
+.app-shell .wallet-account-balance strong{color:var(--brand-teal)!important}
+.app-shell .favorite.active{
+  background:rgba(0,149,164,.13)!important;color:var(--brand-teal)!important;
+  border-color:rgba(0,149,164,.3)!important;
+}
+.app-shell .support-welcome-mark{
+  background:linear-gradient(145deg,var(--brand-teal),var(--brand-indigo))!important;
+  color:#fff!important;border:1px solid var(--drawer-line)!important;border-radius:50%!important;
+}
+.app-shell .chat-fab,.app-shell .assistant-fab{
+  background:var(--brand-teal)!important;color:#fff!important;
+  box-shadow:0 9px 24px rgba(0,149,164,.2)!important;border:1px solid rgba(233,225,219,.18)!important;
+}
+.app-shell .chat-fab:hover,.app-shell .assistant-fab:hover{
+  background:#007986!important;color:#fff!important;
+}
+.app-shell .home-intro:before{
+  background:radial-gradient(circle at 50% 45%,rgba(0,149,164,.17),transparent 48%)!important;
+}
+
+/* Admin light navigation had a more specific legacy blue selector. */
+:root[data-theme="light"] #app.shell .nav button{
+  background:transparent!important;color:var(--drawer-text)!important;border-color:transparent!important;
+}
+:root[data-theme="light"] #app.shell .nav button:hover{
+  background:var(--drawer-surface)!important;color:#007986!important;border-color:var(--drawer-line)!important;
+}
+:root[data-theme="light"] #app.shell .nav button.active{
+  background:var(--drawer-active)!important;color:#007986!important;border-color:var(--drawer-line)!important;
+  box-shadow:inset -3px 0 var(--brand-teal)!important;
+}
+:root[data-theme="light"] #app.shell .nav .ico{
+  background:var(--drawer-surface)!important;color:var(--drawer-muted)!important;border:1px solid var(--drawer-line)!important;
+}
+:root[data-theme="light"] #app.shell .nav button.active .ico{
+  background:rgba(0,149,164,.13)!important;color:var(--brand-teal)!important;border-color:rgba(0,149,164,.18)!important;
+}
+:root[data-theme="light"] #app.shell .admin-sidebar-head{
+  background:var(--drawer-bg)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;
+}
+:root[data-theme="light"] #app.shell .admin-sidebar-head strong{color:var(--drawer-text)!important}
+:root[data-theme="light"] #app.shell .admin-sidebar-close{
+  background:var(--drawer-surface)!important;color:var(--drawer-text)!important;
+  border-color:var(--drawer-line)!important;border-radius:50%!important;
+}
+:root[data-theme="light"] #app.shell .admin-sidebar-close:hover{
+  background:var(--drawer-active)!important;color:#007986!important;border-color:var(--drawer-accent)!important;
+}
+:root[data-theme="light"] #app.shell .admin-rail-summary{
+  background:var(--drawer-surface)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;
+}
+:root[data-theme="light"] #app.shell .admin-rail-summary strong{color:var(--drawer-text)!important}
+:root[data-theme="light"] #app.shell .admin-rail-summary small{color:var(--drawer-muted)!important}
+:root[data-theme="light"] #app.shell .top-actions .avatar{
+  background:var(--brand-teal)!important;color:#fff!important;border:0!important;border-radius:50%!important;
+}
+:root[data-theme="light"] #app.shell .eyebrow{color:var(--brand-teal)!important}
+
+/* Inputs and small actions retain warm light surfaces, not cold blue-gray. */
+:root[data-theme="light"] .app-shell :where(input:not([type="checkbox"]):not([type="radio"]),select,textarea){
+  background:var(--surface-2)!important;color:var(--ink)!important;border-color:var(--line-2)!important;
+}
+:root[data-theme="light"] .app-shell :where(input,select,textarea)::placeholder{
+  color:var(--muted)!important;opacity:1!important;
+}
+:root[data-theme="light"] .app-shell .mini-choose{
+  background:rgba(0,149,164,.1)!important;color:#007986!important;border-color:rgba(0,149,164,.18)!important;
+}
+:root[data-theme="light"] .app-shell .mini-choose:hover{
+  background:var(--brand-teal)!important;color:#fff!important;border-color:var(--brand-teal)!important;
+}
+:root[data-theme="light"] .app-shell .favorite.active{
+  background:rgba(0,149,164,.1)!important;color:#007986!important;border-color:rgba(0,149,164,.22)!important;
+}
+
+/* End Wamda final detail pass. */
