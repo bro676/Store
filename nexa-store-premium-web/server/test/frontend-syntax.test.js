@@ -85,8 +85,9 @@ test('Store and admin assets are revalidated instead of serving a stale theme', 
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
-  assert.ok(store.includes('nexa-luxury.css?v=20261102-01'), 'Store stylesheet uses the cache-busting version');
-  assert.ok(admin.includes('nexa-luxury.css?v=20261102-01'), 'Admin stylesheet uses the cache-busting version');
+  assert.ok(!store.includes('nexa-luxury.css') && !admin.includes('nexa-luxury.css'), 'The old luxury theme is no longer loaded by either live interface');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-full-shell-v4'), 'Storefront loads the new full-shell theme');
+  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-full-shell-v4'), 'Admin loads the same new full-shell theme');
   assert.ok(server.includes("const cacheControl = extension === '.html' ? 'no-store'"), 'HTML responses are not cached');
   assert.ok(server.includes("'Cache-Control':cacheControl"), 'Static files send explicit cache policy');
 });
@@ -371,6 +372,9 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
 
   assert.ok(store.includes('class="reference-search-row"'), 'The catalogue search is separated from the cyan header');
   assert.ok(store.includes("searchRow.classList.toggle('hidden',view!=='store')"), 'The global search is reserved for the catalogue while the homepage uses its post-hero search');
+  assert.ok(store.indexOf('<div class="promo">')>store.indexOf('data-view="home"'), 'The announcement strip is part of the homepage, not every route');
+  assert.ok(store.indexOf('data-view="store"')<store.indexOf('id="globalSearchRow"') && store.indexOf('id="globalSearchRow"')<store.indexOf('class="catalog-shell"'), 'Catalogue search follows the catalogue page heading');
+  assert.ok(store.includes('data-current-page=view'), 'The active view controls page-specific header affordances');
   assert.ok(store.includes('function renderLoginPage()'), 'The dedicated login page reflects the current customer session');
   assert.ok(store.includes("fetch('/api/account/login'"), 'The dedicated login page uses the existing phone/password API');
   assert.ok(store.includes("'/api/account/orders'"), 'Customer order history retains its existing API');
@@ -391,25 +395,30 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(admin.includes('admin-rail-summary'), 'The existing admin workspace summary remains in place');
   assert.ok(admin.includes('adminThemeToggle'), 'The admin keeps its independent theme control');
 
-  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-layout-v3';
+  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-full-shell-v4';
   assert.ok(store.includes(themeRef), 'Storefront uses the rebuilt structural theme revision');
   assert.ok(admin.includes(themeRef), 'Admin uses the same rebuilt structural theme revision');
+  assert.ok(theme.includes('.app-shell .sidebar{') && theme.includes('position:fixed!important;'), 'The customer account rail is fixed on desktop');
   assert.ok(theme.includes('.app-shell .sidebar-profile'), 'The customer account rail has a dedicated visual system');
   assert.ok(theme.includes('.app-shell .sidebar-nav'), 'The account rail has its own scrollable reference navigation');
   assert.ok(theme.includes('.app-shell .reference-search-row'), 'The horizontal search row has a dedicated layout');
+  assert.ok(theme.includes('.app-shell .home-intro{') && theme.includes('.app-shell .department-card-art{'), 'Homepage hero and category artwork use the rebuilt reference composition');
   assert.ok(theme.includes('.app-shell .catalog-grid{'), 'Nested catalog folders and products have explicit grid rules');
   assert.ok(theme.includes('.app-shell .option-list{'), 'The options/region stage retains its own layout');
   assert.ok(theme.includes('.app-shell .pack-grid{'), 'The pack/price stage retains its own layout');
   assert.ok(theme.includes('grid-template-columns:repeat(4,minmax(0,1fr))'), 'Wide catalog/category grids use four columns');
-  assert.ok(theme.includes('--rail-width:clamp(286px,18.4vw,320px)'), 'The desktop account rail matches the reference proportions');
+  assert.ok(theme.includes('--rail-width:clamp(360px,26.6vw,512px)'), 'The desktop account rail matches the full-width Wamda reference rail');
   assert.ok(theme.includes('--topbar-height:66px'), 'The storefront topbar matches the Wamda screenshot height');
+  assert.ok(theme.includes('margin:0 var(--rail-width) 0 0!important'), 'The content area reserves the full fixed desktop rail');
+  assert.ok(theme.includes('body.sidebar-open .app-shell .sidebar{transform:translateX(0)!important}'), 'On mobile the account rail is an off-canvas drawer');
+  assert.ok(theme.includes('body.admin-sidebar-open #app.shell .side{transform:translateX(0)!important}'), 'The admin rail becomes an off-canvas drawer on mobile');
   assert.ok(theme.includes("url('/assets/brand/nexa-hero-banner.svg')"), 'The homepage uses the existing sky-blue visual banner');
   assert.ok(theme.includes('.app-shell .nexa-marquee{') && theme.includes('.app-shell .nexa-home-search{'), 'The homepage ticker and dedicated search appear after the hero');
   assert.ok(theme.includes('.app-shell .sidebar-account-balance'), 'The account rail shows the authenticated wallet balance');
   assert.ok(theme.includes('#app.shell .side{'), 'The admin rail participates in the separate light and dark themes');
-  assert.ok(theme.includes('#app.shell .topbar{position:sticky!important;top:0!important;z-index:60!important;min-height:var(--topbar-height)!important;height:var(--topbar-height)!important;'), 'The admin topbar shares the compact reference height');
+  assert.ok(theme.includes('#app.shell .topbar{') && theme.includes('min-height:var(--topbar-height)!important;height:var(--topbar-height)!important;'), 'The admin topbar shares the full-shell reference height');
   assert.ok(theme.includes('.app-shell .header{position:sticky'), 'The customer topbar remains horizontal and fixed to the top');
-  assert.ok(theme.includes('#57c3ed'), 'The reference header uses the sky-blue brand color');
+  assert.ok(theme.includes('#62c8f2'), 'The rebuilt topbar uses the requested sky-blue brand color');
   assert.ok(theme.includes(':root[data-theme="light"]'), 'Light theme is explicitly supported');
   assert.ok(theme.includes(':root[data-theme="dark"]'), 'Dark theme is explicitly supported');
   assert.ok(theme.includes('@media(max-width:820px)'), 'The account rail has a mobile drawer layout');
