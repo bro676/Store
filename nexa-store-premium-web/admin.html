@@ -383,7 +383,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
 .category-editor h3{font-size:16px}
 @media(max-width:820px){.catalog-layout{grid-template-columns:1fr}.category-list.folder-tree{max-height:340px}.folder-choice{min-width:180px}.department-choice{min-width:190px}}
 </style>
-<link rel="stylesheet" href="/assets/brand/nexa-wamda-blue.css?v=20261105-wamda-full-shell-v4">
+<link rel="stylesheet" href="/assets/brand/nexa-wamda-blue.css?v=20261105-wamda-responsive-v5">
 </head>
 <body>
 <section id="loginScreen" class="login-screen">
@@ -399,7 +399,8 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
   </form>
 </section>
 <div id="app" class="shell hidden">
-  <aside class="side" id="adminSidebar">
+  <aside class="side" id="adminSidebar" aria-label="قائمة إدارة المتجر">
+    <div class="admin-sidebar-head"><strong>قائمة الإدارة</strong><button class="admin-sidebar-close" id="adminSidebarClose" type="button" aria-label="إغلاق قائمة الإدارة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
     <div class="brand"><div class="brand-mark">NX</div><span><strong>NEXA CONTROL</strong><small>STORE MANAGEMENT</small></span></div>
     <div class="admin-rail-summary"><span class="admin-rail-dot"></span><div><strong>مركز تحكم Nexa</strong><small>المنتجات · الطلبات · المدفوعات</small></div></div>
     <div class="side-label">إدارة المتجر</div>
@@ -1782,16 +1783,55 @@ boot();
   const toggle = document.getElementById('adminMenuToggle');
   const backdrop = document.getElementById('adminSidebarBackdrop');
   const sidebar = document.getElementById('adminSidebar');
-  if (!toggle || !backdrop || !sidebar) return;
-  const setOpen = (open) => {
-    document.body.classList.toggle('admin-sidebar-open', open);
-    toggle.setAttribute('aria-expanded', String(open));
+  const closeButton = document.getElementById('adminSidebarClose');
+  const drawerMedia = window.matchMedia('(max-width: 1024px)');
+  if (!toggle || !backdrop || !sidebar || !closeButton) return;
+  const setOpen = (open, restoreFocus = false) => {
+    const wasOpen = document.body.classList.contains('admin-sidebar-open');
+    const nextOpen = Boolean(open && drawerMedia.matches);
+    document.body.classList.toggle('admin-sidebar-open', nextOpen);
+    toggle.setAttribute('aria-expanded', String(nextOpen));
+    sidebar.removeAttribute('aria-modal');
+    if (drawerMedia.matches && !nextOpen) {
+      sidebar.setAttribute('inert', '');
+      sidebar.setAttribute('aria-hidden', 'true');
+    } else {
+      sidebar.removeAttribute('inert');
+      sidebar.setAttribute('aria-hidden', 'false');
+    }
+    if (nextOpen) {
+      sidebar.setAttribute('aria-modal', 'true');
+      closeButton.focus({ preventScroll: true });
+    } else if (restoreFocus && wasOpen) {
+      toggle.focus({ preventScroll: true });
+    }
   };
   toggle.addEventListener('click', () => setOpen(!document.body.classList.contains('admin-sidebar-open')));
-  backdrop.addEventListener('click', () => setOpen(false));
+  closeButton.addEventListener('click', () => setOpen(false, true));
+  backdrop.addEventListener('click', () => setOpen(false, true));
   sidebar.querySelectorAll('.nav button').forEach((item) => item.addEventListener('click', () => setOpen(false)));
+  if (drawerMedia.addEventListener) drawerMedia.addEventListener('change', () => setOpen(false));
+  setOpen(false);
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') setOpen(false);
+    if (event.key === 'Escape') {
+      setOpen(false, true);
+      return;
+    }
+    if (event.key !== 'Tab' || !document.body.classList.contains('admin-sidebar-open')) return;
+    const focusable = [...sidebar.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+      .filter((element) => element.getClientRects().length);
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (!first) {
+      event.preventDefault();
+      closeButton.focus();
+    } else if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
   });
 })();
 </script>
