@@ -7,8 +7,8 @@
 
 :root {
   color-scheme: light;
-  --rail-width:248px;
-  --topbar-height:58px;
+  --rail-width:clamp(300px,18.3vw,360px);
+  --topbar-height:38px;
   --sky:#63c9f2;
   --sky-strong:#168ec5;
   --sky-deep:#0b6d9f;
@@ -513,7 +513,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 #app.shell .side-foot{color:#8ea6b6!important;border-top-color:#20394c!important}
 #app.shell .side-foot b{color:#d8eef8!important}
 #app.shell .main{min-width:0!important;margin-right:var(--rail-width)!important;background:var(--paper)!important}
-#app.shell .topbar{position:sticky!important;top:0!important;z-index:60!important;min-height:58px!important;height:58px!important;padding:0 18px!important;background:#57c3ed!important;border-bottom:1px solid #47b5e3!important;box-shadow:0 2px 12px rgba(16,110,153,.13)!important;backdrop-filter:none!important}
+#app.shell .topbar{position:sticky!important;top:0!important;z-index:60!important;min-height:var(--topbar-height)!important;height:var(--topbar-height)!important;padding:0 18px!important;background:#57c3ed!important;border-bottom:1px solid #47b5e3!important;box-shadow:0 2px 12px rgba(16,110,153,.13)!important;backdrop-filter:none!important}
 :root[data-theme="dark"] #app.shell .topbar{background:#071522!important;border-color:#1f3b50!important}
 #app.shell .topbar h1{color:#06344e!important;font-size:14px!important}
 #app.shell .topbar p{color:#225f7e!important;font-size:8px!important}
