@@ -553,7 +553,7 @@ test('Wamda palette, theme boundaries, oval geometry and bilingual direction are
   assert.ok(css.includes('.app-shell .header-back-button{display:none!important}'), 'The topbar contains only the logo/name at left and action group at right');
   assert.ok(css.includes('direction:rtl!important;flex-direction:row!important;'), 'Header actions are ordered from the physical right');
   assert.ok(css.includes('margin-left:auto!important;margin-right:0!important;'), 'Header actions are anchored to the right');
-  assert.ok(store.includes('data-text-direction=') && admin.includes('data-text-direction='), 'Store and dashboard mark English and Arabic text independently');
+  assert.ok(store.includes('dataset.textDirection=direction') && admin.includes('dataset.textDirection=direction'), 'Store and dashboard mark English and Arabic text independently');
   assert.ok(store.includes('wamda-brand-v8') && admin.includes('wamda-brand-v8'), 'Both pages load the refreshed stylesheet');
   assert.ok(!logo.includes('#73d7fa') && !logo.includes('#168ec5'), 'Nexa logo no longer uses the retired blue gradient');
   assert.ok(!hero.includes('#65D5F7') && !hero.includes('#2A9FD5'), 'Hero artwork no longer uses the retired sky-blue palette');
