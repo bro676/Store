@@ -974,3 +974,60 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .app-shell .nexa-marquee-track{animation:none!important;transform:none!important}
   *,*:before,*:after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
 }
+
+
+/* Remove every inherited red/green accent left by the retired visual layer.
+   These aliases are presentation tokens only; danger states keep their own
+   explicit error colors and supplier/payment rules are untouched. */
+:root{
+  --red:var(--sky-2);
+  --red-2:var(--sky);
+  --red-dark:var(--sky-3);
+  --red-soft:var(--sky-soft);
+  --green:var(--sky-3);
+  --blue:var(--sky-2);
+  --purple:#75bfe3;
+  --amber:#d4a85f;
+  --nexa-accent:var(--sky);
+  --nexa-accent-2:var(--sky-2);
+  --nexa-accent-strong:var(--sky-3);
+  --nexa-primary:var(--sky-2);
+  --nexa-primary-strong:var(--sky-3);
+  --nexa-primary-soft:#e5f7fd;
+  --nexa-secondary:var(--sky);
+  --nexa-secondary-strong:var(--sky-3);
+  --nexa-secondary-soft:#e5f7fd;
+  --nexa-highlight:#9fe5ff;
+  --nexa-highlight-strong:var(--sky-2);
+  --nexa-highlight-soft:var(--sky-soft);
+  --nexa-gradient:linear-gradient(118deg,var(--sky-3),var(--sky),#9fe5ff);
+}
+.app-shell .section-kicker:before{background:var(--sky)!important}
+.app-shell .hero h1 span{color:var(--sky)!important}
+.app-shell .hero .btn-primary{background:linear-gradient(120deg,var(--sky),var(--sky-2))!important}
+.app-shell .btn-primary:hover{background:linear-gradient(120deg,var(--sky-2),var(--sky-3))!important}
+.app-shell .home-intro-kicker i{background:var(--sky)!important;box-shadow:0 0 0 4px rgba(98,200,242,.14)!important}
+.app-shell .home-intro h1 span{color:#72d6fa!important}
+.app-shell .mini-choose:hover{background:var(--sky-3)!important;color:#fff!important}
+.app-shell .step.active{color:var(--sky-3)!important}
+.app-shell .step.active span{background:var(--sky-2)!important;box-shadow:0 0 0 4px rgba(98,200,242,.14)!important}
+.app-shell .tabs button.active,.app-shell .tab.active{
+  background:var(--sky-3)!important;border-color:var(--sky-3)!important;color:#fff!important;
+}
+.app-shell .product-label{color:var(--sky-3)!important}
+.app-shell .product-card:hover,.app-shell .catalog-tile:hover,.app-shell .pack-card:hover,.app-shell .option-card:hover{
+  border-color:rgba(98,200,242,.62)!important;
+  box-shadow:0 12px 26px rgba(23,126,175,.12)!important;
+}
+.app-shell .wallet-placeholder{
+  background:linear-gradient(120deg,#0c2940,#145577)!important;
+  color:#f2fbff!important;border:1px solid rgba(98,200,242,.24)!important;
+}
+.app-shell .wallet-placeholder strong,.app-shell .wallet-placeholder b{color:#96e2fb!important}
+:root[data-theme="light"] .app-shell .wallet-placeholder{
+  background:linear-gradient(120deg,#e4f7fe,#cceeff)!important;
+  color:#17435d!important;border-color:#c3eafa!important;
+}
+:root[data-theme="light"] .app-shell .wallet-placeholder strong,
+:root[data-theme="light"] .app-shell .wallet-placeholder b{color:#087da9!important}
+
