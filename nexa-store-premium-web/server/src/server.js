@@ -769,9 +769,18 @@ async function verifyPayment(input) {
     throw error;
   } finally { client.release(); }
 }
+const CUSTOMER_APP_ROUTES = new Set([
+  '/home','/index','/category','/catalog','/store',
+  '/add_funds','/my_payments','/my_wallet','/my_orders',
+  '/wallet','/payments','/orders','/favorites','/profile',
+  '/notifications','/vip_levels','/bot','/affiliate','/security',
+  '/verify_id','/api_settings','/about','/login','/register',
+  '/forgot_password','/support','/install',
+]);
 async function serveStatic(req, res, pathname) {
-  if (!(pathname === '/' || pathname === '/index.html' || pathname === '/admin' || pathname === '/admin.html' || pathname.startsWith('/assets/'))) return send(res,404,{error:'NOT_FOUND'});
-  let target = pathname === '/' ? '/index.html' : pathname === '/admin' ? '/admin.html' : decodeURIComponent(pathname);
+  const customerAppRoute = CUSTOMER_APP_ROUTES.has(pathname);
+  if (!(pathname === '/' || pathname === '/index.html' || pathname === '/admin' || pathname === '/admin.html' || customerAppRoute || pathname.startsWith('/assets/'))) return send(res,404,{error:'NOT_FOUND'});
+  let target = pathname === '/' || customerAppRoute ? '/index.html' : pathname === '/admin' ? '/admin.html' : decodeURIComponent(pathname);
   const abs = path.resolve(ROOT, '.' + target);
   if (!abs.startsWith(ROOT + path.sep) && abs !== ROOT) return send(res,404,{error:'NOT_FOUND'});
   try {

@@ -351,7 +351,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
 
   const customerRoutes = [
     'home','store','orders','favorites','wallet','support','payments','profile','about',
-    'login','notifications','vip','bot','affiliate','security','verify','apiSettings','install'
+    'login','register','forgot','notifications','vip','bot','affiliate','security','verify','apiSettings','install'
   ];
   for (const id of customerRoutes) {
     assert.ok(store.includes('data-view="' + id + '"'), 'Missing storefront page view: ' + id);
@@ -362,7 +362,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
     'sidebarProfileButton','sidebarProfileAvatar','sidebarCustomerName','sidebarCustomerMeta',
     'sidebarWalletAmount','globalSearchRow','globalSearch','homeSearchForm','paymentsTable',
     'accountLoginPhone','accountLoginPassword','accountRegisterForm','loginPageForm',
-    'loginPagePhone','loginPagePassword','loginPageMessage','notificationsView','vipView',
+    'loginPagePhone','loginPagePassword','loginPageMessage','registerView','forgotPasswordView','notificationsView','vipView',
     'botView','affiliateView','securityView','verifyView','apiSettingsView','installView',
     'orderModal','walletTopupForm','walletLedgerList','supportForm','assistantPanel'
   ]) {
@@ -376,6 +376,9 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(store.includes("'/api/account/me'"), 'Customer profile retains its existing authenticated API');
   assert.ok(store.includes("'/api/account/login'"), 'The original customer login route remains intact');
   assert.ok(store.includes('id="accountRegisterForm" class="account-auth-form hidden"'), 'Public registration remains hidden in the customer interface');
+  assert.ok(store.includes('data-view="register"') && store.includes('التسجيل غير متاح حالياً'), 'The direct registration route clearly states that registration remains disabled');
+  assert.ok(store.includes('data-view="forgot"') && store.includes('استعادة كلمة المرور غير مفعّلة حالياً'), 'Password recovery stays unavailable until a verified SMS/OTP provider exists');
+  assert.ok(store.includes('data-page="forgot"'), 'The login form provides a route to the password-recovery explanation');
   assert.ok(store.includes("CUSTOMER_REGISTRATION_ENABLED") || server.includes("CUSTOMER_REGISTRATION_ENABLED"), 'Registration is controlled by the server-side launch flag');
   assert.ok(server.includes("customerRegistrationEnabled: String(process.env.CUSTOMER_REGISTRATION_ENABLED || 'false').toLowerCase() === 'true'"), 'New registration is disabled by default on the backend');
   assert.ok(server.includes("error:'REGISTRATION_DISABLED'"), 'The backend rejects public registration while the launch flag is false');
@@ -410,4 +413,37 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(theme.includes('.reference-empty-panel'), 'Reference account-only pages have a truthful unavailable state');
   assert.ok(store.includes('data-open-assistant'), 'The existing assistant remains reachable from the account rail');
   assert.ok(store.includes('class="home-intro-brand-mark"'), 'The Nexa brand mark remains on the homepage');
+});
+
+
+test('Wamda reference paths load the storefront shell and resolve to the intended customer views', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
+
+  const serverRoutes = server.slice(server.indexOf('const CUSTOMER_APP_ROUTES'), server.indexOf('async function serveStatic'));
+  const routeCode = store.slice(store.indexOf('const STORE_VIEW_PATHS'), store.indexOf('function closeMenu'));
+  const expectedRoutes = [
+    '/home','/index','/category','/add_funds','/my_payments','/my_wallet','/my_orders',
+    '/bot','/affiliate','/security','/verify_id','/api_settings','/about','/favorites',
+    '/profile','/notifications','/vip_levels','/login','/register','/forgot_password'
+  ];
+  for (const route of expectedRoutes) {
+    assert.ok(serverRoutes.includes("'" + route + "'"), 'Server must serve reference route: ' + route);
+  }
+  for (const [route,view] of [
+    ['/home','home'],['/index','home'],['/my_orders','orders'],['/my_payments','payments'],
+    ['/my_wallet','wallet'],['/add_funds','wallet'],['/bot','bot'],['/affiliate','affiliate'],
+    ['/security','security'],['/verify_id','verify'],['/api_settings','apiSettings'],
+    ['/about','about'],['/favorites','favorites'],['/profile','profile'],
+    ['/notifications','notifications'],['/vip_levels','vip'],['/login','login'],
+    ['/register','register'],['/forgot_password','forgot']
+  ]) {
+    assert.ok(routeCode.includes("'" + route + "':'" + view + "'"), 'Customer path must resolve to ' + view + ': ' + route);
+  }
+  assert.ok(routeCode.includes("if(pathname==='/category')"), 'Category route has a dedicated query-aware resolver');
+  assert.ok(routeCode.includes("url.searchParams.get('id')"), 'Category deep links restore their requested category ID');
+  assert.ok(routeCode.includes("NexaCatalog.getCategoryDepartmentId(category,categories)"), 'Category deep links restore the parent department');
+  assert.ok(routeCode.includes("window.addEventListener('popstate'"), 'Browser back and forward navigation is wired to the current URL');
+  assert.ok(server.includes('customerAppRoute || pathname.startsWith(\'/assets/\')'), 'Only known customer paths and static assets are served through the app shell');
+  assert.ok(server.includes("return send(res,404,{error:'NOT_FOUND'})"), 'Unknown paths remain 404 instead of silently displaying the storefront');
 });
