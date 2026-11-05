@@ -343,52 +343,69 @@ test('storefront product cards use robust document-level delegated click and key
 });
 
 
-test('Nexa skyline redesign preserves all working storefront routes and adds real account pages', async () => {
+test('Wamda-style sky-blue redesign preserves store flows and adds reference account pages', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const theme = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-wamda-blue.css'), 'utf8');
+  const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
 
-  for (const id of ['home','store','orders','favorites','wallet','support','payments','profile','about']) {
+  const customerRoutes = [
+    'home','store','orders','favorites','wallet','support','payments','profile','about',
+    'login','notifications','vip','bot','affiliate','security','verify','apiSettings','install'
+  ];
+  for (const id of customerRoutes) {
     assert.ok(store.includes('data-view="' + id + '"'), 'Missing storefront page view: ' + id);
     assert.ok(store.includes('data-page="' + id + '"'), 'Missing storefront navigation target: ' + id);
   }
 
-  assert.ok(store.includes('id="sidebarProfileButton"'), 'Reference-style account rail is present');
-  assert.ok(store.includes('id="sidebarCustomerName"'), 'Sidebar identity is data-bound to the customer session');
-  assert.ok(store.includes('id="sidebarWalletAmount"'), 'Sidebar wallet balance has a real-data binding');
-  assert.ok(store.includes('id="homeSearchForm"'), 'Homepage search is interactive');
-  assert.ok(store.includes('class="nexa-marquee"'), 'Homepage contains the store-information ticker');
-  assert.ok(store.includes('id="paymentsTable"'), 'Payment history has a dedicated data table');
-  assert.ok(store.includes('/api/account/orders'), 'Customer payment history uses the existing account orders API');
-  assert.ok(store.includes('/api/account/me'), 'Profile view uses the existing authenticated customer API');
-  assert.ok(store.includes('id="accountLoginPhone"') && store.includes('id="accountLoginPassword"'), 'Phone and password login remain available');
-  assert.ok(store.includes('id="accountRegisterForm" class="account-auth-form hidden"'), 'Public registration remains hidden');
+  for (const id of [
+    'sidebarProfileButton','sidebarProfileAvatar','sidebarCustomerName','sidebarCustomerMeta',
+    'sidebarWalletAmount','globalSearchRow','globalSearch','homeSearchForm','paymentsTable',
+    'accountLoginPhone','accountLoginPassword','accountRegisterForm','loginPageForm',
+    'loginPagePhone','loginPagePassword','loginPageMessage','notificationsView','vipView',
+    'botView','affiliateView','securityView','verifyView','apiSettingsView','installView',
+    'orderModal','walletTopupForm','walletLedgerList','supportForm','assistantPanel'
+  ]) {
+    assert.ok(store.includes('id="' + id + '"'), 'Missing preserved or newly designed customer element: ' + id);
+  }
+
+  assert.ok(store.includes('class="reference-search-row"'), 'The catalogue search is separated from the cyan header');
+  assert.ok(store.includes('function renderLoginPage()'), 'The dedicated login page reflects the current customer session');
+  assert.ok(store.includes("fetch('/api/account/login'"), 'The dedicated login page uses the existing phone/password API');
+  assert.ok(store.includes("'/api/account/orders'"), 'Customer order history retains its existing API');
+  assert.ok(store.includes("'/api/account/me'"), 'Customer profile retains its existing authenticated API');
+  assert.ok(store.includes("'/api/account/login'"), 'The original customer login route remains intact');
+  assert.ok(store.includes('id="accountRegisterForm" class="account-auth-form hidden"'), 'Public registration remains hidden in the customer interface');
+  assert.ok(store.includes("CUSTOMER_REGISTRATION_ENABLED") || server.includes("CUSTOMER_REGISTRATION_ENABLED"), 'Registration is controlled by the server-side launch flag');
+  assert.ok(server.includes("customerRegistrationEnabled: String(process.env.CUSTOMER_REGISTRATION_ENABLED || 'false').toLowerCase() === 'true'"), 'New registration is disabled by default on the backend');
+  assert.ok(server.includes("error:'REGISTRATION_DISABLED'"), 'The backend rejects public registration while the launch flag is false');
 
   for (const id of ['overview','catalog','catalog-api','orders','payments','exchange']) {
-    assert.ok(admin.includes('data-page="' + id + '"'), 'Admin section was removed: ' + id);
+    assert.ok(admin.includes('data-page="' + id + '"'), 'Existing admin section was removed: ' + id);
   }
-  assert.ok(admin.includes('admin-rail-summary'), 'Admin dashboard has the new Nexa workspace summary');
+  assert.ok(admin.includes('admin-rail-summary'), 'The existing admin workspace summary remains in place');
+  assert.ok(admin.includes('adminThemeToggle'), 'The admin keeps its independent theme control');
 
-  assert.ok(store.includes('nexa-wamda-blue.css?v=20261104-nexa-skyline-v5'), 'Storefront uses the structural theme revision');
-  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261104-nexa-skyline-v5'), 'Admin uses the structural theme revision');
-  assert.ok(theme.includes('.app-shell .sidebar-profile'), 'Customer account rail has its own visual system');
-  assert.ok(theme.includes('.app-shell .nexa-home-search'), 'Homepage search has a dedicated visual system');
-  assert.ok(store.includes('data-open-assistant'), 'Assistant remains reachable as a real working tool from the account rail');
-  assert.ok(store.includes('class="catalog-grid"'), 'Nested folders and products use the canonical catalogue grid');
-  assert.ok(store.includes('class="option-list"'), 'The options/region level remains in the five-level product flow');
-  assert.ok(store.includes('class="pack-grid"'), 'The pack/price level remains in the five-level product flow');
-  assert.ok(theme.includes('.app-shell .catalog-grid{'), 'Nested category and product grids have explicit responsive layout rules');
-  assert.ok(theme.includes('.app-shell .option-list{'), 'Option cards have explicit responsive layout rules');
-  assert.ok(theme.includes('.app-shell .pack-grid{'), 'Pack/price cards have explicit responsive layout rules');
-  assert.ok(store.includes('class="home-intro-brand-mark"'), 'Homepage has a centered Nexa identity mark above the title');
-  assert.ok(theme.includes('nexa-hero-banner.svg'), 'Homepage uses a wide custom Nexa digital banner artwork');
-  assert.ok(theme.includes('--nexa-sidebar-width:clamp(300px,18.4vw,360px)'), 'Customer rail is sized to the supplied reference proportions');
-  assert.ok(theme.includes('--nexa-admin-sidebar-width:clamp(280px,18.1vw,350px)'), 'Admin rail follows the same reference proportions');
-
-
-  assert.ok(theme.includes('grid-template-columns:repeat(4,minmax(0,1fr))'), 'Wide product/category grids use four columns');
+  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-layout-v1';
+  assert.ok(store.includes(themeRef), 'Storefront uses the rebuilt structural theme revision');
+  assert.ok(admin.includes(themeRef), 'Admin uses the same rebuilt structural theme revision');
+  assert.ok(theme.includes('.app-shell .sidebar-profile'), 'The customer account rail has a dedicated visual system');
+  assert.ok(theme.includes('.app-shell .sidebar-nav'), 'The account rail has its own scrollable reference navigation');
+  assert.ok(theme.includes('.app-shell .reference-search-row'), 'The horizontal search row has a dedicated layout');
+  assert.ok(theme.includes('.app-shell .catalog-grid{'), 'Nested catalog folders and products have explicit grid rules');
+  assert.ok(theme.includes('.app-shell .option-list{'), 'The options/region stage retains its own layout');
+  assert.ok(theme.includes('.app-shell .pack-grid{'), 'The pack/price stage retains its own layout');
+  assert.ok(theme.includes('grid-template-columns:repeat(4,minmax(0,1fr))'), 'Wide catalog/category grids use four columns');
+  assert.ok(theme.includes('--rail-width:248px'), 'The desktop account rail follows the reference proportions');
+  assert.ok(theme.includes('.app-shell .header{position:sticky'), 'The customer topbar remains horizontal and fixed to the top');
+  assert.ok(theme.includes('#57c3ed'), 'The reference header uses the sky-blue brand color');
   assert.ok(theme.includes(':root[data-theme="light"]'), 'Light theme is explicitly supported');
   assert.ok(theme.includes(':root[data-theme="dark"]'), 'Dark theme is explicitly supported');
-  assert.ok(theme.includes('body.admin-sidebar-open #app.shell .side'), 'Admin mobile rail is tied to the real body state');
-  assert.ok(theme.includes('body.admin-sidebar-open #app.shell .admin-sidebar-backdrop'), 'Admin mobile backdrop opens with the sidebar');
+  assert.ok(theme.includes('@media(max-width:820px)'), 'The account rail has a mobile drawer layout');
+  assert.ok(theme.includes('#app.shell .side'), 'The existing admin dashboard keeps its own rail');
+  assert.ok(theme.includes('body.admin-sidebar-open #app.shell .side'), 'Admin mobile rail follows its existing open-state class');
+  assert.ok(theme.includes('body.admin-sidebar-open #app.shell .admin-sidebar-backdrop'), 'Admin mobile backdrop follows the real body state');
+  assert.ok(theme.includes('.reference-empty-panel'), 'Reference account-only pages have a truthful unavailable state');
+  assert.ok(store.includes('data-open-assistant'), 'The existing assistant remains reachable from the account rail');
+  assert.ok(store.includes('class="home-intro-brand-mark"'), 'The Nexa brand mark remains on the homepage');
 });
