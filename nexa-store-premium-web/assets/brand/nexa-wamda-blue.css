@@ -1003,6 +1003,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   --nexa-gradient:linear-gradient(118deg,var(--sky-3),var(--sky),#9fe5ff);
 }
 .app-shell .section-kicker:before{background:var(--sky)!important}
+.app-shell .icon-button:hover{color:var(--sky-3)!important;border-color:rgba(98,200,242,.55)!important;background:var(--surface-2)!important}
 .app-shell .hero h1 span{color:var(--sky)!important}
 .app-shell .hero .btn-primary{background:linear-gradient(120deg,var(--sky),var(--sky-2))!important}
 .app-shell .btn-primary:hover{background:linear-gradient(120deg,var(--sky-2),var(--sky-3))!important}
