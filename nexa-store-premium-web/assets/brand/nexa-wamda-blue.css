@@ -1142,3 +1142,11 @@ body.admin-sidebar-open #app.shell .admin-sidebar-backdrop{opacity:1}
 @media(prefers-reduced-motion:reduce){
   .app-shell .sidebar,#app.shell .side,.app-shell .sidebar-backdrop,#app.shell .admin-sidebar-backdrop{transition:none!important}
 }
+
+/* Keep touch layouts comfortable after the tablet grid rules above. */
+@media(max-width:600px){
+  .app-shell .option-list,.app-shell .pack-grid,.app-shell .faq-grid,
+  .app-shell .about-grid,.app-shell .support-channel-grid,.app-shell .process-grid{
+    grid-template-columns:1fr!important;
+  }
+}
