@@ -1838,11 +1838,12 @@ boot();
 <script>
 /* Keep each text run in its natural writing direction, including dynamic content. */
 (() => {
-  const selector='h1,h2,h3,h4,p,span,strong,small,label,th,td,li,summary,blockquote,figcaption,button,a';
+  const selector='h1,h2,h3,h4,p,span,strong,small,label,th,td,li,summary,blockquote,figcaption,button,a,div,em,b,i';
   const markDirection=()=>{
     document.querySelectorAll(selector).forEach((element)=>{
       if(element.closest('.ltr') || (element.hasAttribute('dir') && element.getAttribute('dir')!=='auto')) return;
       if(element.closest('svg,script,style,code,pre')) return;
+      if(['DIV','SECTION','ARTICLE'].includes(element.tagName) && element.children.length) return;
       const content=(element.textContent||'').trim();
       const first=content.match(/[\u0600-\u06FF]|[A-Za-z]/);
       if(!first) return;
