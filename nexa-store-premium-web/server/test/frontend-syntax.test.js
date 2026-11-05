@@ -351,7 +351,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
 
   const customerRoutes = [
     'home','store','orders','favorites','wallet','support','payments','profile','about',
-    'login','register','forgot','notifications','vip','bot','affiliate','security','verify','apiSettings','install'
+    'login','forgot','notifications','vip','bot','affiliate','security','verify','apiSettings','install'
   ];
   for (const id of customerRoutes) {
     assert.ok(store.includes('data-view="' + id + '"'), 'Missing storefront page view: ' + id);
@@ -360,8 +360,8 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
 
   for (const id of [
     'sidebarProfileButton','sidebarProfileAvatar','sidebarCustomerName','sidebarCustomerMeta',
-    'sidebarWalletAmount','globalSearchRow','globalSearch','homeSearchForm','paymentsTable',
-    'accountLoginPhone','accountLoginPassword','accountRegisterForm','loginPageForm',
+    'sidebarBalanceValue','globalSearchRow','globalSearch','homeSearchForm','paymentsTable',
+    'accountLoginPhone','accountLoginPassword','accountAuthMessage','loginPageForm',
     'loginPagePhone','loginPagePassword','loginPageMessage','registerView','forgotPasswordView','notificationsView','vipView',
     'botView','affiliateView','securityView','verifyView','apiSettingsView','installView',
     'orderModal','walletTopupForm','walletLedgerList','supportForm','assistantPanel'
@@ -370,18 +370,20 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   }
 
   assert.ok(store.includes('class="reference-search-row"'), 'The catalogue search is separated from the cyan header');
+  assert.ok(store.includes("searchRow.classList.toggle('hidden',view!=='store')"), 'The global search is reserved for the catalogue while the homepage uses its post-hero search');
   assert.ok(store.includes('function renderLoginPage()'), 'The dedicated login page reflects the current customer session');
   assert.ok(store.includes("fetch('/api/account/login'"), 'The dedicated login page uses the existing phone/password API');
   assert.ok(store.includes("'/api/account/orders'"), 'Customer order history retains its existing API');
   assert.ok(store.includes("'/api/account/me'"), 'Customer profile retains its existing authenticated API');
   assert.ok(store.includes("'/api/account/login'"), 'The original customer login route remains intact');
-  assert.ok(store.includes('id="accountRegisterForm" class="account-auth-form hidden"'), 'Public registration remains hidden in the customer interface');
+  assert.ok(!store.includes('accountRegisterForm') && !store.includes('accountAuthSwitch'), 'No public registration form or switch is present in the customer interface');
+  assert.ok(store.includes('id="accountLoginForm"') && store.includes('id="loginPageForm"'), 'Existing customers can still log in using phone and password');
+  assert.ok(!store.includes('/api/account/register') && !store.includes('data-page="register"'), 'No public customer registration action is exposed in the storefront');
   assert.ok(store.includes('data-view="register"') && store.includes('التسجيل غير متاح حالياً'), 'The direct registration route clearly states that registration remains disabled');
   assert.ok(store.includes('data-view="forgot"') && store.includes('استعادة كلمة المرور غير مفعّلة حالياً'), 'Password recovery stays unavailable until a verified SMS/OTP provider exists');
   assert.ok(store.includes('data-page="forgot"'), 'The login form provides a route to the password-recovery explanation');
-  assert.ok(store.includes("CUSTOMER_REGISTRATION_ENABLED") || server.includes("CUSTOMER_REGISTRATION_ENABLED"), 'Registration is controlled by the server-side launch flag');
-  assert.ok(server.includes("customerRegistrationEnabled: String(process.env.CUSTOMER_REGISTRATION_ENABLED || 'false').toLowerCase() === 'true'"), 'New registration is disabled by default on the backend');
-  assert.ok(server.includes("error:'REGISTRATION_DISABLED'"), 'The backend rejects public registration while the launch flag is false');
+  assert.ok(server.includes("if(req.method==='POST'&&url.pathname==='/api/account/register')return send(res,403,{ok:false,error:'REGISTRATION_DISABLED'"), 'The backend unconditionally rejects public registration');
+  assert.ok(!server.includes('CUSTOMER_REGISTRATION_ENABLED') && !server.includes('customerRegistrationEnabled'), 'Registration cannot be turned on by an environment variable');
 
   for (const id of ['overview','catalog','catalog-api','orders','payments','exchange']) {
     assert.ok(admin.includes('data-page="' + id + '"'), 'Existing admin section was removed: ' + id);
@@ -389,7 +391,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(admin.includes('admin-rail-summary'), 'The existing admin workspace summary remains in place');
   assert.ok(admin.includes('adminThemeToggle'), 'The admin keeps its independent theme control');
 
-  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-layout-v2';
+  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-layout-v3';
   assert.ok(store.includes(themeRef), 'Storefront uses the rebuilt structural theme revision');
   assert.ok(admin.includes(themeRef), 'Admin uses the same rebuilt structural theme revision');
   assert.ok(theme.includes('.app-shell .sidebar-profile'), 'The customer account rail has a dedicated visual system');
@@ -399,8 +401,12 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(theme.includes('.app-shell .option-list{'), 'The options/region stage retains its own layout');
   assert.ok(theme.includes('.app-shell .pack-grid{'), 'The pack/price stage retains its own layout');
   assert.ok(theme.includes('grid-template-columns:repeat(4,minmax(0,1fr))'), 'Wide catalog/category grids use four columns');
-  assert.ok(theme.includes('--rail-width:clamp(300px,18.3vw,360px)'), 'The desktop account rail follows the reference width at large viewports');
-  assert.ok(theme.includes('--topbar-height:38px'), 'The storefront header follows the compact Wamda reference height');
+  assert.ok(theme.includes('--rail-width:clamp(286px,18.4vw,320px)'), 'The desktop account rail matches the reference proportions');
+  assert.ok(theme.includes('--topbar-height:66px'), 'The storefront topbar matches the Wamda screenshot height');
+  assert.ok(theme.includes("url('/assets/brand/nexa-hero-banner.svg')"), 'The homepage uses the existing sky-blue visual banner');
+  assert.ok(theme.includes('.app-shell .nexa-marquee{') && theme.includes('.app-shell .nexa-home-search{'), 'The homepage ticker and dedicated search appear after the hero');
+  assert.ok(theme.includes('.app-shell .sidebar-account-balance'), 'The account rail shows the authenticated wallet balance');
+  assert.ok(theme.includes('#app.shell .side{'), 'The admin rail participates in the separate light and dark themes');
   assert.ok(theme.includes('#app.shell .topbar{position:sticky!important;top:0!important;z-index:60!important;min-height:var(--topbar-height)!important;height:var(--topbar-height)!important;'), 'The admin topbar shares the compact reference height');
   assert.ok(theme.includes('.app-shell .header{position:sticky'), 'The customer topbar remains horizontal and fixed to the top');
   assert.ok(theme.includes('#57c3ed'), 'The reference header uses the sky-blue brand color');
