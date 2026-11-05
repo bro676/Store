@@ -408,7 +408,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(theme.includes('.app-shell .option-list{'), 'The options/region stage retains its own layout');
   assert.ok(theme.includes('.app-shell .pack-grid{'), 'The pack/price stage retains its own layout');
   assert.ok(theme.includes('grid-template-columns:repeat(4,minmax(0,1fr))'), 'Wide catalog/category grids use four columns');
-  assert.ok(theme.includes('--rail-width:clamp(360px,26.6vw,512px)'), 'The desktop account rail matches the full-width Wamda reference rail');
+  assert.ok(theme.includes('--rail-width:clamp(260px,19vw,296px)'), 'The desktop account rail matches the full-width Wamda reference rail');
   assert.ok(theme.includes('--topbar-height:66px'), 'The storefront topbar matches the Wamda screenshot height');
   assert.ok(theme.includes('margin:0 var(--rail-width) 0 0!important'), 'The content area reserves the full fixed desktop rail');
   assert.ok(theme.includes('body.sidebar-open .app-shell .sidebar{transform:translateX(0)!important}'), 'On mobile the account rail is an off-canvas drawer');
@@ -451,6 +451,28 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(store.includes('class="home-intro-brand-mark"'), 'The Nexa brand mark remains on the homepage');
 });
 
+
+
+test('Wamda drawer is compact, closable at every viewport, and scrolls as one surface', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const theme = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-wamda-blue.css'), 'utf8');
+
+  assert.ok(theme.includes('--rail-width:clamp(260px,19vw,296px)'), 'Desktop account drawer stays compact');
+  assert.ok(theme.includes('body.sidebar-closed .app-shell .sidebar{transform:translate3d(110%,0,0)!important}'), 'Desktop drawer can slide closed');
+  assert.ok(theme.includes('body.sidebar-closed .app-shell .app-main{'), 'The content expands when the desktop drawer closes');
+  assert.ok(theme.includes('.app-shell .menu-toggle{') && theme.includes('display:grid!important;'), 'The drawer can be reopened at desktop widths');
+  assert.ok(theme.includes('.app-shell .sidebar{') && theme.includes('overflow-y:auto!important;'), 'The outer drawer owns vertical scrolling');
+  assert.ok(theme.includes('.app-shell .sidebar-nav{') && theme.includes('overflow:visible!important;overflow-y:visible!important;'), 'Navigation no longer creates a second nested scrollbar');
+  assert.ok(theme.includes('flex:0 0 auto!important;'), 'Drawer sections remain together inside the outer scroll surface');
+  assert.ok(theme.includes(':root[data-theme="dark"]{') && theme.includes('--drawer-bg:#10263a;'), 'Dark drawer uses a soft deep-navy palette');
+  assert.ok(theme.includes(':root[data-theme="light"]{') && theme.includes('--drawer-bg:#f8fbfd;'), 'Light drawer uses a calm pale-blue palette');
+  assert.ok(theme.includes('.app-shell .sidebar-drawer-head{') && theme.includes('display:flex!important;'), 'The close control remains available in the drawer header');
+
+  assert.ok(store.includes('function isStoreMenuOpen()'), 'Drawer state is tracked for both desktop and mobile');
+  assert.ok(store.includes('function syncStoreMenuToViewport()'), 'Drawer state adapts when the viewport crosses the breakpoint');
+  assert.ok(store.includes("if(window.matchMedia('(max-width: 1024px)').matches)closeMenu();"), 'Selecting a page closes the overlay only on small screens');
+  assert.ok(store.includes("if(isStoreMenuOpen())closeMenu(true);else openMenu()"), 'The menu toggle opens and closes the desktop rail too');
+});
 
 test('Wamda reference paths load the storefront shell and resolve to the intended customer views', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
