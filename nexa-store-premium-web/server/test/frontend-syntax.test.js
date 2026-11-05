@@ -86,8 +86,8 @@ test('Store and admin assets are revalidated instead of serving a stale theme', 
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
   assert.ok(!store.includes('nexa-luxury.css') && !admin.includes('nexa-luxury.css'), 'The old luxury theme is no longer loaded by either live interface');
-  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-drawer-v6'), 'Storefront loads the new full-shell theme');
-  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-drawer-v6'), 'Admin loads the same new full-shell theme');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-header-v7'), 'Storefront loads the new full-shell theme');
+  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-header-v7'), 'Admin loads the same new full-shell theme');
   assert.ok(server.includes("const cacheControl = extension === '.html' ? 'no-store'"), 'HTML responses are not cached');
   assert.ok(server.includes("'Cache-Control':cacheControl"), 'Static files send explicit cache policy');
 });
@@ -361,7 +361,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
 
   for (const id of [
     'sidebarProfileButton','sidebarProfileAvatar','sidebarCustomerName','sidebarCustomerMeta',
-    'sidebarBalanceValue','globalSearchRow','globalSearch','homeSearchForm','paymentsTable',
+    'globalSearchRow','globalSearch','homeSearchForm','paymentsTable',
     'accountLoginPhone','accountLoginPassword','accountAuthMessage','loginPageForm',
     'loginPagePhone','loginPagePassword','loginPageMessage','registerView','forgotPasswordView','notificationsView','vipView',
     'botView','affiliateView','securityView','verifyView','apiSettingsView','installView',
@@ -396,7 +396,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(admin.includes('admin-rail-summary'), 'The existing admin workspace summary remains in place');
   assert.ok(admin.includes('adminThemeToggle'), 'The admin keeps its independent theme control');
 
-  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-drawer-v6';
+  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-header-v7';
   assert.ok(store.includes(themeRef), 'Storefront uses the rebuilt structural theme revision');
   assert.ok(admin.includes(themeRef), 'Admin uses the same rebuilt structural theme revision');
   assert.ok(theme.includes('.app-shell .sidebar{') && theme.includes('position:fixed!important;'), 'The customer account rail is fixed on desktop');
@@ -472,6 +472,34 @@ test('Wamda drawer is compact, closable at every viewport, and scrolls as one su
   assert.ok(store.includes('function syncStoreMenuToViewport()'), 'Drawer state adapts when the viewport crosses the breakpoint');
   assert.ok(store.includes("if(window.matchMedia('(max-width: 1024px)').matches)closeMenu();"), 'Selecting a page closes the overlay only on small screens');
   assert.ok(store.includes("if(isStoreMenuOpen())closeMenu(true);else openMenu()"), 'The menu toggle opens and closes the desktop rail too');
+});
+
+
+test('Wamda app chrome keeps account shortcuts, VIP, notifications and theme in the requested positions', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const theme = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-wamda-blue.css'), 'utf8');
+  const sidebarStart = store.indexOf('<nav class="sidebar-nav"');
+  const sidebarEnd = store.indexOf('</nav>', sidebarStart);
+  const sidebarNav = store.slice(sidebarStart, sidebarEnd);
+  const headerStart = store.indexOf('<div class="header-actions"');
+  const headerEnd = store.indexOf('</div>', headerStart);
+  const headerActions = store.slice(headerStart, headerEnd);
+
+  assert.ok(store.includes('class="sidebar-notification"') && store.includes('data-page="notifications"'), 'Bell icon opens the notification page from the profile image corner');
+  assert.ok(store.includes('id="sidebarVipBadge"') && store.includes('id="headerVipBadge"'), 'VIP badge appears beside the customer name and in the top bar');
+  assert.ok(store.includes('data-page="favorites"') && store.includes('data-page="profile"') && store.includes('data-page="login"'), 'The three profile shortcuts remain available');
+  assert.ok(!sidebarNav.includes('data-page="favorites"'), 'Favourites are removed from the long side menu');
+  assert.ok(!sidebarNav.includes('data-page="login"'), 'Login is removed from the long side menu');
+  assert.ok(!sidebarNav.includes('data-page="profile"'), 'Profile is removed from the long side menu');
+  assert.ok(!sidebarNav.includes('data-page="notifications"'), 'Notifications are removed from the long side menu');
+  assert.ok(!sidebarNav.includes('data-page="vip"'), 'VIP is accessed from its badges instead of a duplicate menu row');
+  assert.ok(headerActions.indexOf('id="menuToggle"') < headerActions.indexOf('id="headerWalletChip"'), 'Hamburger is the first right-side header action');
+  assert.ok(headerActions.indexOf('id="headerWalletChip"') < headerActions.indexOf('id="headerVipBadge"'), 'Balance precedes VIP in the RTL header');
+  assert.ok(!headerActions.includes('storeThemeToggle'), 'Theme control is not in the top bar');
+  assert.ok(store.indexOf('id="storeThemeToggle"') > store.indexOf('<div class="sidebar-bottom">'), 'Theme control is placed at the bottom of the drawer');
+  assert.ok(store.includes("button.textContent=selected==='dark'?'☀ الوضع الفاتح':'☾ الوضع الداكن'"), 'The bottom drawer theme control retains its working day/night toggle');
+  assert.ok(theme.includes('.app-shell .sidebar-profile-wrap{') && theme.includes('.app-shell .sidebar-notification{'), 'The profile and notification bell share a compact account header');
+  assert.ok(theme.includes('.app-shell .sidebar-theme-toggle{') && theme.includes('.app-shell .header-vip-chip{'), 'Sidebar appearance and VIP chips use the same calm Wamda palette');
 });
 
 test('Wamda reference paths load the storefront shell and resolve to the intended customer views', async () => {
