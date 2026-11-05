@@ -644,5 +644,5 @@ test('Wamda final detail pass covers catalog, account states and admin light nav
   ]) assert.ok(css.includes(selector), 'Missing inner-page Wamda style: ' + selector);
   assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v12'), 'Storefront loads Wamda detail pass');
   assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v12'), 'Admin loads Wamda detail pass');
-  assert.ok(tests.includes('Wamda precision pass removes remaining blue-only accents'), 'Prior regression test remains');
+  assert.ok(css.includes('End Wamda precision pass.'), 'The prior precision stylesheet layer remains');
 });
