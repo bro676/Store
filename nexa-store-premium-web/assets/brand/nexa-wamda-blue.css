@@ -2104,3 +2104,37 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 [data-text-direction="rtl"]{direction:rtl!important;text-align:right!important}
 [data-text-direction="ltr"]{direction:ltr!important;text-align:left!important}
 [data-text-direction-control="auto"]{text-align:start!important}
+
+
+/* Homepage artwork and utility strips keep the official indigo/teal look. */
+.app-shell .home-intro{
+  border:1px solid rgba(85,184,204,.34)!important;border-radius:30px!important;
+  background:
+    linear-gradient(90deg,rgba(26,33,58,.94),rgba(48,58,96,.66) 56%,rgba(63,74,117,.56)),
+    url('/assets/brand/nexa-hero-banner.svg') center/cover no-repeat,
+    linear-gradient(125deg,#3f4a75,#263b55)!important;
+  color:#f7f3ef!important;box-shadow:0 20px 48px rgba(24,31,54,.2)!important;
+}
+.app-shell .home-intro :where(h1,h2,strong){color:#f7f3ef!important}
+.app-shell .home-intro h1 span{color:#55b8cc!important}
+.app-shell .home-intro :where(p,.home-intro-note){color:#e9e1db!important}
+.app-shell .home-intro-kicker{color:#bfe9e8!important}
+.app-shell .home-intro-kicker i{background:#55b8cc!important;box-shadow:0 0 0 4px rgba(85,184,204,.18)!important}
+.app-shell .home-intro-note{border-color:rgba(233,225,219,.2)!important;background:rgba(63,74,117,.58)!important;border-radius:var(--radius-pill)!important}
+.app-shell .home-intro-note b{color:#55b8cc!important}
+.app-shell .home-intro .home-assistant-link{background:rgba(233,225,219,.12)!important;border-color:rgba(233,225,219,.24)!important;color:#f7f3ef!important;border-radius:var(--radius-pill)!important}
+.app-shell .home-intro .home-assistant-link:hover{background:rgba(0,149,164,.3)!important;color:#fff!important}
+.app-shell .nexa-marquee{background:var(--surface-2)!important;border-color:var(--line)!important;color:var(--ink-2)!important;border-radius:var(--radius-pill)!important}
+.app-shell .nexa-marquee b{color:var(--brand-teal)!important}
+.app-shell .nexa-home-search{background:var(--surface)!important;border-color:var(--line)!important;color:var(--ink)!important;border-radius:var(--radius-pill)!important}
+.app-shell .nexa-home-search input{background:transparent!important;color:var(--ink)!important}
+.app-shell .nexa-home-search button{background:var(--brand-teal)!important;color:#fff!important;border-radius:var(--radius-pill)!important}
+.app-shell .sidebar-profile:hover{border-color:var(--drawer-accent)!important}
+.app-shell .header-vip-chip{border-radius:var(--radius-pill)!important}
+:root[data-theme="light"] .app-shell .home-intro{
+  border-color:rgba(0,149,164,.25)!important;
+  background:
+    linear-gradient(90deg,rgba(63,74,117,.9),rgba(63,74,117,.62) 58%,rgba(0,149,164,.3)),
+    url('/assets/brand/nexa-hero-banner.svg') center/cover no-repeat,
+    linear-gradient(125deg,#3f4a75,#263b55)!important;
+}
