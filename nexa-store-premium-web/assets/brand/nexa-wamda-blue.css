@@ -2396,3 +2396,208 @@ body{color-scheme:inherit}
   #app.shell .side{width:min(88vw,390px)!important;max-width:calc(100vw - 40px)!important}
   #app.shell .main{margin:0!important;width:100%!important}
 }
+
+
+/* WAMDA PRECISION PASS — close the remaining legacy-color and small-screen gaps. */
+:root{
+  --sidebar-width:var(--rail-width);
+  --brand-focus:0 0 0 3px rgba(0,149,164,.18);
+}
+.app-shell .sidebar-notification{
+  width:31px!important;height:31px!important;border-radius:50%!important;
+  background:var(--brand-teal)!important;border:2px solid var(--drawer-bg)!important;color:#fff!important;
+}
+.app-shell .sidebar-notification:hover{background:var(--brand-cyan)!important;border-color:var(--drawer-bg)!important;color:#26334d!important}
+.app-shell .sidebar-vip-badge{
+  background:var(--drawer-active)!important;border:1px solid var(--drawer-line)!important;
+  color:var(--drawer-accent)!important;border-radius:var(--radius-pill)!important;
+}
+:root[data-theme="light"] .app-shell .sidebar-vip-badge{
+  background:rgba(0,149,164,.1)!important;border-color:rgba(0,149,164,.2)!important;color:#007986!important;
+}
+.app-shell .sidebar-quick-actions button[data-page="profile"]{
+  background:var(--drawer-active)!important;border-color:var(--drawer-line)!important;color:var(--drawer-accent)!important;
+}
+:root[data-theme="light"] .app-shell .sidebar-quick-actions button[data-page="profile"]{
+  background:rgba(0,149,164,.1)!important;border-color:rgba(0,149,164,.2)!important;color:#007986!important;
+}
+.app-shell .side-link.active{
+  background:var(--drawer-active)!important;border-color:var(--drawer-line)!important;
+  color:var(--drawer-text)!important;box-shadow:inset -3px 0 var(--brand-teal)!important;
+}
+:root[data-theme="light"] .app-shell .side-link.active{
+  background:rgba(0,149,164,.1)!important;border-color:rgba(0,149,164,.2)!important;
+  color:#007986!important;box-shadow:inset -3px 0 var(--brand-teal)!important;
+}
+.app-shell .side-link.active .side-icon,.app-shell .side-link:hover .side-icon{
+  background:rgba(0,149,164,.16)!important;color:var(--drawer-accent)!important;border-radius:50%!important;
+}
+.app-shell .sidebar-theme-toggle{
+  background:var(--drawer-surface)!important;color:var(--drawer-text)!important;
+  border-color:var(--drawer-line)!important;border-radius:var(--radius-pill)!important;
+}
+.app-shell .sidebar-theme-toggle:hover{
+  background:var(--drawer-active)!important;border-color:var(--drawer-accent)!important;color:var(--drawer-accent)!important;
+}
+:root[data-theme="light"] .app-shell .sidebar-theme-toggle{
+  background:var(--drawer-surface)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;
+}
+:root[data-theme="light"] .app-shell .sidebar-theme-toggle:hover{
+  background:var(--drawer-active)!important;border-color:var(--drawer-accent)!important;color:#007986!important;
+}
+.app-shell .sidebar-profile-avatar{
+  border-color:var(--drawer-accent)!important;
+  background:linear-gradient(145deg,var(--brand-cyan),var(--brand-teal))!important;
+  color:#fff!important;box-shadow:0 0 0 4px rgba(0,149,164,.12)!important;
+}
+.app-shell .header-actions .menu-toggle{
+  background:var(--drawer-surface)!important;border-color:var(--drawer-line)!important;
+  color:var(--drawer-text)!important;border-radius:50%!important;
+}
+.app-shell .header-actions .menu-toggle:hover{
+  background:var(--drawer-active)!important;border-color:var(--drawer-accent)!important;color:var(--drawer-accent)!important;
+}
+:root[data-theme="light"] .app-shell .header-actions .menu-toggle{
+  background:var(--drawer-surface)!important;border-color:var(--drawer-line)!important;color:var(--drawer-text)!important;
+}
+:root[data-theme="light"] .app-shell .header-actions .menu-toggle:hover{
+  background:var(--drawer-active)!important;border-color:var(--drawer-accent)!important;color:#007986!important;
+}
+.app-shell .header-actions .wallet-chip{
+  background:var(--drawer-surface)!important;border-color:var(--drawer-line)!important;
+  color:var(--drawer-text)!important;border-radius:var(--radius-pill)!important;
+}
+:root[data-theme="light"] .app-shell .header-actions .wallet-chip{
+  background:var(--drawer-surface)!important;border-color:var(--drawer-line)!important;
+  color:var(--drawer-text)!important;box-shadow:none!important;
+}
+:root[data-theme="light"] .app-shell .header-actions .wallet-chip:hover{
+  background:var(--drawer-active)!important;border-color:var(--drawer-accent)!important;
+}
+.app-shell .header-vip-chip{
+  background:var(--drawer-active)!important;border-color:var(--drawer-line)!important;
+  color:var(--drawer-text)!important;border-radius:var(--radius-pill)!important;
+}
+:root[data-theme="light"] .app-shell .header-vip-chip{
+  background:var(--drawer-surface)!important;border-color:var(--drawer-line)!important;
+  color:#007986!important;
+}
+:root[data-theme="light"] .app-shell .header-vip-chip:hover{
+  background:var(--drawer-active)!important;border-color:var(--drawer-accent)!important;
+}
+.app-shell .header-api-pill{
+  background:var(--drawer-surface)!important;border-color:var(--drawer-line)!important;
+  color:var(--drawer-text)!important;border-radius:var(--radius-pill)!important;
+}
+:root[data-theme="light"] .app-shell .header-api-pill{
+  background:var(--drawer-surface)!important;border-color:var(--drawer-line)!important;color:#007986!important;
+}
+
+/* Homepage accents and step markers now use teal, not the retired cyan-blue. */
+.app-shell .nexa-marquee-track span:first-child,
+.app-shell .nexa-marquee-track b,
+.app-shell .section-kicker,
+.app-shell .reference-kicker,
+.app-shell .text-link{color:var(--brand-teal)!important}
+:root[data-theme="light"] .app-shell .nexa-marquee-track span:first-child,
+:root[data-theme="light"] .app-shell .nexa-marquee-track b,
+:root[data-theme="light"] .app-shell .section-kicker,
+:root[data-theme="light"] .app-shell .reference-kicker,
+:root[data-theme="light"] .app-shell .text-link{color:#007986!important}
+.app-shell .nexa-home-search button{
+  background:var(--brand-teal)!important;color:#fff!important;border:1px solid var(--brand-teal)!important;
+  border-radius:var(--radius-pill)!important;box-shadow:0 7px 16px rgba(0,149,164,.16)!important;
+}
+.app-shell .nexa-home-search button:hover{background:#007986!important;color:#fff!important}
+:root[data-theme="light"] .app-shell .nexa-home-search button{
+  background:var(--brand-teal)!important;color:#fff!important;border-color:var(--brand-teal)!important;
+}
+.app-shell .process-num,.app-shell .reference-empty-icon,.app-shell .reference-feature-icon,.app-shell .reference-panel-icon{
+  background:rgba(0,149,164,.12)!important;color:var(--brand-teal)!important;border:1px solid rgba(0,149,164,.16)!important;
+  border-radius:50%!important;
+}
+:root[data-theme="light"] .app-shell .process-num,
+:root[data-theme="light"] .app-shell .reference-empty-icon,
+:root[data-theme="light"] .app-shell .reference-feature-icon,
+:root[data-theme="light"] .app-shell .reference-panel-icon{
+  background:rgba(0,149,164,.1)!important;color:#007986!important;border-color:rgba(0,149,164,.18)!important;
+}
+.app-shell .step.active span{background:var(--brand-teal)!important;color:#fff!important;box-shadow:0 0 0 4px rgba(0,149,164,.12)!important}
+.app-shell .wallet-api-mark{
+  background:linear-gradient(145deg,var(--brand-teal),var(--brand-indigo))!important;
+  color:#fff!important;border-radius:50%!important;box-shadow:0 8px 20px rgba(0,149,164,.16)!important;
+}
+.app-shell .wallet-api-brand{border-color:var(--line)!important}
+.app-shell .wallet-api-brand strong{color:var(--ink)!important}
+.app-shell .wallet-api-brand small{color:var(--muted)!important}
+.app-shell .wallet-api-live-dot{background:var(--brand-success)!important}
+.app-shell .icon-button:hover{color:var(--brand-teal)!important;border-color:var(--brand-cyan)!important;background:var(--surface-2)!important}
+
+/* Admin navigation, status and the fixed brand palette panel. */
+#app.shell .admin-sidebar-head{
+  color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;background:transparent!important;
+}
+#app.shell .admin-sidebar-head strong{color:var(--drawer-text)!important}
+#app.shell .admin-sidebar-close{
+  background:var(--drawer-surface)!important;color:var(--drawer-text)!important;
+  border:1px solid var(--drawer-line)!important;border-radius:50%!important;
+}
+#app.shell .admin-sidebar-close:hover{
+  background:var(--drawer-active)!important;color:var(--drawer-accent)!important;border-color:var(--drawer-accent)!important;
+}
+#app.shell .admin-rail-summary{
+  background:var(--drawer-surface)!important;border:1px solid var(--drawer-line)!important;
+  color:var(--drawer-text)!important;border-radius:22px!important;box-shadow:none!important;
+}
+#app.shell .admin-rail-summary strong{color:var(--drawer-text)!important}
+#app.shell .admin-rail-summary small{color:var(--drawer-muted)!important}
+#app.shell .admin-rail-dot{background:var(--brand-success)!important;box-shadow:0 0 0 4px rgba(35,138,105,.14)!important}
+#app.shell .nexa-fixed-palette{
+  background:var(--surface-2)!important;border:1px solid var(--line)!important;
+  border-radius:24px!important;padding:16px!important;color:var(--ink)!important;
+}
+#app.shell .nexa-fixed-palette>label{color:var(--ink)!important}
+#app.shell .nexa-fixed-swatches{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important}
+#app.shell .nexa-fixed-swatches span{
+  min-width:0!important;display:flex!important;align-items:center!important;gap:9px!important;
+  padding:10px!important;background:var(--surface)!important;border:1px solid var(--line)!important;
+  border-radius:var(--radius-pill)!important;color:var(--ink)!important;
+}
+#app.shell .nexa-fixed-swatches span b{color:var(--ink)!important;font-size:10px!important}
+#app.shell .nexa-fixed-swatches span small{margin-inline-start:auto!important;color:var(--muted)!important;direction:ltr!important;font-size:9px!important}
+#app.shell .nexa-fixed-swatches i{
+  width:22px!important;height:22px!important;flex:0 0 22px!important;display:block!important;
+  border:1px solid rgba(39,45,57,.12)!important;border-radius:50%!important;
+}
+#app.shell .nexa-fixed-swatches .swatch-navy{background:#3f4a75!important}
+#app.shell .nexa-fixed-swatches .swatch-sky{background:#0095a4!important}
+#app.shell .nexa-fixed-swatches .swatch-blue{background:#55b8cc!important}
+#app.shell .nexa-fixed-swatches .swatch-ice{background:#e9e1db!important}
+#app.shell .palette-hint{color:var(--muted)!important}
+#app.shell .top-actions .status-pill{background:rgba(35,138,105,.12)!important;color:var(--brand-success)!important}
+#app.shell .admin-menu-toggle{
+  width:38px!important;height:38px!important;border:1px solid var(--drawer-line)!important;
+  border-radius:50%!important;background:var(--drawer-surface)!important;color:var(--drawer-text)!important;
+}
+:root[data-theme="light"] #app.shell .admin-menu-toggle{
+  background:var(--surface-2)!important;border-color:var(--line)!important;color:var(--ink-2)!important;
+}
+#app.shell .top-actions .btn.soft:hover{background:var(--drawer-active)!important;color:var(--brand-teal)!important}
+#app.shell .fx-preview{
+  background:var(--surface-2)!important;border-color:var(--line)!important;border-radius:24px!important;
+}
+#app.shell .fx-preview strong{color:var(--brand-teal)!important}
+#app.shell .secret-box{background:var(--surface-2)!important;color:var(--ink-2)!important}
+@media(max-width:600px){
+  #app.shell .nexa-fixed-swatches{grid-template-columns:1fr!important}
+  .app-shell .header-brand{flex:0 1 auto!important;min-width:0!important}
+  .app-shell .header-brand-copy strong{font-size:clamp(11px,3.4vw,13px)!important;white-space:nowrap!important}
+  .app-shell .header-actions{gap:3px!important}
+  .app-shell .header-actions .wallet-chip{padding-inline:7px!important}
+}
+@media(max-width:380px){
+  .app-shell .header-actions .wallet-chip span{display:none!important}
+  .app-shell .header-vip-chip{padding-inline:6px!important}
+}
+
+/* End Wamda precision pass. */

@@ -86,8 +86,8 @@ test('Store and admin assets are revalidated instead of serving a stale theme', 
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
   assert.ok(!store.includes('nexa-luxury.css') && !admin.includes('nexa-luxury.css'), 'The old luxury theme is no longer loaded by either live interface');
-  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v10'), 'Storefront loads the new full-shell theme');
-  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v10'), 'Admin loads the same new full-shell theme');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v11'), 'Storefront loads the new full-shell theme');
+  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v11'), 'Admin loads the same new full-shell theme');
   assert.ok(server.includes("const cacheControl = extension === '.html' ? 'no-store'"), 'HTML responses are not cached');
   assert.ok(server.includes("'Cache-Control':cacheControl"), 'Static files send explicit cache policy');
 });
@@ -396,7 +396,7 @@ test('Wamda brand redesign preserves store flows and adds reference account page
   assert.ok(admin.includes('admin-rail-summary'), 'The existing admin workspace summary remains in place');
   assert.ok(admin.includes('adminThemeToggle'), 'The admin keeps its independent theme control');
 
-  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-brand-v10';
+  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-brand-v11';
   assert.ok(store.includes(themeRef), 'Storefront uses the rebuilt structural theme revision');
   assert.ok(admin.includes(themeRef), 'Admin uses the same rebuilt structural theme revision');
   assert.ok(theme.includes('.app-shell .sidebar{') && theme.includes('position:fixed!important;'), 'The customer account rail is fixed on desktop');
@@ -554,7 +554,7 @@ test('Wamda palette, theme boundaries, oval geometry and bilingual direction are
   assert.ok(css.includes('direction:rtl!important;flex-direction:row!important;'), 'Header actions are ordered from the physical right');
   assert.ok(css.includes('margin-left:auto!important;margin-right:0!important;'), 'Header actions are anchored to the right');
   assert.ok(store.includes('dataset.textDirection=direction') && admin.includes('dataset.textDirection=direction'), 'Store and dashboard mark English and Arabic text independently');
-  assert.ok(store.includes('wamda-brand-v10') && admin.includes('wamda-brand-v10'), 'Both pages load the refreshed stylesheet');
+  assert.ok(store.includes('wamda-brand-v11') && admin.includes('wamda-brand-v11'), 'Both pages load the refreshed stylesheet');
   assert.ok(!logo.includes('#73d7fa') && !logo.includes('#168ec5'), 'Nexa logo no longer uses the retired blue gradient');
   assert.ok(!hero.includes('#65D5F7') && !hero.includes('#2A9FD5'), 'Hero artwork no longer uses the retired sky-blue palette');
 });
@@ -591,8 +591,35 @@ test('final Wamda finishing pass overrides legacy blue chrome in both themes', a
   ]) assert.ok(css.includes(selector), 'Missing final Wamda visual override: ' + selector);
   assert.ok(css.includes('--drawer-bg:#3f4a75;') && css.includes('--drawer-bg:#f8f5f1;'), 'Dark and light drawer surfaces remain separate');
   assert.ok(css.includes('--brand-teal:#0095a4;'), 'The official Wamda teal remains the primary accent');
-  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v10'), 'Storefront uses the final stylesheet');
-  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v10'), 'Admin uses the final stylesheet');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v11'), 'Storefront uses the final stylesheet');
+  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v11'), 'Admin uses the final stylesheet');
   assert.ok(store.includes("selected==='dark'?'#3f4a75':'#f4efea'"), 'Store browser chrome matches the selected theme');
   assert.ok(admin.includes("selected==='dark'?'#3f4a75':'#f4efea'"), 'Admin browser chrome matches its independent theme');
+});
+
+
+test('Wamda precision pass removes remaining blue-only accents and refreshes admin palette', async () => {
+  const css = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-wamda-blue.css'), 'utf8');
+  const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  for (const selector of [
+    ':root[data-theme="light"] .app-shell .sidebar-theme-toggle{',
+    ':root[data-theme="light"] .app-shell .header-actions .menu-toggle{',
+    ':root[data-theme="light"] .app-shell .header-actions .wallet-chip{',
+    ':root[data-theme="light"] .app-shell .header-vip-chip{',
+    ':root[data-theme="light"] .app-shell .side-link.active{',
+    ':root[data-theme="light"] .app-shell .nexa-home-search button{',
+    ':root[data-theme="light"] .app-shell .process-num,',
+    '#app.shell .nexa-fixed-swatches .swatch-navy{',
+    '#app.shell .admin-rail-summary{'
+  ]) assert.ok(css.includes(selector), 'Missing Wamda precision override: ' + selector);
+  for (const color of ['#3F4A75','#0095A4','#55B8CC','#E9E1DB']) {
+    assert.ok(admin.includes(color), 'Admin palette is missing official Wamda color ' + color);
+  }
+  for (const retired of ['#071626','#62C9F2','#1D91C7','#E7F7FF']) {
+    assert.ok(!admin.includes(retired), 'Admin palette still displays retired color ' + retired);
+  }
+  assert.ok(admin.includes('هوية ومضة المعتمدة — ألوان ثابتة'), 'Admin palette heading uses Wamda identity');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v11'), 'Storefront loads the precision pass');
+  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v11'), 'Admin loads the precision pass');
 });
