@@ -877,6 +877,7 @@ body{
           <div class="field"><label for="loginPagePassword">كلمة المرور</label><input id="loginPagePassword" type="password" autocomplete="current-password" required minlength="8" maxlength="128" placeholder="أدخل كلمة المرور"></div>
           <p class="reference-form-message" id="loginPageMessage" role="status"></p>
           <button class="btn btn-primary reference-submit" type="submit">تسجيل الدخول <span>←</span></button>
+          <button class="btn btn-soft" type="button" data-page="forgot">نسيت كلمة المرور؟</button>
         </form>
         <div class="reference-quiet-note"><strong>التسجيل الجديد متوقف مؤقتاً.</strong><span>لا يوجد إنشاء حسابات جديدة في الوقت الحالي.</span></div>
       </section>
@@ -888,6 +889,21 @@ body{
       </section>
       <aside class="reference-side-note"><span class="reference-kicker">ACCOUNT ACCESS</span><h3>حسابك في Nexa</h3><p>تستطيع بعد تسجيل الدخول مراجعة طلباتك ومدفوعاتك والرصيد المتاح، دون مشاركة كلمة مرورك أو بيانات الدفع مع أي جهة.</p><div class="reference-side-note-line"><b>01</b><span>رقم الهاتف المرتبط بالحساب</span></div><div class="reference-side-note-line"><b>02</b><span>كلمة مرور حساب Nexa فقط</span></div><div class="reference-side-note-line"><b>03</b><span>لا تشارك رموز التحقق أو بيانات محفظتك</span></div></aside>
     </div>
+  </div>
+</section>
+
+<section class="view hidden" data-view="register" id="registerView">
+  <div class="reference-page-wrap">
+    <div class="reference-page-heading"><div><span class="reference-kicker">CUSTOMER REGISTRATION</span><h1>إنشاء حساب جديد</h1><p>التسجيل الجديد متوقف حالياً، ويمكنك العودة لاحقاً بعد الإعلان عن فتحه.</p></div></div>
+    <section class="reference-empty-panel"><div class="reference-empty-icon">♙</div><h2>التسجيل غير متاح حالياً</h2><p>تم إيقاف إنشاء الحسابات الجديدة على واجهة المتجر والخادم معاً. إذا كان لديك حساب سابق، يمكنك الدخول باستخدام رقم الهاتف وكلمة المرور فقط.</p><div class="reference-action-row"><button class="btn btn-primary" type="button" data-page="login">تسجيل الدخول</button><button class="btn btn-soft" type="button" data-page="home">العودة إلى المتجر</button></div></section>
+  </div>
+</section>
+
+<section class="view hidden" data-view="forgot" id="forgotPasswordView">
+  <div class="reference-page-wrap">
+    <div class="reference-page-heading"><div><span class="reference-kicker">ACCOUNT RECOVERY</span><h1>استعادة كلمة المرور</h1><p>استعادة الوصول إلى حسابك باستخدام مسار تحقق آمن.</p></div></div>
+    <section class="reference-warning-panel"><span class="reference-warning-icon">!</span><div><strong>استعادة كلمة المرور غير مفعّلة حالياً</strong><p>لا يوجد مزود رسائل SMS أو تحقق OTP موصول بخادم المتجر حتى الآن. لا تدخل رقمك أو أي رمز تحقق في نموذج غير مدعوم، وتواصل مع الدعم عبر القنوات الرسمية بعد تجهيز ما يثبت ملكية الحساب.</p></div></section>
+    <section class="reference-panel"><h2>ماذا يمكنك فعله الآن؟</h2><p>إذا كنت تتذكر كلمة مرورك، سجّل الدخول برقم الهاتف وكلمة المرور. إذا فقدت الوصول، تواصل مع فريق الدعم؛ لن نغيّر كلمة مرور الحساب دون تحقق موثوق من ملكيته.</p><div class="reference-action-row"><button class="btn btn-primary" type="button" data-page="login">العودة إلى تسجيل الدخول</button><button class="btn btn-soft" type="button" data-page="support">التواصل مع الدعم</button></div></section>
   </div>
 </section>
 
