@@ -49,8 +49,6 @@ const cfg = {
   databaseUrl: process.env.DATABASE_URL || '',
   databaseSsl: String(process.env.DATABASE_SSL || 'true').toLowerCase() === 'true',
   paymentsEnabled: String(process.env.PAYMENTS_ENABLED || 'false').toLowerCase() === 'true',
-  // Customer registration is intentionally disabled until the owner approves launch.
-  customerRegistrationEnabled: String(process.env.CUSTOMER_REGISTRATION_ENABLED || 'false').toLowerCase() === 'true',
   maxAgeMs: Number(process.env.PAYMENT_MAX_AGE_MINUTES || 15) * 60_000,
   futureSkewMs: Number(process.env.PAYMENT_FUTURE_SKEW_SECONDS || 90) * 1000,
   orderTtlMinutes: Number(process.env.PAYMENT_ORDER_TTL_MINUTES || 15),
@@ -2524,27 +2522,7 @@ const server = http.createServer(async (req,res) => {
       walletVerifiedAt:cachedShamWalletAt?new Date(cachedShamWalletAt).toISOString():null,
     });
 
-    if(req.method==='POST'&&url.pathname==='/api/account/register'){
-      if(!cfg.customerRegistrationEnabled)return send(res,403,{ok:false,error:'REGISTRATION_DISABLED',message:'إنشاء الحسابات الجديدة متوقف مؤقتاً. يمكنك تسجيل الدخول برقم الهاتف وكلمة المرور إذا كان لديك حساب.'});
-      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED',message:'خدمة الحسابات غير جاهزة حالياً.'});
-      if(rateLimit(req,res,'account-register:'+ip,5,10*60_000))return;
-      const input=await bodyJson(req,4096);
-      const name=String(input.name||'').trim().slice(0,70);
-      const phone=String(input.phone||'').replace(/[\s()-]/g,'').trim();
-      const password=String(input.password||'');
-      if(name.length<2||!/^\+?[0-9]{8,18}$/.test(phone)||password.length<8||password.length>128)
-        return send(res,400,{ok:false,error:'INVALID_ACCOUNT_DETAILS',message:'أدخل اسماً ورقم هاتف صحيحاً وكلمة مرور من 8 أحرف على الأقل.'});
-      const id=crypto.randomUUID(),salt=crypto.randomBytes(16).toString('hex'),hash=customerPasswordHash(password,salt);
-      try{
-        await pool.query('INSERT INTO nexa_customers(id,full_name,phone,password_salt,password_hash) VALUES($1,$2,$3,$4,$5)',[id,name,phone,salt,hash]);
-        await createCustomerSession(req,res,id);
-        const customer=await pool.query('SELECT id,full_name,phone,balance_minor::text,created_at FROM nexa_customers WHERE id=$1',[id]);
-        return send(res,201,{ok:true,customer:customer.rows[0]});
-      }catch(error){
-        if(error.code==='23505')return send(res,409,{ok:false,error:'PHONE_ALREADY_REGISTERED',message:'رقم الهاتف مسجل مسبقاً. سجّل الدخول إلى حسابك.'});
-        throw error;
-      }
-    }
+    if(req.method==='POST'&&url.pathname==='/api/account/register')return send(res,403,{ok:false,error:'REGISTRATION_DISABLED',message:'إنشاء الحسابات الجديدة متوقف حالياً. تسجيل الدخول للحسابات الحالية برقم الهاتف وكلمة المرور فقط.'});
     if(req.method==='POST'&&url.pathname==='/api/account/login'){
       if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED',message:'خدمة الحسابات غير جاهزة حالياً.'});
       if(rateLimit(req,res,'account-login:'+ip,8,10*60_000))return;
