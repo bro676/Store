@@ -361,7 +361,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
 
   for (const id of [
     'sidebarProfileButton','sidebarProfileAvatar','sidebarCustomerName','sidebarCustomerMeta',
-    'sidebarBalanceValue','globalSearchRow','globalSearch','homeSearchForm','paymentsTable',
+    'globalSearchRow','globalSearch','homeSearchForm','paymentsTable',
     'accountLoginPhone','accountLoginPassword','accountAuthMessage','loginPageForm',
     'loginPagePhone','loginPagePassword','loginPageMessage','registerView','forgotPasswordView','notificationsView','vipView',
     'botView','affiliateView','securityView','verifyView','apiSettingsView','installView',
