@@ -86,8 +86,8 @@ test('Store and admin assets are revalidated instead of serving a stale theme', 
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
   assert.ok(!store.includes('nexa-luxury.css') && !admin.includes('nexa-luxury.css'), 'The old luxury theme is no longer loaded by either live interface');
-  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-full-shell-v4'), 'Storefront loads the new full-shell theme');
-  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-full-shell-v4'), 'Admin loads the same new full-shell theme');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-responsive-v5'), 'Storefront loads the new full-shell theme');
+  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-responsive-v5'), 'Admin loads the same new full-shell theme');
   assert.ok(server.includes("const cacheControl = extension === '.html' ? 'no-store'"), 'HTML responses are not cached');
   assert.ok(server.includes("'Cache-Control':cacheControl"), 'Static files send explicit cache policy');
 });
@@ -396,7 +396,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(admin.includes('admin-rail-summary'), 'The existing admin workspace summary remains in place');
   assert.ok(admin.includes('adminThemeToggle'), 'The admin keeps its independent theme control');
 
-  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-full-shell-v4';
+  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-responsive-v5';
   assert.ok(store.includes(themeRef), 'Storefront uses the rebuilt structural theme revision');
   assert.ok(admin.includes(themeRef), 'Admin uses the same rebuilt structural theme revision');
   assert.ok(theme.includes('.app-shell .sidebar{') && theme.includes('position:fixed!important;'), 'The customer account rail is fixed on desktop');
@@ -432,6 +432,22 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(theme.includes('body.admin-sidebar-open #app.shell .admin-sidebar-backdrop'), 'Admin mobile backdrop follows the real body state');
   assert.ok(theme.includes('.reference-empty-panel'), 'Reference account-only pages have a truthful unavailable state');
   assert.ok(store.includes('data-open-assistant'), 'The existing assistant remains reachable from the account rail');
+  assert.ok(store.includes('id="sidebarClose"') && store.includes('class="sidebar-drawer-head"'), 'Store drawer includes an in-drawer close control');
+  assert.ok(store.includes("const storeDrawerMedia=window.matchMedia('(max-width: 1024px)')"), 'Store drawer activates at the tablet breakpoint');
+  assert.ok(store.includes("$('sidebarClose').addEventListener('click',()=>closeMenu(true))"), 'Store close control restores focus to the menu toggle');
+  assert.ok(store.includes("if(e.key==='Tab'&&document.body.classList.contains('sidebar-open'))"), 'Store drawer traps keyboard focus while open');
+  assert.ok(store.includes("setAttribute('inert','')") && store.includes("removeAttribute('inert')"), 'Store drawer leaves keyboard navigation while closed');
+  assert.ok(admin.includes('id="adminSidebarClose"') && admin.includes('class="admin-sidebar-head"'), 'Admin drawer includes its own close control');
+  assert.ok(admin.includes("window.matchMedia('(max-width: 1024px)')"), 'Admin drawer uses the tablet breakpoint');
+  assert.ok(admin.includes("closeButton.addEventListener('click', () => setOpen(false, true))"), 'Admin close control restores focus to its toggle');
+  assert.ok(admin.includes("event.key !== 'Tab' || !document.body.classList.contains('admin-sidebar-open')"), 'Admin drawer traps keyboard focus while open');
+  assert.ok(theme.includes('@media(max-width:1024px)'), 'Store and admin drawers collapse below 1024px');
+  assert.ok(theme.includes('body.sidebar-open .app-shell .sidebar{transform:translate3d(0,0,0)!important}'), 'Store drawer uses a smooth hardware-accelerated slide');
+  assert.ok(theme.includes('body.admin-sidebar-open #app.shell .side{transform:translate3d(0,0,0)!important}'), 'Admin drawer uses the same smooth slide behavior');
+  assert.ok(theme.includes('body.sidebar-open,body.admin-sidebar-open{overflow:hidden!important'), 'Background scrolling is locked while a drawer is open');
+  assert.ok(theme.includes('@media(max-width:380px)'), 'Header and controls have an extra-small phone layout');
+  assert.ok(theme.includes('.app-shell .option-list,.app-shell .pack-grid,.app-shell .faq-grid,') && theme.includes('grid-template-columns:1fr!important;'), 'Narrow phones keep the long option and pack choices in a readable single column');
+
   assert.ok(store.includes('class="home-intro-brand-mark"'), 'The Nexa brand mark remains on the homepage');
 });
 
