@@ -422,7 +422,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(theme.includes('#62c8f2'), 'The rebuilt topbar uses the requested sky-blue brand color');
   assert.ok(theme.includes(':root[data-theme="light"]'), 'Light theme is explicitly supported');
   assert.ok(theme.includes(':root[data-theme="dark"]'), 'Dark theme is explicitly supported');
-  assert.ok(theme.includes('@media(max-width:820px)'), 'The account rail has a mobile drawer layout');
+  assert.ok(theme.includes('@media(max-width:860px)'), 'The account rail has a mobile drawer layout');
   assert.ok(theme.includes('#app.shell .side'), 'The existing admin dashboard keeps its own rail');
   assert.ok(theme.includes('body.admin-sidebar-open #app.shell .side'), 'Admin mobile rail follows its existing open-state class');
   assert.ok(theme.includes('body.admin-sidebar-open #app.shell .admin-sidebar-backdrop'), 'Admin mobile backdrop follows the real body state');
