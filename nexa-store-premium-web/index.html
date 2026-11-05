@@ -1049,8 +1049,6 @@ function navigate(view,{historyMode='push',syncLocation=true}={}){
 }
 window.addEventListener('popstate',()=>navigate(resolveStoreLocation(),{syncLocation:false}));
 function closeMenu(){document.body.classList.remove('menu-open','sidebar-open');$('menuToggle')?.setAttribute('aria-expanded','false')}
-$('menuToggle')?.addEventListener('click',()=>{const open=!document.body.classList.contains('sidebar-open');document.body.classList.toggle('sidebar-open',open);$('menuToggle')?.setAttribute('aria-expanded',String(open));});
-$('sidebarBackdrop')?.addEventListener('click',closeMenu);
 document.addEventListener('keydown',event=>{if(event.key==='Escape')closeMenu();});
 function renderDepartmentCard(group){
  return '<button type="button" class="department-card" data-department="'+esc(group.id)+'" aria-label="فتح '+esc(group.name)+'">'+
