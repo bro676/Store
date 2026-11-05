@@ -446,6 +446,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(theme.includes('body.admin-sidebar-open #app.shell .side{transform:translate3d(0,0,0)!important}'), 'Admin drawer uses the same smooth slide behavior');
   assert.ok(theme.includes('body.sidebar-open,body.admin-sidebar-open{overflow:hidden!important'), 'Background scrolling is locked while a drawer is open');
   assert.ok(theme.includes('@media(max-width:380px)'), 'Header and controls have an extra-small phone layout');
+  assert.ok(theme.includes('.app-shell .option-list,.app-shell .pack-grid,.app-shell .faq-grid,') && theme.includes('grid-template-columns:1fr!important;'), 'Narrow phones keep the long option and pack choices in a readable single column');
 
   assert.ok(store.includes('class="home-intro-brand-mark"'), 'The Nexa brand mark remains on the homepage');
 });
