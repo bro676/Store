@@ -386,7 +386,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(admin.includes('admin-rail-summary'), 'The existing admin workspace summary remains in place');
   assert.ok(admin.includes('adminThemeToggle'), 'The admin keeps its independent theme control');
 
-  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-layout-v1';
+  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-layout-v2';
   assert.ok(store.includes(themeRef), 'Storefront uses the rebuilt structural theme revision');
   assert.ok(admin.includes(themeRef), 'Admin uses the same rebuilt structural theme revision');
   assert.ok(theme.includes('.app-shell .sidebar-profile'), 'The customer account rail has a dedicated visual system');
@@ -396,7 +396,9 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(theme.includes('.app-shell .option-list{'), 'The options/region stage retains its own layout');
   assert.ok(theme.includes('.app-shell .pack-grid{'), 'The pack/price stage retains its own layout');
   assert.ok(theme.includes('grid-template-columns:repeat(4,minmax(0,1fr))'), 'Wide catalog/category grids use four columns');
-  assert.ok(theme.includes('--rail-width:248px'), 'The desktop account rail follows the reference proportions');
+  assert.ok(theme.includes('--rail-width:clamp(300px,18.3vw,360px)'), 'The desktop account rail follows the reference width at large viewports');
+  assert.ok(theme.includes('--topbar-height:38px'), 'The storefront header follows the compact Wamda reference height');
+  assert.ok(theme.includes('#app.shell .topbar{position:sticky!important;top:0!important;z-index:60!important;min-height:var(--topbar-height)!important;height:var(--topbar-height)!important;'), 'The admin topbar shares the compact reference height');
   assert.ok(theme.includes('.app-shell .header{position:sticky'), 'The customer topbar remains horizontal and fixed to the top');
   assert.ok(theme.includes('#57c3ed'), 'The reference header uses the sky-blue brand color');
   assert.ok(theme.includes(':root[data-theme="light"]'), 'Light theme is explicitly supported');
