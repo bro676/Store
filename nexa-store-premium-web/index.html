@@ -604,7 +604,7 @@ body{
 @media(max-width:820px){.sidebar{background:linear-gradient(155deg,var(--nexa-dark),color-mix(in srgb,var(--nexa-primary) 32%,var(--nexa-dark)),color-mix(in srgb,var(--nexa-highlight) 28%,var(--nexa-dark)))}}
 
 </style>
-<link rel="stylesheet" href="/assets/brand/nexa-wamda-blue.css?v=20261105-wamda-responsive-v5">
+<link rel="stylesheet" href="/assets/brand/nexa-wamda-blue.css?v=20261105-wamda-drawer-v6">
 </head>
 <body>
 <div class="app-shell">
@@ -1046,30 +1046,49 @@ function navigate(view,{historyMode='push',syncLocation=true}={}){
  if(view==='favorites')renderFavorites();
  if(view==='home')renderFeatured();
  if(view==='support')renderSupportState();
- renderSidebarAccount();window.scrollTo({top:0,behavior:'smooth'});closeMenu();
+ renderSidebarAccount();window.scrollTo({top:0,behavior:'smooth'});if(window.matchMedia('(max-width: 1024px)').matches)closeMenu();
 }
 window.addEventListener('popstate',()=>navigate(resolveStoreLocation(),{syncLocation:false}));
 const storeDrawerMedia=window.matchMedia('(max-width: 1024px)');
-function closeMenu(restoreFocus=false){
- const wasOpen=document.body.classList.contains('sidebar-open');
- document.body.classList.remove('menu-open','sidebar-open');
- $('menuToggle')?.setAttribute('aria-expanded','false');
+function isStoreMenuOpen(){
+ return storeDrawerMedia.matches
+  ?document.body.classList.contains('sidebar-open')
+  :!document.body.classList.contains('sidebar-closed');
+}
+function setStoreMenuState(open,restoreFocus=false){
+ const wasOpen=isStoreMenuOpen(),nextOpen=Boolean(open);
+ document.body.classList.remove('menu-open');
+ if(storeDrawerMedia.matches){
+  document.body.classList.toggle('sidebar-open',nextOpen);
+  document.body.classList.remove('sidebar-closed');
+ }else{
+  document.body.classList.remove('sidebar-open');
+  document.body.classList.toggle('sidebar-closed',!nextOpen);
+ }
+ $('menuToggle')?.setAttribute('aria-expanded',String(nextOpen));
+ $('menuToggle')?.setAttribute('aria-label',nextOpen?'إغلاق القائمة الجانبية':'فتح القائمة الجانبية');
  $('sidebar')?.removeAttribute('aria-modal');
- if(storeDrawerMedia.matches){$('sidebar')?.setAttribute('inert','');$('sidebar')?.setAttribute('aria-hidden','true');}
- else{$('sidebar')?.removeAttribute('inert');$('sidebar')?.setAttribute('aria-hidden','false');}
- if(restoreFocus&&wasOpen)$('menuToggle')?.focus({preventScroll:true});
+ if(nextOpen){
+  $('sidebar')?.removeAttribute('inert');
+  $('sidebar')?.setAttribute('aria-hidden','false');
+  if(storeDrawerMedia.matches){
+   $('sidebar')?.setAttribute('aria-modal','true');
+   $('sidebarClose')?.focus({preventScroll:true});
+  }
+ }else{
+  $('sidebar')?.setAttribute('inert','');
+  $('sidebar')?.setAttribute('aria-hidden','true');
+  if(restoreFocus&&wasOpen)$('menuToggle')?.focus({preventScroll:true});
+ }
 }
-function openMenu(){
- if(!storeDrawerMedia.matches)return;
- document.body.classList.add('sidebar-open');
- $('menuToggle')?.setAttribute('aria-expanded','true');
- $('sidebar')?.removeAttribute('inert');
- $('sidebar')?.setAttribute('aria-hidden','false');
- $('sidebar')?.setAttribute('aria-modal','true');
- $('sidebarClose')?.focus({preventScroll:true});
+function closeMenu(restoreFocus=false){setStoreMenuState(false,restoreFocus)}
+function openMenu(){setStoreMenuState(true)}
+function syncStoreMenuToViewport(){
+ if(storeDrawerMedia.matches)setStoreMenuState(false);
+ else setStoreMenuState(true);
 }
-if(storeDrawerMedia.addEventListener)storeDrawerMedia.addEventListener('change',()=>closeMenu());
-closeMenu();
+if(storeDrawerMedia.addEventListener)storeDrawerMedia.addEventListener('change',syncStoreMenuToViewport);
+syncStoreMenuToViewport();
 function renderDepartmentCard(group){
  return '<button type="button" class="department-card" data-department="'+esc(group.id)+'" aria-label="فتح '+esc(group.name)+'">'+
   '<span class="department-card-art"><img src="'+esc(group.cover)+'" alt="" loading="lazy"><i>'+esc(group.icon)+'</i></span>'+
@@ -1706,7 +1725,7 @@ $('orderQuantity').addEventListener('input',renderCurrencyPreview);$('shamCashPa
  const productControl=NexaCatalog.findProductControl(e)||eventElement(e,'[data-open-item]');
  if(!productControl||closestStoreTarget(e,'[data-favorite]'))return;
  e.preventDefault();openItem(productControl.getAttribute('data-open-item'),productControl.getAttribute('data-open-category')||null);
- });$('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){showSearchResults(e.currentTarget.value)}});$('globalSearch').addEventListener('search',e=>{if(!e.currentTarget.value){navigate('home')}});$('homeSearchForm')?.addEventListener('submit',e=>{e.preventDefault();showSearchResults($('homeSearch')?.value||'')});$('homeSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();showSearchResults(e.currentTarget.value)}});$('paymentHistoryFilter')?.addEventListener('change',renderPaymentHistory);$('paymentHistorySearch')?.addEventListener('input',renderPaymentHistory);$('menuToggle').addEventListener('click',()=>{if(document.body.classList.contains('sidebar-open'))closeMenu(true);else openMenu()});$('sidebarClose').addEventListener('click',()=>closeMenu(true));$('sidebarBackdrop').addEventListener('click',()=>closeMenu(true));
+ });$('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){showSearchResults(e.currentTarget.value)}});$('globalSearch').addEventListener('search',e=>{if(!e.currentTarget.value){navigate('home')}});$('homeSearchForm')?.addEventListener('submit',e=>{e.preventDefault();showSearchResults($('homeSearch')?.value||'')});$('homeSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();showSearchResults(e.currentTarget.value)}});$('paymentHistoryFilter')?.addEventListener('change',renderPaymentHistory);$('paymentHistorySearch')?.addEventListener('input',renderPaymentHistory);$('menuToggle').addEventListener('click',()=>{if(isStoreMenuOpen())closeMenu(true);else openMenu()});$('sidebarClose').addEventListener('click',()=>closeMenu(true));$('sidebarBackdrop').addEventListener('click',()=>closeMenu(true));
 
 async function refreshCustomerAccount(){
  const guest=$('customerGuestPanel'),signed=$('customerSignedPanel'),status=$('walletAccountStatus');
