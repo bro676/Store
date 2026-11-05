@@ -383,7 +383,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
 .category-editor h3{font-size:16px}
 @media(max-width:820px){.catalog-layout{grid-template-columns:1fr}.category-list.folder-tree{max-height:340px}.folder-choice{min-width:180px}.department-choice{min-width:190px}}
 </style>
-<link rel="stylesheet" href="/assets/brand/nexa-wamda-blue.css?v=20261105-wamda-brand-v9">
+<link rel="stylesheet" href="/assets/brand/nexa-wamda-blue.css?v=20261105-wamda-brand-v10">
 </head>
 <body>
 <section id="loginScreen" class="login-screen">
@@ -776,7 +776,7 @@ function setAdminColorMode(mode,{persist=true}={}){
  if(persist){try{localStorage.setItem(ADMIN_THEME_KEY,selected)}catch{}}
  const button=$('adminThemeToggle');
  if(button){button.textContent=selected==='dark'?'☀️ الوضع الفاتح':'🌙 الوضع الداكن';button.setAttribute('aria-label',selected==='dark'?'التبديل إلى الوضع الفاتح':'التبديل إلى الوضع الداكن');button.setAttribute('aria-pressed',String(selected==='dark'));}
- const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=selected==='dark'?'#0d2033':'#e8f7ff';
+ const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=selected==='dark'?'#3f4a75':'#f4efea';
 }
 function initializeAdminColorMode(){
  let saved='dark';try{saved=localStorage.getItem(ADMIN_THEME_KEY)||'dark'}catch{}
