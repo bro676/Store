@@ -1,6 +1,6 @@
 # Nexa Store — Premium UI + Sham Cash API v1
 
-متجر Nexa عربي RTL متجاوب مع الكمبيوتر والجوال وChrome. يعتمد هوية فحمية وذهبية مع وضعين فاتح وداكن مستقلين للمتجر ولوحة الإدارة، ويستخدم PostgreSQL لحفظ الكتالوج والإعدادات والطلبات.
+متجر Nexa عربي RTL متجاوب مع الكمبيوتر والجوال. يعتمد تخطيطاً مستلهماً من Wamda Store بهوية زرقاء سماوية وكحلي، مع وضعين فاتح وداكن مستقلين للمتجر ولوحة الإدارة، ويستخدم PostgreSQL لحفظ الكتالوج والإعدادات والطلبات.
 
 ## التشغيل
 
@@ -10,7 +10,7 @@
 
 ## أقسام الواجهة
 
-الرئيسية، المتجر، الطلبات، المفضلة، الدفع عبر شام كاش، ومركز الدعم. تصميم بألوان كحلي عميق وأخضر يشمي/فيروزي ولمسات محايدة، مع تخطيطات متجاوبة.
+الرئيسية، المتجر، الطلبات، المفضلة، المحفظة وشحن الرصيد، سجل المدفوعات، الملف الشخصي، ومركز الدعم. تعتمد الواجهة شريطاً علوياً سماوياً مدمجاً، وشريط حساب جانبياً، وكتالوجاً متداخلاً، مع ألوان سماوية وكحلية ووضعين فاتح وداكن مستقلين.
 
 ## شام كاش
 
@@ -56,7 +56,7 @@
 
 ## تصميم الواجهة الجديد
 
-تعتمد الواجهة ولوحة الإدارة هوية Nexa الفحمية والذهبية، مع وضع فاتح وداكن مستقل لكل واجهة، وتباين منفصل للحقول والنوافذ والجداول. تنقّل المتجر منظم في خمسة مستويات: القسم الرئيسي، قسم المورد، المنتج، الخيار/المنطقة، ثم الباقة.
+تعتمد الواجهة ولوحة الإدارة هوية Nexa السماوية والكحلية المستوحاة من بنية Wamda Store، مع وضع فاتح وداكن مستقل لكل واجهة وتباين منفصل للحقول والنوافذ والجداول. على الشاشات الواسعة يتدرج عرض شريط الحساب الجانبي بين 300 و360 بكسل بحسب العرض، ويبلغ ارتفاع الشريط العلوي 38 بكسل؛ وتتحول القوائم إلى درج جانبي على الشاشات الصغيرة. تنقّل المتجر منظم في خمسة مستويات: القسم الرئيسي، المجلدات المتداخلة، المنتج، الخيار/المنطقة، ثم الباقة.
 
 ## ربط المنتجات عبر API
 
@@ -92,3 +92,8 @@ Best Store's API docs do not explicitly state the currency for `base_price` or `
 - Settings updates always persist the validated settings object after supplier repricing and refresh runtime credentials before returning success. Best Store's API token field remains populated in the admin form until the server confirms the encrypted credential is configured.
 - If a previous save returned success while the token was not actually persisted, enter the token again in Nexa Admin → Catalog API → Best Store after this fix is deployed. Never place the token in source control or chat.
 - Storefront product cards use direct capture listeners on the stable Home, Catalog/Search, and Favorites roots. Product navigation resolves the product and category IDs from the live catalogue and jumps directly to the pack step only when one valid option is available.
+
+
+## حالة صفحات الحساب الإضافية
+
+توجد حالياً واجهات تنقل مرجعية لصفحات الإشعارات وVIP وربط البوت والإحالات والأمان وتوثيق الهوية وإعدادات API والتثبيت. لا يعني وجود هذه الصفحات أن خدماتها الخلفية مفعّلة؛ تبقى الصفحات غير المدعومة بحالة توضيحية حتى تنفيذ خدماتها واختبارها. تسجيل العملاء الجدد معطّل افتراضياً على الخادم، وتسجيل الدخول الحالي باستخدام رقم الهاتف وكلمة المرور فقط. لا تفعّل `CUSTOMER_REGISTRATION_ENABLED` إلا بعد اعتماد إطلاق التسجيل.
