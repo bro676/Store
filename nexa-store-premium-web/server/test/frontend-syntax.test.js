@@ -420,6 +420,9 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(theme.includes('#app.shell .topbar{') && theme.includes('min-height:var(--topbar-height)!important;height:var(--topbar-height)!important;'), 'The admin topbar shares the full-shell reference height');
   assert.ok(theme.includes('.app-shell .header{') && theme.includes('position:sticky!important;top:0!important;z-index:70!important;'), 'The customer topbar remains horizontal and fixed to the top');
   assert.ok(theme.includes('#62c8f2'), 'The rebuilt topbar uses the requested sky-blue brand color');
+  assert.ok(theme.includes('--red:var(--sky-2)') && theme.includes('--green:var(--sky-3)'), 'Legacy primary/green aliases resolve to the sky-blue brand');
+  assert.ok(theme.includes('.app-shell .step.active span{background:var(--sky-2)!important'), 'Active product-flow steps use the sky-blue accent');
+  assert.ok(theme.includes('.app-shell .tabs button.active,.app-shell .tab.active{'), 'Active tab states use the same sky-blue accent');
   assert.ok(theme.includes(':root[data-theme="light"]'), 'Light theme is explicitly supported');
   assert.ok(theme.includes(':root[data-theme="dark"]'), 'Dark theme is explicitly supported');
   assert.ok(theme.includes('@media(max-width:860px)'), 'The account rail has a mobile drawer layout');
