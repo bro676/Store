@@ -500,6 +500,7 @@ test('Wamda app chrome keeps account shortcuts, VIP, notifications and theme in 
   assert.ok(store.includes("button.textContent=selected==='dark'?'☀ الوضع الفاتح':'☾ الوضع الداكن'"), 'The bottom drawer theme control retains its working day/night toggle');
   assert.ok(theme.includes('.app-shell .sidebar-profile-wrap{') && theme.includes('.app-shell .sidebar-notification{'), 'The profile and notification bell share a compact account header');
   assert.ok(theme.includes('.app-shell .sidebar-theme-toggle{') && theme.includes('.app-shell .header-vip-chip{'), 'Sidebar appearance and VIP chips use the same calm Wamda palette');
+  assert.ok(theme.includes('margin-left:auto!important;margin-right:0!important;'), 'RTL action cluster remains docked to the far right of the LTR header shell');
 });
 
 test('Wamda reference paths load the storefront shell and resolve to the intended customer views', async () => {
