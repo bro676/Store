@@ -2138,3 +2138,53 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
     url('/assets/brand/nexa-hero-banner.svg') center/cover no-repeat,
     linear-gradient(125deg,#3f4a75,#263b55)!important;
 }
+
+
+/* Explicit light-mode exceptions: the light theme never inherits dark hero/footer/checkout panels. */
+:root[data-theme="light"] .app-shell .home-intro{
+  border-color:var(--line)!important;
+  background:
+    radial-gradient(circle at 88% 12%,rgba(85,184,204,.18),transparent 34%),
+    url('/assets/brand/nexa-hero-banner.svg') center/cover no-repeat,
+    linear-gradient(125deg,#fffdfa 0%,#f4efea 100%)!important;
+  color:var(--ink)!important;box-shadow:var(--shadow)!important;
+}
+:root[data-theme="light"] .app-shell .home-intro :where(h1,h2,strong,p,.home-intro-note,.home-intro-kicker){
+  color:var(--ink)!important;
+}
+:root[data-theme="light"] .app-shell .home-intro h1 span,
+:root[data-theme="light"] .app-shell .home-intro-kicker,
+:root[data-theme="light"] .app-shell .home-intro-note b{color:var(--brand-teal)!important}
+:root[data-theme="light"] .app-shell .home-intro-kicker i{background:var(--brand-teal)!important}
+:root[data-theme="light"] .app-shell .home-intro-note{
+  background:var(--surface-2)!important;border-color:var(--line)!important;
+}
+:root[data-theme="light"] .app-shell .home-intro .home-assistant-link{
+  background:var(--surface)!important;color:var(--brand-teal)!important;border-color:var(--line)!important;
+}
+:root[data-theme="light"] .app-shell .wallet-placeholder,
+:root[data-theme="light"] .app-shell .wallet-api-side{
+  background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+:root[data-theme="light"] .app-shell .wallet-placeholder :where(h2,h3,strong,p,span),
+:root[data-theme="light"] .app-shell .wallet-api-side :where(h2,h3,strong,p,span,li){
+  color:var(--ink)!important;
+}
+:root[data-theme="light"] .app-shell .wallet-api-side :where(.wallet-api-side-note,.muted,small){color:var(--muted)!important}
+:root[data-theme="light"] .app-shell .promo{
+  background:var(--surface-2)!important;color:var(--ink-2)!important;border-color:var(--line)!important;
+}
+:root[data-theme="light"] .app-shell .promo strong{color:var(--brand-teal)!important}
+:root[data-theme="light"] .app-shell .promo-dot{background:var(--brand-teal)!important;box-shadow:0 0 0 4px rgba(0,149,164,.12)!important}
+:root[data-theme="light"] .app-shell .footer{
+  background:var(--surface-2)!important;color:var(--ink-2)!important;border-top:1px solid var(--line)!important;
+}
+:root[data-theme="light"] .app-shell .footer :where(h2,h3,strong,p,small,a,span){color:inherit!important}
+:root[data-theme="light"] .app-shell .footer a:hover{color:var(--brand-teal)!important}
+:root[data-theme="light"] #app.shell .login-screen{
+  background:radial-gradient(circle at 15% 20%,rgba(0,149,164,.1),transparent 34%),var(--paper)!important;
+  color:var(--ink)!important;
+}
+:root[data-theme="light"] #app.shell .login-card{
+  background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
