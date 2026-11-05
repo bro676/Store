@@ -7,8 +7,8 @@
 
 :root {
   color-scheme: light;
-  --rail-width:clamp(300px,18.3vw,360px);
-  --topbar-height:38px;
+  --rail-width:clamp(286px,18.4vw,320px);
+  --topbar-height:66px;
   --sky:#63c9f2;
   --sky-strong:#168ec5;
   --sky-deep:#0b6d9f;
@@ -633,3 +633,123 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(prefers-reduced-motion:reduce){
  *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important}
 }
+
+
+/* WAMDA REFERENCE FIDELITY PASS — November 5, 2026 */
+.app-shell .wrap,.app-shell .page-shell,.app-shell .reference-page-wrap{width:min(1450px,88%)!important;max-width:1450px!important;margin-inline:auto!important}
+.app-shell .reference-search-inner{width:min(1450px,88%)!important}
+.app-shell .header-main{direction:ltr!important}
+.app-shell .header-brand{direction:ltr!important;text-align:left!important}
+.app-shell .header-brand-copy{direction:ltr!important;text-align:left!important}
+.app-shell .header-brand-copy small{text-align:left!important}
+.app-shell .header-actions{direction:ltr!important;flex-direction:row-reverse!important}
+.app-shell .menu-toggle{display:grid!important}
+.app-shell .header-actions .icon-button[data-page="favorites"],.app-shell .header-actions .icon-button[data-page="orders"]{display:none!important}
+.app-shell .reference-search-heading{display:none!important}
+.app-shell .reference-search-row{padding:0 0 22px!important}
+.app-shell .header-search{height:60px!important;border:1px solid var(--line)!important;border-radius:999px!important;background:#f1f3f5!important;padding:0 21px!important;box-shadow:none!important}
+.app-shell .header-search input{font-size:12px!important}
+:root[data-theme="dark"] .app-shell .header-search{background:#152230!important;border-color:#26394b!important}
+.app-shell .home-intro{
+ min-height:clamp(360px,27vw,445px)!important;border-radius:11px!important;border:1px solid rgba(96,198,236,.26)!important;
+ background:linear-gradient(90deg,rgba(3,17,30,.56),rgba(3,17,30,.2) 52%,rgba(3,17,30,.36)),url('/assets/brand/nexa-hero-banner.svg') center/cover no-repeat,linear-gradient(118deg,#061a2b 0%,#0b2940 54%,#081b2e 100%)!important;
+ box-shadow:0 18px 42px rgba(8,38,58,.14)!important;
+}
+.app-shell .home-intro:before{background:linear-gradient(90deg,transparent 16%,rgba(133,221,249,.05) 50%,transparent 84%)!important}
+.app-shell .home-intro-brand-mark{width:76px!important;height:76px!important;margin-bottom:14px!important;border-radius:19px!important}
+.app-shell .home-intro h1{font-size:clamp(31px,3.4vw,46px)!important}
+.app-shell .nexa-marquee{display:block!important;width:100%!important;max-width:100%!important;overflow:hidden!important;margin:14px auto 0!important;padding:11px 0!important;border:1px solid var(--line)!important;border-radius:8px!important;background:var(--surface)!important;color:var(--ink-2)!important;box-shadow:var(--shadow-soft)!important}
+.app-shell .nexa-marquee-track{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:22px!important;width:max-content!important;white-space:nowrap!important;direction:ltr!important;padding:0 18px!important;animation:nexaReferenceTicker 34s linear infinite!important}
+.app-shell .nexa-marquee-track span{font-size:10px!important;font-weight:800!important;color:var(--ink-2)!important}
+.app-shell .nexa-marquee-track span:first-child{color:#1489bb!important;font-weight:1000!important}
+.app-shell .nexa-marquee-track b{color:#59bfe8!important}
+:root[data-theme="dark"] .app-shell .nexa-marquee{background:#101a26!important;border-color:#26394b!important}
+:root[data-theme="dark"] .app-shell .nexa-marquee-track span{color:#c6d9e5!important}
+:root[data-theme="dark"] .app-shell .nexa-marquee-track span:first-child{color:#83daf8!important}
+@keyframes nexaReferenceTicker{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.app-shell .nexa-home-search{display:flex!important;align-items:center!important;gap:12px!important;width:min(900px,100%)!important;min-height:62px!important;margin:21px auto 22px!important;padding:7px 8px 7px 20px!important;border:1px solid var(--line)!important;border-radius:999px!important;background:var(--surface)!important;box-shadow:var(--shadow-soft)!important}
+.app-shell .nexa-home-search-icon{flex:0 0 auto!important;color:#8a9ba7!important;font-size:23px!important}
+.app-shell .nexa-home-search input{flex:1 1 auto!important;min-width:0!important;height:44px!important;border:0!important;outline:0!important;background:transparent!important;color:var(--ink)!important;font-size:12px!important}
+.app-shell .nexa-home-search input::placeholder{color:var(--muted)!important}
+.app-shell .nexa-home-search button{flex:0 0 auto!important;min-height:44px!important;padding:0 23px!important;border:0!important;border-radius:999px!important;background:linear-gradient(120deg,#82dcfa,#2ea6da)!important;color:#07364d!important;font-weight:1000!important;font-size:10px!important;box-shadow:0 5px 14px rgba(38,154,205,.16)!important}
+:root[data-theme="dark"] .app-shell .nexa-home-search{background:#101a26!important;border-color:#26394b!important}
+:root[data-theme="dark"] .app-shell .nexa-home-search input{color:#eef8ff!important}
+.app-shell .trust-row,.app-shell .home-intro-side{display:none!important}
+.app-shell .section{margin-top:30px!important}
+.app-shell .section-head{margin-bottom:17px!important}
+.app-shell .section-title{font-size:18px!important}
+.app-shell #homeCategoryGrid,.app-shell .department-grid,.app-shell .catalog-department-grid,.app-shell .category-grid,.app-shell .featured-grid,.app-shell .catalog-grid{column-gap:18px!important;row-gap:20px!important}
+.app-shell .department-card-art{border-radius:9px!important}
+.app-shell .department-card-copy strong{font-size:12px!important}
+.app-shell .sidebar-account-balance{width:100%!important;min-height:58px!important;flex:0 0 auto!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:9px!important;margin:3px 0 9px!important;padding:10px 12px!important;border:1px solid #d9edf6!important;border-radius:10px!important;background:linear-gradient(110deg,#f2fbff,#e8f7fd)!important;color:#31576c!important;text-align:right!important;box-shadow:none!important}
+.app-shell .sidebar-account-balance>span:first-child{display:grid!important;gap:1px!important}
+.app-shell .sidebar-account-balance small{color:#7893a3!important;font-size:8px!important;font-weight:800!important}
+.app-shell .sidebar-account-balance strong{color:#0b719f!important;font-size:12px!important;font-weight:1000!important}
+.app-shell .sidebar-account-balance-arrow{width:27px!important;height:27px!important;display:grid!important;place-items:center!important;border-radius:50%!important;background:#d4f1fd!important;color:#147da9!important;font-size:13px!important}
+:root[data-theme="dark"] .app-shell .sidebar-account-balance{border-color:#29485f!important;background:linear-gradient(110deg,#102c41,#13293b)!important;color:#d5e9f3!important}
+:root[data-theme="dark"] .app-shell .sidebar-account-balance small{color:#8daabd!important}
+:root[data-theme="dark"] .app-shell .sidebar-account-balance strong{color:#a4e6ff!important}
+:root[data-theme="dark"] .app-shell .sidebar-account-balance-arrow{background:#1b435b!important;color:#a8e7ff!important}
+
+/* Admin light mode is genuinely light; dark mode keeps the deep navy rail. */
+#app.shell .side{background:var(--surface)!important;border-inline-start:1px solid var(--line)!important;color:var(--ink)!important;box-shadow:-8px 0 25px rgba(14,46,67,.055)!important}
+#app.shell .brand{border-bottom-color:var(--line)!important}
+#app.shell .brand strong{color:var(--ink)!important}
+#app.shell .brand small{color:var(--muted)!important}
+#app.shell .admin-rail-summary{background:#edf8fd!important;border:1px solid #d9edf7!important}
+#app.shell .admin-rail-summary strong{color:#214d66!important}
+#app.shell .admin-rail-summary small{color:#718d9e!important}
+#app.shell .side-label{color:#8296a5!important}
+#app.shell .nav button{color:var(--ink-2)!important}
+#app.shell .nav button:hover{background:#f0f8fc!important;color:#126f98!important}
+#app.shell .nav button.active{background:#e6f6fd!important;border-color:#d1edf8!important;color:#0b719b!important;box-shadow:inset -3px 0 #55bfe8!important}
+#app.shell .nav .ico{background:#eaf5fa!important;color:#278bb7!important}
+#app.shell .side-foot{color:var(--muted)!important;border-top-color:var(--line)!important}
+#app.shell .side-foot b{color:var(--ink)!important}
+:root[data-theme="dark"] #app.shell .side{background:#091624!important;border-inline-start-color:#1f394d!important;color:#eef8fd!important;box-shadow:-10px 0 30px rgba(0,0,0,.14)!important}
+:root[data-theme="dark"] #app.shell .brand{border-bottom-color:rgba(185,222,241,.15)!important}
+:root[data-theme="dark"] #app.shell .brand strong{color:#f2fbff!important}
+:root[data-theme="dark"] #app.shell .brand small{color:#95d9f4!important}
+:root[data-theme="dark"] #app.shell .admin-rail-summary{background:rgba(102,198,235,.08)!important;border-color:rgba(102,198,235,.16)!important}
+:root[data-theme="dark"] #app.shell .admin-rail-summary strong{color:#eaf8ff!important}
+:root[data-theme="dark"] #app.shell .admin-rail-summary small{color:#9db5c5!important}
+:root[data-theme="dark"] #app.shell .side-label{color:#8eabba!important}
+:root[data-theme="dark"] #app.shell .nav button{color:#b9cbd7!important}
+:root[data-theme="dark"] #app.shell .nav button:hover{background:#132a3d!important;color:#f2fbff!important}
+:root[data-theme="dark"] #app.shell .nav button.active{background:#15384f!important;border-color:#285a74!important;color:#c1eeff!important;box-shadow:inset -3px 0 #63c9f1!important}
+:root[data-theme="dark"] #app.shell .nav .ico{background:#173248!important;color:#8fdcf7!important}
+:root[data-theme="dark"] #app.shell .side-foot{color:#8ea6b6!important;border-top-color:#20394c!important}
+:root[data-theme="dark"] #app.shell .side-foot b{color:#d8eef8!important}
+#app.shell .container{width:min(1450px,88%)!important}
+#app.shell .topbar{direction:rtl!important}
+@media(max-width:1080px){
+ .app-shell .wrap,.app-shell .page-shell,.app-shell .reference-page-wrap,.app-shell .reference-search-inner{width:calc(100% - 40px)!important}
+ #app.shell .container{width:calc(100% - 40px)!important}
+}
+@media(max-width:820px){
+ :root{--rail-width:230px}
+ .app-shell .menu-toggle{display:grid!important}
+ .app-shell .home-intro{min-height:330px!important}
+ .app-shell .home-intro-brand-mark{width:62px!important;height:62px!important}
+}
+@media(max-width:640px){
+ .app-shell .header-main{padding:0 9px!important}
+ .app-shell .header-brand-copy small{display:none!important}
+ .app-shell .header-brand-logo{width:31px!important;height:31px!important}
+ .app-shell .header-actions{gap:5px!important}
+ .app-shell .header-actions .wallet-chip{max-width:98px!important}
+ .app-shell .reference-search-row{padding-bottom:12px!important}
+ .app-shell .header-search{height:48px!important}
+ .app-shell .home-intro{min-height:295px!important;padding:24px 13px!important}
+ .app-shell .home-intro h1{font-size:27px!important}
+ .app-shell .home-intro p{font-size:10px!important}
+ .app-shell .nexa-home-search{min-height:52px!important;margin:15px auto!important;padding:5px 6px 5px 12px!important}
+ .app-shell .nexa-home-search input{height:40px!important;font-size:10px!important}
+ .app-shell .nexa-home-search button{min-height:40px!important;padding:0 13px!important;font-size:9px!important}
+ .app-shell .nexa-marquee{padding:9px 0!important;margin-top:10px!important}
+ .app-shell .nexa-marquee-track{gap:13px!important}
+ .app-shell .nexa-marquee-track span{font-size:8px!important}
+ .app-shell .section{margin-top:22px!important}
+ .app-shell .sidebar-account-balance{min-height:53px!important}
+}
+@media(prefers-reduced-motion:reduce){.app-shell .nexa-marquee-track{animation:none!important;transform:none!important}}
