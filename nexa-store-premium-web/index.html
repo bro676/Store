@@ -605,7 +605,7 @@ body{
 
 </style>
 <link rel="stylesheet" href="/assets/brand/nexa-luxury.css?v=20261102-01">
-<link rel="stylesheet" href="/assets/brand/nexa-wamda-blue.css?v=20261104-nexa-skyline-v5">
+<link rel="stylesheet" href="/assets/brand/nexa-wamda-blue.css?v=20261105-wamda-layout-v1">
 </head>
 <body>
 <div class="app-shell">
@@ -627,20 +627,31 @@ body{
     <button type="button" data-page="support" title="الدعم" aria-label="الدعم"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v12H7l-3 3z"/><path d="M8 9h8m-8 4h5"/></svg></button>
   </div>
   <button class="sidebar-currency" type="button" data-page="wallet"><span>عملة الحساب</span><strong>SYP</strong><small id="sidebarWalletAmount">الرصيد يظهر بعد الدخول</small></button>
-  <nav class="sidebar-nav" aria-label="أقسام المتجر">
-    <div class="sidebar-group-label">استكشف المتجر</div>
-    <a class="side-link active" href="#home" data-page="home"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-6h6v6"/></svg></span><span>الرئيسية</span><i></i></a>
-    <a class="side-link" href="#store" data-page="store"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/></svg></span><span>الأقسام والمنتجات</span><i></i></a>
-    <div class="sidebar-group-label">حسابك وعملياتك</div>
-    <a class="side-link" href="#orders" data-page="orders"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12l2 4v13H4V7zM4 7h16M9 11v5m6-5v5"/></svg></span><span>طلباتي</span><b class="side-count" id="sideOrderBadge">0</b><i></i></a>
-    <a class="side-link" href="#payments" data-page="payments"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M7 14h4m-4 3h7"/></svg></span><span>مدفوعاتي</span><i></i></a>
-    <a class="side-link" href="#wallet" data-page="wallet"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="5" width="18" height="15" rx="3"/><path d="M3 9h18M16 15h2"/></svg></span><span>المحفظة وشحن الرصيد</span><i></i></a>
-    <a class="side-link" href="#favorites" data-page="favorites"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.5 8.8c0 5.2-8.5 10-8.5 10s-8.5-4.8-8.5-10A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8.5 2.8Z"/></svg></span><span>المفضلة</span><i></i></a>
-    <a class="side-link" href="#profile" data-page="profile"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c.8-4.2 3.5-6.3 8-6.3s7.2 2.1 8 6.3"/></svg></span><span>ملفي الشخصي</span><i></i></a>
-    <div class="sidebar-group-label">المساعدة والمعلومات</div>
-    <a class="side-link" href="#support" data-page="support"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v12H7l-3 3z"/><path d="M8 9h8m-8 4h5"/></svg></span><span>الدعم والتواصل</span><i></i></a>
-    <a class="side-link" href="#about" data-page="about"><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/></svg></span><span>عن Nexa Store</span><i></i></a>
-    <button class="side-link" type="button" data-open-assistant><span class="side-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3a8 8 0 0 0-8 8v4a3 3 0 0 0 3 3h1v-6H7a5 5 0 0 1 10 0h-1v6h1a3 3 0 0 0 3-3v-4a8 8 0 0 0-8-8Z"/><path d="M9 19h6"/></svg></span><span>مساعد Nexa</span><i></i></button>
+  <nav class="sidebar-nav" aria-label="قائمة المتجر">
+    <div class="sidebar-group-label">المتجر</div>
+    <a class="side-link active" href="#home" data-page="home"><span class="side-icon">⌂</span><span>الرئيسية</span><i></i></a>
+    <a class="side-link" href="#store" data-page="store"><span class="side-icon">▦</span><span>الأقسام والمنتجات</span><i></i></a>
+    <div class="sidebar-group-label">حسابي والعمليات</div>
+    <a class="side-link" href="#login" data-page="login"><span class="side-icon">↪</span><span>تسجيل الدخول</span><i></i></a>
+    <a class="side-link" href="#wallet" data-page="wallet"><span class="side-icon">＋</span><span>إضافة رصيد</span><i></i></a>
+    <a class="side-link" href="#payments" data-page="payments"><span class="side-icon">▤</span><span>مدفوعاتي</span><i></i></a>
+    <a class="side-link" href="#wallet" data-page="wallet"><span class="side-icon">▣</span><span>محفظتي</span><i></i></a>
+    <a class="side-link" href="#orders" data-page="orders"><span class="side-icon">▧</span><span>طلباتي</span><b class="side-count" id="sideOrderBadge">0</b><i></i></a>
+    <a class="side-link" href="#favorites" data-page="favorites"><span class="side-icon">♡</span><span>المفضلة</span><i></i></a>
+    <a class="side-link" href="#profile" data-page="profile"><span class="side-icon">♙</span><span>ملفي الشخصي</span><i></i></a>
+    <a class="side-link" href="#notifications" data-page="notifications"><span class="side-icon">♧</span><span>الإشعارات</span><i></i></a>
+    <div class="sidebar-group-label">خدمات الحساب</div>
+    <a class="side-link" href="#vip" data-page="vip"><span class="side-icon">✦</span><span>مستويات VIP</span><i></i></a>
+    <a class="side-link" href="#bot" data-page="bot"><span class="side-icon">➤</span><span>ربط الموقع بتليجرام</span><i></i></a>
+    <a class="side-link" href="#affiliate" data-page="affiliate"><span class="side-icon">♧</span><span>وكالتنا والإحالات</span><i></i></a>
+    <a class="side-link" href="#security" data-page="security"><span class="side-icon">⛨</span><span>الحماية</span><i></i></a>
+    <a class="side-link" href="#verify" data-page="verify"><span class="side-icon">✓</span><span>توثيق الهوية</span><i></i></a>
+    <a class="side-link" href="#apiSettings" data-page="apiSettings"><span class="side-icon">⌘</span><span>إعدادات API</span><i></i></a>
+    <a class="side-link" href="#install" data-page="install"><span class="side-icon">⇩</span><span>تثبيت التطبيق</span><i></i></a>
+    <div class="sidebar-group-label">المساعدة</div>
+    <a class="side-link" href="#support" data-page="support"><span class="side-icon">◌</span><span>الدعم والتواصل</span><i></i></a>
+    <a class="side-link" href="#about" data-page="about"><span class="side-icon">ⓘ</span><span>عن Nexa Store</span><i></i></a>
+    <button class="side-link" type="button" data-open-assistant><span class="side-icon">✧</span><span>مساعد Nexa</span><i></i></button>
   </nav>
   <div class="sidebar-bottom">
     <div class="sidebar-status"><span class="status-pulse"></span><div><strong>حساب آمن</strong><small>الدخول برقم الهاتف وكلمة المرور</small></div></div>
@@ -653,8 +664,8 @@ body{
 <header class="header">
   <div class="wrap header-main">
     <a class="header-brand" href="#home" data-page="home" aria-label="Nexa Store الرئيسية">
-      <span class="header-brand-seal" aria-hidden="true">N</span>
-      <span class="header-brand-copy"><strong>NEXA</strong><small>STORE</small></span>
+      <img class="header-brand-logo" src="assets/brand/logo.svg" alt="Nexa Store">
+      <span class="header-brand-copy"><strong>NEXA STORE</strong><small>DIGITAL MARKETPLACE</small></span>
     </a>
     <nav class="main-nav" aria-label="التنقل الرئيسي">
       <button type="button" class="nav-link active" data-page="home">الرئيسية</button>
@@ -677,15 +688,21 @@ body{
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12l2 4v13H4V7zM4 7h16M9 11v5m6-5v5"/></svg>
         <span class="icon-badge" id="orderBadge">0</span>
       </button>
-      <label class="header-search" aria-label="بحث">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5" stroke-linecap="round"/></svg>
-        <input id="globalSearch" type="search" placeholder="ابحث عن لعبة، بطاقة أو خدمة...">
-      </label>
+      
       <button class="btn btn-primary header-order-cta" type="button" data-page="store">ابدأ الطلب <span aria-hidden="true">←</span></button>
     </div>
   </div>
 </header>
 <div class="promo"><div class="wrap promo-inner"><span class="promo-dot"></span><span>مرحباً بك في <strong>Nexa Store</strong> — تجربة متجر رقمي محلية ومنظمة.</span></div></div>
+<div class="reference-search-row" id="globalSearchRow">
+  <div class="reference-search-inner">
+    <div class="reference-search-heading"><span class="reference-kicker">NEXA DIGITAL STORE</span><strong>ابحث في المتجر</strong></div>
+    <label class="header-search" aria-label="بحث">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5" stroke-linecap="round"/></svg>
+        <input id="globalSearch" type="search" placeholder="ابحث عن لعبة، بطاقة أو خدمة...">
+      </label>
+  </div>
+</div>
 <main id="appMain">
 <section class="view" data-view="home" id="homeView">
   <div class="wrap">
@@ -846,6 +863,95 @@ body{
     </section>
   </div>
 </section>
+
+<section class="view hidden" data-view="login" id="loginView">
+  <div class="reference-page-wrap">
+    <div class="reference-page-heading"><div><span class="reference-kicker">CUSTOMER ACCOUNT</span><h1>تسجيل الدخول</h1><p>ادخل إلى حسابك باستخدام رقم الهاتف وكلمة المرور فقط.</p></div></div>
+    <div class="reference-auth-layout">
+      <section class="reference-panel reference-login-panel" id="loginPageGuest">
+        <div class="reference-panel-icon">♙</div>
+        <h2>مرحباً بعودتك</h2>
+        <p>سجّل الدخول لمتابعة طلباتك وإدارة رصيد محفظتك.</p>
+        <form id="loginPageForm" class="reference-form">
+          <div class="field"><label for="loginPagePhone">رقم الهاتف</label><input id="loginPagePhone" type="tel" autocomplete="username" inputmode="tel" placeholder="+963..." required maxlength="22"></div>
+          <div class="field"><label for="loginPagePassword">كلمة المرور</label><input id="loginPagePassword" type="password" autocomplete="current-password" required minlength="8" maxlength="128" placeholder="أدخل كلمة المرور"></div>
+          <p class="reference-form-message" id="loginPageMessage" role="status"></p>
+          <button class="btn btn-primary reference-submit" type="submit">تسجيل الدخول <span>←</span></button>
+        </form>
+        <div class="reference-quiet-note"><strong>التسجيل الجديد متوقف مؤقتاً.</strong><span>لا يوجد إنشاء حسابات جديدة في الوقت الحالي.</span></div>
+      </section>
+      <section class="reference-panel reference-login-panel hidden" id="loginPageSignedPanel">
+        <div class="reference-panel-icon">✓</div>
+        <h2>أنت مسجل الدخول بالفعل</h2>
+        <p id="loginPageCustomerName">تم التحقق من جلسة حسابك.</p>
+        <div class="reference-action-row"><button class="btn btn-primary" type="button" data-page="profile">ملفي الشخصي</button><button class="btn btn-soft" type="button" data-page="orders">طلباتي</button></div>
+      </section>
+      <aside class="reference-side-note"><span class="reference-kicker">ACCOUNT ACCESS</span><h3>حسابك في Nexa</h3><p>تستطيع بعد تسجيل الدخول مراجعة طلباتك ومدفوعاتك والرصيد المتاح، دون مشاركة كلمة مرورك أو بيانات الدفع مع أي جهة.</p><div class="reference-side-note-line"><b>01</b><span>رقم الهاتف المرتبط بالحساب</span></div><div class="reference-side-note-line"><b>02</b><span>كلمة مرور حساب Nexa فقط</span></div><div class="reference-side-note-line"><b>03</b><span>لا تشارك رموز التحقق أو بيانات محفظتك</span></div></aside>
+    </div>
+  </div>
+</section>
+
+<section class="view hidden" data-view="notifications" id="notificationsView">
+  <div class="reference-page-wrap">
+    <div class="reference-page-heading"><div><span class="reference-kicker">NOTIFICATION CENTER</span><h1>الإشعارات</h1><p>تظهر هنا تحديثات الطلبات والفواتير والتنبيهات المرتبطة بحسابك عند تفعيل مركز الإشعارات.</p></div></div>
+    <section class="reference-empty-panel"><div class="reference-empty-icon">♧</div><h2>مركز الإشعارات غير مفعّل بعد</h2><p>لا توجد حالياً خدمة إشعارات محفوظة في حساب العميل. لن نعرض تنبيهات تجريبية أو رسائل غير حقيقية.</p><button class="btn btn-primary" type="button" data-page="orders">متابعة طلباتي</button></section>
+  </div>
+</section>
+
+<section class="view hidden" data-view="vip" id="vipView">
+  <div class="reference-page-wrap">
+    <div class="reference-page-heading"><div><span class="reference-kicker">VIP MEMBERSHIP</span><h1>مستويات VIP</h1><p>تفاصيل المستوى والمزايا والعمولات يجب أن تأتي من إعدادات اشتراكات مفعّلة في الخادم.</p></div></div>
+    <section class="reference-empty-panel"><div class="reference-empty-icon">✦</div><h2>برنامج VIP غير مفعّل</h2><p>لا توجد حالياً مستويات عضوية أو أسعار أو شروط منشورة من لوحة الإدارة. لن نظهر باقات أو مزايا افتراضية قد تُفهم على أنها عروض حقيقية.</p><button class="btn btn-soft" type="button" data-page="support">استفسر من الدعم</button></section>
+  </div>
+</section>
+
+<section class="view hidden" data-view="bot" id="botView">
+  <div class="reference-page-wrap">
+    <div class="reference-page-heading"><div><span class="reference-kicker">TELEGRAM CONNECTION</span><h1>ربط الموقع بتليجرام</h1><p>إدارة ربط حسابك مع بوت المتجر ومتابعة إشعارات الطلبات.</p></div></div>
+    <section class="reference-feature-panel"><div class="reference-feature-icon">➤</div><div><span class="reference-status pending">الربط غير مفعّل</span><h2>ربط حساب Telegram</h2><p>لا يوجد حالياً تدفق ربط أو رمز تحقق محفوظ لحساب العميل. لن نطلب منك رمز بوت أو كلمة مرور قبل تفعيل التكامل الفعلي.</p><button class="btn btn-soft" type="button" data-page="support">تواصل مع الدعم</button></div></section>
+  </div>
+</section>
+
+<section class="view hidden" data-view="affiliate" id="affiliateView">
+  <div class="reference-page-wrap">
+    <div class="reference-page-heading"><div><span class="reference-kicker">PARTNERS & REFERRALS</span><h1>وكالتنا والإحالات</h1><p>صفحة مخصصة للوكالات وروابط الإحالة واحتساب العمولات.</p></div></div>
+    <section class="reference-empty-panel"><div class="reference-empty-icon">♧</div><h2>برنامج الوكالات غير متاح بعد</h2><p>لا توجد حالياً آلية إحالة أو تتبّع عمولات مرتبطة بحسابك. لا توجد روابط إحالة أو أرصدة عمولات وهمية.</p><button class="btn btn-soft" type="button" data-page="support">التواصل بخصوص الشراكات</button></section>
+  </div>
+</section>
+
+<section class="view hidden" data-view="security" id="securityView">
+  <div class="reference-page-wrap">
+    <div class="reference-page-heading"><div><span class="reference-kicker">ACCOUNT SECURITY</span><h1>الحماية</h1><p>إعدادات حماية الوصول إلى حساب Nexa.</p></div></div>
+    <div class="reference-security-grid">
+      <section class="reference-panel"><div class="reference-panel-top"><span class="reference-panel-icon">⌑</span><span class="reference-status active">مستخدم حالياً</span></div><h2>رقم الهاتف وكلمة المرور</h2><p>هذا هو أسلوب الدخول المتاح حالياً. استخدم كلمة مرور فريدة ولا تشاركها مع أي شخص.</p></section>
+      <section class="reference-panel"><div class="reference-panel-top"><span class="reference-panel-icon">⛨</span><span class="reference-status pending">غير مفعّل</span></div><h2>التحقق بخطوتين</h2><p>لا يوجد حالياً إعداد 2FA أو مصادقة تطبيق موصول بخادم المتجر. لذلك لن نعرض رمز QR أو مفتاحاً تجريبياً.</p></section>
+      <section class="reference-panel"><div class="reference-panel-top"><span class="reference-panel-icon">▣</span><span class="reference-status pending">يتطلب التفعيل</span></div><h2>التحقق من ملكية الهاتف</h2><p>تسجيل الدخول يعتمد على رقم الهاتف وكلمة المرور، لكن ملكية رقم الهاتف لا تتحقق برسالة SMS في النسخة الحالية.</p></section>
+    </div>
+  </div>
+</section>
+
+<section class="view hidden" data-view="verify" id="verifyView">
+  <div class="reference-page-wrap">
+    <div class="reference-page-heading"><div><span class="reference-kicker">IDENTITY VERIFICATION</span><h1>توثيق الهوية</h1><p>خدمة مراجعة بيانات الهوية لا تُفعّل إلا بعد توفير تخزين آمن ومراجعة صلاحيات الوصول وفترة الاحتفاظ بالوثائق.</p></div></div>
+    <section class="reference-warning-panel"><span class="reference-warning-icon">!</span><div><strong>خدمة توثيق الهوية غير مفعّلة حالياً</strong><p>لا ترفع صورة هويتك أو بياناتك الشخصية هنا. لا توجد حالياً واجهة خلفية معتمدة لاستقبال الوثائق وحفظها ومراجعتها بأمان.</p></div></section>
+    <section class="reference-panel reference-form-placeholder"><h2>متطلبات تفعيل الخدمة</h2><div class="reference-requirement"><b>01</b><span>تحديد أنواع الوثائق المقبولة وسياسة الاحتفاظ بها.</span></div><div class="reference-requirement"><b>02</b><span>تخزين خاص ومشفّر مع صلاحيات مراجعة إدارية محددة.</span></div><div class="reference-requirement"><b>03</b><span>سجل مراجعة وحالات واضحة للعميل مع حماية الملفات.</span></div></section>
+  </div>
+</section>
+
+<section class="view hidden" data-view="apiSettings" id="apiSettingsView">
+  <div class="reference-page-wrap">
+    <div class="reference-page-heading"><div><span class="reference-kicker">CUSTOMER API ACCESS</span><h1>إعدادات API</h1><p>إدارة مفاتيح الوصول وربط الأنظمة الخارجية.</p></div></div>
+    <section class="reference-empty-panel"><div class="reference-empty-icon">⌘</div><h2>مفاتيح API للعملاء غير متاحة</h2><p>إدارة مصادر المنتجات ومفاتيح الكتالوج متاحة من لوحة الإدارة فقط. لا يتم عرض مفاتيح الموردين أو أسرار الخادم داخل حساب العميل.</p><button class="btn btn-soft" type="button" data-page="support">طلب المساعدة</button></section>
+  </div>
+</section>
+
+<section class="view hidden" data-view="install" id="installView">
+  <div class="reference-page-wrap">
+    <div class="reference-page-heading"><div><span class="reference-kicker">NEXA APP</span><h1>تثبيت التطبيق</h1><p>الوصول إلى Nexa بسرعة من المتصفح.</p></div></div>
+    <section class="reference-feature-panel"><div class="reference-feature-icon">⇩</div><div><span class="reference-status pending">التثبيت كتطبيق غير مفعّل</span><h2>استخدم Nexa من متصفحك</h2><p>يمكنك إضافة الصفحة إلى المفضلة أو الشاشة الرئيسية من قائمة المتصفح. لا توجد حالياً حزمة تطبيق أو إعداد PWA مكتمل في هذا الإصدار.</p><button class="btn btn-primary" type="button" data-page="home">العودة إلى المتجر</button></div></section>
+  </div>
+</section>
+
 </main>
 <footer class="footer"><div class="wrap"><div class="footer-main"><div><div class="footer-brand"><img src="assets/brand/logo.svg" alt=""><strong>NEXA STORE</strong></div><p class="footer-note">مساحة رقمية واحدة للألعاب والبطاقات والاشتراكات والخدمات.</p></div><nav class="footer-links"><a href="#home" data-nav="home">الرئيسية</a><a href="#store" data-page="store">المتجر</a><a href="#orders" data-page="orders">طلباتي</a><a href="#payments" data-page="payments">مدفوعاتي</a><a href="#wallet" data-page="wallet">المحفظة</a><a href="#about" data-page="about">عن المتجر</a><a href="#support" data-page="support">الدعم</a><a href="mailto:support.nsde@gmail.com">البريد الإلكتروني</a><a href="/admin.html" rel="nofollow">إدارة المتجر</a></nav></div><div class="footer-bottom"><span>© <span id="year"></span> NEXA STORE</span><span>الدفع عبر شام كاش · التحقق من رقم العملية عبر API</span></div></div></footer>
 </div>
@@ -872,7 +978,7 @@ let state={view:'home',department:null,category:null,item:null,option:null,selec
 function getCategory(id){return categories.find(x=>String(x.id)===String(id))||null}function getItem(id,categoryId=state.category){const scoped=categoryId==null?null:getCategory(categoryId);if(scoped){const match=(scoped.items||[]).find(x=>String(x.id)===String(id));if(match)return match;}for(const c of categories){const it=(c.items||[]).find(x=>String(x.id)===String(id));if(it)return it}return null}function getOption(id){const it=state.item&&getItem(state.item,state.category);return NexaCatalog.getProductOptions(it).find(x=>String(x.id)===String(id))||null}
 function storageRead(){try{const raw=localStorage.getItem('nexa-store-client');if(raw){memoryData=JSON.parse(raw);return memoryData}}catch{}return memoryData}function storageSave(d){memoryData=d;try{localStorage.setItem('nexa-store-client',JSON.stringify(d))}catch{}}
 function showToast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2400)}
-function navigate(view){state.view=view;document.querySelectorAll('.view').forEach(e=>e.classList.toggle('hidden',e.dataset.view!==view));document.querySelectorAll('[data-page]').forEach(e=>e.classList.toggle('active',e.dataset.page===view));document.querySelectorAll('[data-nav]').forEach(e=>e.classList.toggle('active',e.dataset.nav===view));try{history.replaceState(null,'','#'+view)}catch{try{location.hash=view}catch{}}if(view==='store')renderCatalog();if(view==='orders')renderOrders();if(view==='payments')renderPaymentHistory();if(view==='profile')renderProfilePage();if(view==='favorites')renderFavorites();if(view==='home')renderFeatured();if(view==='support')renderSupportState();renderSidebarAccount();window.scrollTo({top:0,behavior:'smooth'});closeMenu()}
+function navigate(view){state.view=view;document.querySelectorAll('.view').forEach(e=>e.classList.toggle('hidden',e.dataset.view!==view));document.querySelectorAll('[data-page]').forEach(e=>e.classList.toggle('active',e.dataset.page===view));document.querySelectorAll('[data-nav]').forEach(e=>e.classList.toggle('active',e.dataset.nav===view));const searchRow=$('globalSearchRow');if(searchRow)searchRow.classList.toggle('hidden',!['home','store'].includes(view));try{history.replaceState(null,'','#'+view)}catch{try{location.hash=view}catch{}}if(view==='store')renderCatalog();if(view==='orders')renderOrders();if(view==='payments')renderPaymentHistory();if(view==='profile')renderProfilePage();if(view==='login')renderLoginPage();if(view==='favorites')renderFavorites();if(view==='home')renderFeatured();if(view==='support')renderSupportState();renderSidebarAccount();window.scrollTo({top:0,behavior:'smooth'});closeMenu()}
 function closeMenu(){document.body.classList.remove('menu-open','sidebar-open');$('menuToggle')?.setAttribute('aria-expanded','false')}
 function renderDepartmentCard(group){
  return '<button type="button" class="department-card" data-department="'+esc(group.id)+'" aria-label="فتح '+esc(group.name)+'">'+
@@ -1375,6 +1481,7 @@ function renderPaymentHistory(){
   return '<tr><td class="ltr">'+esc(order.id)+'</td><td>'+esc(order.name||'—')+'</td><td>'+esc(method)+'</td><td>'+esc(date)+'</td><td>'+formatMinor(order.amountMinor||'0',order.currency||'SYP')+'</td><td><span class="status '+paymentState+'">'+statusLabel+'</span></td></tr>';
  }).join(''):'<tr><td colspan="6" class="table-empty">'+(rows.length?'لا توجد عمليات تطابق البحث أو التصفية.':'سجّل الدخول لعرض سجل مدفوعاتك من الخادم.')+'</td></tr>';
 }
+function renderLoginPage(){const guest=$('loginPageGuest'),signed=$('loginPageSignedPanel');if(!guest||!signed)return;const active=Boolean(customerAccount);guest.classList.toggle('hidden',active);signed.classList.toggle('hidden',!active);if(active)$('loginPageCustomerName').textContent=customerAccount.full_name||customerAccount.phone||'حساب Nexa';}
 function renderProfilePage(){
  const target=$('profileDetails');if(!target)return;
  if(!customerAccount){
@@ -1565,6 +1672,17 @@ async function createWalletTopup(event){
  }catch(error){showToast(error.message);}
  finally{button.disabled=false;button.textContent='إنشاء فاتورة شحن';}
 }
+$('loginPageForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const form=event.currentTarget,button=form.querySelector('button[type="submit"]'),message=$('loginPageMessage');
+ const original=button.textContent;button.disabled=true;button.textContent='جارٍ تسجيل الدخول…';message.textContent='';
+ try{
+  const response=await fetch('/api/account/login',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:$('loginPagePhone').value.trim(),password:$('loginPagePassword').value})});
+  const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'تعذر تسجيل الدخول.');
+  form.reset();await refreshCustomerAccount();renderLoginPage();navigate('profile');showToast('تم تسجيل الدخول بنجاح.');
+ }catch(error){message.textContent=error.message||'تعذر تسجيل الدخول.';}
+ finally{button.disabled=false;button.textContent=original;}
+});
 $('accountLoginForm').addEventListener('submit',event=>{event.preventDefault();submitAccountForm(event.currentTarget,'/api/account/login',{phone:$('accountLoginPhone').value.trim(),password:$('accountLoginPassword').value});});
 $('accountRegisterForm').addEventListener('submit',event=>{event.preventDefault();submitAccountForm(event.currentTarget,'/api/account/register',{name:$('accountRegisterName').value.trim(),phone:$('accountRegisterPhone').value.trim(),password:$('accountRegisterPassword').value});});
 $('accountAuthSwitch').addEventListener('click',()=>{
