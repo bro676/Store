@@ -986,7 +986,7 @@ body{
   </div>
 </section>
 <div class="toast" id="toast"></div>
-<script src="/assets/brand/nexa-catalog.js?v=20261104-folder-tree-v1"></script>
+<script src="/assets/brand/nexa-catalog.js?v=20261106-catalog-manager-v2"></script>
 <script>
 let categories=[];
 const $=id=>document.getElementById(id);const money=v=>v>0?new Intl.NumberFormat('en-US',{maximumFractionDigits:Number(v)<0.01?8:2}).format(v)+' ل.س جديدة':'يحدد لاحقاً';const formatMinor=(minor,currency='SYP')=>{const value=Number(BigInt(minor||0))/100;return currency==='USD'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value):new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value)+' ل.س جديدة'};const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1197,7 +1197,7 @@ function renderCatalog(){
   const folderPageSize=36,folderPageCount=Math.max(1,Math.ceil(filteredFolders.length/folderPageSize));
   state.categoryPage=Math.min(Math.max(1,Number(state.categoryPage)||1),folderPageCount);
   const folderRows=filteredFolders.slice((state.categoryPage-1)*folderPageSize,state.categoryPage*folderPageSize);
-  const allProducts=cat.items||[],productQuery=String(state.productQuery||'').trim().toLocaleLowerCase('ar');
+  const allProducts=[...(cat.items||[])].sort((a,b)=>NexaCatalog.compareDisplayOrder(a,b)),productQuery=String(state.productQuery||'').trim().toLocaleLowerCase('ar');
   const sortedProducts=allProducts.map((product,index)=>({product,index}))
    .sort((a,b)=>NexaCatalog.compareDisplayOrder(a.product,b.product)||
     String(a.product.name||'').localeCompare(String(b.product.name||''),'ar',{numeric:true,sensitivity:'base'})||a.index-b.index)
@@ -1668,7 +1668,7 @@ function initializeStoreColorMode(){
  window.addEventListener('storage',event=>{if(event.key===NEXA_THEME_KEY&&event.newValue)setStoreColorMode(event.newValue,{persist:false});});
 }
 async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();if(d.storeName){document.title=d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong'),headerBrand=document.querySelector('.header-brand-copy strong'),footerName=document.querySelector('.footer-brand strong');if(brand)brand.textContent=d.storeName;if(headerBrand)headerBrand.textContent=d.storeName;if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),headerLogo=document.querySelector('.header-brand-logo'),homeLogo=document.querySelector('.home-intro-brand-mark img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(headerLogo)headerLogo.src=d.storeLogo;if(homeLogo)homeLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
-async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items)&&c.items.length);}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();renderPaymentHistory();renderProfilePage();renderSidebarAccount();loadPaymentConfig();$('year').textContent=new Date().getFullYear();navigate(resolveStoreLocation(),{historyMode:'replace'});$('sideYear').textContent=new Date().getFullYear();await refreshCustomerAccount();}
+async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items));if(typeof NexaCatalog.setDepartments==='function')NexaCatalog.setDepartments(Array.isArray(d.departments)?d.departments:[]);}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();renderPaymentHistory();renderProfilePage();renderSidebarAccount();loadPaymentConfig();$('year').textContent=new Date().getFullYear();navigate(resolveStoreLocation(),{historyMode:'replace'});$('sideYear').textContent=new Date().getFullYear();await refreshCustomerAccount();}
 // delegated interactions
  function eventElement(event,selector){
   const eventPath=typeof event.composedPath==='function'?event.composedPath():[];

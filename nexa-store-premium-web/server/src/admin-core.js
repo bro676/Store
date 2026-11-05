@@ -167,7 +167,7 @@ export function validateCatalogApiUrl(raw) {
 function applyCategorySourceMerge(previousCategory,incomingCategory) {
   const source=JSON.parse(JSON.stringify(incomingCategory));
   const previous=previousCategory||{};
-  const sourceSnapshot={name:source.name,desc:source.desc,image:source.image,icon:source.icon};
+  const sourceSnapshot={provider:'catalog-api',sourceId:String(source.id),name:source.name,desc:source.desc,image:source.image,icon:source.icon};
   const overrides=previous.manualOverrides&&typeof previous.manualOverrides==='object'&&!Array.isArray(previous.manualOverrides)
     ?{...previous.manualOverrides}:{};
   const oldSource=previous.apiSource&&typeof previous.apiSource==='object'?previous.apiSource:null;
@@ -193,7 +193,7 @@ function mergeSupplierProduct(previous, incoming) {
   const source=JSON.parse(JSON.stringify(incoming));
   const previousProduct=previous||{};
   const apiSource={
-    name:source.name,desc:source.desc,image:source.image,
+    provider:'catalog-api',sourceId:String(source.id),name:source.name,desc:source.desc,image:source.image,
     options:Array.isArray(source.options)?source.options.map(option=>({...option,packs:(option.packs||[]).map(pack=>[...pack])})):[],
   };
   const overrides=previousProduct.manualOverrides&&typeof previousProduct.manualOverrides==='object'&&!Array.isArray(previousProduct.manualOverrides)

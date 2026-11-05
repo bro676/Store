@@ -1,5 +1,5 @@
 (() => {
- const DEPARTMENTS=[
+ let DEPARTMENTS=[
   {id:'games',name:'قسم الألعاب',icon:'🎮',description:'شحن الألعاب والعضويات والنقاط الرقمية.',folder:'01-games',cover:'assets/products/01-games/cover.svg'},
   {id:'balance',name:'خدمات الرصيد',icon:'💰',description:'الأرصدة والشحن والباقات الرقمية.',folder:'02-balance-services',cover:'assets/products/02-balance-services/cover.svg'},
   {id:'apps',name:'قسم التطبيقات',icon:'📱',description:'الاشتراكات والتطبيقات والخدمات الرقمية.',folder:'03-apps',cover:'assets/products/03-apps/cover.svg'},
@@ -12,17 +12,17 @@
   {id:'web',name:'المواقع والبرمجة',icon:'💻',description:'المواقع والبرمجة والتصميم والحلول التقنية.',folder:'10-websites-programming',cover:'assets/products/10-websites-programming/cover.svg'},
   {id:'other',name:'خدمات رقمية متنوعة',icon:'✦',description:'أقسام إضافية لا تندرج تحت الأقسام الرئيسية.',folder:'11-other-services',cover:'assets/products/11-other-services/cover.svg'}
  ];
- const byId=new Map(DEPARTMENTS.map(row=>[row.id,row]));
+ let byId=new Map(DEPARTMENTS.map(row=>[row.id,row]));
  const CATALOG_DEPARTMENT_IDS=new Set(DEPARTMENTS.map(row=>row.id));
  const placeholders=new Set(['assets/brand/logo.svg','assets/products/logo.svg','assets/products/_shared/logo.svg','assets/products/_shared/product-placeholder.svg','assets/products/_shared/category-placeholder.svg']);
  const rules=[
-  ['ai',/(?:ذكاء\s*اصطناعي|ذكاء\s*صناعي|chat\s*gpt|chatgpt|claude|gemini|gamma\s*ai|midjourney|ai\s*assistant)/i],
+  ['ai',/(?:ذكاء\s*اصطناعي|ذكاء\s*صناعي|chat\s*gpt|chatgpt|claude|claud|gemini|gamma\s*ai|midjourney|ai\s*assistant)/i],
   ['vpn',/(?:\bvpn\b|surf\s*shark|surfshark|nord\s*vpn|proton\s*vpn|express\s*vpn|pure\s*vpn|shield\s*vpn|pia\s*vpn|شبكة\s*خاصة\s*افتراضية)/i],
   ['cards',/(?:بطاقات?\s*(?:الكترونية|رقمية|هدايا)|بطاقة\s*فيزا|بطاقات|gift\s*cards?|google\s*play|playstation|psn\b|steam(?:\s|$)|xbox\s*(?:gift|game)|razer\s*gold|itunes|apple\s*card|visa\b|mastercard)/i],
   ['numbers',/(?:أرقام|ارقام|رقم\s*(?:افتراضي|فوري)|virtual\s*number|phone\s*number|numbers?\s*(?:for|account)|whatsapp\s*number|ارقام\s*(?:انستغرام|ايكلود|ايمو|جيميل|سناب)|رقم\s*واتساب)/i],
-  ['games',/(?:قسم\s*الألعاب|ألعاب|العاب|pubg|ببجي|بوبجي|free\s*fire|freefire|فري\s*فاير|roblox|روبلوكس|call\s*of\s*duty|codm|8ball\s*pool|growtopia|efootball|efootbol|mobile\s*legends|minecraft|ماين\s*كرافت|genshin|asphalt|league\s*of\s*legends|ليج\s*او\s*ليجندز|valorant|fortnite|clash\s*of\s*clans)/i],
+  ['games',/(?:قسم\s*الألعاب|ألعاب|العاب|pubg|ببجي|بوبجي|free\s*fire|freefire|freefier|free\s*fier|فري\s*فاير|roblox|روبلوكس|call\s*of\s*duty|codm|8ball\s*pool|growtopia|efootball|efootbol|mobile\s*legends|minecraft|ماين\s*كرافت|genshin|asphalt|league\s*of\s*legends|ليج\s*او\s*ليجندز|valorant|fortnite|clash\s*of\s*clans)/i],
   ['balance',/(?:خدمات\s*الرصيد|رصيد\s*(?:mtn|سيريتل|سيرياتل|بابرا)|شحن\s*(?:رصيد|مباشر)|syriatel|سيريتل|سيرياتل|\bmtn\b|فواتير\s*(?:mtn|سيريتل)|باقات?\s*(?:انترنت|نت)|internet\s*(?:bundle|top.?up)|top.?up|recharge|مزود\s*(?:برو|سما|ناس|هايفاي|يارا|لاي)|رصيد\s*(?:موبايل|هاتف))/i],
-  ['apps',/(?:قسم\s*التطبيقات|تطبيقات|اشتراك\s*(?:تطبيق|شهري)|netflix|نتفلكس|spotify|shahid|anghami|apple\s*music|capcut|canva|adobe|prime\s*video|osn\s*plus|iptv|nova\s*tv|watch\s*tv|picsart|in\s*video|youtube\s*premium)/i],
+  ['apps',/(?:قسم\s*التطبيقات|تطبيقات|اشتراك\s*(?:تطبيق|شهري)|netflix|نتفلكس|spotify|shahid|anghami|apple\s*music|capcut|canva|adobe|prime\s*video|osn\s*plus|iptv|nova\s*tv|watch\s*tv|picsart|in\s*video|youtube\s*premium|charging applications|charging app)/i],
   ['verification',/(?:توثيق\s*الحسابات|توثيق|حسابات\s*جاهزة|حسابات\s*موثقة|حساب\s*موثق|verified\s*accounts?|account\s*verification|حسابات\s*(?:جيميل|icloud)\s*جاهزة)/i],
   ['web',/(?:برمجة\s*(?:مواقع|ويب)|برمجة\s*مواقع|مواقع\s*الكترونية|تصميم\s*مواقع|website\s*(?:design|development)|web\s*(?:design|development)|hosting|استضافة\s*(?:مواقع|ويب)|\bseo\b|domain\s*(?:name)?|نطاقات?\s*مواقع)/i],
   ['social',/(?:متابعين|متابعون|لايكات|لايك\b|اعجابات|إعجابات|مشاهدات|تعليقات|أعضاء|اعضاء|تصويت|تفاعلات|اعادة\s*نشر|إعادة\s*النشر|followers?|likes?|views?|comments?|engagement|مشاركات\s*(?:فيسبوك|تيك\s*توك|انستغرام)|خدمات\s*(?:انستغرام|انستقرام|تيك\s*توك|تيليجرام|تلجرام|فيسبوك|يوتيوب))/i]
@@ -32,6 +32,26 @@
   const value=text([category?.name,category?.desc,category?.description].filter(Boolean).join(' '));
   for(const [id,pattern] of rules)if(pattern.test(value))return id;
   return 'other';
+ }
+
+ function setDepartments(overrides=[]){
+  const rows=Array.isArray(overrides)?overrides:[];
+  DEPARTMENTS=DEPARTMENTS.map(base=>{
+   const incoming=rows.find(row=>String(row?.id||'')===base.id);
+   if(!incoming)return base;
+   const next={...base};
+   if(typeof incoming.name==='string'&&incoming.name.trim())next.name=incoming.name.trim().slice(0,100);
+   if(typeof incoming.description==='string')next.description=incoming.description.slice(0,300);
+   else if(typeof incoming.desc==='string')next.description=incoming.desc.slice(0,300);
+   if(typeof incoming.icon==='string'&&incoming.icon.trim())next.icon=incoming.icon.slice(0,12);
+   const image=safeImage(incoming.cover||incoming.image);
+   if(image)next.cover=image;
+   if(Number.isSafeInteger(Number(incoming.sortOrder))&&Number(incoming.sortOrder)>=0&&Number(incoming.sortOrder)<=1000000)next.sortOrder=Number(incoming.sortOrder);
+   if(typeof incoming.visible==='boolean')next.visible=incoming.visible;
+   return next;
+  });
+  byId=new Map(DEPARTMENTS.map(row=>[row.id,row]));
+  return DEPARTMENTS.map(row=>({...row}));
  }
  function department(id){return byId.get(id)||byId.get('other')}
  function normalizeId(value){return value===null||value===undefined?'':String(value).normalize('NFKC').trim()}
@@ -159,11 +179,12 @@
   return sortCategoriesByProductCount(children,rows);
  }
  function getDepartmentSummaries(categories){
-  const rows=new Map(DEPARTMENTS.map(row=>[row.id,{...row,categories:[],categoryCount:0,productCount:0,rootFolderCount:0}]));
+  const rows=new Map(DEPARTMENTS.filter(row=>row.visible!==false).map(row=>[row.id,{...row,categories:[],categoryCount:0,productCount:0,rootFolderCount:0}]));
   const source=Array.isArray(categories)?categories:[];
   for(const category of source){
    if(!isCategoryVisible(category,source))continue;
    const id=getCategoryDepartmentId(category,source),row=rows.get(id)||rows.get('other');
+   if(!row)continue;
    row.categories.push(category);row.categoryCount++;
    row.productCount+=(category.items||[]).filter(product=>product.visible!==false).length;
    if(!normalizeId(category.parentId))row.rootFolderCount++;
@@ -173,8 +194,8 @@
     .reduce((sum,category)=>sum+(category.items||[]).filter(product=>product.visible!==false).length,0);
   }
   const collator=new Intl.Collator('ar',{numeric:true,sensitivity:'base'});
-  return DEPARTMENTS.map(row=>rows.get(row.id)).filter(row=>row.categoryCount>0)
-   .sort((a,b)=>a.productCount-b.productCount||a.categoryCount-b.categoryCount||collator.compare(a.name,b.name));
+  return DEPARTMENTS.map(row=>rows.get(row.id)).filter(row=>row&&row.categoryCount>0&&row.visible!==false)
+   .sort((a,b)=>compareDisplayOrder(a,b)||a.productCount-b.productCount||a.categoryCount-b.categoryCount||collator.compare(a.name,b.name));
  }
  function safeImage(candidate){
   const value=String(candidate??'').trim();if(!value||placeholders.has(value))return '';
@@ -217,5 +238,5 @@
   if(pack)parts.push('packs','pack-'+slugify(pack?.[0]||'offer'));
   return parts.join('/');
  }
- window.NexaCatalog=Object.freeze({departments:DEPARTMENTS.map(row=>Object.freeze({...row})),classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,getCategoryDepartmentId,categoryAncestors,isCategoryVisible,getFolderProductCount,sortCategoriesByProductCount,compareDisplayOrder,getChildFolders,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
+ window.NexaCatalog=Object.freeze({get departments(){return DEPARTMENTS.map(row=>Object.freeze({...row}))},setDepartments,classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,getCategoryDepartmentId,categoryAncestors,isCategoryVisible,getFolderProductCount,sortCategoriesByProductCount,compareDisplayOrder,getChildFolders,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
 })();

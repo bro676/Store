@@ -91,12 +91,29 @@ test('Store and admin assets are revalidated instead of serving a stale theme', 
   assert.ok(server.includes("const cacheControl = extension === '.html' ? 'no-store'"), 'HTML responses are not cached');
   assert.ok(server.includes("'Cache-Control':cacheControl"), 'Static files send explicit cache policy');
 });
-
+test('catalog department settings, imported source identities and empty nested folders are wired through',async()=>{
+  const admin=await fs.readFile(path.join(webRoot,'admin.html'),'utf8');
+  const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+  const server=await fs.readFile(path.join(webRoot,'server/src/server.js'),'utf8');
+  const helper=await fs.readFile(path.join(webRoot,'assets/brand/nexa-catalog.js'),'utf8');
+  assert.ok(admin.includes('data-department-path='),'Main departments expose editable settings');
+  assert.ok(admin.includes('data-department-image='),'Main department cover images can be uploaded');
+  assert.ok(admin.includes('data-reset-category-api='),'API-backed folders can restore their original source name and image');
+  assert.ok(admin.includes('الاسم الأصلي القادم من API'),'Product editor shows the external source name separately from the storefront name');
+  assert.ok(admin.includes('sortOrder:state.departments')||admin.includes('departments:state.departments'),'Department settings are included in catalog saves');
+  assert.ok(server.includes('catalogDepartments:[]'),'Root department settings are persisted in store settings');
+  assert.ok(server.includes('backfillSupplierCategorySources'),'Existing supplier folders receive source snapshots on startup');
+  assert.ok(server.includes('restoreCategoryApiMatch'),'Folder API metadata has a restore endpoint');
+  assert.ok(server.includes('categorySourceSnapshot'),'Supplier categories keep original source names and image references');
+  assert.ok(store.includes('categories=d.catalog.filter(c=>Array.isArray(c.items))'),'Storefront does not drop empty parent folders');
+  assert.ok(store.includes('NexaCatalog.setDepartments(Array.isArray(d.departments)?d.departments:[])'),'Storefront receives editable root department labels and covers');
+  assert.ok(helper.includes('setDepartments'),'Department names, images, order and visibility are data-driven');
+});
 
 test('admin catalog exposes a recursive folder tree and safe manual organization controls', async () => {
   const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
-  assert.ok(admin.includes('nexa-catalog.js?v=20261104-folder-tree-v1'), 'Admin loads the same folder hierarchy helper as storefront');
+  assert.ok(admin.includes('nexa-catalog.js?v=20261106-catalog-manager-v2'), 'Admin loads the same folder hierarchy helper as storefront');
   assert.ok(admin.includes('function renderFolderBranch(parentId,departmentId,depth=0)'), 'Admin renders nested folders recursively');
   assert.ok(admin.includes('data-move-product='), 'Products can be moved between folders');
   assert.ok(admin.includes("data-path=\"'+ci+'.parentId\""), 'A folder can be moved under another folder');

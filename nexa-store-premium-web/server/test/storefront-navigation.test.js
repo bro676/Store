@@ -109,3 +109,24 @@ test('the live storefront delegates all product-card clicks at document level an
   assert.ok(!source.includes('addEventListener(\'click\',handleStoreProductActivation'),
     'product navigation should not depend on per-root click listeners');
 });
+
+
+test('main department settings update labels, visibility, sort order and imported supplier classifications',async()=>{
+  const api=await loadNexaCatalog();
+  const configured=api.setDepartments([
+    {id:'games',name:'قسم الألعاب المعدل',cover:'assets/products/01-games/cover.svg',visible:false,sortOrder:1},
+    {id:'other',name:'خدمات أخرى',cover:'assets/products/11-other-services/cover.svg',visible:true,sortOrder:2},
+  ]);
+  assert.equal(configured.find(row=>row.id==='games').name,'قسم الألعاب المعدل');
+  assert.equal(configured.find(row=>row.id==='games').visible,false);
+  assert.equal(configured.find(row=>row.id==='games').sortOrder,1);
+  assert.equal(api.classifyCategory({name:'FREE FIER'}),'games');
+  assert.equal(api.classifyCategory({name:'Claud Ai'}),'ai');
+  assert.equal(api.classifyCategory({name:'charging applications'}),'apps');
+  const summaries=api.getDepartmentSummaries([
+    {id:'free-fier',name:'FREE FIER',items:[]},
+    {id:'misc',name:'أخرى',departmentId:'other',items:[]},
+  ]);
+  assert.equal(summaries.some(row=>row.id==='games'),false,'Hidden main departments are absent from the customer catalog');
+  assert.equal(summaries.find(row=>row.id==='other').name,'خدمات أخرى');
+});

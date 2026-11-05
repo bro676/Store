@@ -214,6 +214,7 @@ function isPublicCatalogCategory(category, rows=catalog) {
 function publicCatalog() {
   return catalog.filter(category=>isPublicCatalogCategory(category)).map(category => ({
     ...category,
+    apiSource:undefined,apiSources:undefined,sourceCategoryAliases:undefined,manualOverrides:undefined,
     items: category.items.filter(product=>product.visible!==false).map(product => {
       const { seagm, wamda, bestStore, manualOverrides, apiSource, ...publicProduct } = product;
       const supplierLinked = seagm?.provider === 'seagm' || wamda?.provider === 'wamda' || bestStore?.provider === 'beststore';
@@ -790,13 +791,32 @@ async function serveStatic(req, res, pathname) {
   } catch { send(res,404,{error:'NOT_FOUND'}); }
 }
 
+const CATALOG_DEPARTMENT_CONFIG_IDS = new Set(['games','balance','apps','numbers','cards','vpn','verification','ai','social','web','other']);
+function validateCatalogDepartmentSettings(input){
+  if(!Array.isArray(input)||input.length>11)throw Object.assign(new Error('INVALID_CATALOG_DEPARTMENTS'),{status:400});
+  const seen=new Set();
+  return input.map(row=>{
+    if(!row||typeof row!=='object'||Array.isArray(row))throw Object.assign(new Error('INVALID_CATALOG_DEPARTMENT'),{status:400});
+    const id=String(row.id||'');
+    if(!CATALOG_DEPARTMENT_CONFIG_IDS.has(id)||seen.has(id))throw Object.assign(new Error('INVALID_CATALOG_DEPARTMENT_ID'),{status:400});
+    seen.add(id);
+    const name=String(row.name||'').trim(),description=String(row.description??row.desc??'');
+    const icon=String(row.icon||''),cover=String(row.cover||row.image||'');
+    if(!name||name.length>100||description.length>300||icon.length>12||!isSafeCatalogImage(cover))
+      throw Object.assign(new Error('INVALID_CATALOG_DEPARTMENT_FIELDS'),{status:400});
+    if(row.sortOrder!==undefined&&(!Number.isSafeInteger(Number(row.sortOrder))||Number(row.sortOrder)<0||Number(row.sortOrder)>1000000))
+      throw Object.assign(new Error('INVALID_CATALOG_DEPARTMENT_ORDER'),{status:400});
+    if(row.visible!==undefined&&typeof row.visible!=='boolean')throw Object.assign(new Error('INVALID_CATALOG_DEPARTMENT_VISIBILITY'),{status:400});
+    return {id,name,description,icon,cover,...(row.sortOrder!==undefined?{sortOrder:Number(row.sortOrder)}:{}),...(row.visible!==undefined?{visible:row.visible}:{})};
+  });
+}
 function defaultStoreSettings() {
   return {
     storeName:'Nexa Store', storeLogo:'assets/brand/logo.svg', announcement:'وجهتك للألعاب والبطاقات والاشتراكات الرقمية',
     themePrimary:'#397fda', themeSecondary:'#65b8d7', themeAccent:'#8076d6', themeDark:'#193957',
     fxMode:'manual', fxRate:145, fxApiUrl:'', fxJsonPath:'', fxUnit:'new',
     fxAuthHeader:'Authorization', fxAuthPrefix:'Bearer', fxUpdatedAt:null, fxLastError:'',
-    catalogApiMode:'manual', catalogApiUrl:'', catalogApiJsonPath:'catalog',
+    catalogDepartments:[], catalogApiMode:'manual', catalogApiUrl:'', catalogApiJsonPath:'catalog',
     catalogApiAuthHeader:'Authorization', catalogApiAuthPrefix:'Bearer', catalogApiSyncMode:'merge',
     catalogApiIntervalMinutes:15, catalogApiLastSyncAt:null, catalogApiLastAttemptAt:null, catalogApiLastError:'',
     catalogApiTokenEncrypted:'', catalogApiTokenCleared:false,
@@ -894,6 +914,7 @@ async function initializeStoreState() {
   }
   if(webhookSecretsMigrated)await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(storeSettings)]);
   applyStoreSettings();
+  await backfillSupplierCategorySources().catch(error=>console.error('[catalog] source snapshot migration failed:',String(error?.message||'unknown').slice(0,180)));
 }
 function adminCookie(req, token, maxAge = 8 * 60 * 60) {
   const secure = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https' || process.env.NODE_ENV === 'production';
@@ -1304,6 +1325,35 @@ async function persistBestStoreSettings(nextSettings){
   storeSettings=nextSettings;applyStoreSettings();
 }
 function bestStoreCategoryKey(name){return crypto.createHash('sha256').update(normalizeSupplierText(name||'')).digest('hex').slice(0,14);}
+function backfillSupplierCategorySources(){
+  if(!pool||!storeSettings||!Array.isArray(catalog)||!catalog.length)return Promise.resolve(false);
+  const wamdaRows=Array.isArray(storeSettings.wamdaCatalogCache)?storeSettings.wamdaCatalogCache:[];
+  const bestRows=Array.isArray(storeSettings.bestStoreCatalogCache)?storeSettings.bestStoreCatalogCache:[];
+  if(!wamdaRows.length&&!bestRows.length)return Promise.resolve(false);
+  const next=catalog.map(folder=>{
+    const aliases=new Set([folder.name,folder.apiSource?.name,...(Array.isArray(folder.sourceCategoryAliases)?folder.sourceCategoryAliases:[])].filter(Boolean).map(normalizeSupplierText));
+    const apiSources={...(folder.apiSources&&typeof folder.apiSources==='object'&&!Array.isArray(folder.apiSources)?folder.apiSources:{})};
+    for(const source of wamdaRows){
+      if(!source?.name)continue;
+      const direct=folder.id==='wamda-category-'+String(source.id);
+      if(!direct&&!aliases.has(normalizeSupplierText(source.name)))continue;
+      apiSources.wamda={provider:'wamda',sourceId:String(source.id),name:String(source.name).slice(0,100),desc:'',image:String(source.image||'').slice(0,2400)};
+    }
+    for(const source of bestRows){
+      if(!source?.name)continue;
+      const direct=folder.id==='supplier-category-'+String(source.id);
+      if(!direct&&!aliases.has(normalizeSupplierText(source.name)))continue;
+      apiSources.beststore={provider:'beststore',sourceId:String(source.id),name:String(source.name).slice(0,100),desc:'',image:String(source.image||'').slice(0,2400)};
+    }
+    if(!Object.keys(apiSources).length)return folder;
+    const selected=folder.apiSource?.provider?apiSources[folder.apiSource.provider]||folder.apiSource:(apiSources.wamda||apiSources.beststore||folder.apiSource);
+    const sourceCategoryAliases=Array.from(new Set([...(folder.sourceCategoryAliases||[]),...Object.values(apiSources).map(row=>row.name)].filter(Boolean))).slice(0,40);
+    const updated={...folder,apiSources,apiSource:selected,sourceCategoryAliases};
+    return JSON.stringify(updated)===JSON.stringify(folder)?folder:updated;
+  });
+  if(next.every((row,index)=>row===catalog[index]))return Promise.resolve(false);
+  return persistCatalog(validateCatalog(next)).then(()=>true);
+}
 function safeBestStoreImage(value){
   const raw=String(value||'').trim();if(!raw)return '';
   try{
@@ -1461,6 +1511,10 @@ function applySupplierWinnerToCatalog(nextCatalog,winner,pricingSettings=storeSe
     target={id:targetId,name:String(categoryName||'خدمات رقمية متنوعة').slice(0,100),desc:'منتجات رقمية متزامنة من الموردين المتاحين.',image:safeBestStoreImage(categoryImage)||'assets/products/_shared/category-placeholder.svg',icon:'✦',sourceCategoryAliases:[String(categoryName||'').slice(0,100)].filter(Boolean),items:[]};
     nextCatalog.push(target);if(catalogIndex)registerSupplierCatalogCategory(catalogIndex,target);
   }
+  const categorySourceSnapshot={provider,sourceId:String(categoryId),name:String(categoryName||'').slice(0,100),desc:'',image:String(safeBestStoreImage(categoryImage)||'').slice(0,2400)};
+  target.apiSources={...(target.apiSources&&typeof target.apiSources==='object'&&!Array.isArray(target.apiSources)?target.apiSources:{}),[provider]:categorySourceSnapshot};
+  if(!target.apiSource||target.apiSource.provider===provider)target.apiSource=categorySourceSnapshot;
+  target.sourceCategoryAliases=Array.from(new Set([...(Array.isArray(target.sourceCategoryAliases)?target.sourceCategoryAliases:[]),categorySourceSnapshot.name].filter(Boolean))).slice(0,40);
   target.items=target.items||[];
   if(catalogIndex){
     let itemIndex=-1;
@@ -1847,7 +1901,9 @@ async function publishWamdaProduct(input){
   }
   const localCategoryId='wamda-category-'+categoryId,localProductId='wamda-'+productId;
   let workingCatalog=catalog;
-  if(!workingCatalog.some(row=>row.id===localCategoryId))workingCatalog=validateCatalog([...workingCatalog,{id:localCategoryId,name:String(sourceCategory.name||'منتجات ومضة').slice(0,100),desc:'منتجات رقمية متزامنة مع ومضة ستور.',image:sourceCategory.image||'assets/products/_shared/category-placeholder.svg',icon:'⚡',items:[]}]);
+  const categorySourceSnapshot={provider:'wamda',sourceId:String(categoryId),name:String(sourceCategory.name||'منتجات ومضة').slice(0,100),desc:'',image:String(sourceCategory.image||'').slice(0,2400)};
+  if(!workingCatalog.some(row=>row.id===localCategoryId))workingCatalog=validateCatalog([...workingCatalog,{id:localCategoryId,name:categorySourceSnapshot.name,desc:'منتجات رقمية متزامنة مع ومضة ستور.',image:sourceCategory.image||'assets/products/_shared/category-placeholder.svg',icon:'⚡',apiSource:categorySourceSnapshot,apiSources:{wamda:categorySourceSnapshot},sourceCategoryAliases:[categorySourceSnapshot.name],items:[]}]);
+  else workingCatalog=workingCatalog.map(row=>row.id!==localCategoryId?row:{...row,apiSource:row.apiSource?.provider&&row.apiSource.provider!=='wamda'?row.apiSource:categorySourceSnapshot,apiSources:{...(row.apiSources||{}),wamda:categorySourceSnapshot},sourceCategoryAliases:Array.from(new Set([...(row.sourceCategoryAliases||[]),categorySourceSnapshot.name])).slice(0,40)});
   const existing=workingCatalog.flatMap(category=>category.items||[]).find(product=>product.id===localProductId);
   const previousOverride=getWamdaProductOverride(sourceProduct,existing);
   const pricingOverride=hasManualPrice?{mode:'fixed_price',value:manualPriceSyp}
@@ -1994,9 +2050,16 @@ async function applyWamdaGlobalPricingToAll(){
           let categoryIndex=categoryIndexes.get(localCategoryId);
           if(categoryIndex===undefined){
             const displayName=String(sourceCategory.name||'منتجات ومضة').slice(0,100)||'منتجات ومضة';
-            nextCatalog.push({id:localCategoryId,name:displayName,desc:'منتجات رقمية متزامنة مع ومضة ستور.',image:sourceCategory.image||'assets/products/_shared/category-placeholder.svg',icon:'⚡',items:[]});
+            const categorySourceSnapshot={provider:'wamda',sourceId:String(sourceCategory.id),name:displayName,desc:'',image:String(sourceCategory.image||'').slice(0,2400)};
+            nextCatalog.push({id:localCategoryId,name:displayName,desc:'منتجات رقمية متزامنة مع ومضة ستور.',image:sourceCategory.image||'assets/products/_shared/category-placeholder.svg',icon:'⚡',apiSource:categorySourceSnapshot,apiSources:{wamda:categorySourceSnapshot},sourceCategoryAliases:[displayName],items:[]});
             categoryIndex=nextCatalog.length-1;
             categoryIndexes.set(localCategoryId,categoryIndex);
+          }else{
+            const category=nextCatalog[categoryIndex],displayName=String(sourceCategory.name||'منتجات ومضة').slice(0,100);
+            const categorySourceSnapshot={provider:'wamda',sourceId:String(sourceCategory.id),name:displayName,desc:'',image:String(sourceCategory.image||'').slice(0,2400)};
+            category.apiSources={...(category.apiSources||{}),wamda:categorySourceSnapshot};
+            if(!category.apiSource||category.apiSource.provider==='wamda')category.apiSource=categorySourceSnapshot;
+            category.sourceCategoryAliases=Array.from(new Set([...(category.sourceCategoryAliases||[]),displayName])).slice(0,40);
           }
           const itemIndex=nextCatalog[categoryIndex].items.push(updated)-1;
           productLocations.set(productId,{categoryIndex,itemIndex});
@@ -2076,15 +2139,11 @@ async function publishSeagmProduct(input) {
   const localCategoryId = 'seagm-' + kind + '-' + categoryId;
   const localProductId = 'seagm-' + kind + '-' + productId;
   let workingCatalog = catalog;
-  if (!workingCatalog.some(row => row.id === localCategoryId)) {
-    workingCatalog = validateCatalog([...workingCatalog,{
-      id:localCategoryId,
-      name:String(sourceCategory.name || (kind === 'card' ? 'بطاقات SEAGM' : 'شحن SEAGM')).slice(0,100),
-      desc:'منتجات مستوردة من مورد SEAGM. حدّد سعر البيع المحلي من لوحة الإدارة.',
-      image:sourceCategory.image||'assets/products/_shared/category-placeholder.svg',
-      icon:kind === 'card' ? '▣' : '◈',
-      items:[],
-    }]);
+  const categorySourceSnapshot={provider:'seagm',sourceId:String(sourceCategory.id),name:String(sourceCategory.name||(kind==='card'?'بطاقات SEAGM':'شحن SEAGM')).slice(0,100),desc:'',image:String(sourceCategory.image||'').slice(0,2400)};
+  if(!workingCatalog.some(row=>row.id===localCategoryId)){
+    workingCatalog=validateCatalog([...workingCatalog,{id:localCategoryId,name:categorySourceSnapshot.name,desc:'منتجات مستوردة من مورد SEAGM. حدّد سعر البيع المحلي من لوحة الإدارة.',image:sourceCategory.image||'assets/products/_shared/category-placeholder.svg',icon:kind==='card'?'▣':'◈',apiSource:categorySourceSnapshot,apiSources:{seagm:categorySourceSnapshot},sourceCategoryAliases:[categorySourceSnapshot.name],items:[]}]);
+  }else{
+    workingCatalog=workingCatalog.map(row=>row.id!==localCategoryId?row:{...row,apiSource:row.apiSource?.provider&&row.apiSource.provider!=='seagm'?row.apiSource:categorySourceSnapshot,apiSources:{...(row.apiSources||{}),seagm:categorySourceSnapshot},sourceCategoryAliases:Array.from(new Set([...(row.sourceCategoryAliases||[]),categorySourceSnapshot.name])).slice(0,40)});
   }
   const sourceCurrency = String(sourceProduct.currency || '').slice(0,12).toUpperCase();
   const existingPublishedProduct=workingCatalog.flatMap(row=>row.items||[]).find(product=>product.id===localProductId)||null;
@@ -2726,7 +2785,7 @@ const server = http.createServer(async (req,res) => {
       return send(res,401,{ok:false,error:'UNAUTHORIZED',message:'سجّل الدخول إلى لوحة الإدارة أولاً.'});
     }
     if (req.method === 'GET' && url.pathname === '/api/catalog') {
-      return send(res,200,{ok:true,catalog:publicCatalog()});
+      return send(res,200,{ok:true,catalog:publicCatalog(),departments:storeSettings?.catalogDepartments||[]});
     }
     if (req.method === 'GET' && url.pathname === '/api/storefront-config') {
       return send(res,200,{ok:true,...publicSettings()});
@@ -2816,6 +2875,26 @@ const server = http.createServer(async (req,res) => {
       catalogWriteApiTokenRuntime = '';
       return send(res,200,{ok:true,message:'تم إلغاء مفتاح كتابة المنتجات.'});
     }
+    const restoreCategoryApiMatch=url.pathname.match(/^\/api\/admin\/catalog\/([^/]+)\/restore-api$/);
+    if(req.method==='POST'&&restoreCategoryApiMatch){
+      if(!pool)return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
+      const categoryId=decodeURIComponent(restoreCategoryApiMatch[1]);
+      const found=catalog.find(category=>category.id===categoryId);
+      if(!found)return send(res,404,{ok:false,error:'CATALOG_FOLDER_NOT_FOUND',message:'لم يتم العثور على المجلد.'});
+      const source=found.apiSource||(Object.values(found.apiSources||{})[0]||null);
+      if(!source)return send(res,409,{ok:false,error:'API_SOURCE_MISSING',message:'لا توجد نسخة مصدر محفوظة لهذا المجلد. أعد مزامنة المنتجات أولاً.'});
+      const nextCatalog=catalog.map(category=>{
+        if(category.id!==categoryId)return category;
+        const restored={...category};
+        for(const key of ['name','desc','image','icon'])if(Object.prototype.hasOwnProperty.call(source,key)&&source[key]!==undefined&&source[key]!==null&&source[key]!=='')restored[key]=source[key];
+        const overrides={...(category.manualOverrides||{})};
+        for(const key of ['name','desc','image','icon'])delete overrides[key];
+        if(Object.keys(overrides).length)restored.manualOverrides=overrides;else delete restored.manualOverrides;
+        return restored;
+      });
+      await persistCatalog(validateCatalog(nextCatalog));
+      return send(res,200,{ok:true,message:'تمت استعادة اسم ووصف وصورة المجلد من بيانات API مع الحفاظ على ترتيبه ومكانه وحالة ظهوره.',catalog});
+    }
     const restoreProductApiMatch=url.pathname.match(/^\/api\/admin\/catalog\/([^/]+)\/([^/]+)\/restore-api$/);
     if(req.method==='POST'&&restoreProductApiMatch){
       if(!pool)return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
@@ -2891,7 +2970,7 @@ const server = http.createServer(async (req,res) => {
       }
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/catalog') {
-      return send(res,200,{ok:true,catalog});
+      return send(res,200,{ok:true,catalog,departments:storeSettings?.catalogDepartments||[]});
     }
     if (req.method === 'PUT' && url.pathname === '/api/admin/catalog') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
@@ -2933,8 +3012,20 @@ const server = http.createServer(async (req,res) => {
         else delete updatedCategory.manualOverrides;
         return updatedCategory;
       });
-      await persistCatalog(validateCatalog(nextCatalog));
-      return send(res,200,{ok:true,message:'تم حفظ الكتالوج والتعديلات اليدوية مع الاحتفاظ ببيانات API.',catalog});
+      const validatedCatalog=validateCatalog(nextCatalog);
+      const nextDepartments=input.departments!==undefined?validateCatalogDepartmentSettings(input.departments):(storeSettings.catalogDepartments||[]);
+      const nextSettings={...storeSettings,catalogDepartments:nextDepartments};
+      const client=await pool.connect();
+      try{
+        await client.query('BEGIN');
+        await client.query('UPDATE nexa_store_state SET catalog=$1::jsonb,settings=$2::jsonb,updated_at=NOW() WHERE singleton=TRUE',
+          [JSON.stringify(validatedCatalog),JSON.stringify(nextSettings)]);
+        await client.query('COMMIT');
+        catalog=validatedCatalog;
+        storeSettings=nextSettings;
+      }catch(error){await client.query('ROLLBACK').catch(()=>{});throw error;}
+      finally{client.release();}
+      return send(res,200,{ok:true,message:'تم حفظ الأقسام الرئيسية والكتالوج والتعديلات اليدوية مع الاحتفاظ ببيانات API.',catalog,departments:storeSettings.catalogDepartments||[]});
     }
     if (req.method === 'POST' && url.pathname === '/api/admin/catalog/products') {
       if (rateLimit(req,res,`catalog-write:${ip}`,40,60_000)) return;
