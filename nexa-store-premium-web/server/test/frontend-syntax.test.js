@@ -418,7 +418,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(theme.includes('.app-shell .sidebar-account-balance'), 'The account rail shows the authenticated wallet balance');
   assert.ok(theme.includes('#app.shell .side{'), 'The admin rail participates in the separate light and dark themes');
   assert.ok(theme.includes('#app.shell .topbar{') && theme.includes('min-height:var(--topbar-height)!important;height:var(--topbar-height)!important;'), 'The admin topbar shares the full-shell reference height');
-  assert.ok(theme.includes('.app-shell .header{position:sticky'), 'The customer topbar remains horizontal and fixed to the top');
+  assert.ok(theme.includes('.app-shell .header{') && theme.includes('position:sticky!important;top:0!important;z-index:70!important;'), 'The customer topbar remains horizontal and fixed to the top');
   assert.ok(theme.includes('#62c8f2'), 'The rebuilt topbar uses the requested sky-blue brand color');
   assert.ok(theme.includes(':root[data-theme="light"]'), 'Light theme is explicitly supported');
   assert.ok(theme.includes(':root[data-theme="dark"]'), 'Dark theme is explicitly supported');
