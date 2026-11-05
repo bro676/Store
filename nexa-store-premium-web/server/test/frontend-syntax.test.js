@@ -86,8 +86,8 @@ test('Store and admin assets are revalidated instead of serving a stale theme', 
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
   assert.ok(!store.includes('nexa-luxury.css') && !admin.includes('nexa-luxury.css'), 'The old luxury theme is no longer loaded by either live interface');
-  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-header-v7'), 'Storefront loads the new full-shell theme');
-  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-header-v7'), 'Admin loads the same new full-shell theme');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v8'), 'Storefront loads the new full-shell theme');
+  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v8'), 'Admin loads the same new full-shell theme');
   assert.ok(server.includes("const cacheControl = extension === '.html' ? 'no-store'"), 'HTML responses are not cached');
   assert.ok(server.includes("'Cache-Control':cacheControl"), 'Static files send explicit cache policy');
 });
@@ -344,7 +344,7 @@ test('storefront product cards use robust document-level delegated click and key
 });
 
 
-test('Wamda-style sky-blue redesign preserves store flows and adds reference account pages', async () => {
+test('Wamda brand redesign preserves store flows and adds reference account pages', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const theme = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-wamda-blue.css'), 'utf8');
@@ -396,7 +396,7 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(admin.includes('admin-rail-summary'), 'The existing admin workspace summary remains in place');
   assert.ok(admin.includes('adminThemeToggle'), 'The admin keeps its independent theme control');
 
-  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-header-v7';
+  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-brand-v8';
   assert.ok(store.includes(themeRef), 'Storefront uses the rebuilt structural theme revision');
   assert.ok(admin.includes(themeRef), 'Admin uses the same rebuilt structural theme revision');
   assert.ok(theme.includes('.app-shell .sidebar{') && theme.includes('position:fixed!important;'), 'The customer account rail is fixed on desktop');
@@ -413,17 +413,17 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(theme.includes('margin:0 var(--rail-width) 0 0!important'), 'The content area reserves the full fixed desktop rail');
   assert.ok(theme.includes('body.sidebar-open .app-shell .sidebar{transform:translateX(0)!important}'), 'On mobile the account rail is an off-canvas drawer');
   assert.ok(theme.includes('body.admin-sidebar-open #app.shell .side{transform:translateX(0)!important}'), 'The admin rail becomes an off-canvas drawer on mobile');
-  assert.ok(theme.includes("url('/assets/brand/nexa-hero-banner.svg')"), 'The homepage uses the existing sky-blue visual banner');
+  assert.ok(theme.includes("url('/assets/brand/nexa-hero-banner.svg')"), 'The homepage banner artwork is retained and recolored to Wamda tones');
   assert.ok(theme.includes('.app-shell .nexa-marquee{') && theme.includes('.app-shell .nexa-home-search{'), 'The homepage ticker and dedicated search appear after the hero');
   assert.ok(theme.includes('.app-shell .sidebar-account-balance'), 'The account rail shows the authenticated wallet balance');
   assert.ok(theme.includes('#app.shell .side{'), 'The admin rail participates in the separate light and dark themes');
   assert.ok(theme.includes('#app.shell .topbar{') && theme.includes('min-height:var(--topbar-height)!important;height:var(--topbar-height)!important;'), 'The admin topbar shares the full-shell reference height');
   assert.ok(theme.includes('.app-shell .header{') && theme.includes('position:sticky!important;top:0!important;z-index:70!important;'), 'The customer topbar remains horizontal and fixed to the top');
-  assert.ok(theme.includes('#62c8f2'), 'The rebuilt topbar uses the requested sky-blue brand color');
-  assert.ok(theme.includes('--red:var(--sky-2)') && theme.includes('--green:var(--sky-3)'), 'Legacy primary/green aliases resolve to the sky-blue brand');
+  assert.ok(theme.includes('--brand-indigo:#3f4a75') && theme.includes('--brand-teal:#0095a4') && theme.includes('--brand-cyan:#55b8cc') && theme.includes('--brand-sand:#e9e1db'), 'The rebuilt interface uses the complete official Wamda palette');
+  assert.ok(theme.includes('--red:#0095a4') && theme.includes('--green:#238a69'), 'Primary and success colors remain semantically distinct in the Wamda palette');
   assert.ok(theme.includes('.app-shell .step.active span{background:var(--sky-2)!important'), 'Active product-flow steps use the sky-blue accent');
   assert.ok(theme.includes('.app-shell .tabs button.active,.app-shell .tab.active{'), 'Active tab states use the same sky-blue accent');
-  assert.ok(theme.includes('.app-shell .icon-button:hover{color:var(--sky-3)!important'), 'Generic icon hover states do not fall back to the retired pink palette');
+  assert.ok(theme.includes('.app-shell .header-actions .icon-button:hover{background:rgba(0,149,164,.2)!important'), 'Header icon hover states use the official teal accent');
   assert.ok(theme.includes(':root[data-theme="light"]'), 'Light theme is explicitly supported');
   assert.ok(theme.includes(':root[data-theme="dark"]'), 'Dark theme is explicitly supported');
   assert.ok(theme.includes('@media(max-width:860px)'), 'The account rail has a mobile drawer layout');
@@ -464,8 +464,8 @@ test('Wamda drawer is compact, closable at every viewport, and scrolls as one su
   assert.ok(theme.includes('.app-shell .sidebar{') && theme.includes('overflow-y:auto!important;'), 'The outer drawer owns vertical scrolling');
   assert.ok(theme.includes('.app-shell .sidebar-nav{') && theme.includes('overflow:visible!important;overflow-y:visible!important;'), 'Navigation no longer creates a second nested scrollbar');
   assert.ok(theme.includes('flex:0 0 auto!important;'), 'Drawer sections remain together inside the outer scroll surface');
-  assert.ok(theme.includes(':root[data-theme="dark"]{') && theme.includes('--drawer-bg:#10263a;'), 'Dark drawer uses a soft deep-navy palette');
-  assert.ok(theme.includes(':root[data-theme="light"]{') && theme.includes('--drawer-bg:#f8fbfd;'), 'Light drawer uses a calm pale-blue palette');
+  assert.ok(theme.includes(':root[data-theme="dark"]{') && theme.includes('--drawer-bg:#3f4a75;'), 'Dark drawer uses the official Wamda indigo');
+  assert.ok(theme.includes(':root[data-theme="light"]{') && theme.includes('--drawer-bg:#f8f5f1;'), 'Light drawer uses the warm Wamda neutral surface');
   assert.ok(theme.includes('.app-shell .sidebar-drawer-head{') && theme.includes('display:flex!important;'), 'The close control remains available in the drawer header');
 
   assert.ok(store.includes('function isStoreMenuOpen()'), 'Drawer state is tracked for both desktop and mobile');
@@ -533,4 +533,28 @@ test('Wamda reference paths load the storefront shell and resolve to the intende
   assert.ok(routeCode.includes("window.addEventListener('popstate'"), 'Browser back and forward navigation is wired to the current URL');
   assert.ok(server.includes('customerAppRoute || pathname.startsWith(\'/assets/\')'), 'Only known customer paths and static assets are served through the app shell');
   assert.ok(server.includes("return send(res,404,{error:'NOT_FOUND'})"), 'Unknown paths remain 404 instead of silently displaying the storefront');
+});
+
+
+test('Wamda palette, theme boundaries, oval geometry and bilingual direction are explicit', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  const css = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-wamda-blue.css'), 'utf8');
+  const logo = await fs.readFile(path.join(webRoot, 'assets/brand/logo.svg'), 'utf8');
+  const hero = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-hero-banner.svg'), 'utf8');
+
+  for (const color of ['#3f4a75','#0095a4','#55b8cc','#e9e1db']) {
+    assert.ok(css.includes(color), 'Missing official Wamda brand color: ' + color);
+  }
+  assert.ok(css.includes('--paper:#151923;') && css.includes('--surface:#202535;'), 'Dark theme uses deep surfaces');
+  assert.ok(css.includes('--paper:#f4efea;') && css.includes('--surface:#fffdfa;'), 'Light theme uses warm pale surfaces');
+  assert.ok(css.includes('--drawer-bg:#3f4a75;') && css.includes('--drawer-bg:#f8f5f1;'), 'Drawer themes are explicit and independent');
+  assert.ok(css.includes('border-radius:var(--radius-pill)!important;'), 'Controls and navigation use pill geometry');
+  assert.ok(css.includes('.app-shell .header-back-button{display:none!important}'), 'The topbar contains only the logo/name at left and action group at right');
+  assert.ok(css.includes('direction:rtl!important;flex-direction:row!important;'), 'Header actions are ordered from the physical right');
+  assert.ok(css.includes('margin-left:auto!important;margin-right:0!important;'), 'Header actions are anchored to the right');
+  assert.ok(store.includes('dataset.textDirection=direction') && admin.includes('dataset.textDirection=direction'), 'Store and dashboard mark English and Arabic text independently');
+  assert.ok(store.includes('wamda-brand-v8') && admin.includes('wamda-brand-v8'), 'Both pages load the refreshed stylesheet');
+  assert.ok(!logo.includes('#73d7fa') && !logo.includes('#168ec5'), 'Nexa logo no longer uses the retired blue gradient');
+  assert.ok(!hero.includes('#65D5F7') && !hero.includes('#2A9FD5'), 'Hero artwork no longer uses the retired sky-blue palette');
 });
