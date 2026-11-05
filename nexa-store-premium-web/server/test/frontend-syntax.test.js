@@ -374,7 +374,8 @@ test('Wamda-style sky-blue redesign preserves store flows and adds reference acc
   assert.ok(store.includes("searchRow.classList.toggle('hidden',view!=='store')"), 'The global search is reserved for the catalogue while the homepage uses its post-hero search');
   assert.ok(store.indexOf('<div class="promo">')>store.indexOf('data-view="home"'), 'The announcement strip is part of the homepage, not every route');
   assert.ok(store.indexOf('data-view="store"')<store.indexOf('id="globalSearchRow"') && store.indexOf('id="globalSearchRow"')<store.indexOf('class="catalog-shell"'), 'Catalogue search follows the catalogue page heading');
-  assert.ok(store.includes('data-current-page=view'), 'The active view controls page-specific header affordances');
+  assert.ok(store.includes('document.documentElement.dataset.currentPage=view'), 'The active view controls page-specific header affordances');
+  assert.equal((store.match(/\$\('menuToggle'\)\.addEventListener\('click'/g)||[]).length,1, 'Mobile sidebar toggle has exactly one click handler');
   assert.ok(store.includes('function renderLoginPage()'), 'The dedicated login page reflects the current customer session');
   assert.ok(store.includes("fetch('/api/account/login'"), 'The dedicated login page uses the existing phone/password API');
   assert.ok(store.includes("'/api/account/orders'"), 'Customer order history retains its existing API');
