@@ -1578,7 +1578,7 @@ body.sidebar-closed .app-shell .app-main{
 :root[data-theme="light"] .app-shell .header{background:#62c8f2!important;color:#073850!important;border-bottom-color:#4bb9e6!important}
 .app-shell .header-main{gap:12px!important}
 .app-shell .header-actions{
-  direction:rtl!important;flex-direction:row!important;margin-inline-start:auto!important;margin-inline-end:0!important;
+  direction:rtl!important;flex-direction:row!important;margin-left:auto!important;margin-right:0!important;margin-inline-start:auto!important;margin-inline-end:0!important;
   display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;
 }
 .app-shell .header-actions .menu-toggle{
