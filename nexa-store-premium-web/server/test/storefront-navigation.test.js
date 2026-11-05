@@ -59,7 +59,7 @@ test('a card click resolves the exact product in its supplied category and opens
     activated.getAttribute('data-open-category')
   );
   assert.ok(resolved);
-  assert.equal(resolved.departmentId,'other');
+  assert.equal(resolved.departmentId,'apps');
   assert.equal(resolved.categoryId,'apps');
   assert.equal(resolved.itemId,'rooh-chat');
   assert.equal(resolved.optionId,'default');

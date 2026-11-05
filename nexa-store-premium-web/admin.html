@@ -849,7 +849,7 @@ function renderCatalog(){
   $('addProductBtn').disabled=true;
   const department=departments.find(row=>row.id===state.selectedDepartmentId)||departments.find(row=>row.id==='other');
   const folderCount=state.catalog.filter(row=>categoryDepartmentId(row)===department.id).length;
-  $('catalogEditor').innerHTML=\`
+  $('catalogEditor').innerHTML=`
    <div class="category-editor"><div><span class="eyebrow">MAIN DEPARTMENT SETTINGS</span><h3 style="margin:3px 0">${esc(department.name)}</h3><p class="muted">هذا هو القسم الأعلى في شجرة الكتالوج. إعداداته مستقلة عن المجلدات والمنتجات الموجودة تحته.</p></div><div class="toolbar"><span class="tag">${folderCount} مجلدات</span><span class="tag">${department.visible===false?'مخفي':'ظاهر'}</span></div></div>
    <div class="form-grid">
     ${departmentField('اسم القسم الرئيسي',department.id,'name',department.name)}
@@ -861,7 +861,7 @@ function renderCatalog(){
    <div class="toolbar"><span class="muted">صورة القسم الرئيسي</span><div class="image-row" style="max-width:360px"><img class="image-preview" src="${esc(department.cover)}" alt=""><div><input data-department-path="${esc(department.id)}.cover" value="${esc(department.cover)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-department-image="${esc(department.id)}"></label></div></div></div>
    <div class="notice info">لا يُحذف القسم الرئيسي من النظام حتى لا تنكسر روابط المنتجات القديمة؛ يمكنك إخفاؤه وإعادة إظهاره متى شئت. لإنشاء مجلد داخل هذا القسم اضغط «＋ إضافة مجلد».</div>
    <div class="toolbar"><div><h3 style="margin:0">المجلدات التابعة للقسم</h3><small class="muted">اختر أي مجلد من الشجرة لفتح إعداداته أو إنشاء مستويات أعمق.</small></div><button class="btn soft" id="createFolderFromDepartment">＋ مجلد رئيسي داخل القسم</button></div>
-   <div class="empty">اختر مجلداً من الشجرة لتعديل محتوياته، أو أنشئ مجلداً جديداً في هذا القسم.</div>\`;
+   <div class="empty">اختر مجلداً من الشجرة لتعديل محتوياته، أو أنشئ مجلداً جديداً في هذا القسم.</div>`;
   $('addProductBtn').disabled=true;
   return;
  }
