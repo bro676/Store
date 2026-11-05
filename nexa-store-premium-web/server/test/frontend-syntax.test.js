@@ -86,8 +86,8 @@ test('Store and admin assets are revalidated instead of serving a stale theme', 
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
   assert.ok(!store.includes('nexa-luxury.css') && !admin.includes('nexa-luxury.css'), 'The old luxury theme is no longer loaded by either live interface');
-  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v8'), 'Storefront loads the new full-shell theme');
-  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v8'), 'Admin loads the same new full-shell theme');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v9'), 'Storefront loads the new full-shell theme');
+  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v9'), 'Admin loads the same new full-shell theme');
   assert.ok(server.includes("const cacheControl = extension === '.html' ? 'no-store'"), 'HTML responses are not cached');
   assert.ok(server.includes("'Cache-Control':cacheControl"), 'Static files send explicit cache policy');
 });
@@ -396,7 +396,7 @@ test('Wamda brand redesign preserves store flows and adds reference account page
   assert.ok(admin.includes('admin-rail-summary'), 'The existing admin workspace summary remains in place');
   assert.ok(admin.includes('adminThemeToggle'), 'The admin keeps its independent theme control');
 
-  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-brand-v8';
+  const themeRef = 'nexa-wamda-blue.css?v=20261105-wamda-brand-v9';
   assert.ok(store.includes(themeRef), 'Storefront uses the rebuilt structural theme revision');
   assert.ok(admin.includes(themeRef), 'Admin uses the same rebuilt structural theme revision');
   assert.ok(theme.includes('.app-shell .sidebar{') && theme.includes('position:fixed!important;'), 'The customer account rail is fixed on desktop');
@@ -554,7 +554,21 @@ test('Wamda palette, theme boundaries, oval geometry and bilingual direction are
   assert.ok(css.includes('direction:rtl!important;flex-direction:row!important;'), 'Header actions are ordered from the physical right');
   assert.ok(css.includes('margin-left:auto!important;margin-right:0!important;'), 'Header actions are anchored to the right');
   assert.ok(store.includes('dataset.textDirection=direction') && admin.includes('dataset.textDirection=direction'), 'Store and dashboard mark English and Arabic text independently');
-  assert.ok(store.includes('wamda-brand-v8') && admin.includes('wamda-brand-v8'), 'Both pages load the refreshed stylesheet');
+  assert.ok(store.includes('wamda-brand-v9') && admin.includes('wamda-brand-v9'), 'Both pages load the refreshed stylesheet');
   assert.ok(!logo.includes('#73d7fa') && !logo.includes('#168ec5'), 'Nexa logo no longer uses the retired blue gradient');
   assert.ok(!hero.includes('#65D5F7') && !hero.includes('#2A9FD5'), 'Hero artwork no longer uses the retired sky-blue palette');
+});
+
+
+test('light mode does not retain the dark hero, footer, payment panel or login backdrop', async () => {
+  const css = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-wamda-blue.css'), 'utf8');
+  for (const selector of [
+    ':root[data-theme="light"] .app-shell .home-intro',
+    ':root[data-theme="light"] .app-shell .wallet-api-side',
+    ':root[data-theme="light"] .app-shell .wallet-placeholder',
+    ':root[data-theme="light"] .app-shell .footer',
+    ':root[data-theme="light"] .app-shell .promo',
+    ':root[data-theme="light"] #app.shell .login-screen'
+  ]) assert.ok(css.includes(selector), 'Missing explicit light-mode surface override: ' + selector);
+  assert.ok(css.includes(':root[data-theme="dark"] .app-shell .wallet-api-side') || css.includes(':root[data-theme="dark"]'), 'Dark mode remains independently declared');
 });
