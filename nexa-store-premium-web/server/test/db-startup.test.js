@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
 import { waitForDatabase } from '../src/db-startup.js';
 
 test('database startup succeeds immediately when PostgreSQL is reachable', async () => {
