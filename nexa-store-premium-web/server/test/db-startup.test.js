@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { waitForDatabase } from '../src/db-startup.js';
+import { EventEmitter } from 'node:events';
+import { guardPoolClient, waitForDatabase } from '../src/db-startup.js';
 
 test('database startup succeeds immediately when PostgreSQL is reachable', async () => {
   let calls = 0;
@@ -86,4 +87,52 @@ test('database startup fails clearly after exhausting transient retries', async 
 
 test('database startup validates the PostgreSQL pool input', async () => {
   await assert.rejects(waitForDatabase(null), TypeError);
+});
+
+
+test('default PostgreSQL startup retry window tolerates longer transient DNS outages', async () => {
+  let calls = 0;
+  const delays = [];
+  await waitForDatabase({
+    async query() {
+      calls += 1;
+      if (calls < 7) {
+        const error = new Error('temporary DNS outage');
+        error.code = 'ENOTFOUND';
+        throw error;
+      }
+    },
+  }, {
+    sleep: async ms => delays.push(ms),
+  });
+  assert.equal(calls, 7);
+  assert.deepEqual(delays, [1000, 2000, 4000, 5000, 5000, 5000]);
+});
+
+test('checked-out PostgreSQL client errors are handled and evicted on release', () => {
+  const client = new EventEmitter();
+  let releasedWith = null;
+  const handled = [];
+  client.release = error => { releasedWith = error || null; };
+
+  guardPoolClient(client, error => handled.push(error));
+  const connectionError = Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' });
+  client.emit('error', connectionError);
+  client.release();
+
+  assert.deepEqual(handled, [connectionError]);
+  assert.equal(releasedWith, connectionError);
+  assert.equal(client.listenerCount('error'), 0);
+});
+
+test('healthy checked-out PostgreSQL clients are returned to the pool normally', () => {
+  const client = new EventEmitter();
+  let releases = 0;
+  client.release = error => { assert.equal(error, undefined); releases += 1; };
+
+  guardPoolClient(client);
+  client.release();
+
+  assert.equal(releases, 1);
+  assert.equal(client.listenerCount('error'), 0);
 });
