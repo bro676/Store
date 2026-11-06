@@ -1688,12 +1688,17 @@ function renderSidebarAccount(){
 
 function syncSidebarCurrency(){
  const code=$('sidebarCurrencyCode'),label=$('sidebarCurrencyLabel'),button=$('sidebarCurrencyToggle');
+ const languageButton=$('sidebarLanguageToggle');
  const english=storeLocale()==='en',next=storefrontDisplayCurrency==='USD'?'SYP':'USD';
  if(code)code.textContent=storefrontDisplayCurrency;
  if(label)label.textContent=english?'Display currency':'العملة الثانوية';
  if(button){
   const caption=english?'Switch display currency to '+next:'تبديل عملة العرض إلى '+(next==='USD'?'الدولار الأمريكي':'الليرة السورية');
   button.title=caption;button.setAttribute('aria-label',caption);
+ }
+ if(languageButton){
+  const languageCaption=english?'Switch language to Arabic':'تغيير اللغة إلى الإنجليزية';
+  languageButton.title=languageCaption;languageButton.setAttribute('aria-label',languageCaption);
  }
 }
 function renderWalletLedger(){
@@ -1724,13 +1729,13 @@ function setStoreDisplayCurrency(currency,{persist=true,notify=false}={}){
  if(notify)showToast(storeLocale()==='en'?'Display currency: '+storefrontDisplayCurrency:'عملة العرض: '+storefrontDisplayCurrency);
 }
 function initializeStorePreferences(){
- if(window.NexaLocale){storefrontLanguage=NexaLocale.initialize();}
+ if(window.NexaLocale){storefrontLanguage=window.NexaLocale.initialize();}
  try{const saved=localStorage.getItem('nexa-store-display-currency');if(saved==='SYP'||saved==='USD')storefrontDisplayCurrency=saved;}catch{}
  syncSidebarCurrency();
  $('sidebarLanguageToggle')?.addEventListener('click',()=>{
   const next=storeLocale()==='ar'?'en':'ar';
   storefrontLanguage=next;
-  NexaLocale?.setLanguage(next);
+  window.NexaLocale?.setLanguage(next);
   syncSidebarCurrency();
   refreshDisplayCurrency();
   showToast(next==='en'?'Language changed to English':'تم تغيير اللغة إلى العربية');
@@ -1743,7 +1748,7 @@ function initializeStorePreferences(){
  });
  window.addEventListener('storage',event=>{
   if(event.key==='nexa-store-display-currency'&&(event.newValue==='USD'||event.newValue==='SYP'))setStoreDisplayCurrency(event.newValue,{persist:false});
-  if(event.key==='nexa-store-language'&&(event.newValue==='ar'||event.newValue==='en'))NexaLocale?.setLanguage(event.newValue,{persist:false});
+  if(event.key==='nexa-store-language'&&(event.newValue==='ar'||event.newValue==='en'))window.NexaLocale?.setLanguage(event.newValue,{persist:false});
  });
 }
 
