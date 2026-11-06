@@ -82,7 +82,7 @@ if (cfg.databaseUrl) {
   pool.on('error', (error) => {
     console.error('[database] idle PostgreSQL client error:', error?.message || 'unknown error');
   });
-  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql', '008_manual_fulfillment.sql']) {
+  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql', '008_manual_fulfillment.sql', '009_customer_avatars.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
   }
 }
@@ -810,9 +810,120 @@ function validateCatalogDepartmentSettings(input){
     return {id,name,description,icon,cover,...(row.sortOrder!==undefined?{sortOrder:Number(row.sortOrder)}:{}),...(row.visible!==undefined?{visible:row.visible}:{})};
   });
 }
+const STOREFRONT_PAGE_KEYS = ['home','store','orders','favorites','wallet','payments','support','profile','notifications','vip','bot','affiliate','security','verify','install','about','login','register','forgot'];
+const STOREFRONT_MENU_KEYS = ['home','assistant','addFunds','payments','wallet','orders','support','affiliate','security','verify','install','about'];
+const STOREFRONT_SOCIAL_DEFAULTS = {
+  tiktok:{visible:true,url:'https://www.tiktok.com/',color:'#a4a4a4'},
+  instagram:{visible:true,url:'https://www.instagram.com/',color:'#c47a9d'},
+  whatsapp:{visible:true,url:'https://wa.me/963936382101',color:'#69a98a'},
+  whatsappWeb:{visible:true,url:'https://web.whatsapp.com/',color:'#69a98a'},
+  telegram:{visible:true,url:'https://t.me/',color:'#8299ad'},
+  telegramWeb:{visible:true,url:'https://telegram.org/',color:'#8299ad'},
+  youtube:{visible:true,url:'https://www.youtube.com/',color:'#c77979'},
+};
+function defaultStorefrontUi() {
+  return {
+    userAvatar:'assets/brand/logo.svg',avatarSize:72,rankLabel:'BRONZE',rankIcon:'★',brandSubtitle:'DIGITAL MARKETPLACE',
+    footerNote:'مساحة رقمية واحدة للألعاب والبطاقات والاشتراكات والخدمات.',
+    colors:{avatarRing:'#b7a58a',notificationIcon:'#b6a58b',notificationBackground:'#252525',notificationBorder:'#4b463d',
+      favoritesIcon:'#cf7182',vipBackground:'#f3eee2',vipText:'#806a3f',vipIcon:'#b99a60',quickActionBackground:'#e7e7e7'},
+    visibility:{balance:true,notificationButton:true,profileButton:true,vipBadge:true,languageShortcut:true,favoritesShortcut:true,
+      profileShortcut:true,logoutShortcut:true,currencySwitcher:true,themeSwitcher:true,socialLinks:true,ownerLogo:true,
+      footer:true,sidebarBrand:true},
+    pages:Object.fromEntries(STOREFRONT_PAGE_KEYS.map(key=>[key,true])),
+    menuVisible:Object.fromEntries(STOREFRONT_MENU_KEYS.map(key=>[key,true])),
+    menuIcons:{home:'⌂',assistant:'✦',addFunds:'＋',payments:'▤',wallet:'▣',orders:'▱',support:'◉',affiliate:'♧',
+      security:'⛨',verify:'◈',install:'⇩',about:'ⓘ'},
+    socialLinks:JSON.parse(JSON.stringify(STOREFRONT_SOCIAL_DEFAULTS)),
+  };
+}
+function validateStorefrontUi(input) {
+  if(!input||typeof input!=='object'||Array.isArray(input))throw Object.assign(new Error('INVALID_STOREFRONT_UI'),{status:400});
+  const defaults=defaultStorefrontUi(),current=storeSettings?.storefrontUi||defaults;
+  const next={...defaults,...current};
+  for(const section of ['colors','visibility','pages','menuVisible','menuIcons','socialLinks']){
+    next[section]={...defaults[section],...(current[section]||{})};
+  }
+  const allowedTop=new Set(['userAvatar','avatarSize','rankLabel','rankIcon','brandSubtitle','footerNote','colors','visibility','pages','menuVisible','menuIcons','socialLinks']);
+  for(const key of Object.keys(input))if(!allowedTop.has(key))throw Object.assign(new Error('INVALID_STOREFRONT_UI_FIELD'),{status:400});
+  if(input.userAvatar!==undefined){
+    if(!isSafeCatalogImage(input.userAvatar))throw Object.assign(new Error('INVALID_STOREFRONT_USER_AVATAR'),{status:400});
+    next.userAvatar=input.userAvatar;
+  }
+  if(input.avatarSize!==undefined){
+    const size=Number(input.avatarSize);
+    if(!Number.isInteger(size)||size<48||size>84)throw Object.assign(new Error('INVALID_STOREFRONT_AVATAR_SIZE'),{status:400});
+    next.avatarSize=size;
+  }
+  for(const [key,max] of [['rankLabel',30],['rankIcon',12],['brandSubtitle',60],['footerNote',180]]){
+    if(input[key]!==undefined){
+      if(typeof input[key]!=='string'||input[key].length>max)throw Object.assign(new Error('INVALID_STOREFRONT_'+key.toUpperCase()),{status:400});
+      next[key]=input[key].trim();
+    }
+  }
+  const colorKeys=['avatarRing','notificationIcon','notificationBackground','notificationBorder','favoritesIcon','vipBackground','vipText','vipIcon','quickActionBackground'];
+  if(input.colors!==undefined){
+    if(!input.colors||typeof input.colors!=='object'||Array.isArray(input.colors))throw Object.assign(new Error('INVALID_STOREFRONT_COLORS'),{status:400});
+    for(const key of Object.keys(input.colors))if(!colorKeys.includes(key))throw Object.assign(new Error('INVALID_STOREFRONT_COLOR_KEY'),{status:400});
+    for(const key of colorKeys)if(input.colors[key]!==undefined){
+      const value=input.colors[key];
+      if(typeof value!=='string'||!/^#[0-9a-fA-F]{6}$/.test(value))throw Object.assign(new Error('INVALID_STOREFRONT_COLOR_'+key.toUpperCase()),{status:400});
+      next.colors[key]=value.toLowerCase();
+    }
+  }
+  const boolKeys=Object.keys(defaults.visibility);
+  if(input.visibility!==undefined){
+    if(!input.visibility||typeof input.visibility!=='object'||Array.isArray(input.visibility))throw Object.assign(new Error('INVALID_STOREFRONT_VISIBILITY'),{status:400});
+    for(const key of Object.keys(input.visibility))if(!boolKeys.includes(key))throw Object.assign(new Error('INVALID_STOREFRONT_VISIBILITY_KEY'),{status:400});
+    for(const key of boolKeys)if(input.visibility[key]!==undefined){
+      if(typeof input.visibility[key]!=='boolean')throw Object.assign(new Error('INVALID_STOREFRONT_VISIBILITY_VALUE'),{status:400});
+      next.visibility[key]=input.visibility[key];
+    }
+  }
+  for(const [section,keys] of [['pages',STOREFRONT_PAGE_KEYS],['menuVisible',STOREFRONT_MENU_KEYS]]){
+    if(input[section]!==undefined){
+      if(!input[section]||typeof input[section]!=='object'||Array.isArray(input[section]))throw Object.assign(new Error('INVALID_STOREFRONT_'+section.toUpperCase()),{status:400});
+      for(const key of Object.keys(input[section]))if(!keys.includes(key))throw Object.assign(new Error('INVALID_STOREFRONT_'+section.toUpperCase()+'_KEY'),{status:400});
+      for(const key of keys)if(input[section][key]!==undefined){
+        if(typeof input[section][key]!=='boolean')throw Object.assign(new Error('INVALID_STOREFRONT_'+section.toUpperCase()+'_VALUE'),{status:400});
+        next[section][key]=input[section][key];
+      }
+    }
+  }
+  if(input.menuIcons!==undefined){
+    if(!input.menuIcons||typeof input.menuIcons!=='object'||Array.isArray(input.menuIcons))throw Object.assign(new Error('INVALID_STOREFRONT_MENU_ICONS'),{status:400});
+    for(const key of Object.keys(input.menuIcons))if(!STOREFRONT_MENU_KEYS.includes(key))throw Object.assign(new Error('INVALID_STOREFRONT_MENU_ICON_KEY'),{status:400});
+    for(const key of STOREFRONT_MENU_KEYS)if(input.menuIcons[key]!==undefined){
+      const value=input.menuIcons[key];
+      if(typeof value!=='string'||value.length>12)throw Object.assign(new Error('INVALID_STOREFRONT_MENU_ICON'),{status:400});
+      next.menuIcons[key]=value.trim();
+    }
+  }
+  if(input.socialLinks!==undefined){
+    if(!input.socialLinks||typeof input.socialLinks!=='object'||Array.isArray(input.socialLinks))throw Object.assign(new Error('INVALID_STOREFRONT_SOCIAL_LINKS'),{status:400});
+    for(const id of Object.keys(input.socialLinks))if(!Object.hasOwn(STOREFRONT_SOCIAL_DEFAULTS,id))throw Object.assign(new Error('INVALID_STOREFRONT_SOCIAL_ID'),{status:400});
+    for(const [id,values] of Object.entries(input.socialLinks)){
+      if(!values||typeof values!=='object'||Array.isArray(values))throw Object.assign(new Error('INVALID_STOREFRONT_SOCIAL_ITEM'),{status:400});
+      const currentItem=next.socialLinks[id]||STOREFRONT_SOCIAL_DEFAULTS[id];
+      const updated={...currentItem};
+      if(values.visible!==undefined){if(typeof values.visible!=='boolean')throw Object.assign(new Error('INVALID_STOREFRONT_SOCIAL_VISIBILITY'),{status:400});updated.visible=values.visible;}
+      if(values.color!==undefined){if(typeof values.color!=='string'||!/^#[0-9a-fA-F]{6}$/.test(values.color))throw Object.assign(new Error('INVALID_STOREFRONT_SOCIAL_COLOR'),{status:400});updated.color=values.color.toLowerCase();}
+      if(values.url!==undefined){
+        if(typeof values.url!=='string'||values.url.length>300)throw Object.assign(new Error('INVALID_STOREFRONT_SOCIAL_URL'),{status:400});
+        const clean=values.url.trim();
+        if(clean){try{const url=new URL(clean);if(url.protocol!=='https:'||!url.hostname||url.username||url.password)throw new Error();}catch{throw Object.assign(new Error('INVALID_STOREFRONT_SOCIAL_URL'),{status:400});}}
+        updated.url=clean;
+      }
+      next.socialLinks[id]=updated;
+    }
+  }
+  return next;
+}
+
 function defaultStoreSettings() {
   return {
     storeName:'Nexa Store', storeLogo:'assets/brand/logo.svg', announcement:'وجهتك للألعاب والبطاقات والاشتراكات الرقمية',
+    storefrontUi:defaultStorefrontUi(),
     themePrimary:'#397fda', themeSecondary:'#65b8d7', themeAccent:'#8076d6', themeDark:'#193957',
     fxMode:'manual', fxRate:145, fxApiUrl:'', fxJsonPath:'', fxUnit:'new',
     fxAuthHeader:'Authorization', fxAuthPrefix:'Bearer', fxUpdatedAt:null, fxLastError:'',
@@ -942,7 +1053,7 @@ async function currentCustomer(req) {
   if (!pool) return null;
   const token = readCookie(req,'nexa_customer_session');
   if (!/^[A-Za-z0-9_-]{40,80}$/.test(token)) return null;
-  const result = await pool.query(`SELECT c.id,c.full_name,c.phone,c.balance_minor::text,c.created_at
+  const result = await pool.query(`SELECT c.id,c.full_name,c.phone,c.balance_minor::text,c.avatar_url,c.created_at
     FROM nexa_customer_sessions s JOIN nexa_customers c ON c.id=s.customer_id
     WHERE s.session_hash=$1 AND s.expires_at>NOW() LIMIT 1`,[customerSessionHash(token)]);
   return result.rows[0] || null;
@@ -996,6 +1107,7 @@ function publicSettings() {
     fxMode:storeSettings?.fxMode || 'manual',
     fxReady:fxRateReady(),
     fxUpdatedAt:storeSettings?.fxUpdatedAt || null,
+    storefrontUi:storeSettings?.storefrontUi || defaultStorefrontUi(),
   };
 }
 async function refreshAutomaticFx() {
@@ -1054,6 +1166,7 @@ function validateAndApplySettings(input) {
     if (typeof input[key] !== 'string' || input[key].length > max) throw new Error(`INVALID_${key.toUpperCase()}`);
     next[key] = input[key].trim() || fallback;
   };
+  if(input.storefrontUi!==undefined)next.storefrontUi=validateStorefrontUi(input.storefrontUi);
   setText('storeName',80,'Nexa Store');
   setText('announcement',240,'');
   for (const key of ['themePrimary','themeSecondary','themeAccent','themeDark']) if (input[key] !== undefined) {
@@ -2593,7 +2706,7 @@ const server = http.createServer(async (req,res) => {
       if(expected.length!==supplied.length||!crypto.timingSafeEqual(expected,supplied))return send(res,401,{ok:false,error:'INVALID_CREDENTIALS',message:'رقم الهاتف أو كلمة المرور غير صحيحة.'});
       await pool.query('UPDATE nexa_customers SET last_login_at=NOW() WHERE id=$1',[found.rows[0].id]);
       await createCustomerSession(req,res,found.rows[0].id);
-      const customer=await pool.query('SELECT id,full_name,phone,balance_minor::text,created_at FROM nexa_customers WHERE id=$1',[found.rows[0].id]);
+      const customer=await pool.query('SELECT id,full_name,phone,balance_minor::text,avatar_url,created_at FROM nexa_customers WHERE id=$1',[found.rows[0].id]);
       return send(res,200,{ok:true,customer:customer.rows[0]});
     }
     if(req.method==='POST'&&url.pathname==='/api/account/logout'){
@@ -2817,6 +2930,26 @@ const server = http.createServer(async (req,res) => {
         return send(res,status,{ok:false,error:error?.code||'NEXA_AI_REQUEST_FAILED',
           message:String(error?.message||'تعذر الحصول على رد من المساعد.').slice(0,260)});
       }
+    }
+    if(req.method==='GET'&&url.pathname==='/api/admin/customers'){
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const limit=Math.min(500,Math.max(1,Number(url.searchParams.get('limit')||200)));
+      const query=String(url.searchParams.get('q')||'').trim().slice(0,100);
+      const result=await pool.query(`SELECT id,full_name,phone,balance_minor::text AS balance_minor,avatar_url,created_at
+        FROM nexa_customers
+        WHERE ($2='' OR full_name ILIKE '%'||$2||'%' OR phone ILIKE '%'||$2||'%')
+        ORDER BY created_at DESC LIMIT $1`,[limit,query]);
+      return send(res,200,{ok:true,customers:result.rows.map(row=>({...row,balanceMinor:row.balance_minor,createdAt:row.created_at}))});
+    }
+    const customerAvatarMatch=url.pathname.match(/^\/api\/admin\/customers\/([A-Za-z0-9_-]{1,80})\/avatar$/);
+    if(req.method==='PATCH'&&customerAvatarMatch){
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const input=await bodyJson(req,2_600_000);
+      const avatarUrl=String(input.avatarUrl||'');
+      if(!isSafeCatalogImage(avatarUrl)||avatarUrl.length>2_400_000)return send(res,400,{ok:false,error:'INVALID_CUSTOMER_AVATAR',message:'صورة المستخدم غير صالحة أو أكبر من الحد المسموح.'});
+      const result=await pool.query('UPDATE nexa_customers SET avatar_url=$2 WHERE id=$1 RETURNING id,full_name,phone,avatar_url',[customerAvatarMatch[1],avatarUrl]);
+      if(!result.rowCount)return send(res,404,{ok:false,error:'CUSTOMER_NOT_FOUND'});
+      return send(res,200,{ok:true,customer:result.rows[0]});
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/overview') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});
