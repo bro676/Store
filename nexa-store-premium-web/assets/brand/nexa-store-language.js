@@ -567,6 +567,12 @@
     if(!reverse.has(latinKey))reverse.set(latinKey,ar);
   }
   const fragmentEntries=Object.entries(additionalTranslations).filter(([phrase])=>phrase.length>=8);
+  const regexMeta = new Set(['.','*','+','?','^','$','{','}','(',')','|','[',']','\\']);
+  const escapeRegExp = value => Array.from(String(value),character=>regexMeta.has(character)?'\\'+character:character).join('');
+  const fragmentLookup = new Map(fragmentEntries);
+  const fragmentPattern = fragmentEntries.length
+    ? new RegExp(fragmentEntries.map(([phrase])=>phrase).sort((a,b)=>b.length-a.length).map(escapeRegExp).join('|'),'g')
+    : null;
 
   const normalize = value => String(value || '').replace(/\s+/g,' ').trim();
   const arabicDigits='٠١٢٣٤٥٦٧٨٩';
@@ -584,7 +590,8 @@
   const ownAttributeMutationCounts = new WeakMap();
   const attributeSelector = '[placeholder],[title],[aria-label],[alt]';
   const excludedSelector = 'script,style,code,pre,[data-no-translate]';
-  const TRANSLATION_BATCH_SIZE = 180;
+  const DEVICE_CONCURRENCY = Number(window.navigator?.hardwareConcurrency) || 4;
+  const TRANSLATION_BATCH_SIZE = DEVICE_CONCURRENCY <= 4 ? 120 : 220;
 
   let language = 'ar';
   let observer = null;
@@ -607,9 +614,7 @@
     if(match)return 'Fixed rate: 1 USD = '+match[1];
     const raw=String(value);
     if(/[\u0600-\u06FF]/.test(raw)){
-      let output=raw;
-      for(const [phrase,english] of fragmentEntries)if(output.includes(phrase))output=output.split(phrase).join(english);
-      return output;
+      return fragmentPattern ? raw.replace(fragmentPattern,phrase=>fragmentLookup.get(phrase)??phrase) : raw;
     }
     return value;
   }
@@ -787,8 +792,12 @@
         }else if(record.type==='attributes'){
           if(!consumeAttributeMutation(record.target,record.attributeName))enqueueTranslation(record.target,{attributesOnly:true});
         }else if(record.type==='childList'){
-          for(const node of record.addedNodes){
-            if(node.nodeType===1||node.nodeType===3)addedRoots.add(node);
+          if(record.addedNodes.length>1&&record.target?.nodeType===1&&record.target!==document.body){
+            addedRoots.add(record.target);
+          }else{
+            for(const node of record.addedNodes){
+              if(node.nodeType===1||node.nodeType===3)addedRoots.add(node);
+            }
           }
         }
       }

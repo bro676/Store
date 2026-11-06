@@ -3,7 +3,8 @@
   const TEXT_SELECTOR = 'h1,h2,h3,h4,p,span,strong,small,label,th,td,li,summary,blockquote,figcaption,button,a,em,b,i,div,section,article';
   const CONTROL_SELECTOR = 'input,textarea,select';
   const EXCLUDED_SELECTOR = 'svg,script,style,code,pre,.ltr';
-  const BATCH_SIZE = 180;
+  const DEVICE_CONCURRENCY = Number(window.navigator?.hardwareConcurrency) || 4;
+  const BATCH_SIZE = DEVICE_CONCURRENCY <= 4 ? 120 : 220;
   const jobs = [];
   const queuedRoots = new Set();
   let activeJob = null;
@@ -89,6 +90,10 @@
     if (!document.body || observer) return;
     observer = new MutationObserver(records => {
       for (const record of records) {
+        if(record.addedNodes.length>1&&record.target?.nodeType===1&&record.target!==document.body){
+          enqueue(record.target);
+          continue;
+        }
         for (const node of record.addedNodes) {
           if (node.nodeType === 1) enqueue(node);
           else if (node.nodeType === 3) enqueue(node.parentElement);

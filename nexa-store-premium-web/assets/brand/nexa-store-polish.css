@@ -215,3 +215,72 @@ body{line-height:1.72!important;background:var(--paper)!important;color:var(--in
 :root[data-theme="light"] .app-shell :where(h1,h2,h3,h4,.section-title,.page-heading strong){color:var(--ink)!important}
 :root[data-theme="dark"] .app-shell :where(.page-heading p,.section-sub,.hint,.muted,.field small,.description),
 :root[data-theme="light"] .app-shell :where(.page-heading p,.section-sub,.hint,.muted,.field small,.description){color:var(--muted)!important}
+
+/* FINAL DRAWER + LOW-POWER RESPONSIVE PASS.
+   Direction determines the off-canvas side; logical layout and native scrolling
+   keep the same drawer usable from desktop to compact landscape phones. */
+@media(min-width:1025px){
+  :root[dir="rtl"] body.sidebar-closed .app-shell .sidebar{
+    transform:translate3d(110%,0,0)!important;
+  }
+  :root[dir="ltr"] body.sidebar-closed .app-shell .sidebar{
+    transform:translate3d(-110%,0,0)!important;
+  }
+  body.sidebar-closed .app-shell .sidebar{pointer-events:none!important}
+}
+@media(max-width:1024px){
+  .app-shell .sidebar{
+    width:min(86vw,340px)!important;max-width:calc(100vw - 12px)!important;
+    height:100dvh!important;max-height:100dvh!important;min-height:0!important;
+    overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;
+    -webkit-overflow-scrolling:touch!important;touch-action:pan-y!important;
+    padding-block-start:max(12px,env(safe-area-inset-top))!important;
+    padding-block-end:max(12px,env(safe-area-inset-bottom))!important;
+    backface-visibility:hidden!important;
+  }
+  :root[dir="rtl"] .app-shell .sidebar{
+    inset-inline-start:auto!important;inset-inline-end:0!important;
+    transform:translate3d(110%,0,0)!important;border-radius:18px 0 0 18px!important;
+  }
+  :root[dir="ltr"] .app-shell .sidebar{
+    inset-inline-start:0!important;inset-inline-end:auto!important;
+    transform:translate3d(-110%,0,0)!important;border-radius:0 18px 18px 0!important;
+  }
+  :root[dir="rtl"] body.sidebar-open .app-shell .sidebar,
+  :root[dir="ltr"] body.sidebar-open .app-shell .sidebar{
+    transform:translate3d(0,0,0)!important;pointer-events:auto!important;
+  }
+  .app-shell .sidebar-backdrop{
+    backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+    touch-action:manipulation!important;
+  }
+  body.sidebar-open{overflow:hidden!important;overscroll-behavior:none!important}
+}
+@media(max-width:600px){
+  .app-shell .sidebar{width:min(88vw,340px)!important;max-width:calc(100vw - 12px)!important}
+  .app-shell .sidebar-nav .side-link{min-height:42px!important}
+}
+@media(max-width:380px){
+  .app-shell .sidebar{width:min(90vw,316px)!important;padding-inline:11px!important}
+  .app-shell .sidebar-nav .side-link{min-height:40px!important;padding-inline:7px!important}
+}
+@media(max-width:1024px) and (max-height:560px){
+  .app-shell .sidebar{padding-block:7px!important}
+  .app-shell .sidebar-profile-avatar{width:44px!important;height:44px!important;flex-basis:44px!important}
+  .app-shell .sidebar-quick-actions{padding-bottom:6px!important}
+  .app-shell .sidebar-nav .side-link{min-height:34px!important}
+  .app-shell .sidebar .sidebar-theme-toggle{min-height:44px!important}
+}
+@media(hover:none) and (pointer:coarse){
+  .app-shell .sidebar-nav .side-link{min-height:44px!important}
+  .app-shell .sidebar .sidebar-close,.app-shell .menu-toggle{
+    width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;flex:0 0 44px!important;
+  }
+  .app-shell .sidebar .sidebar-theme-toggle{min-height:44px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .app-shell .sidebar,.app-shell .sidebar-backdrop,.app-shell .sidebar-nav .side-link,
+  .app-shell .sidebar .sidebar-theme-switch-knob{
+    transition:none!important;scroll-behavior:auto!important;
+  }
+}

@@ -20,6 +20,28 @@ function isRetryableDatabaseError(error) {
   return RETRYABLE_DATABASE_ERRORS.has(String(code || '').toUpperCase());
 }
 
+export function monitorPostgresClientErrors(pool, onClientError) {
+  if (!pool || typeof pool.on !== 'function') {
+    throw new TypeError('A PostgreSQL pool with an on() method is required.');
+  }
+  if (typeof onClientError !== 'function') {
+    throw new TypeError('A PostgreSQL client error callback is required.');
+  }
+
+  const monitoredClients = new WeakSet();
+  const onConnect = client => {
+    if (!client || typeof client.on !== 'function' || monitoredClients.has(client)) return;
+    monitoredClients.add(client);
+    client.on('error', error => onClientError(error, client));
+  };
+
+  pool.on('connect', onConnect);
+  return () => {
+    if (typeof pool.off === 'function') pool.off('connect', onConnect);
+    else pool.removeListener?.('connect', onConnect);
+  };
+}
+
 export async function waitForDatabase(pool, {
   attempts = 5,
   baseDelayMs = 500,

@@ -487,7 +487,7 @@ test('Wamda drawer is compact, closable at every viewport, and scrolls as one su
 
   assert.ok(store.includes('function isStoreMenuOpen()'), 'Drawer state is tracked for both desktop and mobile');
   assert.ok(store.includes('function syncStoreMenuToViewport()'), 'Drawer state adapts when the viewport crosses the breakpoint');
-  assert.ok(store.includes("if(window.matchMedia('(max-width: 1024px)').matches)closeMenu();"), 'Selecting a page closes the overlay only on small screens');
+  assert.ok(store.includes("if(window.matchMedia('(max-width: 1024px)').matches)closeMenu(true);"), 'Selecting a page closes the overlay only on small screens');
   assert.ok(store.includes("if(isStoreMenuOpen())closeMenu(true);else openMenu()"), 'The menu toggle opens and closes the desktop rail too');
 });
 
@@ -760,7 +760,7 @@ test('language switching is frame-batched and does not rerender the full storefr
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
   const direction = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-text-direction.js'), 'utf8');
-  assert.ok(locale.includes('const TRANSLATION_BATCH_SIZE = 180'), 'Translation has a bounded per-frame work budget');
+  assert.ok(locale.includes('const TRANSLATION_BATCH_SIZE = DEVICE_CONCURRENCY <= 4 ? 120 : 220'), 'Translation has a bounded per-frame work budget');
   assert.ok(locale.includes('requestAnimationFrame'), 'Translation yields between browser frames');
   assert.ok(locale.includes('consumeTextMutation') && locale.includes('consumeAttributeMutation'), 'Self-generated mutations are ignored to prevent observer feedback');
   assert.ok(locale.includes('childList:true,subtree:true,characterData:true'), 'Dynamic content is still translated incrementally');
