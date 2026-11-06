@@ -87,6 +87,97 @@ test('storefront and dashboard drawers have matching tablet and compact-device b
  assert.ok(store.includes("window.matchMedia('(max-width: 1024px)')")&&store.includes('closeMenu(true);'),'Storefront closes its drawer after mobile route/language changes');
 });
 
+
+test('store drawer locks background scroll and restores focus and accessibility across locale and viewport changes',async()=>{
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ const start=store.indexOf('let storeDrawerScrollPosition=0;');
+ const end=store.indexOf('\nfunction renderDepartmentCard',start);
+ assert.ok(start>=0&&end>start,'The drawer controller has a dedicated state boundary');
+ const controller=store.slice(start,end);
+ let locale='en',changeHandler=null,scrollY=360,restoredY=null,activeElement=null;
+ const makeClassList=()=>{
+  const classes=new Set();
+  return {
+   add(name){classes.add(name)},
+   remove(name){classes.delete(name)},
+   contains(name){return classes.has(name)},
+   toggle(name,force){if(force===undefined)force=!classes.has(name);if(force)classes.add(name);else classes.delete(name);return force}
+  };
+ };
+ const attributes=new Map();
+ const makeElement=()=>({
+  style:{values:new Map(),setProperty(name,value){this.values.set(name,value)},removeProperty(name){this.values.delete(name)},getPropertyValue(name){return this.values.get(name)||''},getPropertyPriority(){return ''}},
+  classList:makeClassList(),
+  setAttribute(name,value){attributes.set(name,String(value))},
+  getAttribute(name){return attributes.get(name)??null},
+  removeAttribute(name){attributes.delete(name)},
+  hasAttribute(name){return attributes.has(name)},
+  focus(){this.focused=true;activeElement=this},
+  getClientRects(){return [1]}
+ });
+ const body=makeElement(),root=makeElement(),sidebar=makeElement(),toggle=makeElement(),close=makeElement(),firstLink=makeElement();
+ sidebar.contains=element=>element===close||element===firstLink;
+ sidebar.querySelector=selector=>selector==='.sidebar-nav .side-link'?firstLink:null;
+ const elements={menuToggle:toggle,sidebar,sidebarClose:close};
+ const media={matches:true,addEventListener(type,callback){if(type==='change')changeHandler=callback},addListener(callback){changeHandler=callback}};
+ const sandbox={
+  storeDrawerMedia:media,
+  document:{body,documentElement:root,get activeElement(){return activeElement}},
+  window:{get scrollY(){return scrollY},scrollTo(_x,y){restoredY=y;scrollY=y}},
+  $:id=>elements[id]||null,
+  storeLocale:()=>locale
+ };
+ vm.runInNewContext(controller,sandbox);
+ sandbox.openMenu();
+ assert.ok(body.classList.contains('sidebar-open'),'Mobile drawer opens');
+ assert.ok(root.classList.contains('store-drawer-scroll-locked'),'Opening drawer locks the page behind it');
+ assert.equal(body.style.getPropertyValue('--store-drawer-scroll-top'),'-360px','Background scroll position is preserved while locked');
+ assert.equal(sidebar.getAttribute('role'),'dialog','Open mobile drawer is exposed as a dialog');
+ assert.equal(sidebar.getAttribute('aria-modal'),'true','Open mobile drawer is modal');
+ assert.equal(sidebar.getAttribute('aria-hidden'),'false','Open drawer is available to assistive technology');
+ assert.equal(toggle.getAttribute('aria-expanded'),'true','Toggle reports expanded state');
+ assert.equal(toggle.getAttribute('aria-label'),'Close sidebar','English toggle label is correct');
+ assert.equal(close.focused,true,'Focus moves into the drawer on open');
+ sandbox.closeMenu(true);
+ assert.ok(!body.classList.contains('sidebar-open'),'Mobile drawer closes');
+ assert.ok(!root.classList.contains('store-drawer-scroll-locked'),'Closing drawer unlocks the page');
+ assert.equal(restoredY,360,'Page scroll returns to its original position');
+ assert.equal(sidebar.getAttribute('aria-hidden'),'true','Closed drawer is hidden from assistive technology');
+ assert.ok(sidebar.hasAttribute('inert'),'Closed drawer cannot receive focus');
+ assert.equal(sidebar.getAttribute('role'),null,'Closed drawer is no longer exposed as a dialog');
+ assert.equal(toggle.getAttribute('aria-expanded'),'false','Toggle reports collapsed state');
+ assert.equal(toggle.focused,true,'Focus returns to the menu toggle after close');
+ locale='ar';sandbox.openMenu();
+ assert.equal(toggle.getAttribute('aria-label'),'إغلاق القائمة الجانبية','Arabic toggle label follows the active locale');
+ media.matches=false;changeHandler();
+ assert.ok(!body.classList.contains('sidebar-open')&&!body.classList.contains('sidebar-closed'),'Desktop breakpoint restores the permanent side rail');
+ assert.ok(!root.classList.contains('store-drawer-scroll-locked'),'Desktop rail does not lock page scrolling');
+ assert.equal(sidebar.getAttribute('aria-hidden'),'false','Desktop rail remains available');
+ assert.equal(sidebar.getAttribute('role'),null,'Desktop rail is not announced as a modal dialog');
+ assert.equal(toggle.getAttribute('aria-expanded'),'true','Desktop rail reports its visible state');
+ assert.equal(activeElement,firstLink,'Focus moves to a visible navigation item when the mobile close control disappears on desktop');
+ media.matches=true;changeHandler();
+ assert.ok(!body.classList.contains('sidebar-open'),'Changing back to mobile starts with the drawer closed');
+ assert.ok(sidebar.hasAttribute('inert'),'The mobile drawer is inert after crossing back to mobile');
+ assert.ok(!root.classList.contains('store-drawer-scroll-locked'),'Viewport changes do not leave page scroll locked');
+ assert.equal(activeElement,toggle,'Focus moves to the visible menu toggle when returning to mobile');
+});
+
+test('responsive drawer has a bounded viewport width, safe-area padding and a compact landscape layout',async()=>{
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ assert.ok(css.includes('--nexa-mobile-drawer-width:min(88vw,340px)')&&css.includes('width:var(--nexa-mobile-drawer-width)!important')&&css.includes('max-width:calc(100vw - 24px)!important'),'Drawer stays within small viewport widths');
+ assert.ok(css.includes('env(safe-area-inset-top,0px)')&&css.includes('env(safe-area-inset-bottom,0px)'),'Drawer respects device cutouts and safe areas');
+ assert.ok(css.includes('@media(max-height:520px) and (orientation:landscape) and (max-width:1024px)'),'Short landscape screens receive a dedicated compact layout');
+ assert.ok(css.includes('body.sidebar-open .app-shell .sidebar-backdrop{')&&css.includes('pointer-events:auto!important'),'The backdrop becomes interactive only while the mobile drawer is open');
+ assert.ok(css.includes('.app-shell .sidebar-drawer-head{')&&css.includes('display:flex!important'),'Mobile drawer close control and heading remain visible');
+ assert.ok(css.includes('overscroll-behavior:contain!important')&&css.includes('-webkit-overflow-scrolling:touch!important'),'Long drawer content scrolls independently without scroll chaining');
+ assert.ok(css.includes('html.store-drawer-scroll-locked body'),'Background document scroll is locked while the drawer is modal');
+ assert.ok(css.includes(':root[dir="rtl"] .app-shell .sidebar')&&css.includes('transform:translate3d(100%,0,0)!important'),'Arabic drawer exits from the right');
+ assert.ok(css.includes(':root[dir="ltr"] .app-shell .sidebar')&&css.includes('transform:translate3d(-100%,0,0)!important'),'English drawer exits from the left');
+ assert.ok(store.includes('nexa-store-polish.css?v=20261106-drawer-responsive-v2'),'Responsive drawer CSS receives a fresh cache version');
+});
+
 test('admin dashboard loads the overview first and fetches heavy sections only when opened',async()=>{
  const admin=await fs.readFile(path.join(webRoot,'admin.html'),'utf8');
  const loadAll=admin.match(/async function loadAll\(\)\{([\s\S]*?)\}/)?.[1]||'';
@@ -115,6 +206,16 @@ test('public catalogue builds its folder index once instead of once per category
  assert.ok(!predicate.includes('new Map('),'The category predicate reuses its caller-provided lookup map');
  assert.ok(publicCatalog.includes('const byId=new Map(catalog.map(row=>[String(row.id),row]));'),'One parent lookup index is built per public-catalog response');
  assert.ok(publicCatalog.includes('catalog.filter(category=>isPublicCatalogCategory(category,byId))'),'All category visibility checks reuse the same index');
+});
+
+test('mobile route navigation unlocks the drawer before scrolling to the new page',async()=>{
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ const start=store.indexOf('function navigate(view,');
+ const end=store.indexOf('\n}',start);
+ const navigate=store.slice(start,end<0?store.length:end);
+ const closeAt=navigate.indexOf('closeMenu(true)');
+ const scrollAt=navigate.indexOf("window.scrollTo({top:0,behavior:'smooth'})");
+ assert.ok(closeAt>=0&&scrollAt>closeAt,'The drawer restores its saved page scroll before route navigation moves to the top');
 });
 
 test('storefront renders the catalog without waiting for slower storefront settings',async()=>{
