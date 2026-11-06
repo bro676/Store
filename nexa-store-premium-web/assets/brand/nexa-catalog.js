@@ -162,12 +162,28 @@
  }
  function sortCategoriesByProductCount(categories,allCategories=null){
   const rows=Array.isArray(categories)?categories:[];
-  const all=Array.isArray(allCategories)?allCategories:rows;
-  const collator=new Intl.Collator('ar',{numeric:true,sensitivity:'base'});
-  return rows.map((category,index)=>({category,index,count:getFolderProductCount(category,all)}))
-   .sort((a,b)=>compareDisplayOrder(a.category,b.category)||a.count-b.count||
-    collator.compare(String(a.category?.name||''),String(b.category?.name||''))||a.index-b.index)
+  return rows.map((category,index)=>({category,index}))
+   .sort((a,b)=>compareDisplayOrder(a.category,b.category)||a.index-b.index)
    .map(row=>row.category);
+ }
+ function getOrderedProducts(products){
+  const rows=Array.isArray(products)?products:[];
+  return rows.map((product,index)=>({product,index}))
+   .sort((a,b)=>compareDisplayOrder(a.product,b.product)||a.index-b.index)
+   .map(row=>row.product);
+ }
+ function getOrderedCategories(categories,departmentId=null){
+  const rows=Array.isArray(categories)?categories:[];
+  const ordered=[],visited=new Set();
+  function visit(parentId,rootDepartmentId){
+   for(const category of getChildFolders(rows,parentId,rootDepartmentId)){
+    const id=normalizeId(category?.id);
+    if(!id||visited.has(id))continue;
+    visited.add(id);ordered.push(category);visit(id,null);
+   }
+  }
+  visit(null,departmentId);
+  return ordered;
  }
  function getChildFolders(categories,parentId=null,departmentId=null){
   const rows=Array.isArray(categories)?categories:[];
@@ -179,23 +195,25 @@
   return sortCategoriesByProductCount(children,rows);
  }
  function getDepartmentSummaries(categories){
-  const rows=new Map(DEPARTMENTS.filter(row=>row.visible!==false).map(row=>[row.id,{...row,categories:[],categoryCount:0,productCount:0,rootFolderCount:0}]));
   const source=Array.isArray(categories)?categories:[];
+  const rows=new Map(DEPARTMENTS.filter(row=>row.visible!==false).map(row=>[row.id,{...row,categories:[],categoryCount:0,productCount:0,rootFolderCount:0}]));
   for(const category of source){
    if(!isCategoryVisible(category,source))continue;
-   const id=getCategoryDepartmentId(category,source),row=rows.get(id)||rows.get('other');
+   const id=getCategoryDepartmentId(category,source),row=rows.get(id);
    if(!row)continue;
-   row.categories.push(category);row.categoryCount++;
+   row.categoryCount++;
    row.productCount+=(category.items||[]).filter(product=>product.visible!==false).length;
    if(!normalizeId(category.parentId))row.rootFolderCount++;
   }
   for(const row of rows.values()){
+   row.categories=getOrderedCategories(source,row.id);
    row.productCount=source.filter(category=>isCategoryVisible(category,source)&&getCategoryDepartmentId(category,source)===row.id)
     .reduce((sum,category)=>sum+(category.items||[]).filter(product=>product.visible!==false).length,0);
   }
-  const collator=new Intl.Collator('ar',{numeric:true,sensitivity:'base'});
-  return DEPARTMENTS.map(row=>rows.get(row.id)).filter(row=>row&&row.categoryCount>0&&row.visible!==false)
-   .sort((a,b)=>compareDisplayOrder(a,b)||a.productCount-b.productCount||a.categoryCount-b.categoryCount||collator.compare(a.name,b.name));
+  return DEPARTMENTS.map((department,index)=>({department,index,summary:rows.get(department.id)}))
+   .filter(entry=>entry.summary&&entry.summary.categoryCount>0&&entry.department.visible!==false)
+   .sort((a,b)=>compareDisplayOrder(a.department,b.department)||a.index-b.index)
+   .map(entry=>entry.summary);
  }
  function safeImage(candidate){
   const value=String(candidate??'').trim();if(!value||placeholders.has(value))return '';
@@ -238,5 +256,5 @@
   if(pack)parts.push('packs','pack-'+slugify(pack?.[0]||'offer'));
   return parts.join('/');
  }
- window.NexaCatalog=Object.freeze({get departments(){return DEPARTMENTS.map(row=>Object.freeze({...row}))},setDepartments,classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,getCategoryDepartmentId,categoryAncestors,isCategoryVisible,getFolderProductCount,sortCategoriesByProductCount,compareDisplayOrder,getChildFolders,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
+ window.NexaCatalog=Object.freeze({get departments(){return DEPARTMENTS.map(row=>Object.freeze({...row}))},setDepartments,classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,getCategoryDepartmentId,categoryAncestors,isCategoryVisible,getFolderProductCount,sortCategoriesByProductCount,compareDisplayOrder,getOrderedProducts,getOrderedCategories,getChildFolders,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
 })();
