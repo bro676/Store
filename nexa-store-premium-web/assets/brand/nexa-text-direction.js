@@ -1,6 +1,6 @@
 /* Nexa text direction: bidi-aware without whole-document mutation rescans. */
 (() => {
-  const TEXT_SELECTOR = 'h1,h2,h3,h4,p,span,strong,small,label,th,td,li,summary,blockquote,figcaption,button,a,em,b,i';
+  const TEXT_SELECTOR = 'h1,h2,h3,h4,p,span,strong,small,label,th,td,li,summary,blockquote,figcaption,button,a,em,b,i,div,section,article';
   const CONTROL_SELECTOR = 'input,textarea,select';
   const EXCLUDED_SELECTOR = 'svg,script,style,code,pre,.ltr';
   const BATCH_SIZE = 180;
@@ -21,7 +21,10 @@
 
     if (!element.matches(TEXT_SELECTOR) || element.hasAttribute('dir')) return;
     if (element.parentElement?.closest('[dir]:not([dir="auto"])')) return;
-    if (['DIV', 'SECTION', 'ARTICLE'].includes(element.tagName) && element.children.length) return;
+    if (['DIV', 'SECTION', 'ARTICLE'].includes(element.tagName) && element.children.length) {
+      const hasDirectText = Array.from(element.childNodes).some(node => node.nodeType === 3 && node.textContent.trim());
+      if (!hasDirectText) return;
+    }
     element.setAttribute('dir', 'auto');
   }
 

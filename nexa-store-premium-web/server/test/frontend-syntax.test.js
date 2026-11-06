@@ -557,6 +557,7 @@ test('Wamda palette, theme boundaries, oval geometry and bilingual direction are
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
+  const direction = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-text-direction.js'), 'utf8');
   const css = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-wamda-blue.css'), 'utf8');
   const logo = await fs.readFile(path.join(webRoot, 'assets/brand/logo.svg'), 'utf8');
   const hero = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-hero-banner.svg'), 'utf8');
@@ -571,7 +572,8 @@ test('Wamda palette, theme boundaries, oval geometry and bilingual direction are
   assert.ok(css.includes('.app-shell .header-back-button{display:none!important}'), 'The topbar contains only the logo/name at left and action group at right');
   assert.ok(css.includes('direction:rtl!important;flex-direction:row!important;'), 'Header actions are ordered from the physical right');
   assert.ok(css.includes('margin-left:auto!important;margin-right:0!important;'), 'Header actions are anchored to the right');
-  assert.ok(locale.includes('document.documentElement.dataset.locale=language') && admin.includes('dataset.textDirection=direction'), 'Store and dashboard mark English and Arabic text independently');
+  const directionSource='/assets/brand/nexa-text-direction.js?v=20261106-incremental-direction-v1';
+  assert.ok(locale.includes('document.documentElement.dataset.locale=language') && direction.includes("element.setAttribute('dir', 'auto')") && store.includes(directionSource) && admin.includes(directionSource), 'Store and dashboard use the shared browser-managed bilingual direction helper');
   assert.ok(store.includes('wamda-brand-v12') && admin.includes('wamda-brand-v12'), 'Both pages load the refreshed stylesheet');
   assert.ok(!logo.includes('#73d7fa') && !logo.includes('#168ec5'), 'Nexa logo no longer uses the retired blue gradient');
   assert.ok(!hero.includes('#65D5F7') && !hero.includes('#2A9FD5'), 'Hero artwork no longer uses the retired sky-blue palette');
@@ -757,6 +759,7 @@ test('drawer uses neutral Click Store typography, follows document direction and
 test('language switching is frame-batched and does not rerender the full storefront twice', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
+  const direction = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-text-direction.js'), 'utf8');
   assert.ok(locale.includes('const TRANSLATION_BATCH_SIZE = 180'), 'Translation has a bounded per-frame work budget');
   assert.ok(locale.includes('requestAnimationFrame'), 'Translation yields between browser frames');
   assert.ok(locale.includes('consumeTextMutation') && locale.includes('consumeAttributeMutation'), 'Self-generated mutations are ignored to prevent observer feedback');
@@ -764,7 +767,7 @@ test('language switching is frame-batched and does not rerender the full storefr
   const preferenceBlock=store.slice(store.indexOf('function initializeStorePreferences'),store.indexOf('function renderSupportState'));
   assert.ok(!preferenceBlock.includes('refreshDisplayCurrency()'), 'Changing language no longer rerenders prices, catalog and account panels');
   assert.ok(!store.includes('new MutationObserver(()=>markDirection())'), 'The document-wide direction rescan observer is removed');
-  assert.ok(store.includes("document.querySelectorAll('input,textarea,select')"), 'Form controls retain automatic mixed-direction input');
+  assert.ok(direction.includes("const CONTROL_SELECTOR = 'input,textarea,select'") && direction.includes("element.setAttribute('dir', 'auto')"), 'Form controls and dynamic text retain browser-managed natural direction');
 });
 
 
