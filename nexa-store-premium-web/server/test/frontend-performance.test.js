@@ -204,7 +204,7 @@ test('storefront catalog indexes are reused for tree visibility, folder counts a
  const games=summaries.find(row=>row.id==='games');
  assert.equal(games.categoryCount,2,'Visible folders remain counted in their department');
  assert.equal(games.productCount,3,'Only visible products in visible categories contribute to department totals');
- assert.deepEqual(api.getChildFolders(categories,'games-root').map(row=>row.id),['games-child'],'Hidden folders are omitted from the indexed child list');
+ assert.deepEqual(Array.from(api.getChildFolders(categories,'games-root'),row=>row.id),['games-child'],'Hidden folders are omitted from the indexed child list');
  assert.equal(api.getFolderProductCount(categories[0],categories),3,'Folder totals include visible descendants but ignore hidden items and folders');
  assert.equal(api.getFolderProductCount(categories[1],categories),2,'A child folder total is computed from its own visible products');
  const ordered=api.getOrderedProducts(childProducts);
