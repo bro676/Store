@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { waitForDatabase } from '../src/db-startup.js';
+import { EventEmitter } from 'node:events';
+import { monitorPostgresClientErrors, waitForDatabase } from '../src/db-startup.js';
 
 test('database startup succeeds immediately when PostgreSQL is reachable', async () => {
   let calls = 0;
@@ -86,4 +87,24 @@ test('database startup fails clearly after exhausting transient retries', async 
 
 test('database startup validates the PostgreSQL pool input', async () => {
   await assert.rejects(waitForDatabase(null), TypeError);
+});
+
+test('checked-out PostgreSQL client errors are observed without becoming unhandled events', () => {
+  const pool = new EventEmitter();
+  const client = new EventEmitter();
+  const observed = [];
+  const stop = monitorPostgresClientErrors(pool, error => observed.push(error));
+  pool.emit('connect',client);
+  pool.emit('connect',client);
+  assert.equal(client.listenerCount('error'),1,'Each physical client receives one error listener');
+  const error = Object.assign(new Error('socket reset'),{code:'ECONNRESET'});
+  assert.equal(client.emit('error',error),true);
+  assert.deepEqual(observed,[error]);
+  stop();
+  assert.equal(pool.listenerCount('connect'),0,'The monitor can be detached cleanly');
+});
+
+test('PostgreSQL client error monitor validates its pool and callback', () => {
+  assert.throws(()=>monitorPostgresClientErrors(null,()=>{}),TypeError);
+  assert.throws(()=>monitorPostgresClientErrors(new EventEmitter(),null),TypeError);
 });
