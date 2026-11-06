@@ -3270,11 +3270,11 @@ const server = http.createServer(async (req,res) => {
     if(req.method==='GET'&&url.pathname==='/api/admin/customers'){
       if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
       const query=String(url.searchParams.get('q')||'').trim().slice(0,100);
-      const pattern='%'+query.replace(/[\\%_]/g,'\\$&')+'%';
+      const pattern='%'+query+'%';
       const result=await pool.query(`SELECT id,full_name,phone,balance_minor::text AS balance_minor,
         created_at,last_login_at,avatar_image
         FROM nexa_customers
-        WHERE $1='' OR full_name ILIKE $2 ESCAPE '\\' OR phone ILIKE $2 ESCAPE '\\'
+        WHERE $1='' OR full_name ILIKE $2 OR phone ILIKE $2
         ORDER BY created_at DESC LIMIT 100`,[query,pattern]);
       return send(res,200,{ok:true,customers:result.rows});
     }
