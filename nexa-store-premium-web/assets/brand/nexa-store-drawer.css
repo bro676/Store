@@ -602,3 +602,41 @@
 .app-shell .sidebar .sidebar-theme-toggle{color:#ddd!important;border-top-color:#333!important;}
 :root[data-theme="light"] .app-shell .sidebar .sidebar-theme-toggle{color:#333!important;border-top-color:#e5e5e5!important;}
 .app-shell .sidebar .sidebar-profile-copy strong,.app-shell .sidebar .sidebar-account-balance strong{letter-spacing:0!important;}
+
+
+/* LIGHT THEME FINISH — remove the blue active rail and all blue icon halos from the drawer. */
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link.active,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link:focus,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link:focus-visible{
+  border:0!important;border-inline:0!important;outline:0!important;outline-offset:0!important;
+  box-shadow:none!important;text-decoration:none!important;
+}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link.active::before,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link.active::after,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link::before,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link::after{
+  content:none!important;display:none!important;border:0!important;background:transparent!important;
+  box-shadow:none!important;filter:none!important;
+}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link .side-icon,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link:hover .side-icon,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link.active .side-icon,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link:focus .side-icon,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link:focus-visible .side-icon{
+  color:#777!important;fill:none!important;stroke:currentColor!important;
+  background:transparent!important;border:0!important;outline:0!important;
+  box-shadow:none!important;filter:none!important;-webkit-filter:none!important;text-shadow:none!important;
+}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link .side-icon *,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link .side-icon::before,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link .side-icon::after{
+  box-shadow:none!important;filter:none!important;-webkit-filter:none!important;text-shadow:none!important;
+}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-quick-actions button svg,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-notification svg,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-theme-toggle svg,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-currency svg,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-close svg{
+  color:#777!important;filter:none!important;-webkit-filter:none!important;
+  box-shadow:none!important;text-shadow:none!important;
+}
