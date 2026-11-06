@@ -1935,7 +1935,24 @@ async function loadStorefrontConfig(){
 }
 window.addEventListener('storage',event=>{if(event.key==='nexa-storefront-experience-updated')loadStorefrontConfig();});
 
-async function init(){const [d]=await Promise.all([fetch('/api/catalog',{cache:'no-store'}).then(async response=>response.ok?await response.json():{}).catch(()=>({})),loadStorefrontConfig()]);if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items));if(typeof NexaCatalog.setDepartments==='function')NexaCatalog.setDepartments(Array.isArray(d.departments)?d.departments:[]);renderHomeCategories();renderFeatured();renderOrders();renderPaymentHistory();renderProfilePage();renderSidebarAccount();loadPaymentConfig();$('year').textContent=new Date().getFullYear();navigate(resolveStoreLocation(),{historyMode:'replace'});$('sideYear').textContent=new Date().getFullYear();await refreshCustomerAccount();}
+async function init(){
+ const configPromise=loadStorefrontConfig();
+ const response=await fetch('/api/catalog',{cache:'no-store'}).catch(()=>null);
+ const d=response?.ok?await response.json().catch(()=>({})):{};
+ if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items));
+ if(typeof NexaCatalog.setDepartments==='function')NexaCatalog.setDepartments(Array.isArray(d.departments)?d.departments:[]);
+ renderHomeCategories();
+ loadPaymentConfig();
+ $('year').textContent=new Date().getFullYear();
+ navigate(resolveStoreLocation(),{historyMode:'replace'});
+ $('sideYear').textContent=new Date().getFullYear();
+ configPromise.then(()=>{
+  if(state.view==='store')renderCatalog();
+  else if(state.view==='home'){renderHomeCategories();renderFeatured();}
+  renderSidebarAccount();
+ }).catch(()=>{});
+ refreshCustomerAccount().catch(()=>{});
+}
 // delegated interactions
  function eventElement(event,selector){
   const eventPath=typeof event.composedPath==='function'?event.composedPath():[];
@@ -2079,6 +2096,6 @@ initializeStoreColorMode();
 initializeStorePreferences();
 init();
 </script>
-<script src="/assets/brand/nexa-text-direction.js?v=20261106-incremental-direction-v1"></script>
+<script src="/assets/brand/nexa-text-direction.js?v=20261106-incremental-direction-v2"></script>
 </body>
 </html>
