@@ -4,6 +4,11 @@
   const translations = Object.freeze({
     'Nexa Store | متجرك الرقمي':'Nexa Store | Your digital store',
     'Nexa Store — متجر رقمي للألعاب والبطاقات والاشتراكات والخدمات الرقمية.':'Nexa Store — Digital games, cards, subscriptions and services.',
+    'القائمة الجانبية':'Sidebar menu','إغلاق القائمة الجانبية':'Close sidebar',
+    'Nexa Store الرئيسية':'Nexa Store Home','شعار الحساب':'Account logo','رتبة الحساب':'Account rank',
+    'اختصارات الحساب':'Account shortcuts','قائمة المتجر':'Store navigation','منصات التواصل':'Social media',
+    'التبديل إلى الوضع الفاتح':'Switch to light mode','التبديل إلى الوضع الداكن':'Switch to dark mode',
+    'برونزي':'Bronze','فضي':'Silver','ذهبي':'Gold','بلاتيني':'Platinum','ماسي':'Diamond',
     'القائمة الرئيسية':'Main menu','زائر Nexa':'Nexa Guest','زائر':'Guest',
     'العملة الثانوية':'Display currency','الرئيسية':'Home','المساعد الذكي':'AI Assistant',
     'إضافة رصيد':'Add Funds','مدفوعاتي':'My Payments','محفظتي':'My Wallet','طلباتي':'My Orders',
