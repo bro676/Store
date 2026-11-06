@@ -13,6 +13,9 @@
   {id:'other',name:'خدمات رقمية متنوعة',icon:'✦',description:'أقسام إضافية لا تندرج تحت الأقسام الرئيسية.',folder:'11-other-services',cover:'assets/products/11-other-services/cover.svg'}
  ];
  let byId=new Map(DEPARTMENTS.map(row=>[row.id,row]));
+ let catalogIndexCache=new WeakMap();
+ let orderedProductsCache=new WeakMap();
+ let departmentSummaryCache=new WeakMap();
  const CATALOG_DEPARTMENT_IDS=new Set(DEPARTMENTS.map(row=>row.id));
  const placeholders=new Set(['assets/brand/logo.svg','assets/products/logo.svg','assets/products/_shared/logo.svg','assets/products/_shared/product-placeholder.svg','assets/products/_shared/category-placeholder.svg']);
  const rules=[
@@ -52,6 +55,9 @@
    return next;
   });
   byId=new Map(DEPARTMENTS.map(row=>[row.id,row]));
+  catalogIndexCache=new WeakMap();
+  orderedProductsCache=new WeakMap();
+  departmentSummaryCache=new WeakMap();
   return DEPARTMENTS.map(row=>({...row}));
  }
  function department(id){return byId.get(id)||byId.get('other')}
@@ -114,41 +120,129 @@
   // Never guess between duplicate provider-generated product IDs.
   return matches.length===1?matches[0]:null;
  }
- function getCategoryDepartmentId(category,categories=[]){
-  const rows=Array.isArray(categories)?categories:[];
+ function buildCatalogIndex(source){
+  const rows=Array.isArray(source)?source:[];
   const byId=new Map(rows.map(row=>[normalizeId(row?.id),row]));
-  let current=category,steps=0;
-  while(current&&steps++<=rows.length+1){
-   if(current.departmentId&&CATALOG_DEPARTMENT_IDS.has(current.departmentId))return current.departmentId;
-   const parentId=normalizeId(current.parentId);
-   if(!parentId)return classifyCategory(current);
-   current=byId.get(parentId)||null;
+  const childrenByParent=new Map();
+  const visibilityById=new Map();
+  const departmentById=new Map();
+  const folderProductCountById=new Map();
+  for(const category of rows){
+   const parentId=normalizeId(category?.parentId||'');
+   let children=childrenByParent.get(parentId);
+   if(!children){children=[];childrenByParent.set(parentId,children)}
+   children.push(category);
   }
-  return 'other';
+  for(const [parentId,children] of childrenByParent){
+   childrenByParent.set(parentId,children.map((category,index)=>({category,index}))
+    .sort((a,b)=>compareDisplayOrder(a.category,b.category)||a.index-b.index)
+    .map(row=>row.category));
+  }
+  function isVisible(category){
+   if(!category)return false;
+   const startId=normalizeId(category.id);
+   if(startId&&visibilityById.has(startId))return visibilityById.get(startId);
+   const chain=[],seen=new Set();
+   let current=category,visible=true;
+   while(current){
+    const id=normalizeId(current.id);
+    if(!id||seen.has(id)){visible=false;break}
+    seen.add(id);chain.push(id);
+    if(current.visible===false){visible=false;break}
+    const parentId=normalizeId(current.parentId);
+    current=parentId?byId.get(parentId)||null:null;
+   }
+   for(const id of chain)visibilityById.set(id,visible);
+   return visible;
+  }
+  function getDepartmentId(category){
+   if(!category)return 'other';
+   const startId=normalizeId(category.id);
+   if(startId&&departmentById.has(startId))return departmentById.get(startId);
+   let current=category,steps=0,result='other';
+   while(current&&steps++<=rows.length+1){
+    if(current.departmentId&&CATALOG_DEPARTMENT_IDS.has(current.departmentId)){
+     result=current.departmentId;break;
+    }
+    const parentId=normalizeId(current.parentId);
+    if(!parentId){result=classifyCategory(current);break}
+    current=byId.get(parentId)||null;
+   }
+   if(startId)departmentById.set(startId,result);
+   return result;
+  }
+  function folderProductCount(category,active=new Set()){
+   if(!category)return 0;
+   const id=normalizeId(category.id);
+   if(!id)return (category.items||[]).filter(product=>product.visible!==false).length;
+   if(folderProductCountById.has(id))return folderProductCountById.get(id);
+   if(active.has(id))return 0;
+   active.add(id);
+   let total=(category.items||[]).filter(product=>product.visible!==false).length;
+   for(const child of childrenByParent.get(id)||[]){
+    if(child.visible!==false&&isVisible(child))total+=folderProductCount(child,active);
+   }
+   active.delete(id);
+   folderProductCountById.set(id,total);
+   return total;
+  }
+  const index={
+   byId,childrenByParent,
+   isVisible,
+   getDepartmentId,
+   folderProductCount,
+   childFolders(parentId=null,departmentId=null){
+    const hasParent=parentId!==null&&parentId!==undefined;
+    const key=normalizeId(parentId||'');
+    const children=childrenByParent.get(key)||[];
+    return children.filter(category=>
+     category.visible!==false&&isVisible(category)&&
+     (hasParent||getDepartmentId(category)===departmentId)
+    );
+   }
+  };
+  for(const category of rows)folderProductCount(category);
+  return index;
+ }
+ function catalogIndex(categories=[]){
+  const rows=Array.isArray(categories)?categories:[];
+  let index=catalogIndexCache.get(rows);
+  if(!index){index=buildCatalogIndex(rows);catalogIndexCache.set(rows,index)}
+  return index;
+ }
+ function getCategoryDepartmentId(category,categories=[]){
+  return catalogIndex(categories).getDepartmentId(category);
  }
  function categoryAncestors(category,categories=[]){
-  const rows=Array.isArray(categories)?categories:[];
-  const byId=new Map(rows.map(row=>[normalizeId(row?.id),row]));
-  const path=[],seen=new Set();let current=category;
+  const index=catalogIndex(categories),path=[],seen=new Set();
+  let current=category;
   while(current){
    const id=normalizeId(current.id);
    if(!id||seen.has(id))return [];
    seen.add(id);path.unshift(current);
    const parentId=normalizeId(current.parentId);
-   current=parentId?byId.get(parentId)||null:null;
+   current=parentId?index.byId.get(parentId)||null:null;
   }
   return path;
  }
  function isCategoryVisible(category,categories=[]){
-  return categoryAncestors(category,categories).every(row=>row.visible!==false);
+  return catalogIndex(categories).isVisible(category);
  }
  function getFolderProductCount(category,categories=[],visited=new Set()){
-  if(!category||visited.has(normalizeId(category.id)))return 0;
-  const nextVisited=new Set(visited);nextVisited.add(normalizeId(category.id));
-  const rows=Array.isArray(categories)?categories:[];
-  const own=(category.items||[]).filter(product=>product.visible!==false).length;
-  return own+rows.filter(child=>normalizeId(child.parentId)===normalizeId(category.id)&&child.visible!==false&&isCategoryVisible(child,rows))
-   .reduce((sum,child)=>sum+getFolderProductCount(child,rows,nextVisited),0);
+  const index=catalogIndex(categories);
+  if(visited&&visited.size){
+   const count=(current,seen)=>{
+    const id=normalizeId(current?.id);
+    if(!current||!id||seen.has(id))return 0;
+    const next=new Set(seen);next.add(id);
+    const own=(current.items||[]).filter(product=>product.visible!==false).length;
+    return own+(index.childrenByParent.get(id)||[])
+     .filter(child=>child.visible!==false&&index.isVisible(child))
+     .reduce((sum,child)=>sum+count(child,next),0);
+   };
+   return count(category,visited);
+  }
+  return index.folderProductCount(category);
  }
  function displayOrderValue(row){
   const value=Number(row?.sortOrder);
@@ -169,15 +263,20 @@
  }
  function getOrderedProducts(products){
   const rows=Array.isArray(products)?products:[];
-  return rows.map((product,index)=>({product,index}))
-   .sort((a,b)=>compareDisplayOrder(a.product,b.product)||a.index-b.index)
-   .map(row=>row.product);
+  let ordered=orderedProductsCache.get(rows);
+  if(!ordered){
+   ordered=rows.map((product,index)=>({product,index}))
+    .sort((a,b)=>compareDisplayOrder(a.product,b.product)||a.index-b.index)
+    .map(row=>row.product);
+   orderedProductsCache.set(rows,ordered);
+  }
+  return ordered;
  }
  function getOrderedCategories(categories,departmentId=null){
   const rows=Array.isArray(categories)?categories:[];
-  const ordered=[],visited=new Set();
+  const index=catalogIndex(rows),ordered=[],visited=new Set();
   function visit(parentId,rootDepartmentId){
-   for(const category of getChildFolders(rows,parentId,rootDepartmentId)){
+   for(const category of index.childFolders(parentId,rootDepartmentId)){
     const id=normalizeId(category?.id);
     if(!id||visited.has(id))continue;
     visited.add(id);ordered.push(category);visit(id,null);
@@ -187,34 +286,29 @@
   return ordered;
  }
  function getChildFolders(categories,parentId=null,departmentId=null){
-  const rows=Array.isArray(categories)?categories:[];
-  const children=rows.filter(category=>
-   normalizeId(category?.parentId||'')===normalizeId(parentId||'')&&
-   category.visible!==false&&isCategoryVisible(category,rows)&&
-   (parentId!==null&&parentId!==undefined?true:getCategoryDepartmentId(category,rows)===departmentId)
-  );
-  return sortCategoriesByProductCount(children,rows);
+  return catalogIndex(categories).childFolders(parentId,departmentId);
  }
  function getDepartmentSummaries(categories){
   const source=Array.isArray(categories)?categories:[];
+  const cached=departmentSummaryCache.get(source);
+  if(cached)return cached;
+  const index=catalogIndex(source);
   const rows=new Map(DEPARTMENTS.filter(row=>row.visible!==false).map(row=>[row.id,{...row,categories:[],categoryCount:0,productCount:0,rootFolderCount:0}]));
   for(const category of source){
-   if(!isCategoryVisible(category,source))continue;
-   const id=getCategoryDepartmentId(category,source),row=rows.get(id);
+   if(!index.isVisible(category))continue;
+   const id=index.getDepartmentId(category),row=rows.get(id);
    if(!row)continue;
    row.categoryCount++;
    row.productCount+=(category.items||[]).filter(product=>product.visible!==false).length;
    if(!normalizeId(category.parentId))row.rootFolderCount++;
   }
-  for(const row of rows.values()){
-   row.categories=getOrderedCategories(source,row.id);
-   row.productCount=source.filter(category=>isCategoryVisible(category,source)&&getCategoryDepartmentId(category,source)===row.id)
-    .reduce((sum,category)=>sum+(category.items||[]).filter(product=>product.visible!==false).length,0);
-  }
-  return DEPARTMENTS.map((department,index)=>({department,index,summary:rows.get(department.id)}))
+  for(const row of rows.values())row.categories=getOrderedCategories(source,row.id);
+  const result=DEPARTMENTS.map((department,index)=>({department,index,summary:rows.get(department.id)}))
    .filter(entry=>entry.summary&&entry.summary.categoryCount>0&&entry.department.visible!==false)
    .sort((a,b)=>compareDisplayOrder(a.department,b.department)||a.index-b.index)
    .map(entry=>entry.summary);
+  departmentSummaryCache.set(source,result);
+  return result;
  }
  function safeImage(candidate){
   const value=String(candidate??'').trim();if(!value||placeholders.has(value))return '';

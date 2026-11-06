@@ -178,6 +178,69 @@ test('responsive drawer has a bounded viewport width, safe-area padding and a co
  assert.ok(store.includes('nexa-store-polish.css?v=20261106-drawer-responsive-v2'),'Responsive drawer CSS receives a fresh cache version');
 });
 
+
+test('storefront catalog indexes are reused for tree visibility, folder counts and department summaries',async()=>{
+ const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-catalog.js'),'utf8');
+ const window={};
+ vm.runInNewContext(source,{window,URL,Set,Map,WeakMap});
+ const api=window.NexaCatalog;
+ const products=[
+  {id:'root-visible',name:'Root product'},
+  {id:'root-hidden',name:'Hidden root product',visible:false}
+ ];
+ const childProducts=[
+  {id:'child-late',name:'Late product',sortOrder:20},
+  {id:'child-first',name:'First product',sortOrder:1}
+ ];
+ const categories=[
+  {id:'games-root',name:'قسم الألعاب',departmentId:'games',items:products},
+  {id:'games-child',name:'PUBG',parentId:'games-root',items:childProducts},
+  {id:'games-hidden',name:'Hidden folder',parentId:'games-root',visible:false,items:[{id:'private'}]},
+  {id:'apps-root',name:'قسم التطبيقات',departmentId:'apps',items:[{id:'app-1'}]}
+ ];
+ const summaries=api.getDepartmentSummaries(categories);
+ const sameSummaries=api.getDepartmentSummaries(categories);
+ assert.strictEqual(sameSummaries,summaries,'Repeated home/catalog renders reuse the same department summary index');
+ const games=summaries.find(row=>row.id==='games');
+ assert.equal(games.categoryCount,2,'Visible folders remain counted in their department');
+ assert.equal(games.productCount,3,'Only visible products in visible categories contribute to department totals');
+ assert.deepEqual(Array.from(api.getChildFolders(categories,'games-root'),row=>row.id),['games-child'],'Hidden folders are omitted from the indexed child list');
+ assert.equal(api.getFolderProductCount(categories[0],categories),3,'Folder totals include visible descendants but ignore hidden items and folders');
+ assert.equal(api.getFolderProductCount(categories[1],categories),2,'A child folder total is computed from its own visible products');
+ const ordered=api.getOrderedProducts(childProducts);
+ assert.deepEqual(ordered.map(row=>row.id),['child-first','child-late'],'Product display order is preserved');
+ assert.strictEqual(api.getOrderedProducts(childProducts),ordered,'Pagination reuses the cached product ordering');
+ api.setDepartments([{id:'games',name:'Games updated'}]);
+ const refreshed=api.getDepartmentSummaries(categories);
+ assert.notStrictEqual(refreshed,summaries,'Changing department settings invalidates the summary cache');
+ assert.equal(refreshed.find(row=>row.id==='games').name,'Games updated','Updated department names are reflected after invalidation');
+});
+
+test('catalog index handles hidden ancestors and malformed parent cycles without looping',async()=>{
+ const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-catalog.js'),'utf8');
+ const window={};
+ vm.runInNewContext(source,{window,URL,Set,Map,WeakMap});
+ const api=window.NexaCatalog;
+ const rows=[
+  {id:'hidden-parent',name:'Hidden',visible:false,items:[{id:'private'}]},
+  {id:'hidden-child',name:'Hidden child',parentId:'hidden-parent',items:[{id:'private-child'}]},
+  {id:'cycle-a',name:'Cycle A',parentId:'cycle-b',items:[{id:'a'}]},
+  {id:'cycle-b',name:'Cycle B',parentId:'cycle-a',items:[{id:'b'}]}
+ ];
+ assert.equal(api.isCategoryVisible(rows[1],rows),false,'Descendants of a hidden folder remain hidden');
+ assert.equal(api.getChildFolders(rows,'hidden-parent').length,0,'Hidden ancestors do not leak descendants into the storefront');
+ assert.equal(api.isCategoryVisible(rows[2],rows),false,'Malformed parent cycles are not shown');
+ assert.equal(api.getFolderProductCount(rows[2],rows),1,'Cycle protection still counts the current folder and does not recurse forever');
+});
+
+test('supplier comparison aggregates invalid-price diagnostics instead of logging one record per product',async()=>{
+ const server=await fs.readFile(path.resolve(here,'../src/server.js'),'utf8');
+ assert.ok(server.includes('const unpriceableCandidateSummaries=new Map();'),'The sync run collects a summary by supplier and category');
+ assert.ok(server.includes('summary.count++;')&&server.includes('summary.productIds.length<5'),'Only a small sample of product IDs is retained for diagnostics');
+ assert.ok(server.includes("console.warn('supplier candidates skipped: invalid calculated selling prices'"),'One compact summary is logged per supplier/category group');
+ assert.ok(!server.includes("console.warn('supplier candidate skipped: invalid calculated supplier selling price'"),'The sync no longer emits a separate warning for every rejected product');
+});
+
 test('admin dashboard loads the overview first and fetches heavy sections only when opened',async()=>{
  const admin=await fs.readFile(path.join(webRoot,'admin.html'),'utf8');
  const loadAll=admin.match(/async function loadAll\(\)\{([\s\S]*?)\}/)?.[1]||'';

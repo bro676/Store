@@ -1610,6 +1610,7 @@ async function compareAndPublishSupplierCatalog({refresh=true,source='manual'}={
       .filter(candidate=>candidate.available&&Number.isFinite(candidate.costSyp)&&candidate.costSyp>0)
       .map(candidate=>candidate.sourceProductKey).filter(Boolean));
     const unpriceableSourceProductKeys=new Set();
+    const unpriceableCandidateSummaries=new Map();
 
     wamdaBulkPublishInProgress=true;
     let created=0,updated=0,bestStoreWins=0,wamdaWins=0,skippedUnpriceable=0;
@@ -1623,9 +1624,14 @@ async function compareAndPublishSupplierCatalog({refresh=true,source='manual'}={
         applySupplierWinnerToCatalog(nextCatalog,candidate,storeSettings,sourceMatchIndex,catalogIndex));
       for(const skipped of applied.unpriceableCandidates){
         if(skipped.sourceProductKey)unpriceableSourceProductKeys.add(skipped.sourceProductKey);
-        console.warn('supplier candidate skipped: invalid calculated supplier selling price',JSON.stringify({
-          provider:skipped.provider,productId:skipped.productId,categoryId:skipped.categoryId,errorCode:skipped.errorCode
-        }));
+        const provider=String(skipped.provider||'unknown');
+        const categoryId=String(skipped.categoryId||'unknown');
+        const key=provider+'|'+categoryId;
+        const summary=unpriceableCandidateSummaries.get(key)||{provider,categoryId,count:0,productIds:[],errorCodes:[]};
+        summary.count++;
+        if(summary.productIds.length<5&&skipped.productId!==undefined)summary.productIds.push(String(skipped.productId));
+        if(skipped.errorCode&&!summary.errorCodes.includes(skipped.errorCode))summary.errorCodes.push(String(skipped.errorCode));
+        unpriceableCandidateSummaries.set(key,summary);
       }
       if(!applied.candidate){
         skippedUnpriceable++;
@@ -1640,6 +1646,10 @@ async function compareAndPublishSupplierCatalog({refresh=true,source='manual'}={
         singleSourcePublished++;
         if(group.ambiguous)ambiguousPublished++;
       }
+    }
+
+    for(const summary of unpriceableCandidateSummaries.values()){
+      console.warn('supplier candidates skipped: invalid calculated selling prices',JSON.stringify(summary));
     }
 
     // Availability follows provider SKU IDs, not fuzzy product-name keys.
