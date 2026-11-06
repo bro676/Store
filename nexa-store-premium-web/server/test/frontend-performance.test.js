@@ -166,7 +166,7 @@ test('store drawer locks background scroll and restores focus and accessibility 
 test('responsive drawer has a bounded viewport width, safe-area padding and a compact landscape layout',async()=>{
  const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
  const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
- assert.ok(css.includes('width:min(88vw,340px)!important')&&css.includes('max-width:calc(100vw - 24px)!important'),'Drawer stays within small viewport widths');
+ assert.ok(css.includes('--nexa-mobile-drawer-width:min(88vw,340px)')&&css.includes('width:var(--nexa-mobile-drawer-width)!important')&&css.includes('max-width:calc(100vw - 24px)!important'),'Drawer stays within small viewport widths');
  assert.ok(css.includes('env(safe-area-inset-top,0px)')&&css.includes('env(safe-area-inset-bottom,0px)'),'Drawer respects device cutouts and safe areas');
  assert.ok(css.includes('@media(max-height:520px) and (orientation:landscape) and (max-width:1024px)'),'Short landscape screens receive a dedicated compact layout');
  assert.ok(css.includes('body.sidebar-open .app-shell .sidebar-backdrop{')&&css.includes('pointer-events:auto!important'),'The backdrop becomes interactive only while the mobile drawer is open');
