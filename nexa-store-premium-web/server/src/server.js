@@ -2935,13 +2935,19 @@ const server = http.createServer(async (req,res) => {
       if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
       const limit=Math.min(500,Math.max(1,Number(url.searchParams.get('limit')||200)));
       const query=String(url.searchParams.get('q')||'').trim().slice(0,100);
-      const result=await pool.query(`SELECT id,full_name,phone,balance_minor::text AS balance_minor,avatar_url,created_at
+      const result=await pool.query(`SELECT id,full_name,phone,balance_minor::text AS balance_minor,(avatar_url<>'') AS avatar_configured,created_at
         FROM nexa_customers
         WHERE ($2='' OR full_name ILIKE '%'||$2||'%' OR phone ILIKE '%'||$2||'%')
         ORDER BY created_at DESC LIMIT $1`,[limit,query]);
-      return send(res,200,{ok:true,customers:result.rows.map(row=>({...row,balanceMinor:row.balance_minor,createdAt:row.created_at}))});
+      return send(res,200,{ok:true,customers:result.rows.map(row=>({id:row.id,full_name:row.full_name,phone:row.phone,balanceMinor:row.balance_minor,avatarConfigured:Boolean(row.avatar_configured),createdAt:row.created_at}))});
     }
     const customerAvatarMatch=url.pathname.match(/^\/api\/admin\/customers\/([A-Za-z0-9_-]{1,80})\/avatar$/);
+    if(req.method==='GET'&&customerAvatarMatch){
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const result=await pool.query('SELECT avatar_url FROM nexa_customers WHERE id=$1',[customerAvatarMatch[1]]);
+      if(!result.rowCount)return send(res,404,{ok:false,error:'CUSTOMER_NOT_FOUND'});
+      return send(res,200,{ok:true,avatarUrl:result.rows[0].avatar_url||''});
+    }
     if(req.method==='PATCH'&&customerAvatarMatch){
       if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
       const input=await bodyJson(req,2_600_000);
