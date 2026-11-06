@@ -688,7 +688,8 @@ test('storefront drawer matches the fixed dark/light reference palette without c
   assert.ok(drawer.includes('background:#e7e7e7!important;color:#353535!important'), 'Light shortcut circles retain the reference gray tone');
   assert.ok(drawer.includes('.side-link[data-page="home"] .side-icon{color:#22c55e!important}'), 'Menu icon accents remain identical between the two color modes');
   assert.ok(drawer.includes('.side-link[data-page="orders"] .side-icon{color:#ef4444!important}'), 'Order icon keeps its dedicated red accent');
-  assert.ok(drawer.includes(':root[data-theme="light"] .app-shell .side-link.active{background:#e7e7e7!important'), 'Light active item uses the reference gray pill');
+  const finalTheme=drawer.slice(drawer.lastIndexOf('NEXA DRAWER REFINEMENT v3'));
+  assert.ok(finalTheme.includes(':root[data-theme="light"] .app-shell .sidebar .side-link.active{') && finalTheme.includes('background:#e7e7e7!important'), 'Light active item uses the neutral gray pill');
   assert.ok(drawer.includes('.app-shell .sidebar-social-links{') && drawer.includes('.app-shell .sidebar-owner-brand{'), 'The reference social row and Nexa logo footer are present');
 });
 
