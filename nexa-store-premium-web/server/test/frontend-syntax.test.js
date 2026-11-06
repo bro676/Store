@@ -702,11 +702,11 @@ test('storefront drawer language and display currency controls work without alte
   assert.ok(store.includes('id="sidebarCurrencyToggle"'), 'The currency capsule has a real interactive control');
   const first=store.indexOf('class="sidebar-quick-actions"');
   const row=store.slice(first,store.indexOf('</div>',first));
-  const order=['data-page="wallet"','data-page="favorites"','data-page="profile"','id="sidebarLanguageToggle"'];
+  const order=['id="sidebarLanguageToggle"','data-page="favorites"','data-page="profile"','id="sidebarLogoutButton"'];
   let cursor=-1;
   for (const token of order) {
     const next=row.indexOf(token);
-    assert.ok(next>cursor,'Quick-action order must remain Add Funds, Favorites, Profile, Language: '+token);
+    assert.ok(next>cursor,'Arabic quick-action order from left to right must be Language, Favorites, Profile, Logout: '+token);
     cursor=next;
   }
   assert.ok(store.includes("let storefrontDisplayCurrency='USD'"), 'USD/SYP display preference is initialized');
@@ -733,4 +733,34 @@ test('language attribute updates remain synchronized after switching locale', as
   assert.ok(locale.includes('const recovered=reverse.get(currentKey)'), 'Translated ARIA labels can be restored to their original language');
   assert.ok(locale.includes('else stored[name]=current'), 'New dynamic accessible labels are retained instead of reverting to stale text');
   assert.ok(locale.includes('document.documentElement.lang = language') || locale.includes('document.documentElement.lang=language'), 'The active language is reflected in the document');
+});
+
+
+test('drawer uses neutral Click Store typography, follows document direction and moves to the matching side', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
+  const finalTheme = drawer.slice(drawer.lastIndexOf('NEXA DRAWER REFINEMENT v3'));
+  assert.ok(store.includes('IBM+Plex+Sans+Arabic'), 'Click Store Arabic font is loaded with swap');
+  assert.ok(finalTheme.includes('font-family:"IBM Plex Sans Arabic"'), 'Drawer uses IBM Plex Sans Arabic');
+  assert.ok(finalTheme.includes('inset-inline-start:0!important') && finalTheme.includes('margin-inline-start:var(--rail-width)!important'), 'Drawer and content use logical layout positioning');
+  assert.ok(finalTheme.includes(':root[dir="ltr"] .app-shell .sidebar{transform:translateX(-110%)!important}'), 'English drawer closes toward the left');
+  assert.ok(finalTheme.includes(':root[dir="rtl"] .app-shell .sidebar{transform:translateX(110%)!important}'), 'Arabic drawer closes toward the right');
+  assert.ok(finalTheme.includes('background:#242424!important') && finalTheme.includes('background:#f0f0f0!important'), 'Drawer surfaces stay neutral charcoal and gray');
+  assert.ok(!finalTheme.includes('#60a5fa') && !finalTheme.includes('#818cf8') && !finalTheme.includes('#0ea5e9'), 'No blue accents remain in drawer override layer');
+  assert.ok(finalTheme.includes('direction:ltr!important') && finalTheme.includes('justify-content:space-between!important'), 'Quick shortcuts keep stable physical left-to-right order');
+  assert.ok(store.includes('id="sidebarLogoutButton"') && store.includes("$('accountLogoutButton')?.click()"), 'Drawer logout invokes existing account logout flow');
+  assert.ok(store.includes("meta.content=selected==='dark'?'#0c0c0c':'#ffffff'"), 'Browser theme chrome also follows neutral dark/light colors');
+});
+
+test('language switching is frame-batched and does not rerender the full storefront twice', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
+  assert.ok(locale.includes('const TRANSLATION_BATCH_SIZE = 180'), 'Translation has a bounded per-frame work budget');
+  assert.ok(locale.includes('requestAnimationFrame'), 'Translation yields between browser frames');
+  assert.ok(locale.includes('consumeTextMutation') && locale.includes('consumeAttributeMutation'), 'Self-generated mutations are ignored to prevent observer feedback');
+  assert.ok(locale.includes('childList:true,subtree:true,characterData:true'), 'Dynamic content is still translated incrementally');
+  const preferenceBlock=store.slice(store.indexOf('function initializeStorePreferences'),store.indexOf('function renderSupportState'));
+  assert.ok(!preferenceBlock.includes('refreshDisplayCurrency()'), 'Changing language no longer rerenders prices, catalog and account panels');
+  assert.ok(!store.includes('new MutationObserver(()=>markDirection())'), 'The document-wide direction rescan observer is removed');
+  assert.ok(store.includes("document.querySelectorAll('input,textarea,select')"), 'Form controls retain automatic mixed-direction input');
 });
