@@ -95,17 +95,19 @@ test('store drawer locks background scroll and restores focus and accessibility 
  assert.ok(start>=0&&end>start,'The drawer controller has a dedicated state boundary');
  const controller=store.slice(start,end);
  let locale='en',changeHandler=null,scrollY=360,restoredY=null;
- const classes=new Set();
- const classList={
-  add(name){classes.add(name)},
-  remove(name){classes.delete(name)},
-  contains(name){return classes.has(name)},
-  toggle(name,force){if(force===undefined)force=!classes.has(name);if(force)classes.add(name);else classes.delete(name);return force}
+ const makeClassList=()=>{
+  const classes=new Set();
+  return {
+   add(name){classes.add(name)},
+   remove(name){classes.delete(name)},
+   contains(name){return classes.has(name)},
+   toggle(name,force){if(force===undefined)force=!classes.has(name);if(force)classes.add(name);else classes.delete(name);return force}
+  };
  };
  const attributes=new Map();
  const makeElement=()=>({
   style:{values:new Map(),setProperty(name,value){this.values.set(name,value)},removeProperty(name){this.values.delete(name)},getPropertyValue(name){return this.values.get(name)||''},getPropertyPriority(){return ''}},
-  classList:{...classList},
+  classList:makeClassList(),
   setAttribute(name,value){attributes.set(name,String(value))},
   getAttribute(name){return attributes.get(name)??null},
   removeAttribute(name){attributes.delete(name)},
@@ -114,7 +116,6 @@ test('store drawer locks background scroll and restores focus and accessibility 
   getClientRects(){return [1]}
  });
  const body=makeElement(),root=makeElement(),sidebar=makeElement(),toggle=makeElement(),close=makeElement();
- body.classList=classList;root.classList={...classList};
  const elements={menuToggle:toggle,sidebar,sidebarClose:close};
  const media={matches:true,addEventListener(type,callback){if(type==='change')changeHandler=callback},addListener(callback){changeHandler=callback}};
  const sandbox={
@@ -164,6 +165,8 @@ test('responsive drawer has a bounded viewport width, safe-area padding and a co
  assert.ok(css.includes('width:min(88vw,340px)!important')&&css.includes('max-width:calc(100vw - 24px)!important'),'Drawer stays within small viewport widths');
  assert.ok(css.includes('env(safe-area-inset-top,0px)')&&css.includes('env(safe-area-inset-bottom,0px)'),'Drawer respects device cutouts and safe areas');
  assert.ok(css.includes('@media(max-height:520px) and (orientation:landscape) and (max-width:1024px)'),'Short landscape screens receive a dedicated compact layout');
+ assert.ok(css.includes('body.sidebar-open .app-shell .sidebar-backdrop{')&&css.includes('pointer-events:auto!important'),'The backdrop becomes interactive only while the mobile drawer is open');
+ assert.ok(css.includes('.app-shell .sidebar-drawer-head{')&&css.includes('display:flex!important'),'Mobile drawer close control and heading remain visible');
  assert.ok(css.includes('overscroll-behavior:contain!important')&&css.includes('-webkit-overflow-scrolling:touch!important'),'Long drawer content scrolls independently without scroll chaining');
  assert.ok(css.includes('html.store-drawer-scroll-locked body'),'Background document scroll is locked while the drawer is modal');
  assert.ok(css.includes(':root[dir="rtl"] .app-shell .sidebar')&&css.includes('transform:translate3d(100%,0,0)!important'),'Arabic drawer exits from the right');
