@@ -26,7 +26,9 @@ test('store and admin share a batched, incremental auto-direction helper',async(
 test('admin dashboard loads the overview first and fetches heavy sections only when opened',async()=>{
  const admin=await fs.readFile(path.join(webRoot,'admin.html'),'utf8');
  const loadAll=admin.match(/async function loadAll\(\)\{([\s\S]*?)\}/)?.[1]||'';
- const pageRouter=admin.match(/function setPage\\(name\\)\\{([^\\n]+)\\}/)?.[1]||'';
+ const routerStart=admin.indexOf('function setPage(name){');
+ const routerEnd=admin.indexOf('\\n',routerStart);
+ const pageRouter=routerStart>=0?admin.slice(routerStart,routerEnd<0?admin.length:routerEnd):'';
  assert.match(loadAll,/loadSectionOnce\('overview',loadOverview\)/);
  for(const eagerLoader of ['loadCatalog(','loadSettings(','loadOrders(','loadWamdaCatalog(','loadSeagmCatalog(','loadBestStoreCatalog(']){
   assert.ok(!loadAll.includes(eagerLoader),eagerLoader+' must not block initial dashboard display');
