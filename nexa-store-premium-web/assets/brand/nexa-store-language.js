@@ -228,7 +228,7 @@
     'فتح الملف الشخصي':'Open Profile','فتح الإشعارات':'Open Notifications','إعدادات العملة':'Currency Settings',
     'العودة إلى الخيارات':'Back to Options','تغيير اللغة':'Change Language',
     'تم تغيير اللغة إلى العربية':'Language changed to Arabic','تم تغيير اللغة إلى الإنجليزية':'Language changed to English',
-    'عملَة العرض':'Display Currency','خدمة العملة':'Currency service'
+    'عملَة العرض':'Display Currency','خدمة العملة':'Currency service',
 
     'زائر Nexa':'Nexa Guest',
     'زائر':'Guest',
