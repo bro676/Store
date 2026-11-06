@@ -801,19 +801,41 @@ function validateCatalogDepartmentSettings(input){
     if(!CATALOG_DEPARTMENT_CONFIG_IDS.has(id)||seen.has(id))throw Object.assign(new Error('INVALID_CATALOG_DEPARTMENT_ID'),{status:400});
     seen.add(id);
     const name=String(row.name||'').trim(),description=String(row.description??row.desc??'');
-    const icon=String(row.icon||''),cover=String(row.cover||row.image||'');
-    if(!name||name.length>100||description.length>300||icon.length>12||!isSafeCatalogImage(cover))
+    const icon=String(row.icon||''),cover=String(row.cover||row.image||''),iconImage=String(row.iconImage||'');
+    if(!name||name.length>100||description.length>300||icon.length>12||!isSafeCatalogImage(cover)||(iconImage&&!isSafeCatalogImage(iconImage)))
       throw Object.assign(new Error('INVALID_CATALOG_DEPARTMENT_FIELDS'),{status:400});
     if(row.sortOrder!==undefined&&(!Number.isSafeInteger(Number(row.sortOrder))||Number(row.sortOrder)<0||Number(row.sortOrder)>1000000))
       throw Object.assign(new Error('INVALID_CATALOG_DEPARTMENT_ORDER'),{status:400});
     if(row.visible!==undefined&&typeof row.visible!=='boolean')throw Object.assign(new Error('INVALID_CATALOG_DEPARTMENT_VISIBILITY'),{status:400});
-    return {id,name,description,icon,cover,...(row.sortOrder!==undefined?{sortOrder:Number(row.sortOrder)}:{}),...(row.visible!==undefined?{visible:row.visible}:{})};
+    return {id,name,description,icon,cover,iconImage,...(row.sortOrder!==undefined?{sortOrder:Number(row.sortOrder)}:{}),...(row.visible!==undefined?{visible:row.visible}:{})};
   });
 }
+
+function defaultStorefrontExperience(){
+  return {
+    brandSubtitle:'DIGITAL STORE',avatarImage:'',rankImage:'',
+    features:{notifications:true,favorites:true,wallet:true,payments:true,orders:true,support:true,affiliate:true,security:true,verification:true,assistant:true,install:true,social:true},
+    colors:{notification:'#b99b70',profileRing:'#8eaa94',favorite:'#c77c8c',rank:'#b99b70'},
+    social:{whatsappUrl:'https://wa.me/963936382101',instagramUrl:'https://www.instagram.com/',tiktokUrl:'https://www.tiktok.com/',telegramUrl:'https://t.me/',youtubeUrl:'https://www.youtube.com/'},
+  };
+}
+function validateStorefrontExperience(input,current=defaultStorefrontExperience()){
+  if(!input||typeof input!=='object'||Array.isArray(input))throw Object.assign(new Error('INVALID_STOREFRONT_EXPERIENCE'),{status:400});
+  const defaults=defaultStorefrontExperience(),previous=current&&typeof current==='object'&&!Array.isArray(current)?current:defaults;
+  const next={brandSubtitle:String(previous.brandSubtitle??defaults.brandSubtitle),avatarImage:String(previous.avatarImage||''),rankImage:String(previous.rankImage||''),features:{...defaults.features,...(previous.features||{})},colors:{...defaults.colors,...(previous.colors||{})},social:{...defaults.social,...(previous.social||{})}};
+  if(input.brandSubtitle!==undefined){if(typeof input.brandSubtitle!=='string'||input.brandSubtitle.length>60)throw Object.assign(new Error('INVALID_STOREFRONT_BRAND_SUBTITLE'),{status:400});next.brandSubtitle=input.brandSubtitle.trim();}
+  for(const key of ['avatarImage','rankImage'])if(input[key]!==undefined){if(typeof input[key]!=='string'||input[key].length>2_500_000||(input[key]!==''&&!isSafeCatalogImage(input[key])))throw Object.assign(new Error('INVALID_STOREFRONT_'+key.toUpperCase()),{status:400});next[key]=input[key];}
+  if(input.features!==undefined){if(!input.features||typeof input.features!=='object'||Array.isArray(input.features))throw Object.assign(new Error('INVALID_STOREFRONT_FEATURES'),{status:400});for(const key of Object.keys(defaults.features))if(input.features[key]!==undefined){if(typeof input.features[key]!=='boolean')throw Object.assign(new Error('INVALID_STOREFRONT_FEATURE_'+key.toUpperCase()),{status:400});next.features[key]=input.features[key];}}
+  if(input.colors!==undefined){if(!input.colors||typeof input.colors!=='object'||Array.isArray(input.colors))throw Object.assign(new Error('INVALID_STOREFRONT_COLORS'),{status:400});for(const key of Object.keys(defaults.colors))if(input.colors[key]!==undefined){if(typeof input.colors[key]!=='string'||!/^#[0-9a-fA-F]{6}$/.test(input.colors[key]))throw Object.assign(new Error('INVALID_STOREFRONT_COLOR_'+key.toUpperCase()),{status:400});next.colors[key]=input.colors[key].toLowerCase();}}
+  if(input.social!==undefined){if(!input.social||typeof input.social!=='object'||Array.isArray(input.social))throw Object.assign(new Error('INVALID_STOREFRONT_SOCIAL'),{status:400});for(const key of Object.keys(defaults.social))if(input.social[key]!==undefined){const value=input.social[key];if(typeof value!=='string'||value.length>600)throw Object.assign(new Error('INVALID_STOREFRONT_SOCIAL_'+key.toUpperCase()),{status:400});if(!value.trim()){next.social[key]='';continue;}let url;try{url=new URL(value.trim());}catch{throw Object.assign(new Error('INVALID_STOREFRONT_SOCIAL_'+key.toUpperCase()),{status:400});}if(url.protocol!=='https:'||!url.hostname||url.username||url.password)throw Object.assign(new Error('INVALID_STOREFRONT_SOCIAL_'+key.toUpperCase()),{status:400});next.social[key]=url.toString();}}
+  return next;
+}
+
 function defaultStoreSettings() {
   return {
     storeName:'Nexa Store', storeLogo:'assets/brand/logo.svg', announcement:'وجهتك للألعاب والبطاقات والاشتراكات الرقمية',
     themePrimary:'#397fda', themeSecondary:'#65b8d7', themeAccent:'#8076d6', themeDark:'#193957',
+    storefrontExperience:defaultStorefrontExperience(),
     fxMode:'manual', fxRate:145, fxApiUrl:'', fxJsonPath:'', fxUnit:'new',
     fxAuthHeader:'Authorization', fxAuthPrefix:'Bearer', fxUpdatedAt:null, fxLastError:'',
     catalogDepartments:[], catalogApiMode:'manual', catalogApiUrl:'', catalogApiJsonPath:'catalog',
@@ -992,6 +1014,7 @@ function publicSettings() {
     themeSecondary:String(storeSettings?.themeSecondary || '#65b8d7'),
     themeAccent:String(storeSettings?.themeAccent || '#8076d6'),
     themeDark:String(storeSettings?.themeDark || '#193957'),
+    storefrontExperience:validateStorefrontExperience(storeSettings?.storefrontExperience||{},defaultStorefrontExperience()),
     fxRate:Number(storeSettings?.fxRate || 145),
     fxMode:storeSettings?.fxMode || 'manual',
     fxReady:fxRateReady(),
@@ -1056,6 +1079,7 @@ function validateAndApplySettings(input) {
   };
   setText('storeName',80,'Nexa Store');
   setText('announcement',240,'');
+  if(input.storefrontExperience!==undefined)next.storefrontExperience=validateStorefrontExperience(input.storefrontExperience,next.storefrontExperience||defaultStorefrontExperience());
   for (const key of ['themePrimary','themeSecondary','themeAccent','themeDark']) if (input[key] !== undefined) {
     if (typeof input[key] !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(input[key])) throw new Error(`INVALID_${key.toUpperCase()}`);
     next[key] = input[key].toLowerCase();
