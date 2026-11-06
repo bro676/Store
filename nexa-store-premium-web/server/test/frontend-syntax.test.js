@@ -717,7 +717,9 @@ test('storefront drawer language and display currency controls work without alte
   assert.ok(store.includes("window.NexaLocale?.setLanguage(next)"), 'The language control invokes the bilingual locale module');
   assert.ok(store.includes("function formatDisplaySyp(amount)"), 'Catalog and wallet SYP amounts have a display-currency formatter');
   assert.ok(store.includes("formatDisplayMinor(customerAccount.balance_minor||'0','SYP')"), 'Wallet balance follows the selected display currency');
-  assert.ok(!store.slice(store.indexOf('function setStoreDisplayCurrency'),store.indexOf('function initializeStorePreferences')).includes("orderCurrency").value, 'Switching display currency does not edit invoice currency');
+  const currencySwitch=store.slice(store.indexOf('function setStoreDisplayCurrency'),store.indexOf('function initializeStorePreferences'));
+  assert.ok(!currencySwitch.includes("orderCurrency"), 'Switching display currency does not edit invoice currency');
+  assert.doesNotThrow(() => new vm.Script(locale, { filename: "nexa-store-language.js" }), 'The bilingual translation module parses');
   assert.ok(locale.includes("document.documentElement.dir=language==='ar'?'rtl':'ltr'"), 'Language switching changes page direction');
   assert.ok(locale.includes("new MutationObserver"), 'Dynamically rendered storefront text is translated as well');
   assert.ok(locale.includes("'الرئيسية':'Home'") && locale.includes("'طلباتي':'My Orders'"), 'Core drawer navigation has Arabic and English labels');
