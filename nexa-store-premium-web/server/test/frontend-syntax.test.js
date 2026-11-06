@@ -556,6 +556,7 @@ test('Wamda reference paths load the storefront shell and resolve to the intende
 test('Wamda palette, theme boundaries, oval geometry and bilingual direction are explicit', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
   const css = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-wamda-blue.css'), 'utf8');
   const logo = await fs.readFile(path.join(webRoot, 'assets/brand/logo.svg'), 'utf8');
   const hero = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-hero-banner.svg'), 'utf8');
@@ -570,7 +571,7 @@ test('Wamda palette, theme boundaries, oval geometry and bilingual direction are
   assert.ok(css.includes('.app-shell .header-back-button{display:none!important}'), 'The topbar contains only the logo/name at left and action group at right');
   assert.ok(css.includes('direction:rtl!important;flex-direction:row!important;'), 'Header actions are ordered from the physical right');
   assert.ok(css.includes('margin-left:auto!important;margin-right:0!important;'), 'Header actions are anchored to the right');
-  assert.ok(store.includes('dataset.textDirection=direction') && admin.includes('dataset.textDirection=direction'), 'Store and dashboard mark English and Arabic text independently');
+  assert.ok(locale.includes('document.documentElement.dataset.locale=language') && admin.includes('dataset.textDirection=direction'), 'Store and dashboard mark English and Arabic text independently');
   assert.ok(store.includes('wamda-brand-v12') && admin.includes('wamda-brand-v12'), 'Both pages load the refreshed stylesheet');
   assert.ok(!logo.includes('#73d7fa') && !logo.includes('#168ec5'), 'Nexa logo no longer uses the retired blue gradient');
   assert.ok(!hero.includes('#65D5F7') && !hero.includes('#2A9FD5'), 'Hero artwork no longer uses the retired sky-blue palette');
@@ -610,7 +611,7 @@ test('final Wamda finishing pass overrides legacy blue chrome in both themes', a
   assert.ok(css.includes('--brand-teal:#0095a4;'), 'The official Wamda teal remains the primary accent');
   assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v12'), 'Storefront uses the final stylesheet');
   assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v12'), 'Admin uses the final stylesheet');
-  assert.ok(store.includes("selected==='dark'?'#3f4a75':'#f4efea'"), 'Store browser chrome matches the selected theme');
+  assert.ok(store.includes("selected==='dark'?'#0c0c0c':'#ffffff'"), 'Store browser chrome matches the selected theme');
   assert.ok(admin.includes("selected==='dark'?'#3f4a75':'#f4efea'"), 'Admin browser chrome matches its independent theme');
 });
 
@@ -668,7 +669,7 @@ test('Wamda final detail pass covers catalog, account states and admin light nav
 test('storefront drawer matches the fixed dark/light reference palette without changing customer routes', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-reference-v2'), 'Storefront loads the dedicated reference drawer layer');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-performance-v3'), 'Storefront loads the dedicated reference drawer layer');
   for (const id of ['sidebarBalanceValue','sidebarThemeLabel','sidebarSocialLinks','sidebarOwnerBrand']) {
     if (id === 'sidebarSocialLinks' || id === 'sidebarOwnerBrand') continue;
     assert.ok(store.includes('id="' + id + '"'), 'Missing drawer reference element: ' + id);
@@ -681,13 +682,14 @@ test('storefront drawer matches the fixed dark/light reference palette without c
   assert.ok(store.includes("if($('sidebarBalanceValue'))$('sidebarBalanceValue').textContent=balance"), 'Drawer balance remains bound to the authenticated customer balance');
   assert.ok(drawer.includes(':root[data-theme="dark"] .app-shell .sidebar{background:#0c0c0c!important'), 'Dark drawer background is fixed to the reference near-black');
   assert.ok(drawer.includes(':root[data-theme="light"] .app-shell .sidebar{background:#ffffff!important'), 'Light drawer background is fixed to the reference white');
-  assert.ok(drawer.includes('background:#252d39!important;color:#f8fafc!important'), 'Dark currency capsule matches the reference slate surface');
-  assert.ok(drawer.includes('background:#eef0f3!important;color:#34404f!important'), 'Light currency capsule matches the reference light-gray surface');
-  assert.ok(drawer.includes('background:#374151!important;color:#f1f5f9!important'), 'Dark shortcut circles retain the reference slate tone');
-  assert.ok(drawer.includes('background:#e5e7eb!important;color:#334155!important'), 'Light shortcut circles retain the reference gray tone');
+  assert.ok(drawer.includes('background:#242424!important;color:#f4f4f4!important'), 'Dark currency capsule matches the reference slate surface');
+  assert.ok(drawer.includes('background:#f0f0f0!important;color:#222!important'), 'Light currency capsule matches the reference light-gray surface');
+  assert.ok(drawer.includes('background:#343434!important;color:#f5f5f5!important'), 'Dark shortcut circles retain the reference slate tone');
+  assert.ok(drawer.includes('background:#e7e7e7!important;color:#353535!important'), 'Light shortcut circles retain the reference gray tone');
   assert.ok(drawer.includes('.side-link[data-page="home"] .side-icon{color:#22c55e!important}'), 'Menu icon accents remain identical between the two color modes');
   assert.ok(drawer.includes('.side-link[data-page="orders"] .side-icon{color:#ef4444!important}'), 'Order icon keeps its dedicated red accent');
-  assert.ok(drawer.includes(':root[data-theme="light"] .app-shell .side-link.active{background:#e5e7eb!important'), 'Light active item uses the reference gray pill');
+  const finalTheme=drawer.slice(drawer.lastIndexOf('NEXA DRAWER REFINEMENT v3'));
+  assert.ok(finalTheme.includes(':root[data-theme="light"] .app-shell .sidebar .side-link.active{') && finalTheme.includes('background:#e7e7e7!important'), 'Light active item uses the neutral gray pill');
   assert.ok(drawer.includes('.app-shell .sidebar-social-links{') && drawer.includes('.app-shell .sidebar-owner-brand{'), 'The reference social row and Nexa logo footer are present');
 });
 
@@ -697,16 +699,16 @@ test('storefront drawer language and display currency controls work without alte
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
   const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
 
-  assert.ok(store.includes('nexa-store-language.js?v=20261106-bilingual-v1'), 'The Arabic/English dictionary is loaded before storefront initialization');
+  assert.ok(store.includes('nexa-store-language.js?v=20261106-performance-v2'), 'The Arabic/English dictionary is loaded before storefront initialization');
   assert.ok(store.includes('id="sidebarLanguageToggle"'), 'The fourth account shortcut is now the language control');
   assert.ok(store.includes('id="sidebarCurrencyToggle"'), 'The currency capsule has a real interactive control');
   const first=store.indexOf('class="sidebar-quick-actions"');
   const row=store.slice(first,store.indexOf('</div>',first));
-  const order=['data-page="wallet"','data-page="favorites"','data-page="profile"','id="sidebarLanguageToggle"'];
+  const order=['id="sidebarLanguageToggle"','data-page="favorites"','data-page="profile"','id="sidebarLogoutButton"'];
   let cursor=-1;
   for (const token of order) {
     const next=row.indexOf(token);
-    assert.ok(next>cursor,'Quick-action order must remain Add Funds, Favorites, Profile, Language: '+token);
+    assert.ok(next>cursor,'Arabic quick-action order from left to right must be Language, Favorites, Profile, Logout: '+token);
     cursor=next;
   }
   assert.ok(store.includes("let storefrontDisplayCurrency='USD'"), 'USD/SYP display preference is initialized');
@@ -730,7 +732,37 @@ test('storefront drawer language and display currency controls work without alte
 
 test('language attribute updates remain synchronized after switching locale', async () => {
   const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
-  assert.ok(locale.includes('const recovered=reverse.get(currentKey)'), 'Translated ARIA labels can be restored to their original language');
-  assert.ok(locale.includes('else stored[name]=current'), 'New dynamic accessible labels are retained instead of reverting to stale text');
+  assert.ok(locale.includes('const recovered=reverse.get(normalize(current))'), 'Translated ARIA labels can be restored to their original language');
+  assert.ok(locale.includes('else stored[name]=current;'), 'New dynamic accessible labels are retained instead of reverting to stale text');
   assert.ok(locale.includes('document.documentElement.lang = language') || locale.includes('document.documentElement.lang=language'), 'The active language is reflected in the document');
+});
+
+
+test('drawer uses neutral Click Store typography, follows document direction and moves to the matching side', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
+  const finalTheme = drawer.slice(drawer.lastIndexOf('NEXA DRAWER REFINEMENT v3'));
+  assert.ok(store.includes('IBM+Plex+Sans+Arabic'), 'Click Store Arabic font is loaded with swap');
+  assert.ok(finalTheme.includes('font-family:"IBM Plex Sans Arabic"'), 'Drawer uses IBM Plex Sans Arabic');
+  assert.ok(finalTheme.includes('inset-inline-start:0!important') && finalTheme.includes('margin-inline-start:var(--rail-width)!important'), 'Drawer and content use logical layout positioning');
+  assert.ok(finalTheme.includes(':root[dir="ltr"] .app-shell .sidebar{transform:translateX(-110%)!important}'), 'English drawer closes toward the left');
+  assert.ok(finalTheme.includes(':root[dir="rtl"] .app-shell .sidebar{transform:translateX(110%)!important}'), 'Arabic drawer closes toward the right');
+  assert.ok(finalTheme.includes('background:#242424!important') && finalTheme.includes('background:#f0f0f0!important'), 'Drawer surfaces stay neutral charcoal and gray');
+  assert.ok(!finalTheme.includes('#60a5fa') && !finalTheme.includes('#818cf8') && !finalTheme.includes('#0ea5e9'), 'No blue accents remain in drawer override layer');
+  assert.ok(finalTheme.includes('direction:ltr!important') && finalTheme.includes('justify-content:space-between!important'), 'Quick shortcuts keep stable physical left-to-right order');
+  assert.ok(store.includes('id="sidebarLogoutButton"') && store.includes("$('accountLogoutButton')?.click()"), 'Drawer logout invokes existing account logout flow');
+  assert.ok(store.includes("meta.content=selected==='dark'?'#0c0c0c':'#ffffff'"), 'Browser theme chrome also follows neutral dark/light colors');
+});
+
+test('language switching is frame-batched and does not rerender the full storefront twice', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
+  assert.ok(locale.includes('const TRANSLATION_BATCH_SIZE = 180'), 'Translation has a bounded per-frame work budget');
+  assert.ok(locale.includes('requestAnimationFrame'), 'Translation yields between browser frames');
+  assert.ok(locale.includes('consumeTextMutation') && locale.includes('consumeAttributeMutation'), 'Self-generated mutations are ignored to prevent observer feedback');
+  assert.ok(locale.includes('childList:true,subtree:true,characterData:true'), 'Dynamic content is still translated incrementally');
+  const preferenceBlock=store.slice(store.indexOf('function initializeStorePreferences'),store.indexOf('function renderSupportState'));
+  assert.ok(!preferenceBlock.includes('refreshDisplayCurrency()'), 'Changing language no longer rerenders prices, catalog and account panels');
+  assert.ok(!store.includes('new MutationObserver(()=>markDirection())'), 'The document-wide direction rescan observer is removed');
+  assert.ok(store.includes("document.querySelectorAll('input,textarea,select')"), 'Form controls retain automatic mixed-direction input');
 });
