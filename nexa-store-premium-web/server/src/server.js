@@ -22,7 +22,8 @@ import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSi
 import { verifyBestStoreWebhookSecret, parseBestStoreWebhookBody, isBestStoreWebhookTest, resolveBestStoreWebhookReference } from './best-store-webhook.js';
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
 import { expirePendingOrders } from './order-expiry.js';
-import { waitForDatabase } from './db-startup.js';
+import { guardPoolClient, waitForDatabase } from './db-startup.js';
+import { sendJsonResponse } from './http-response.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -76,25 +77,55 @@ function refreshPaymentsReady() {
   return paymentsReady;
 }
 let pool;
+let databaseReady = false;
 if (cfg.databaseUrl) {
-  pool = new Pool({ connectionString: cfg.databaseUrl, ssl: cfg.databaseSsl ? { rejectUnauthorized: true } : false,
-    max: 10, idleTimeoutMillis: 30_000, connectionTimeoutMillis: 8_000 });
+  pool = new Pool({
+    connectionString: cfg.databaseUrl,
+    ssl: cfg.databaseSsl ? { rejectUnauthorized: true } : false,
+    max: 10,
+    idleTimeoutMillis: 30_000,
+    connectionTimeoutMillis: 8_000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 10_000,
+  });
   // Idle PostgreSQL clients can be disconnected during provider restarts; handle pool errors so they do not crash Node.
   pool.on('error', (error) => {
+    databaseReady = false;
     console.error('[database] idle PostgreSQL client error:', error?.message || 'unknown error');
   });
   await waitForDatabase(pool, {
-    attempts: 5,
-    baseDelayMs: 500,
-    maxDelayMs: 3000,
+    attempts: 12,
+    baseDelayMs: 1000,
+    maxDelayMs: 5000,
     onRetry: (error, attempt, delayMs) => {
-      console.error(`[database] startup connection attempt ${attempt}/5 failed (${error?.code || 'unknown'}); retrying in ${delayMs}ms`);
+      console.error(`[database] startup connection attempt ${attempt}/12 failed (${error?.code || 'unknown'}); retrying in ${delayMs}ms`);
     },
   });
+  databaseReady = true;
   for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql', '008_manual_fulfillment.sql', '009_customer_avatar.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
   }
 }
+
+async function acquireDatabaseClient() {
+  if (!pool) throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'), { status: 503 });
+  const client = await acquireDatabaseClient();
+  return guardPoolClient(client, error => {
+    databaseReady = false;
+    console.error('[database] checked-out PostgreSQL client error:', error?.message || 'unknown error');
+  });
+}
+
+const databaseHealthTimer = setInterval(() => {
+  if (!pool) return;
+  pool.query('SELECT 1')
+    .then(() => { databaseReady = true; })
+    .catch(error => {
+      databaseReady = false;
+      console.error('[database] health probe failed:', error?.message || 'unknown error');
+    });
+}, 30_000);
+databaseHealthTimer.unref?.();
 
 const mime = { '.html':'text/html; charset=utf-8', '.css':'text/css; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.json':'application/json; charset=utf-8', '.png':'image/png', '.svg':'image/svg+xml', '.ico':'image/x-icon' };
 const rate = new Map();
@@ -107,14 +138,10 @@ class ProviderError extends Error {
 }
 function send(res, status, data, extraHeaders = {}) {
   const safeStatus = safeHttpStatus(status);
-  const body = JSON.stringify(data);
-  res.writeHead(safeStatus, {
-    'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(body),
-    'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'same-origin',
-    'X-Frame-Options': 'DENY', 'Content-Security-Policy': "default-src 'self' data: blob: https:; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+  sendJsonResponse(res, safeStatus, data, {
+    'Cache-Control': 'no-store',
     ...extraHeaders,
   });
-  res.end(body);
 }
 
 function sendText(res, status, value) {
@@ -155,7 +182,7 @@ async function bodyJson(req, maxBytes = MAX_BODY) {
   try { return data ? JSON.parse(data) : {}; } catch { throw Object.assign(new Error('INVALID_JSON'), { status: 400 }); }
 }
 async function reserveProviderQuota(key, { maxRequests, windowMs, minIntervalMs = 0 }) {
-  const client = await pool.connect();
+  const client = await acquireDatabaseClient();
   try {
     await client.query('BEGIN');
     await client.query(`INSERT INTO nexa_api_throttles (throttle_key,window_started_at,request_count,next_allowed_at)
@@ -522,7 +549,7 @@ async function createOrder(input, customer = null) {
   if (name.length < 2 || !/^\+?[0-9\s()-]{7,20}$/.test(phone)) return {error:'INVALID_CUSTOMER',status:400,message:'يرجى إدخال الاسم ورقم هاتف صحيح.'};
   if(paymentMethod==='wallet'){
     if(currency!=='SYP')return {error:'WALLET_CURRENCY_UNSUPPORTED',status:400,message:'الرصيد الداخلي حالياً بالليرة السورية الجديدة فقط. اختر SYP للدفع من الرصيد.'};
-    const client=await pool.connect();
+    const client=await acquireDatabaseClient();
     const id=`NX-${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
     const supplierOrderUuid=['wamda','beststore'].includes(automaticSupplierProvider)?crypto.randomUUID():id;
     try{
@@ -687,7 +714,7 @@ async function verifyPayment(input) {
   const transactionRef = String(input.transactionId || '').trim();
   if (!/^NX-[A-F0-9]{20}$/.test(orderId)) return {error:'INVALID_ORDER',status:400,message:'رقم طلب Nexa غير صحيح.'};
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(transactionRef)) return {error:'INVALID_TRANSACTION_ID',status:400,message:'أدخل رقم العملية كما يظهر في شام كاش (حتى 64 حرفاً أو رقماً).'};
-  const client = await pool.connect();
+  const client = await acquireDatabaseClient();
   try {
     await client.query('BEGIN');
     const locked = await client.query('SELECT * FROM nexa_orders WHERE id=$1 FOR UPDATE',[orderId]);
@@ -1305,7 +1332,7 @@ async function syncCatalogFromApi({ preview = false } = {}) {
     const updatedAt = new Date().toISOString();
     const nextSettings = { ...storeSettings,catalogApiLastSyncAt:updatedAt,catalogApiLastAttemptAt:updatedAt,catalogApiLastError:'' };
     if (!pool) throw Object.assign(new Error('DATABASE_NOT_CONFIGURED'),{status:503});
-    const client = await pool.connect();
+    const client = await acquireDatabaseClient();
     try {
       await client.query('BEGIN');
       await client.query('UPDATE nexa_store_state SET catalog=$1::jsonb,settings=$2::jsonb,updated_at=NOW() WHERE singleton=TRUE',
@@ -2247,7 +2274,7 @@ function seagmErrorMessage(error) {
 }
 
 async function claimSeagmFulfillmentJob() {
-  const client=await pool.connect();
+  const client=await acquireDatabaseClient();
   try {
     await client.query('BEGIN');
     const result=await client.query(`
@@ -2274,7 +2301,7 @@ async function claimSeagmFulfillmentJob() {
 }
 
 async function saveSeagmFulfillmentState(job,{jobStatus,orderStatus,message,errorText='',metadata=null,resultEncrypted='',delaySeconds=0,failureCount=null}={}) {
-  const client=await pool.connect();
+  const client=await acquireDatabaseClient();
   try {
     await client.query('BEGIN');
     await client.query(`UPDATE nexa_fulfillment_jobs SET
@@ -2608,7 +2635,7 @@ const server = http.createServer(async (req,res) => {
   const ip = String(process.env.TRUST_PROXY === 'true' ? (req.headers['x-forwarded-for'] || req.socket.remoteAddress) : req.socket.remoteAddress || 'unknown').split(',')[0].trim();
   try {
     if (req.method === 'GET' && url.pathname === '/api/health') return send(res,200,{
-      ok:true,service:'nexa-shamcash-gateway',paymentsReady,dbReady:Boolean(pool),
+      ok:true,service:'nexa-shamcash-gateway',paymentsReady,dbReady:databaseReady,
       walletConfigured:Boolean(cfg.apiToken&&cfg.walletId),
       walletReady:Boolean(cachedShamWallet&&Date.now()-cachedShamWalletAt<20_000),
       walletVerifiedAt:cachedShamWalletAt?new Date(cachedShamWalletAt).toISOString():null,
@@ -3048,7 +3075,7 @@ const server = http.createServer(async (req,res) => {
       const validatedCatalog=validateCatalog(nextCatalog);
       const nextDepartments=input.departments!==undefined?validateCatalogDepartmentSettings(input.departments):(storeSettings.catalogDepartments||[]);
       const nextSettings={...storeSettings,catalogDepartments:nextDepartments};
-      const client=await pool.connect();
+      const client=await acquireDatabaseClient();
       try{
         await client.query('BEGIN');
         await client.query('UPDATE nexa_store_state SET catalog=$1::jsonb,settings=$2::jsonb,updated_at=NOW() WHERE singleton=TRUE',
