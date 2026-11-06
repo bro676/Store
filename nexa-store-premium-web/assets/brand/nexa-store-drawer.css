@@ -640,3 +640,39 @@
   color:#777!important;filter:none!important;-webkit-filter:none!important;
   box-shadow:none!important;text-shadow:none!important;
 }
+
+
+/* LIGHT THEME ICON ACCENTS — calm semantic colors and neutral balance. */
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link .side-icon{
+  color:#858585!important;fill:none!important;stroke:currentColor!important;
+  background:transparent!important;border:0!important;outline:0!important;
+  box-shadow:none!important;filter:none!important;-webkit-filter:none!important;text-shadow:none!important;
+}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link[data-page="home"] .side-icon{color:#6f947b!important}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link[data-open-assistant] .side-icon{color:#8d7fa4!important}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link[data-page="wallet"] .side-icon{color:#8a7b9b!important}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link[data-page="payments"] .side-icon{color:#aa8d60!important}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link[data-page="orders"] .side-icon{color:#b5757b!important}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link[data-page="support"] .side-icon{color:#78938f!important}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link[data-page="affiliate"] .side-icon{color:#6f9588!important}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link[data-page="security"] .side-icon{color:#6f927b!important}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link[data-page="verify"] .side-icon{color:#a18d69!important}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link[data-page="install"] .side-icon{color:#828780!important}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link[data-page="about"] .side-icon{color:#829087!important}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link:hover .side-icon,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link.active .side-icon,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link:focus .side-icon,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-nav .side-link:focus-visible .side-icon{
+  filter:none!important;-webkit-filter:none!important;text-shadow:none!important;
+  box-shadow:none!important;stroke:currentColor!important;
+}
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-account-balance,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-account-balance strong,
+:root[data-theme="light"] body .app-shell .sidebar #sidebarBalanceValue,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-account-balance span,
+:root[data-theme="light"] body .app-shell .sidebar .sidebar-account-balance *{
+  color:#252525!important;-webkit-text-fill-color:#252525!important;
+  background:transparent!important;background-image:none!important;background-clip:border-box!important;
+  text-shadow:none!important;filter:none!important;-webkit-filter:none!important;
+  box-shadow:none!important;font-variant-numeric:tabular-nums!important;
+}

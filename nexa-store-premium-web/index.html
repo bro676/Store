@@ -608,7 +608,7 @@ body{
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/assets/brand/nexa-store-drawer.css?v=20261106-light-neutral-v2">
+<link rel="stylesheet" href="/assets/brand/nexa-store-drawer.css?v=20261106-soft-icons-v3">
 </head>
 <body>
 <div class="app-shell">
@@ -1033,7 +1033,7 @@ body{
 </section>
 <div class="toast" id="toast"></div>
 <script src="/assets/brand/nexa-catalog.js?v=20261106-dashboard-order-v3"></script>
-<script src="/assets/brand/nexa-store-language.js?v=20261106-performance-v2"></script>
+<script src="/assets/brand/nexa-store-language.js?v=20261106-drawer-english-v3"></script>
 <script>
 let categories=[];
 let storefrontDisplayCurrency='USD',storefrontFxRate=145,storefrontFxReady=false,storefrontLanguage='ar',walletTransactions=[];
@@ -1055,7 +1055,12 @@ const formatDisplayMinor=(minor,currency='SYP')=>{
  if(currency==='USD')return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value);
  return formatDisplaySyp(value);
 };
-const formatMinor=(minor,currency='SYP')=>{const value=Number(BigInt(minor||0))/100;return currency==='USD'?new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value):new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(value)+' ل.س جديدة'};
+const formatMinor=(minor,currency='SYP')=>{
+ const value=Number(BigInt(minor||0))/100;
+ if(currency==='USD')return new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(value);
+ const locale=storeLocale()==='en'?'en-US':'ar-SY';
+ return new Intl.NumberFormat(locale,{maximumFractionDigits:2}).format(value)+' '+storeCurrencyLabel('SYP');
+};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let state={view:'home',department:null,category:null,item:null,option:null,selectedPack:null,pendingOrder:null,catalogPage:1,catalogQuery:'',categoryPage:1,categoryQuery:'',productPage:1,productQuery:'',searchResults:[],searchPage:1};let toastTimer;let memoryData={orders:[],favs:[],supportTickets:[]};const deliveryWatchers=new Set();
 function getCategory(id){return categories.find(x=>String(x.id)===String(id))||null}function getItem(id,categoryId=state.category){const scoped=categoryId==null?null:getCategory(categoryId);if(scoped){const match=(scoped.items||[]).find(x=>String(x.id)===String(id));if(match)return match;}for(const c of categories){const it=(c.items||[]).find(x=>String(x.id)===String(id));if(it)return it}return null}function getOption(id){const it=state.item&&getItem(state.item,state.category);return NexaCatalog.getProductOptions(it).find(x=>String(x.id)===String(id))||null}
@@ -1679,7 +1684,7 @@ function renderSidebarAccount(){
  const vipLabel=typeof vipValue==='string'&&vipValue.trim()?vipValue.trim():typeof vipValue==='number'&&vipValue>0?'VIP '+vipValue:(vipValue&&typeof vipValue==='object'?(vipValue.name||vipValue.label||'BRONZE'):'BRONZE');
  if($('sidebarCustomerName'))$('sidebarCustomerName').textContent=name;
  if($('sidebarCustomerMeta'))$('sidebarCustomerMeta').textContent=meta;
- if($('sidebarProfileAvatar'))$('sidebarProfileAvatar').setAttribute('aria-label','صورة '+avatar);
+ if($('sidebarProfileAvatar'))$('sidebarProfileAvatar').setAttribute('aria-label',storeLocale()==='en'?'Profile image '+avatar:'صورة '+avatar);
  if($('sidebarBalanceValue'))$('sidebarBalanceValue').textContent=balance;
  if($('sidebarVipBadge'))$('sidebarVipBadge').textContent=vipLabel;
  if($('headerVipBadge'))$('headerVipBadge').querySelector('span').textContent=vipLabel;
@@ -1746,6 +1751,7 @@ function initializeStorePreferences(){
  window.addEventListener('nexa:languagechange',event=>{
   storefrontLanguage=event.detail?.language||storeLocale();
   syncSidebarCurrency();
+  renderSidebarAccount();
  });
  window.addEventListener('storage',event=>{
   if(event.key==='nexa-store-display-currency'&&(event.newValue==='USD'||event.newValue==='SYP'))setStoreDisplayCurrency(event.newValue,{persist:false});
