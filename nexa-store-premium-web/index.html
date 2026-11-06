@@ -608,7 +608,7 @@ body{
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/assets/brand/nexa-store-drawer.css?v=20261106-performance-v3">
+<link rel="stylesheet" href="/assets/brand/nexa-store-drawer.css?v=20261106-neutral-tree-v1">
 </head>
 <body>
 <div class="app-shell">
@@ -1015,7 +1015,7 @@ body{
 </section>
 
 </main>
-<footer class="footer"><div class="wrap"><div class="footer-main"><div><div class="footer-brand"><img src="assets/brand/logo.svg" alt=""><strong>NEXA STORE</strong></div><p class="footer-note">مساحة رقمية واحدة للألعاب والبطاقات والاشتراكات والخدمات.</p></div><nav class="footer-links"><a href="#home" data-nav="home">الرئيسية</a><a href="#store" data-page="store">المتجر</a><a href="#orders" data-page="orders">طلباتي</a><a href="#payments" data-page="payments">مدفوعاتي</a><a href="#wallet" data-page="wallet">المحفظة</a><a href="#about" data-page="about">عن المتجر</a><a href="#support" data-page="support">الدعم</a><a href="mailto:support.nsde@gmail.com">البريد الإلكتروني</a><a href="/admin.html" rel="nofollow">إدارة المتجر</a></nav></div><div class="footer-bottom"><span>© <span id="year"></span> NEXA STORE</span><span>الدفع عبر شام كاش · التحقق من رقم العملية عبر API</span></div></div></footer>
+<footer class="footer"><div class="wrap"><div class="footer-main"><div><div class="footer-brand"><img src="assets/brand/logo.svg" alt=""><strong>NEXA STORE</strong></div><p class="footer-note">مساحة رقمية واحدة للألعاب والبطاقات والاشتراكات والخدمات.</p></div><nav class="footer-links"><a href="#home" data-nav="home">الرئيسية</a><a href="#store" data-page="store">المتجر</a><a href="#orders" data-page="orders">طلباتي</a><a href="#payments" data-page="payments">مدفوعاتي</a><a href="#wallet" data-page="wallet">المحفظة</a><a href="#about" data-page="about">عن المتجر</a><a href="#support" data-page="support">الدعم</a><a href="mailto:support.nsde@gmail.com">البريد الإلكتروني</a><a </nav></div><div class="footer-bottom"><span>© <span id="year"></span> NEXA STORE</span><span>الدفع عبر شام كاش · التحقق من رقم العملية عبر API</span></div></div></footer>
 </div>
 </div>
 
@@ -1032,7 +1032,7 @@ body{
   </div>
 </section>
 <div class="toast" id="toast"></div>
-<script src="/assets/brand/nexa-catalog.js?v=20261106-catalog-manager-v2"></script>
+<script src="/assets/brand/nexa-catalog.js?v=20261106-dashboard-order-v3"></script>
 <script src="/assets/brand/nexa-store-language.js?v=20261106-performance-v2"></script>
 <script>
 let categories=[];
@@ -1173,15 +1173,15 @@ function renderHomeCategories(){
 function renderFeatured(){
  const list=[],seen=new Set();
  for(const group of NexaCatalog.getDepartmentSummaries(categories)){
-  const found=group.categories.flatMap(cat=>(cat.items||[]).map(it=>({cat,it}))).find(row=>(row.it.wamda||row.it.bestStore)?.available!==false);
-  if(found&&!seen.has(String(found.it.id))){list.push(found);seen.add(String(found.it.id));}
-  if(list.length>=4)break;
- }
- if(list.length<4){
-  for(const cat of categories)for(const it of cat.items||[]){
-   if((it.wamda||it.bestStore)?.available===false||seen.has(String(it.id)))continue;
-   list.push({cat,it});seen.add(String(it.id));if(list.length>=4)break;
+  for(const cat of group.categories){
+   for(const it of NexaCatalog.getOrderedProducts(cat.items||[])){
+    if(it.visible===false||(it.wamda||it.bestStore)?.available===false||seen.has(String(it.id)))continue;
+    list.push({cat,it});seen.add(String(it.id));
+    if(list.length>=4)break;
+   }
+   if(list.length>=4)break;
   }
+  if(list.length>=4)break;
  }
  $('featuredGrid').innerHTML=list.length?list.map(({cat,it})=>{
   const image=NexaCatalog.productImage(it,cat,categories);
@@ -1264,11 +1264,8 @@ function renderCatalog(){
   const folderPageSize=36,folderPageCount=Math.max(1,Math.ceil(filteredFolders.length/folderPageSize));
   state.categoryPage=Math.min(Math.max(1,Number(state.categoryPage)||1),folderPageCount);
   const folderRows=filteredFolders.slice((state.categoryPage-1)*folderPageSize,state.categoryPage*folderPageSize);
-  const allProducts=[...(cat.items||[])].sort((a,b)=>NexaCatalog.compareDisplayOrder(a,b)),productQuery=String(state.productQuery||'').trim().toLocaleLowerCase('ar');
-  const sortedProducts=allProducts.map((product,index)=>({product,index}))
-   .sort((a,b)=>NexaCatalog.compareDisplayOrder(a.product,b.product)||
-    String(a.product.name||'').localeCompare(String(b.product.name||''),'ar',{numeric:true,sensitivity:'base'})||a.index-b.index)
-   .map(row=>row.product);
+  const allProducts=NexaCatalog.getOrderedProducts(cat.items||[]),productQuery=String(state.productQuery||'').trim().toLocaleLowerCase('ar');
+  const sortedProducts=allProducts;
   const filteredProducts=sortedProducts.filter(product=>!productQuery||[product.name,product.desc,product.id].some(value=>String(value||'').toLocaleLowerCase('ar').includes(productQuery)));
   const productPageSize=36,productPageCount=Math.max(1,Math.ceil(filteredProducts.length/productPageSize));
   state.productPage=Math.min(Math.max(1,Number(state.productPage)||1),productPageCount);
