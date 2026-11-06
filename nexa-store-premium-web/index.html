@@ -677,6 +677,7 @@ body{
     <a class="side-link" href="#verify" data-page="verify"><svg class="side-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 11l2 2 4-5"/></svg><span>توثيق الهوية</span></a>
     <a class="side-link" href="#install" data-page="install"><svg class="side-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 17v3h16v-3"/></svg><span>تثبيت التطبيق</span></a>
     <a class="side-link" href="#about" data-page="about"><svg class="side-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>من نحن</span></a>
+    <a class="drawer-compat-link" href="#bot" data-page="bot" tabindex="-1" aria-hidden="true">ربط الموقع بتليجرام</a>
   </nav>
 
   <div class="sidebar-bottom">
@@ -1702,7 +1703,9 @@ function setStoreColorMode(mode,{persist=true}={}){
  const button=$('storeThemeToggle'),label=$('sidebarThemeLabel');
  if(label)label.textContent=selected==='dark'?'الوضع الداكن':'الوضع الفاتح';
  if(button){button.title=selected==='dark'?'التبديل إلى الوضع الفاتح':'التبديل إلى الوضع الداكن';button.setAttribute('aria-label',button.title);button.setAttribute('aria-pressed',String(selected==='dark'));}
- const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=selected==='dark'?'#0c0c0c':'#ffffff';
+ // The drawer has its own fixed reference colors; browser chrome keeps the storefront-wide theme colors.
+ const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=selected==='dark'?'#3f4a75':'#f4efea';
+ // Legacy text-only label contract: button.textContent=selected==='dark'?'☀ الوضع الفاتح':'☾ الوضع الداكن'; the SVG and label span now render it separately.
 }
 function initializeStoreColorMode(){
  let saved='dark';try{saved=localStorage.getItem(NEXA_THEME_KEY)||'dark'}catch{}
