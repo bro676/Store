@@ -2017,14 +2017,16 @@ async function init(){
   const element=target?.nodeType===1?target:target?.parentElement;
   return element?.closest?.(selector)||null;
  }
- document.addEventListener('click',e=>{if(!eventElement(e,'#storeCatalogSearch,#storeCategorySearch,#storeProductSearch'))catalogSearchRender.cancel();const favoriteControl=eventElement(e,'[data-favorite]');if(favoriteControl){toggleFavorite(favoriteControl.dataset.favorite);return;}
+ document.addEventListener('click',e=>{const favoriteControl=eventElement(e,'[data-favorite]');if(favoriteControl){catalogSearchRender.cancel();toggleFavorite(favoriteControl.dataset.favorite);return;}
  const productControl=NexaCatalog.findProductControl(e)||eventElement(e,'[data-open-item]');
  if(productControl){
+  catalogSearchRender.cancel();
   e.preventDefault();e.stopPropagation();
   openItem(productControl.getAttribute('data-open-item'),productControl.getAttribute('data-open-category')||null);
   return;
  }
  const el=eventElement(e,'[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-department],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-reset-catalog],[data-scroll],[data-catalog-page],[data-category-page],[data-product-page],[data-search-page]');if(!el)return;
+ catalogSearchRender.cancel();
  if(el.dataset.openAssistant!==undefined){openAssistant();return}
  if(el.dataset.assistantPrompt){sendAssistantPrompt(el.dataset.assistantPrompt);return}
  if(el.dataset.page){e.preventDefault();if(el.dataset.page==='store')resetCatalog();navigate(el.dataset.page);return}
