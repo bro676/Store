@@ -726,3 +726,11 @@ test('storefront drawer language and display currency controls work without alte
   assert.ok(drawer.includes('font-size:14px!important;font-weight:900!important'), 'Drawer menu typography is scaled to normal viewing size');
   assert.ok(drawer.includes(':root[data-locale="en"] .app-shell .sidebar-nav .side-link'), 'English drawer alignment is handled independently');
 });
+
+
+test('language attribute updates remain synchronized after switching locale', async () => {
+  const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
+  assert.ok(locale.includes('const recovered=reverse.get(currentKey)'), 'Translated ARIA labels can be restored to their original language');
+  assert.ok(locale.includes('else stored[name]=current'), 'New dynamic accessible labels are retained instead of reverting to stale text');
+  assert.ok(locale.includes('document.documentElement.lang = language') || locale.includes('document.documentElement.lang=language'), 'The active language is reflected in the document');
+});
