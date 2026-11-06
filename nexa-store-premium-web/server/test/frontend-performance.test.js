@@ -173,6 +173,7 @@ test('large catalogue mutations and low-core devices use bounded locale and dire
  const direction=await fs.readFile(path.join(webRoot,'assets/brand/nexa-text-direction.js'),'utf8');
  const server=await fs.readFile(path.join(webRoot,'server/src/server.js'),'utf8');
  const db=await fs.readFile(path.join(webRoot,'server/src/db-startup.js'),'utf8');
+ const polish=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
  assert.ok(locale.includes('const TRANSLATION_BATCH_SIZE = DEVICE_CONCURRENCY <= 4 ? 120 : 220'),'Translation work is smaller on low-core devices');
  assert.ok(direction.includes('const BATCH_SIZE = DEVICE_CONCURRENCY <= 4 ? 120 : 220'),'Direction work is smaller on low-core devices');
  assert.ok(locale.includes('record.addedNodes.length>1&&record.target?.nodeType===1'),'Large catalogue inserts are coalesced into one translation root');
