@@ -452,7 +452,7 @@ test('Wamda brand redesign preserves store flows and adds reference account page
   assert.ok(store.includes('id="sidebarClose"') && store.includes('class="sidebar-drawer-head"'), 'Store drawer includes an in-drawer close control');
   assert.ok(store.includes("const storeDrawerMedia=window.matchMedia('(max-width: 1024px)')"), 'Store drawer activates at the tablet breakpoint');
   assert.ok(store.includes("$('sidebarClose').addEventListener('click',()=>closeMenu(true))"), 'Store close control restores focus to the menu toggle');
-  assert.ok(store.includes("if(e.key==='Tab'&&document.body.classList.contains('sidebar-open'))"), 'Store drawer traps keyboard focus while open');
+  assert.ok(store.includes("if(e.key==='Tab'&&storeDrawerMedia.matches&&isStoreMenuOpen())"), 'Store drawer traps keyboard focus while open');
   assert.ok(store.includes("setAttribute('inert','')") && store.includes("removeAttribute('inert')"), 'Store drawer leaves keyboard navigation while closed');
   assert.ok(admin.includes('id="adminSidebarClose"') && admin.includes('class="admin-sidebar-head"'), 'Admin drawer includes its own close control');
   assert.ok(admin.includes("window.matchMedia('(max-width: 1024px)')"), 'Admin drawer uses the tablet breakpoint');
@@ -487,7 +487,7 @@ test('Wamda drawer is compact, closable at every viewport, and scrolls as one su
 
   assert.ok(store.includes('function isStoreMenuOpen()'), 'Drawer state is tracked for both desktop and mobile');
   assert.ok(store.includes('function syncStoreMenuToViewport()'), 'Drawer state adapts when the viewport crosses the breakpoint');
-  assert.ok(store.includes("if(window.matchMedia('(max-width: 1024px)').matches)closeMenu();"), 'Selecting a page closes the overlay only on small screens');
+  assert.ok(store.includes("if(storeDrawerMedia.matches)closeMenu(true);"), 'Selecting a page closes the overlay only on small screens');
   assert.ok(store.includes("if(isStoreMenuOpen())closeMenu(true);else openMenu()"), 'The menu toggle opens and closes the desktop rail too');
 });
 
