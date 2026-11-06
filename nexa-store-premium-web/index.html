@@ -1124,7 +1124,7 @@ function resolveStoreLocation(){
  return STORE_PATH_VIEWS[pathname]||'home';
 }
 function navigate(view,{historyMode='push',syncLocation=true}={}){
- const pageFeature={notifications:'notifications',favorites:'favorites',wallet:'wallet',payments:'payments',orders:'orders',support:'support',affiliate:'affiliate',security:'security',verify:'verification',install:'install'};
+ const pageFeature={notifications:'notifications',favorites:'favorites',wallet:'wallet',payments:'payments',orders:'orders',support:'support',affiliate:'affiliate',security:'security',verify:'verification',install:'install',bot:'assistant'};
  if(storefrontExperience&&pageFeature[view]&&storefrontExperience.features[pageFeature[view]]===false){showToast(storeLocale()==='en'?'This section is currently unavailable.':'هذا القسم غير متاح حالياً.');view='home';historyMode='replace';}
  state.view=view;
  document.documentElement.dataset.currentPage=view;
