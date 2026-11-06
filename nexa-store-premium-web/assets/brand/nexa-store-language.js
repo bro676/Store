@@ -563,7 +563,7 @@
   for (const [ar,en] of Object.entries(translationLookup)) {
     const englishKey=String(en).trim().replace(/\s+/g,' ');
     if(!reverse.has(englishKey))reverse.set(englishKey,ar);
-    const latinKey=String(en).replace(/[٠-٩۰-۹]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)>=0?'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]:'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)]||d)).trim().replace(/\s+/g,' ');
+    const latinKey=String(localizeDigits(en,'en')).trim().replace(/\s+/g,' ');
     if(!reverse.has(latinKey))reverse.set(latinKey,ar);
   }
   const fragmentEntries=Object.entries(additionalTranslations).filter(([phrase])=>phrase.length>=8);
@@ -597,16 +597,16 @@
     const key=normalize(value);
     if(!key)return value;
     if(translationLookup[key])return translationLookup[key];
-    let match=key.match(/^صفحة\\s+([0-9٠-٩۰-۹,٬]+)\\s+من\\s+([0-9٠-٩۰-۹,٬]+)$/);
+    let match=key.match(/^صفحة\s+([0-9٠-٩۰-۹,٬]+)\s+من\s+([0-9٠-٩۰-۹,٬]+)$/);
     if(match)return 'Page '+match[1]+' of '+match[2];
-    match=key.match(/^نتائج مطابقة لعبارة:\\s*(.+)$/);
+    match=key.match(/^نتائج مطابقة لعبارة:\s*(.+)$/);
     if(match)return 'Results matching: '+match[1];
-    match=key.match(/^([0-9٠-٩۰-۹,٬]+)\\s+أقسام$/);
+    match=key.match(/^([0-9٠-٩۰-۹,٬]+)\s+أقسام$/);
     if(match)return match[1]+' departments';
-    match=key.match(/^سعر ثابت:\\s*1 USD\\s*=\\s*(.+)$/);
+    match=key.match(/^سعر ثابت:\s*1 USD\s*=\s*(.+)$/);
     if(match)return 'Fixed rate: 1 USD = '+match[1];
     const raw=String(value);
-    if(/[\\u0600-\\u06FF]/.test(raw)){
+    if(/[\u0600-\u06FF]/.test(raw)){
       let output=raw;
       for(const [phrase,english] of fragmentEntries)if(output.includes(phrase))output=output.split(phrase).join(english);
       return output;
