@@ -608,7 +608,7 @@ body{
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/assets/brand/nexa-store-drawer.css?v=20261106-soft-icons-v3">
+<link rel="stylesheet" href="/assets/brand/nexa-store-drawer.css?v=20261106-store-controls-v1">
 
 <style id="nexa-storefront-experience-style">
 :root{--nexa-notification-accent:#b99b70;--nexa-profile-ring:#8eaa94;--nexa-favorite-accent:#c77c8c;--nexa-rank-accent:#b99b70}
@@ -1869,6 +1869,8 @@ function applyStorefrontExperience(value={}){
   const enabled=storefrontExperience.features[key]!==false;
   for(const selector of selectors)document.querySelectorAll(selector).forEach(element=>element.classList.toggle('storefront-feature-disabled',!enabled));
  }
+ const walletOption=document.querySelector('#paymentMethod option[value="wallet"]');
+ if(walletOption){walletOption.disabled=storefrontExperience.features.wallet===false;walletOption.hidden=storefrontExperience.features.wallet===false;}
  const socialIds={whatsappUrl:'storeWhatsAppLink',instagramUrl:'storeInstagramLink',tiktokUrl:'storeTikTokLink',telegramUrl:'storeTelegramLink',youtubeUrl:'storeYouTubeLink'};
  for(const [key,id] of Object.entries(socialIds)){
   const link=$(id),url=String(storefrontExperience.social[key]||'').trim();
@@ -1906,8 +1908,8 @@ async function loadStorefrontConfig(){
    const avatar=$('sidebarProfileAvatar')?.querySelector('img');
    if(avatar&&!storefrontExperience?.avatarImage)avatar.src=data.storeLogo;
   }
-  const promo=document.querySelector('.promo-inner'),promoWrap=document.querySelector('.promo');
-  if(promo){promo.textContent=String(data.announcement||'');if(promoWrap)promoWrap.classList.toggle('storefront-feature-disabled',!String(data.announcement||'').trim());}
+  const promo=document.querySelector('.promo-inner');
+  if(promo){promo.textContent=String(data.announcement||'');promo.parentElement?.classList.toggle('storefront-feature-disabled',!String(data.announcement||'').trim());}
  }catch{}
 }
 window.addEventListener('storage',event=>{if(event.key==='nexa-storefront-experience-updated')loadStorefrontConfig();});
