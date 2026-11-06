@@ -286,8 +286,8 @@ test('storefront debounces expensive catalog search renders and cancels stale wo
  const navigateEnd=store.indexOf('\n}',navigateStart);
  const navigate=store.slice(navigateStart,navigateEnd<0?store.length:navigateEnd);
  const clickStart=store.indexOf("document.addEventListener('click',e=>{const favoriteControl");
- const clickEnd=store.indexOf('\n',clickStart);
- const click=store.slice(clickStart,clickEnd<0?store.length:clickEnd);
+ const clickEnd=store.indexOf('},true);',clickStart);
+ const click=store.slice(clickStart,clickEnd<0?store.length:clickEnd+8);
  const inputStart=store.indexOf("document.addEventListener('input',event=>{");
  const inputEnd=store.indexOf("\n});",inputStart);
  const input=store.slice(inputStart,inputEnd<0?store.length:inputEnd);
