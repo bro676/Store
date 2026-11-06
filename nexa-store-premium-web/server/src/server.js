@@ -22,7 +22,7 @@ import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSi
 import { verifyBestStoreWebhookSecret, parseBestStoreWebhookBody, isBestStoreWebhookTest, resolveBestStoreWebhookReference } from './best-store-webhook.js';
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
 import { expirePendingOrders } from './order-expiry.js';
-import { waitForDatabase } from './db-startup.js';
+import { monitorPostgresClientErrors, waitForDatabase } from './db-startup.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -76,24 +76,34 @@ function refreshPaymentsReady() {
   return paymentsReady;
 }
 let pool;
+let databaseReady = false;
 if (cfg.databaseUrl) {
   pool = new Pool({ connectionString: cfg.databaseUrl, ssl: cfg.databaseSsl ? { rejectUnauthorized: true } : false,
     max: 10, idleTimeoutMillis: 30_000, connectionTimeoutMillis: 8_000 });
-  // Idle PostgreSQL clients can be disconnected during provider restarts; handle pool errors so they do not crash Node.
+  // Observe errors from checked-out clients as well as idle clients; neither should crash Node.
+  monitorPostgresClientErrors(pool, error => {
+    databaseReady = false;
+    console.error('[database] PostgreSQL client error:', error?.code || error?.message || 'unknown error');
+  });
+  pool.on('connect', () => {
+    databaseReady = true;
+  });
   pool.on('error', (error) => {
-    console.error('[database] idle PostgreSQL client error:', error?.message || 'unknown error');
+    databaseReady = false;
+    console.error('[database] idle PostgreSQL client error:', error?.code || error?.message || 'unknown error');
   });
   await waitForDatabase(pool, {
-    attempts: 5,
+    attempts: 10,
     baseDelayMs: 500,
-    maxDelayMs: 3000,
+    maxDelayMs: 5000,
     onRetry: (error, attempt, delayMs) => {
-      console.error(`[database] startup connection attempt ${attempt}/5 failed (${error?.code || 'unknown'}); retrying in ${delayMs}ms`);
+      console.error('[database] startup connection attempt '+attempt+'/10 failed ('+(error?.code || 'unknown')+'); retrying in '+delayMs+'ms');
     },
   });
   for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql', '008_manual_fulfillment.sql', '009_customer_avatar.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
   }
+  databaseReady = true;
 }
 
 const mime = { '.html':'text/html; charset=utf-8', '.css':'text/css; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.json':'application/json; charset=utf-8', '.png':'image/png', '.svg':'image/svg+xml', '.ico':'image/x-icon' };
@@ -2608,7 +2618,7 @@ const server = http.createServer(async (req,res) => {
   const ip = String(process.env.TRUST_PROXY === 'true' ? (req.headers['x-forwarded-for'] || req.socket.remoteAddress) : req.socket.remoteAddress || 'unknown').split(',')[0].trim();
   try {
     if (req.method === 'GET' && url.pathname === '/api/health') return send(res,200,{
-      ok:true,service:'nexa-shamcash-gateway',paymentsReady,dbReady:Boolean(pool),
+      ok:true,service:'nexa-shamcash-gateway',paymentsReady:Boolean(paymentsReady&&databaseReady),dbReady:databaseReady,
       walletConfigured:Boolean(cfg.apiToken&&cfg.walletId),
       walletReady:Boolean(cachedShamWallet&&Date.now()-cachedShamWalletAt<20_000),
       walletVerifiedAt:cachedShamWalletAt?new Date(cachedShamWalletAt).toISOString():null,
