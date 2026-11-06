@@ -777,6 +777,50 @@ test('light drawer has no blue active rail, active underline, or icon glow',asyn
   assert.ok(lightFix.includes('box-shadow:none!important;text-decoration:none!important'),'The active blue rail and underline are removed');
   assert.ok(lightFix.includes('side-link.active::before')&&lightFix.includes('side-link.active::after'),'Both active pseudo-element lines are suppressed');
   assert.ok(lightFix.includes('content:none!important;display:none!important'),'Decorative pseudo-elements are disabled');
-  assert.ok(lightFix.includes('color:#777!important;fill:none!important;stroke:currentColor!important'),'All light drawer navigation icons use a neutral gray');
+  assert.ok(lightFix.includes('fill:none!important;stroke:currentColor!important'),'Light drawer icons stay as clean outline icons');
   assert.ok(lightFix.includes('filter:none!important;-webkit-filter:none!important;text-shadow:none!important'),'No blue icon glow or drop-shadow remains');
+});
+
+
+test('light drawer icons use calm semantic colors and the balance is always neutral',async()=>{
+  const drawer=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-drawer.css'),'utf8');
+  const palette=drawer.slice(drawer.lastIndexOf('LIGHT THEME ICON ACCENTS — calm semantic colors'));
+  const expected=[
+    '[data-page="home"] .side-icon{color:#6f947b!important}',
+    '[data-open-assistant] .side-icon{color:#8d7fa4!important}',
+    '[data-page="wallet"] .side-icon{color:#8a7b9b!important}',
+    '[data-page="payments"] .side-icon{color:#aa8d60!important}',
+    '[data-page="orders"] .side-icon{color:#b5757b!important}',
+    '[data-page="support"] .side-icon{color:#78938f!important}',
+    '[data-page="affiliate"] .side-icon{color:#6f9588!important}',
+    '[data-page="security"] .side-icon{color:#6f927b!important}',
+    '[data-page="verify"] .side-icon{color:#a18d69!important}',
+    '[data-page="install"] .side-icon{color:#828780!important}',
+    '[data-page="about"] .side-icon{color:#829087!important}'
+  ];
+  for(const selector of expected)assert.ok(palette.includes(selector),'Missing soft light icon accent: '+selector);
+  assert.ok(palette.includes('color:#252525!important;-webkit-text-fill-color:#252525!important'),'The light drawer balance cannot inherit a blue text fill');
+  assert.ok(palette.includes('background-image:none!important')&&palette.includes('text-shadow:none!important'),'The light drawer balance has no gradient or glow');
+  assert.ok(!/#(?:3b82f6|60a5fa|0ea5e9|2563eb|818cf8)/i.test(palette),'The light icon palette contains no blue accent');
+});
+
+
+test('English drawer updates its balance locale and all supported currencies use English labels',async()=>{
+  const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+  const locale=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
+  for(const phrase of [
+    "'القائمة الجانبية':'Sidebar menu'",
+    "'إغلاق القائمة الجانبية':'Close sidebar'",
+    "'اختصارات الحساب':'Account shortcuts'",
+    "'قائمة المتجر':'Store navigation'",
+    "'التبديل إلى الوضع الفاتح':'Switch to light mode'",
+    "'التبديل إلى الوضع الداكن':'Switch to dark mode'"
+  ])assert.ok(locale.includes(phrase),'Missing English drawer translation: '+phrase);
+  const languageHandler=store.slice(store.indexOf("window.addEventListener('nexa:languagechange'"),store.indexOf("window.addEventListener('storage'"));
+  assert.ok(languageHandler.includes('renderSidebarAccount();'),'Drawer balance is reformatted after a language switch');
+  assert.ok(store.includes("const locale=storeLocale()==='en'?'en-US':'ar-SY';"),'SYP amounts use Western digits in English and Arabic digits in Arabic');
+  assert.ok(store.includes("return new Intl.NumberFormat(locale,{maximumFractionDigits:2}).format(value)+' '+storeCurrencyLabel('SYP');"),'SYP order amounts use the active language currency label');
+  assert.ok(store.includes("new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'})"),'USD amounts always use English currency formatting');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-soft-icons-v3'),'The updated drawer stylesheet has a fresh cache key');
+  assert.ok(store.includes('nexa-store-language.js?v=20261106-drawer-english-v3'),'The updated English dictionary has a fresh cache key');
 });
