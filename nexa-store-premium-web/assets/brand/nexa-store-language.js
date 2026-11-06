@@ -388,19 +388,202 @@
 
   });
 
+
+  const additionalTranslations = Object.freeze({
+  "القائمة الرئيسية": "Main menu",
+  "العملة الثانوية": "Display currency",
+  "إضافة رصيد": "Add funds",
+  "الدعم الفني": "Technical support",
+  "توثيق الهوية": "Identity verification",
+  "ربط الموقع بتليجرام": "Connect store to Telegram",
+  "الوضع الداكن": "Dark mode",
+  "الوضع الفاتح": "Light mode",
+  "الأقسام": "Departments",
+  "مرحباً بك في": "Welcome to",
+  "أهلاً بك في NEXA STORE": "Welcome to NEXA STORE",
+  "اكتشف المتجر": "Explore the store",
+  "ألعاب وبطاقات رقمية": "Digital games and cards",
+  "خيارات وباقات واضحة": "Clear options and packages",
+  "دعم ومتابعة للطلبات": "Order support and tracking",
+  "كل خدمة ضمن مسار واضح": "Every service in a clear flow",
+  "راجع المنطقة والباقة أولاً": "Review the region and package first",
+  "قنوات دعم واضحة": "Clear support channels",
+  "عرض جميع الأقسام ←": "View all departments ←",
+  "الذهاب إلى الكتالوج ←": "Go to catalog ←",
+  "اختر القسم": "Choose a department",
+  "حدد المنتج": "Choose a product",
+  "اختر المنطقة": "Choose a region",
+  "راجع الباقة": "Review the package",
+  "أسئلة شائعة": "Frequently asked questions",
+  "كيف أتواصل مع الدعم؟": "How can I contact support?",
+  "الكتالوج الرقمي": "Digital catalog",
+  "كل الأقسام": "All departments",
+  "إنشاء طلب جديد": "Create a new order",
+  "لا توجد طلبات حتى الآن.": "No orders yet.",
+  "استكشف المتجر": "Explore the store",
+  "جارٍ فحص الاتصال…": "Checking connection…",
+  "غير مسجل الدخول": "Not signed in",
+  "مرحباً بك": "Welcome",
+  "شحن رصيد الحساب": "Top up account balance",
+  "إنشاء فاتورة شحن": "Create top-up invoice",
+  "آخر حركات الرصيد": "Recent balance activity",
+  "يجري التحقق من تهيئة بوابة الدفع…": "Checking payment gateway setup…",
+  "ملخص الطلب": "Order summary",
+  "بانتظار إنشاء فاتورة": "Waiting for an invoice",
+  "تحقق من عملية التحويل": "Verify the transfer",
+  "رقم طلب Nexa *": "Nexa order ID *",
+  "خطوات الدفع": "Payment steps",
+  "أنشئ الطلب": "Create the order",
+  "استلم الفاتورة": "Receive the invoice",
+  "حوّل المبلغ": "Transfer the amount",
+  "أدخل رقم العملية": "Enter the transaction reference",
+  "اعتماد تلقائي": "Automatic approval",
+  "تنبيه أمني": "Security notice",
+  "قنوات التواصل متاحة": "Contact channels available",
+  "تحدث مع مساعد Nexa": "Talk to Nexa Assistant",
+  "فتح محادثة واتساب": "Open WhatsApp chat",
+  "إنشاء رسالة بريد": "Compose email",
+  "متاح من واجهة المتجر": "Available from the store interface",
+  "الاسم *": "Name *",
+  "استفسار عن منتج أو باقة": "Product or package question",
+  "متابعة طلب سابق": "Follow up on an existing order",
+  "اقتراح أو ملاحظة": "Suggestion or feedback",
+  "رقم الطلب (اختياري)": "Order ID (optional)",
+  "إرسال عبر واتساب ↗": "Send via WhatsApp ↗",
+  "ابحث ضمن سجل الطلبات المحفوظ على هذا الجهاز.": "Search orders saved on this device.",
+  "روابط سريعة": "Quick links",
+  "أسئلة تتكرر كثيراً": "Frequently asked questions",
+  "فتح المحفظة": "Open wallet",
+  "منتهية أو ملغاة": "Expired or cancelled",
+  "ملفي الشخصي": "My profile",
+  "إدارة الحساب والمحفظة": "Manage account and wallet",
+  "عن Nexa Store": "About Nexa Store",
+  "كتالوج منظم": "Organized catalog",
+  "طلب يمكن متابعته": "Trackable orders",
+  "تحقق من الدفع": "Payment verification",
+  "نحن هنا للمساعدة": "We are here to help",
+  "واتساب الدعم ↗": "Support WhatsApp ↗",
+  "مرحباً بعودتك": "Welcome back",
+  "نسيت كلمة المرور؟": "Forgot your password?",
+  "أنت مسجل الدخول بالفعل": "You are already signed in",
+  "رقم الهاتف المرتبط بالحساب": "Phone number linked to account",
+  "لا تشارك رموز التحقق أو بيانات محفظتك": "Do not share verification codes or wallet details",
+  "العودة إلى المتجر": "Return to store",
+  "العودة إلى تسجيل الدخول": "Back to sign in",
+  "متابعة طلباتي": "View my orders",
+  "استفسر من الدعم": "Ask support",
+  "الربط غير مفعّل": "Linking is not enabled",
+  "تواصل مع الدعم": "Contact support",
+  "التواصل بخصوص الشراكات": "Contact us about partnerships",
+  "مستخدم حالياً": "Currently in use",
+  "غير مفعّل": "Disabled",
+  "يتطلب التفعيل": "Activation required",
+  "المتجر": "Store",
+  "تأكيد الطلب": "Confirm order",
+  "اسم العميل *": "Customer name *",
+  "الليرة السورية الجديدة (SYP)": "New Syrian pound (SYP)",
+  "طريقة الدفع *": "Payment method *",
+  "الكمية": "Quantity",
+  "معرّف اللاعب / الحساب": "Player / account ID",
+  "ملاحظات إضافية": "Additional notes",
+  "مساعد Nexa الذكي": "Nexa AI assistant",
+  "كيف أطلب؟": "How do I order?",
+  "فتح القائمة الجانبية": "Open sidebar",
+  "لا توجد أقسام منشورة حالياً": "No departments are published yet",
+  "لا توجد منتجات متاحة حالياً": "No products are available yet",
+  "سيظهر هنا أحدث ما هو منشور في المتجر.": "The latest published items will appear here.",
+  "تواصل مع فريق الدعم للمساعدة.": "Contact the support team for help.",
+  "لا توجد منتجات مطابقة": "No matching products",
+  "لا توجد أقسام مطابقة": "No matching departments",
+  "لا توجد مجلدات مطابقة": "No matching folders",
+  "جرّب كلمة بحث أخرى.": "Try another search term.",
+  "جرّب اسم لعبة أو تطبيق أو قسم آخر.": "Try another game, app, or department name.",
+  "المجلدات الفرعية": "Subfolders",
+  "المنتجات داخل": "Products in",
+  "كل الأقسام الرئيسية": "All main departments",
+  "المجلدات المتداخلة": "Nested folders",
+  "القسم الرئيسي": "Main department",
+  "المجلد الأعلى": "Parent folder",
+  "العودة إلى المنتجات": "Back to products",
+  "العودة إلى الخيارات": "Back to options",
+  "عرض الباقات": "View packages",
+  "عرض الخيارات": "View options",
+  "خيارات متاحة": "Available options",
+  "خيارات متعددة": "Multiple options",
+  "متاح للطلب": "Available to order",
+  "غير متوفر حالياً": "Currently unavailable",
+  "السعر بعد اختيار الخيار": "Price after selecting an option",
+  "السعر المعتمد": "Approved price",
+  "السعر المعروض هو سعر البيع المحدد لهذا الخيار.": "The displayed amount is the selling price set for this option.",
+  "سعر البيع المعتمد من المتجر، ويظهر المبلغ النهائي في الفاتورة.": "The store-approved selling price is shown as the final invoice amount.",
+  "لم تتوفر باقة يمكن طلبها لهذا المنتج. ارجع إلى قائمة المنتجات أو أخبر إدارة المتجر.": "No orderable package is available for this product. Return to the product list or contact the store administrator.",
+  "لم يتم العثور على المنتج أو أن القسم المرتبط به تغيّر. حدّث قائمة المنتجات وحاول مجدداً.": "The product could not be found or its department has changed. Refresh the product list and try again.",
+  "تنبيه التوفر:": "Availability notice:",
+  "لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد.": "An order cannot be placed until the supplier makes this item available again.",
+  "بحث": "Search",
+  "نتائج البحث": "Search results",
+  "نتيجة": "Result",
+  "نتائج": "Results",
+  "مجلد": "Folder",
+  "مجلدات": "Folders",
+  "منتج": "Product",
+  "منتجات": "Products",
+  "أقسام رئيسية": "Main departments",
+  "أقسام داخلية": "Subdepartments",
+  "السابق": "Previous",
+  "التالي": "Next",
+  "جارٍ التحقق…": "Verifying…",
+  "جارٍ إنشاء الفاتورة…": "Creating invoice…",
+  "تم النسخ": "Copied",
+  "تعذر النسخ التلقائي": "Automatic copy failed",
+  "انسخ النص يدوياً من الحقل.": "Copy the text manually from the field.",
+  "سجّل الدخول أولاً.": "Please sign in first.",
+  "تم حفظ مسودة البلاغ على هذا الجهاز": "The support request draft was saved on this device.",
+  "حساب نشط": "Active account",
+  "تعذر تحميل الحساب": "Unable to load account",
+  "تعذر إكمال العملية.": "Unable to complete the operation.",
+  "تعذر إنشاء فاتورة الشحن.": "Unable to create the top-up invoice.",
+  "تم تسجيل الدخول إلى حسابك بنجاح.": "You have signed in successfully.",
+  "يرجى المحاولة مرة أخرى.": "Please try again.",
+  "لا تشارك كلمة المرور أو رمز التحقق.": "Do not share your password or verification code.",
+  "السعر غير متاح": "Price unavailable",
+  "سعر الدولار غير متاح": "USD exchange rate unavailable",
+  "يحدد لاحقاً": "To be set later",
+  "الليرة السورية الجديدة": "New Syrian pound",
+  "العملة": "Currency",
+  "العودة": "Back",
+  "إغلاق": "Close",
+  "فتح": "Open",
+  "إرسال": "Send",
+  "حفظ": "Save",
+  "إلغاء": "Cancel"
+});
+  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations);
   const reverse = new Map();
-  for (const [ar,en] of Object.entries(translations)) {
-    const key = String(en).trim().replace(/\s+/g,' ');
-    if (!reverse.has(key)) reverse.set(key, ar);
+  for (const [ar,en] of Object.entries(translationLookup)) {
+    const englishKey=String(en).trim().replace(/\s+/g,' ');
+    if(!reverse.has(englishKey))reverse.set(englishKey,ar);
+    const latinKey=String(en).replace(/[٠-٩۰-۹]/g,d=>String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)>=0?'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]:'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)]||d)).trim().replace(/\s+/g,' ');
+    if(!reverse.has(latinKey))reverse.set(latinKey,ar);
   }
+  const fragmentEntries=Object.entries(additionalTranslations).filter(([phrase])=>phrase.length>=8);
 
   const normalize = value => String(value || '').replace(/\s+/g,' ').trim();
+  const arabicDigits='٠١٢٣٤٥٦٧٨٩';
+  const persianDigits='۰۱۲۳۴۵۶۷۸۹';
+  const latinDigits='0123456789';
+  function localizeDigits(value,targetLanguage=language){
+    return String(value??'').replace(/[0-9٠-٩۰-۹]/g,digit=>{
+      const index=latinDigits.indexOf(digit)>=0?latinDigits.indexOf(digit):(arabicDigits.indexOf(digit)>=0?arabicDigits.indexOf(digit):persianDigits.indexOf(digit));
+      return targetLanguage==='en'?latinDigits[index]:arabicDigits[index];
+    });
+  }
   const originalText = new WeakMap();
   const originalAttributes = new WeakMap();
   const ownTextMutationCounts = new WeakMap();
   const ownAttributeMutationCounts = new WeakMap();
   const attributeSelector = '[placeholder],[title],[aria-label],[alt]';
-  const excludedSelector = 'script,style,code,pre,textarea,input,svg,[data-no-translate]';
+  const excludedSelector = 'script,style,code,pre,[data-no-translate]';
   const TRANSLATION_BATCH_SIZE = 180;
 
   let language = 'ar';
@@ -411,17 +594,23 @@
   let queuedRoots = new WeakSet();
 
   function translated(value) {
-    const key = normalize(value);
-    if (!key) return value;
-    if (translations[key]) return translations[key];
-    let match = key.match(/^صفحة\s+([\d,]+)\s+من\s+([\d,]+)$/);
-    if (match) return 'Page '+match[1]+' of '+match[2];
-    match = key.match(/^نتائج مطابقة لعبارة:\s*(.+)$/);
-    if (match) return 'Results matching: '+match[1];
-    match = key.match(/^(\d+)\s+أقسام$/);
-    if (match) return match[1]+' departments';
-    match = key.match(/^سعر ثابت:\s*1 USD\s*=\s*(.+)$/);
-    if (match) return 'Fixed rate: 1 USD = '+match[1];
+    const key=normalize(value);
+    if(!key)return value;
+    if(translationLookup[key])return translationLookup[key];
+    let match=key.match(/^صفحة\\s+([0-9٠-٩۰-۹,٬]+)\\s+من\\s+([0-9٠-٩۰-۹,٬]+)$/);
+    if(match)return 'Page '+match[1]+' of '+match[2];
+    match=key.match(/^نتائج مطابقة لعبارة:\\s*(.+)$/);
+    if(match)return 'Results matching: '+match[1];
+    match=key.match(/^([0-9٠-٩۰-۹,٬]+)\\s+أقسام$/);
+    if(match)return match[1]+' departments';
+    match=key.match(/^سعر ثابت:\\s*1 USD\\s*=\\s*(.+)$/);
+    if(match)return 'Fixed rate: 1 USD = '+match[1];
+    const raw=String(value);
+    if(/[\\u0600-\\u06FF]/.test(raw)){
+      let output=raw;
+      for(const [phrase,english] of fragmentEntries)if(output.includes(phrase))output=output.split(phrase).join(english);
+      return output;
+    }
     return value;
   }
 
@@ -469,8 +658,8 @@
       original=current;
       originalText.set(node,original);
     }else if(language==='en'){
-      const currentKey=normalize(current),originalKey=normalize(original),expected=translations[originalKey];
-      if(expected&&currentKey!==normalize(expected)&&!reverse.has(currentKey)){
+      const currentKey=normalize(current),originalKey=normalize(original),expected=translationLookup[originalKey];
+      if(expected&&currentKey!==normalize(localizeDigits(expected,'en'))&&!reverse.has(currentKey)){
         original=current;
         originalText.set(node,original);
       }
@@ -481,7 +670,7 @@
         originalText.set(node,original);
       }
     }
-    const next=language==='en'?translated(original):original;
+    const next=localizeDigits(language==='en'?translated(original):original,language);
     if(current!==next){
       incrementTextMutation(node);
       node.nodeValue=preserveWhitespace(original,next);
@@ -497,12 +686,12 @@
       if(!element.hasAttribute(name))continue;
       const current=element.getAttribute(name)||'';
       if(stored[name]===undefined)stored[name]=current;
-      else if(normalize(current)!==normalize(language==='en'?(translations[normalize(stored[name])]||stored[name]):stored[name])){
+      else if(normalize(current)!==normalize(localizeDigits(language==='en'?translated(stored[name]):stored[name],language))){
         const recovered=reverse.get(normalize(current));
         if(recovered)stored[name]=recovered;
         else stored[name]=current;
       }
-      const next=language==='en'?translated(stored[name]):stored[name];
+      const next=localizeDigits(language==='en'?translated(stored[name]):stored[name],language);
       if(current!==next){
         incrementAttributeMutation(element,name);
         element.setAttribute(name,next);
@@ -636,6 +825,6 @@
     setLanguage,
     getLanguage:()=>language,
     toggle:()=>setLanguage(language==='ar'?'en':'ar'),
-    translate:translated
+    translate:value=>localizeDigits(translated(value),language)
   });
 })();
