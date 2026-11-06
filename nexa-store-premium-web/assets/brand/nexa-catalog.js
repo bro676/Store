@@ -44,6 +44,7 @@
    if(typeof incoming.description==='string')next.description=incoming.description.slice(0,300);
    else if(typeof incoming.desc==='string')next.description=incoming.desc.slice(0,300);
    if(typeof incoming.icon==='string'&&incoming.icon.trim())next.icon=incoming.icon.slice(0,12);
+   if(typeof incoming.iconImage==='string')next.iconImage=safeImage(incoming.iconImage);
    const image=safeImage(incoming.cover||incoming.image);
    if(image)next.cover=image;
    if(Number.isSafeInteger(Number(incoming.sortOrder))&&Number(incoming.sortOrder)>=0&&Number(incoming.sortOrder)<=1000000)next.sortOrder=Number(incoming.sortOrder);
