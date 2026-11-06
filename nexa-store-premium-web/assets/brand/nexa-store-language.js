@@ -563,7 +563,7 @@
   for (const [ar,en] of Object.entries(translationLookup)) {
     const englishKey=String(en).trim().replace(/\s+/g,' ');
     if(!reverse.has(englishKey))reverse.set(englishKey,ar);
-    const latinKey=String(localizeDigits(en,'en')).trim().replace(/\s+/g,' ');
+    const latinKey=String(en).replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)]).trim().replace(/\s+/g,' ');
     if(!reverse.has(latinKey))reverse.set(latinKey,ar);
   }
   const fragmentEntries=Object.entries(additionalTranslations).filter(([phrase])=>phrase.length>=8);
