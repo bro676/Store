@@ -122,3 +122,14 @@ test('non-transient database claim errors use a slow diagnostic retry cadence', 
   assert.equal(retry.delayMs,60_000);
   assert.equal(retry.nextAttemptAt,65_000);
 });
+
+test('SEAGM fulfillment worker defers repeated database claim failures and resets after a successful claim', async () => {
+  const server = await fs.readFile(new URL('../src/server.js', import.meta.url), 'utf8');
+  assert.ok(server.includes("import { waitForDatabase, isRetryableDatabaseError, nextDatabaseRetry } from './db-startup.js';"));
+  assert.ok(server.includes('if(seagmFulfillmentDbRetryState&&Date.now()<seagmFulfillmentDbRetryState.nextAttemptAt)return;'),
+    'The five-second worker timer respects the database retry deadline');
+  assert.ok(server.includes('job=await claimSeagmFulfillmentJob();\n    seagmFulfillmentDbRetryState=null;'),
+    'A successful database claim clears the retry state immediately');
+  assert.ok(server.includes("console.warn('[database] SEAGM worker paused after a transient database connection failure'"),
+    'Transient connection failures produce a throttled warning instead of a warning every five seconds');
+});
