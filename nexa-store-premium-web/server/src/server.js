@@ -22,6 +22,7 @@ import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSi
 import { verifyBestStoreWebhookSecret, parseBestStoreWebhookBody, isBestStoreWebhookTest, resolveBestStoreWebhookReference } from './best-store-webhook.js';
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
 import { expirePendingOrders } from './order-expiry.js';
+import { waitForDatabase } from './db-startup.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -81,6 +82,14 @@ if (cfg.databaseUrl) {
   // Idle PostgreSQL clients can be disconnected during provider restarts; handle pool errors so they do not crash Node.
   pool.on('error', (error) => {
     console.error('[database] idle PostgreSQL client error:', error?.message || 'unknown error');
+  });
+  await waitForDatabase(pool, {
+    attempts: 5,
+    baseDelayMs: 500,
+    maxDelayMs: 3000,
+    onRetry: (error, attempt, delayMs) => {
+      console.error(`[database] startup connection attempt ${attempt}/5 failed (${error?.code || 'unknown'}); retrying in ${delayMs}ms`);
+    },
   });
   for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql', '008_manual_fulfillment.sql', '009_customer_avatar.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
