@@ -1693,7 +1693,7 @@ function renderProfilePage(){
  }
  const name=String(customerAccount.full_name||'عميل Nexa'),phone=String(customerAccount.phone||'');
  const accountId=String(customerAccount.id||'').slice(0,8).toUpperCase()||'—';
- const profileAvatar=storefrontExperience?.avatarImage||storefrontLogoImage;
+ const profileAvatar=customerAccount.avatar_image||storefrontExperience?.avatarImage||storefrontLogoImage;
  target.innerHTML='<section class="profile-card"><div class="profile-card-identity"><span class="profile-card-avatar"><img src="'+esc(profileAvatar)+'" alt=""></span><div><span class="section-kicker">NEXA MEMBER</span><h2>'+esc(name)+'</h2><small class="ltr">'+esc(phone)+'</small></div></div><div class="profile-card-stats"><div><small>معرّف الحساب</small><strong class="ltr">'+esc(accountId)+'</strong></div><div><small>رصيد المحفظة</small><strong>'+formatDisplayMinor(customerAccount.balance_minor||'0','SYP')+'</strong></div><div><small>طريقة الدخول</small><strong>رقم الهاتف وكلمة المرور</strong></div></div><p class="profile-card-note">تُعرض هذه البيانات من جلسة حسابك الحالية. تعديل معلومات الهوية غير متاح من هذه الصفحة.</p><div class="profile-card-actions"><button class="btn btn-primary" type="button" data-page="wallet">إدارة المحفظة</button><button class="btn btn-soft" type="button" data-page="orders">عرض طلباتي</button><button class="btn btn-soft" type="button" id="profileLogoutButton">تسجيل الخروج</button></div></section>';
  const logout=$('profileLogoutButton');
  if(logout)logout.addEventListener('click',async()=>{try{await fetch('/api/account/logout',{method:'POST',credentials:'same-origin'});}catch{}customerAccount=null;await refreshCustomerAccount();renderProfilePage();showToast('تم تسجيل الخروج.');});
@@ -1707,7 +1707,8 @@ function renderSidebarAccount(){
  const vipLabel=typeof vipValue==='string'&&vipValue.trim()?vipValue.trim():typeof vipValue==='number'&&vipValue>0?'VIP '+vipValue:(vipValue&&typeof vipValue==='object'?(vipValue.name||vipValue.label||'BRONZE'):'BRONZE');
  if($('sidebarCustomerName'))$('sidebarCustomerName').textContent=name;
  if($('sidebarCustomerMeta'))$('sidebarCustomerMeta').textContent=meta;
- if($('sidebarProfileAvatar'))$('sidebarProfileAvatar').setAttribute('aria-label',storeLocale()==='en'?'Profile image '+avatar:'صورة '+avatar);
+ if($('sidebarProfileAvatar')){$('sidebarProfileAvatar').setAttribute('aria-label',storeLocale()==='en'?'Profile image '+avatar:'صورة '+avatar);const picture=$('sidebarProfileAvatar').querySelector('img');if(picture)picture.src=customerAccount?.avatar_image||storefrontExperience?.avatarImage||storefrontLogoImage;}
+ document.querySelectorAll('.profile-card-avatar img').forEach(picture=>{picture.src=customerAccount?.avatar_image||storefrontExperience?.avatarImage||storefrontLogoImage;});
  if($('sidebarBalanceValue'))$('sidebarBalanceValue').textContent=balance;
  if($('sidebarVipBadge'))$('sidebarVipBadge').textContent=vipLabel;
  if($('headerVipBadge'))$('headerVipBadge').querySelector('span').textContent=vipLabel;
