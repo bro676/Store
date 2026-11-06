@@ -514,7 +514,7 @@ test('Wamda app chrome keeps account shortcuts, VIP, notifications and theme in 
   assert.ok(headerActions.indexOf('id="headerWalletChip"') < headerActions.indexOf('id="headerVipBadge"'), 'Balance precedes VIP in the RTL header');
   assert.ok(!headerActions.includes('storeThemeToggle'), 'Theme control is not in the top bar');
   assert.ok(store.indexOf('id="storeThemeToggle"') > store.indexOf('<div class="sidebar-bottom">'), 'Theme control is placed at the bottom of the drawer');
-  assert.ok(store.includes("button.textContent=selected==='dark'?'☀ الوضع الفاتح':'☾ الوضع الداكن'"), 'The bottom drawer theme control retains its working day/night toggle');
+  assert.ok(store.includes('class="sidebar-theme-switch-knob"') && store.includes('class="sidebar-theme-sun"') && store.includes('class="sidebar-theme-moon"'), 'The bottom drawer theme control retains its moving sun/moon switch');
   assert.ok(theme.includes('.app-shell .sidebar-profile-wrap{') && theme.includes('.app-shell .sidebar-notification{'), 'The profile and notification bell share a compact account header');
   assert.ok(theme.includes('.app-shell .sidebar-theme-toggle{') && theme.includes('.app-shell .header-vip-chip{'), 'Sidebar appearance and VIP chips use the same calm Wamda palette');
   assert.ok(theme.includes('margin-left:auto!important;margin-right:0!important;'), 'RTL action cluster remains docked to the far right of the LTR header shell');
@@ -611,7 +611,7 @@ test('final Wamda finishing pass overrides legacy blue chrome in both themes', a
   assert.ok(css.includes('--brand-teal:#0095a4;'), 'The official Wamda teal remains the primary accent');
   assert.ok(store.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v12'), 'Storefront uses the final stylesheet');
   assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v12'), 'Admin uses the final stylesheet');
-  assert.ok(store.includes("selected==='dark'?'#0c0c0c':'#ffffff'"), 'Store browser chrome matches the selected theme');
+  assert.ok(store.includes("isDark?'#101010':'#ffffff'"), 'Store browser chrome matches the selected neutral theme');
   assert.ok(admin.includes("selected==='dark'?'#3f4a75':'#f4efea'"), 'Admin browser chrome matches its independent theme');
 });
 
@@ -669,7 +669,7 @@ test('Wamda final detail pass covers catalog, account states and admin light nav
 test('storefront drawer matches the fixed dark/light reference palette without changing customer routes', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-store-controls-v1'), 'Storefront loads the dedicated reference drawer layer');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-drawer-ltr-v2'), 'Storefront loads the dedicated reference drawer layer');
   for (const id of ['sidebarBalanceValue','sidebarThemeLabel','sidebarSocialLinks','sidebarOwnerBrand']) {
     if (id === 'sidebarSocialLinks' || id === 'sidebarOwnerBrand') continue;
     assert.ok(store.includes('id="' + id + '"'), 'Missing drawer reference element: ' + id);
@@ -699,7 +699,7 @@ test('storefront drawer language and display currency controls work without alte
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
   const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
 
-  assert.ok(store.includes('nexa-store-language.js?v=20261106-drawer-english-v3'), 'The Arabic/English dictionary is loaded before storefront initialization');
+  assert.ok(store.includes('nexa-store-language.js?v=20261106-complete-i18n-v1'), 'The Arabic/English dictionary is loaded before storefront initialization');
   assert.ok(store.includes('id="sidebarLanguageToggle"'), 'The fourth account shortcut is now the language control');
   assert.ok(store.includes('id="sidebarCurrencyToggle"'), 'The currency capsule has a real interactive control');
   const first=store.indexOf('class="sidebar-quick-actions"');
@@ -751,7 +751,7 @@ test('drawer uses neutral Click Store typography, follows document direction and
   assert.ok(!finalTheme.includes('#60a5fa') && !finalTheme.includes('#818cf8') && !finalTheme.includes('#0ea5e9'), 'No blue accents remain in drawer override layer');
   assert.ok(finalTheme.includes('direction:ltr!important') && finalTheme.includes('justify-content:space-between!important'), 'Quick shortcuts keep stable physical left-to-right order');
   assert.ok(store.includes('id="sidebarLogoutButton"') && store.includes("$('accountLogoutButton')?.click()"), 'Drawer logout invokes existing account logout flow');
-  assert.ok(store.includes("meta.content=selected==='dark'?'#0c0c0c':'#ffffff'"), 'Browser theme chrome also follows neutral dark/light colors');
+  assert.ok(store.includes("meta.content=isDark?'#101010':'#ffffff'"), 'Browser theme chrome also follows neutral dark/light colors');
 });
 
 test('language switching is frame-batched and does not rerender the full storefront twice', async () => {
@@ -772,7 +772,7 @@ test('light drawer has no blue active rail, active underline, or icon glow',asyn
   const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
   const drawer=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-drawer.css'),'utf8');
   const lightFix=drawer.slice(drawer.lastIndexOf('LIGHT THEME FINISH — remove the blue active rail'));
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-store-controls-v1'),'The light drawer fix has a fresh stylesheet cache key');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-drawer-ltr-v2'),'The light drawer fix has a fresh stylesheet cache key');
   assert.ok(lightFix.includes('body .app-shell .sidebar .sidebar-nav .side-link.active'),'The light active item receives the stronger neutral override');
   assert.ok(lightFix.includes('box-shadow:none!important;text-decoration:none!important'),'The active blue rail and underline are removed');
   assert.ok(lightFix.includes('side-link.active::before')&&lightFix.includes('side-link.active::after'),'Both active pseudo-element lines are suppressed');
@@ -821,8 +821,8 @@ test('English drawer updates its balance locale and all supported currencies use
   assert.ok(store.includes("const locale=storeLocale()==='en'?'en-US':'ar-SY';"),'SYP amounts use Western digits in English and Arabic digits in Arabic');
   assert.ok(store.includes("return new Intl.NumberFormat(locale,{maximumFractionDigits:2}).format(value)+' '+storeCurrencyLabel('SYP');"),'SYP order amounts use the active language currency label');
   assert.ok(store.includes("new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'})"),'USD amounts always use English currency formatting');
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-store-controls-v1'),'The updated drawer stylesheet has a fresh cache key');
-  assert.ok(store.includes('nexa-store-language.js?v=20261106-drawer-english-v3'),'The updated English dictionary has a fresh cache key');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-drawer-ltr-v2'),'The updated drawer stylesheet has a fresh cache key');
+  assert.ok(store.includes('nexa-store-language.js?v=20261106-complete-i18n-v1'),'The updated English dictionary has a fresh cache key');
 });
 
 
@@ -851,7 +851,7 @@ test('storefront controls are persisted, validated and applied to real UI elemen
   assert.ok(catalog.includes('incoming.iconImage'), 'Department icon image is retained by the catalogue model');
   assert.ok(drawer.includes('border-radius:50%!important'), 'Account profile imagery is circular');
   assert.ok(drawer.includes('--nexa-favorite-accent'), 'Storefront favorite accent is driven by a CSS variable');
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-store-controls-v1'), 'Storefront drawer CSS cache key is updated');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-drawer-ltr-v2'), 'Storefront drawer CSS cache key is updated');
 });
 
 
