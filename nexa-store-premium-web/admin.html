@@ -384,7 +384,31 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
 @media(max-width:820px){.catalog-layout{grid-template-columns:1fr}.category-list.folder-tree{max-height:340px}.folder-choice{min-width:180px}.department-choice{min-width:190px}}
 </style>
 <link rel="stylesheet" href="/assets/brand/nexa-wamda-blue.css?v=20261105-wamda-brand-v12">
-</head>
+<style>
+/* Clear directory-style catalog tree: hierarchy, context, and direct folder selection. */
+.folder-tree-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:9px 10px;border:1px solid #e6e8ec;border-radius:11px;background:#f8f8f8}
+.folder-tree-toolbar>div:first-child{display:flex;flex-direction:column;gap:3px}
+.folder-tree-toolbar strong{font-size:11px;font-weight:900;color:#242424}
+.folder-tree-toolbar small{font-size:9px;color:#777}
+.folder-tree-toolbar>div:last-child{display:flex;gap:6px}
+.folder-tree-toolbar button{border:1px solid #dedede;border-radius:8px;background:#fff;color:#424242;padding:6px 9px;font-size:9px;font-weight:800}
+.folder-tree-branch{display:grid;gap:4px;margin:4px 0;padding:2px 12px 2px 0;border-right:1px solid #dedede}
+.folder-tree-node{position:relative;min-width:0}
+.folder-tree-row{display:flex;align-items:stretch;gap:5px;min-width:0}
+.folder-tree-row:before{content:"";position:absolute;right:-12px;top:20px;width:11px;height:1px;background:#dedede}
+.folder-tree-toggle{flex:0 0 24px;width:24px;min-height:36px;border:1px solid #e2e2e2;border-radius:7px;background:#f8f8f8;color:#666;font-size:14px;font-weight:800}
+.folder-tree-toggle:disabled{opacity:.35;cursor:default}
+.folder-tree-row .folder-choice{flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:7px 8px;border-color:#e5e5e5;background:#fff}
+.folder-tree-row .folder-choice.active{border-color:#d9a1a9;background:#fff7f7;color:#7d2636}
+.folder-tree-icon{flex:0 0 20px;width:20px;text-align:center}
+.folder-tree-copy{display:flex;flex:1 1 auto;min-width:0;flex-direction:column;gap:2px;text-align:right}
+.folder-tree-copy strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:850}
+.folder-tree-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#8a8a8a;font-size:8px;font-weight:500}
+.folder-tree-count{flex:0 0 auto;color:#777;font-size:8px;font-weight:800}
+:root[dir="ltr"] .folder-tree-branch{padding:2px 0 2px 12px;border-right:0;border-left:1px solid #dedede}
+:root[dir="ltr"] .folder-tree-row:before{right:auto;left:-12px}
+@media(max-width:800px){.folder-tree-count{display:none}.folder-tree-toolbar{align-items:flex-start}.folder-tree-copy small{font-size:7px}}
+</style></head>
 <body>
 <section id="loginScreen" class="login-screen">
   <form id="loginForm" class="login-card">
@@ -785,7 +809,7 @@ function initializeAdminColorMode(){
  window.addEventListener('storage',event=>{if(event.key===ADMIN_THEME_KEY&&event.newValue)setAdminColorMode(event.newValue,{persist:false});});
 }
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={catalog:[],departments:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},bestStoreCatalog:[],bestStoreMeta:{},bestStoreCatalogQuery:'',bestStoreCatalogFilter:'all',wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',categoryIndex:0,selectedDepartmentId:'games',page:'overview',busy:false};
+const state={catalog:[],departments:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},bestStoreCatalog:[],bestStoreMeta:{},bestStoreCatalogQuery:'',bestStoreCatalogFilter:'all',wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',categoryIndex:0,selectedDepartmentId:'games',collapsedFolderIds:new Set(),page:'overview',busy:false};
 const pageTitles={overview:'نظرة عامة',catalog:'المنتجات والأسعار','catalog-api':'ربط المنتجات عبر API',orders:'الطلبات والإيصالات',payments:'شام كاش والمحفظة',exchange:'سعر الصرف'};
 let toastTimer;
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2800)}
@@ -807,21 +831,28 @@ function departmentField(label,id,key,value,opts={}){const type=opts.type||'text
 function activeCategory(){return state.categoryIndex>=0?state.catalog[state.categoryIndex]||null:null}
 function categoryDepartmentId(category){return NexaCatalog.getCategoryDepartmentId(category,state.catalog)}
 function adminFolderChildren(parentId=null,departmentId=null){
- const rows=state.catalog.filter(category=>
+ const rows=state.catalog.map((category,catalogIndex)=>({category,catalogIndex})).filter(({category})=>
   String(category.parentId||'')===String(parentId||'')&&
   (parentId!==null?true:categoryDepartmentId(category)===departmentId)
  );
- return rows.map((category,index)=>({category,index,count:NexaCatalog.getFolderProductCount(category,state.catalog)}))
-  .sort((a,b)=>NexaCatalog.compareDisplayOrder(a.category,b.category)||a.count-b.count||
-   String(a.category.name||'').localeCompare(String(b.category.name||''),'ar',{numeric:true,sensitivity:'base'})||a.index-b.index);
+ return rows.map(({category,catalogIndex})=>({category,catalogIndex,count:NexaCatalog.getFolderProductCount(category,state.catalog)}))
+  .sort((a,b)=>NexaCatalog.compareDisplayOrder(a.category,b.category)||a.catalogIndex-b.catalogIndex);
 }
 function renderFolderBranch(parentId,departmentId,depth=0){
- return adminFolderChildren(parentId,departmentId).map(({category,index,count})=>
-  '<button type="button" class="category-choice folder-choice '+(index===state.categoryIndex?'active':'')+'" data-category-index="'+index+'" style="padding-right:'+(11+depth*15)+'px">'+
-   '<span>'+esc(category.icon||'📁')+'</span><strong>'+esc(category.name)+'</strong><span>'+count+'</span>'+
-   (category.visible===false?'<small class="tag red">مخفي</small>':'')+'</button>'+
-   renderFolderBranch(category.id,null,depth+1)
- ).join('');
+ const rows=adminFolderChildren(parentId,departmentId);
+ if(!rows.length)return '';
+ return '<div class="folder-tree-branch" data-folder-depth="'+depth+'">'+rows.map(({category,catalogIndex,count})=>{
+  const childCount=state.catalog.filter(row=>String(row.parentId||'')===String(category.id)).length;
+  const collapsed=state.collapsedFolderIds.has(category.id);
+  const folderId=esc(category.id);
+  const path=esc(categoryPathLabel(category));
+  return '<div class="folder-tree-node"><div class="folder-tree-row">'+
+   '<button type="button" class="folder-tree-toggle" data-folder-toggle="'+folderId+'" '+(childCount?'':'disabled')+' aria-expanded="'+String(childCount>0&&!collapsed)+'" aria-label="'+(collapsed?'فتح':'طي')+' مجلد '+esc(category.name)+'">'+(childCount?(collapsed?'＋':'−'):'·')+'</button>'+
+   '<button type="button" class="category-choice folder-choice '+(catalogIndex===state.categoryIndex?'active':'')+'" data-category-index="'+catalogIndex+'">'+
+    '<span class="folder-tree-icon">'+esc(category.icon||'📁')+'</span><span class="folder-tree-copy"><strong>'+esc(category.name)+'</strong><small>'+path+'</small></span>'+
+    '<span class="folder-tree-count">'+count.toLocaleString('en-US')+' منتج</span>'+(category.visible===false?'<small class="tag red">مخفي</small>':'')+'</button>'+
+   '</div>'+(childCount&&!collapsed?renderFolderBranch(category.id,null,depth+1):'')+'</div>';
+ }).join('')+'</div>';
 }
 function categoryPathLabel(category){
  const path=NexaCatalog.categoryAncestors(category,state.catalog);
@@ -839,7 +870,7 @@ function folderDescendantIds(category){
 function renderCatalog(){
  const cat=activeCategory();
  const departments=(state.departments.length?state.departments:NexaCatalog.departments).map((row,index)=>({row,index})).sort((a,b)=>NexaCatalog.compareDisplayOrder(a.row,b.row)||a.index-b.index).map(entry=>entry.row);
- $('categoryList').innerHTML=departments.map(department=>{
+ $('categoryList').innerHTML='<div class="folder-tree-toolbar"><div><strong>شجرة المنتجات</strong><small>افتح المجلدات المتداخلة وحدد أي مستوى لتعديل محتواه.</small></div><div><button type="button" data-tree-expand-all>توسيع الكل</button><button type="button" data-tree-collapse-all>طيّ الكل</button></div></div>'+departments.map(department=>{
   const count=state.catalog.filter(row=>categoryDepartmentId(row)===department.id).reduce((sum,row)=>sum+(row.items||[]).length,0);
   const active=state.selectedDepartmentId===department.id&&(state.categoryIndex<0||categoryDepartmentId(cat)===department.id);
   return '<button type="button" class="category-choice department-choice '+(active?'active':'')+'" data-department-id="'+esc(department.id)+'"><span>'+esc(department.icon)+'</span><strong>'+esc(department.name)+'</strong><span>'+count+'</span></button>'+
@@ -934,6 +965,12 @@ ${field('العلم / الرمز',path+'.flag',o.flag||'✦')}
 <button class="add-row" data-add-pack="${path}">＋ إضافة باقة</button>
 </div>`;}
 $('categoryList').addEventListener('click',e=>{
+ const expandAll=e.target.closest('[data-tree-expand-all]');
+ if(expandAll){state.collapsedFolderIds.clear();renderCatalog();return;}
+ const collapseAll=e.target.closest('[data-tree-collapse-all]');
+ if(collapseAll){state.collapsedFolderIds=new Set(state.catalog.filter(row=>state.catalog.some(child=>String(child.parentId||'')===String(row.id))).map(row=>row.id));renderCatalog();return;}
+ const folderToggle=e.target.closest('[data-folder-toggle]');
+ if(folderToggle){const id=folderToggle.dataset.folderToggle;if(state.collapsedFolderIds.has(id))state.collapsedFolderIds.delete(id);else state.collapsedFolderIds.add(id);renderCatalog();return;}
  const departmentButton=e.target.closest('[data-department-id]');
  if(departmentButton){state.selectedDepartmentId=departmentButton.dataset.departmentId;state.categoryIndex=-1;renderCatalog();return;}
  const b=e.target.closest('[data-category-index]');if(!b)return;
