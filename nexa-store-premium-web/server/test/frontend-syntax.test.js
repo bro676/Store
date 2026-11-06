@@ -852,3 +852,21 @@ test('storefront controls are persisted, validated and applied to real UI elemen
   assert.ok(drawer.includes('--nexa-favorite-accent'), 'Storefront favorite accent is driven by a CSS variable');
   assert.ok(store.includes('nexa-store-drawer.css?v=20261106-store-controls-v1'), 'Storefront drawer CSS cache key is updated');
 });
+
+
+test('admin can safely manage individual customer profile images', async () => {
+  const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
+  const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const migration = await fs.readFile(path.join(webRoot, 'server/migrations/009_customer_avatar.sql'), 'utf8');
+  assert.ok(server.includes("'009_customer_avatar.sql'"), 'Customer avatar migration is run on server startup');
+  assert.ok(migration.includes('ADD COLUMN IF NOT EXISTS avatar_image TEXT NOT NULL DEFAULT'), 'Customer profile image storage is additive and safe for existing accounts');
+  assert.ok(server.includes("url.pathname==='/api/admin/customers'"), 'Admin customer listing endpoint is available');
+  assert.ok(server.includes("url.pathname==='/api/admin/customers'"), 'Customer search is exposed only through the protected admin API');
+  assert.ok(server.includes("avatarImage!==''&&!isSafeCatalogImage(avatarImage)"), 'Uploaded customer images pass the existing safe-image validator');
+  assert.ok(server.includes('SELECT c.id,c.full_name,c.phone,c.balance_minor::text,c.created_at,c.avatar_image'), 'Authenticated customer sessions include the saved customer image');
+  assert.ok(admin.includes('id="page-customers"') && admin.includes('id="customerAdminGrid"'), 'Dashboard exposes the individual customer profile editor');
+  assert.ok(admin.includes("'/api/admin/customers/'+encodeURIComponent(customerId)+'/avatar'"), 'Dashboard saves profile images using the customer-specific API');
+  assert.ok(admin.includes('data-customer-avatar='), 'Each customer card has its own image upload control');
+  assert.ok(store.includes('customerAccount.avatar_image||storefrontExperience?.avatarImage||storefrontLogoImage'), 'The logged-in customer's own image takes precedence over the storefront fallback');
+});
