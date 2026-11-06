@@ -1,0 +1,217 @@
+/* Nexa storefront: one source of truth for language direction, themes, typography and drawer motion. */
+:root{--nexa-ui-font:"IBM Plex Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif;--nexa-ui-radius:16px}
+:root[data-theme="dark"]{
+ color-scheme:dark!important;--paper:#111!important;--surface:#191919!important;--surface-2:#222!important;--surface-3:#2b2b2b!important;
+ --ink:#f4f4f4!important;--ink-2:#d8d8d8!important;--muted:#a0a0a0!important;--line:#353535!important;--line-2:#464646!important;
+ --drawer-bg:#101010!important;--drawer-surface:#1d1d1d!important;--drawer-surface-2:#272727!important;--drawer-text:#f4f4f4!important;
+ --drawer-muted:#a5a5a5!important;--drawer-line:#363636!important;--drawer-active:#292929!important;--drawer-accent:#b8a27a!important;
+}
+:root[data-theme="light"]{
+ color-scheme:light!important;--paper:#f5f5f5!important;--surface:#fff!important;--surface-2:#f2f2f2!important;--surface-3:#e9e9e9!important;
+ --ink:#202020!important;--ink-2:#414141!important;--muted:#737373!important;--line:#e2e2e2!important;--line-2:#d4d4d4!important;
+ --drawer-bg:#fff!important;--drawer-surface:#f1f1f1!important;--drawer-surface-2:#e8e8e8!important;--drawer-text:#252525!important;
+ --drawer-muted:#747474!important;--drawer-line:#e1e1e1!important;--drawer-active:#e9e9e9!important;--drawer-accent:#8e7850!important;
+}
+html,body,body *{font-family:var(--nexa-ui-font)!important;font-synthesis:weight!important;text-rendering:optimizeLegibility}
+body{line-height:1.72!important;background:var(--paper)!important;color:var(--ink)!important}
+.app-shell{direction:inherit!important;background:var(--paper)!important;color:var(--ink)!important}
+.app-shell .sidebar{direction:inherit!important;text-align:start!important}
+.app-shell .sidebar-nav .side-link{
+ direction:inherit!important;flex-direction:row!important;justify-content:flex-start!important;
+ gap:12px!important;text-align:start!important;line-height:1.55!important;min-height:46px!important;
+}
+.app-shell .sidebar-nav .side-link>span{min-width:0!important;text-align:start!important}
+.app-shell .sidebar-group-label,.app-shell .sidebar-currency,.app-shell .sidebar-drawer-head{direction:inherit!important;text-align:start!important}
+.app-shell :where(.page-heading,.reference-page-heading,.section-heading,.catalog-header,.catalog-toolbar,.breadcrumbs,
+ .field,.form-row,.form-grid,.support-page,.support-form,.support-lookup-panel,.profile-details,.wallet-payment-form,
+ .wallet-api-main,.wallet-api-side,.faq-item,.about-card){direction:inherit!important;text-align:start!important}
+.app-shell :where(.page-heading h1,.page-heading p,.reference-page-heading h1,.section-title,.section-sub,
+ .catalog-header h2,.catalog-header p,.data-table th,.data-table td){text-align:start!important}
+.app-shell :where(.side-link,.sidebar-theme-toggle,.sidebar-currency,.field input,.field textarea,.field select,
+ .support-form input,.support-form textarea,.support-form select,.wallet-payment-form input,.wallet-payment-form select){text-align:start!important}
+.app-shell :where(input,select,textarea){direction:inherit!important}
+.app-shell :where(input[type="number"],input[inputmode="numeric"],.ltr,[dir="ltr"]){direction:ltr!important;text-align:left!important;unicode-bidi:plaintext!important}
+:root[dir="rtl"] .app-shell .sidebar-nav .side-link{text-align:right!important}
+:root[dir="ltr"] .app-shell .sidebar-nav .side-link{text-align:left!important}
+:root[dir="ltr"] .app-shell .sidebar-group-label,:root[dir="ltr"] .app-shell .sidebar-currency,
+:root[dir="ltr"] .app-shell .page-heading,:root[dir="ltr"] .app-shell .reference-page-heading,
+:root[dir="ltr"] .app-shell .section-heading,:root[dir="ltr"] .app-shell .catalog-header,
+:root[dir="ltr"] .app-shell .field,:root[dir="ltr"] .app-shell .data-table th,:root[dir="ltr"] .app-shell .data-table td{text-align:left!important}
+:root[dir="rtl"] .app-shell .sidebar{right:0!important;left:auto!important}
+:root[dir="ltr"] .app-shell .sidebar{right:auto!important;left:0!important;border-right:1px solid var(--drawer-line)!important;border-left:0!important}
+:root[dir="ltr"] .app-shell .app-main{margin:0 0 0 var(--rail-width)!important;width:auto!important}
+:root[dir="rtl"] .app-shell .app-main{margin:0 var(--rail-width) 0 0!important}
+:root[dir="rtl"] body.sidebar-closed .app-shell .sidebar{transform:translate3d(110%,0,0)!important}
+:root[dir="ltr"] body.sidebar-closed .app-shell .sidebar{transform:translate3d(-110%,0,0)!important}
+:root[dir="ltr"] body.sidebar-closed .app-shell .app-main{margin:0!important;width:100%!important}
+
+/* Page, panels, tables and form controls use the same active theme. */
+.app-shell .app-main,.app-shell #appMain,.app-shell .view,.app-shell .page-shell,.app-shell .reference-page-wrap,.app-shell .support-page{
+ background:transparent!important;color:var(--ink)!important;
+}
+.app-shell :where(.trust-item,.product-card,.process-card,.faq-item,.catalog-shell,.catalog-tile,.option-card,.pack-card,
+ .support-channel,.support-form-panel,.support-lookup-panel,.support-help-links,.wallet-api-main,.wallet-api-side,
+ .wallet-invoice-panel,.receipt-card,.panel,.data-panel,.data-table-wrap,.reference-panel,.reference-empty-panel,
+ .reference-side-note,.reference-login-panel,.profile-details,.about-card,.about-contact,.support-card,.empty-state,
+ .assistant-panel,.assistant-messages,.currency-field,.wallet-receiver,.wallet-order-summary,.wallet-api-security,.wallet-api-note){
+ background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
+ box-shadow:0 8px 24px rgba(0,0,0,.055)!important;
+}
+.app-shell :where(.trust-item strong,.product-info h3,.process-card h3,.catalog-tile-body strong,.pack-body h3,.faq-item summary,
+ .support-channel strong,.wallet-api-brand strong,.wallet-payment-form h2,.receipt-card strong,.page-heading h1,.section-title,
+ .catalog-header h2,.data-table td,.data-table th){color:var(--ink)!important}
+.app-shell :where(.trust-item small,.product-info p,.process-card p,.catalog-tile-body p,.faq-item p,.support-channel p,
+ .wallet-api-brand small,.page-heading p,.section-sub,.hint,.muted){color:var(--muted)!important}
+.app-shell :where(.data-table th,.data-table td){border-color:var(--line)!important}
+.app-shell :where(input:not([type="checkbox"]):not([type="radio"]),select,textarea){
+ color:var(--ink)!important;background:var(--surface-2)!important;border-color:var(--line-2)!important;
+ caret-color:var(--ink)!important;color-scheme:inherit!important;
+}
+.app-shell :where(input,select,textarea)::placeholder{color:var(--muted)!important;opacity:1!important}
+.app-shell .header{background:var(--drawer-bg)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important}
+.app-shell .header-search{background:var(--surface-2)!important;border-color:var(--line)!important}
+.app-shell .header-search input{background:transparent!important;color:var(--ink)!important}
+.app-shell .promo{background:var(--surface-2)!important;color:var(--muted)!important;border-color:var(--line)!important}
+.app-shell .menu-toggle,.app-shell .header-actions .menu-toggle{
+ background:var(--surface-2)!important;color:var(--ink-2)!important;border-color:var(--line)!important;box-shadow:none!important;
+}
+.app-shell :where(.icon-button,.btn-ghost,.btn-soft,.mini-choose,.crumb){border-color:var(--line)!important}
+.app-shell :where(.panel,.data-panel,.catalog-shell,.support-form-panel,.support-lookup-panel,.wallet-api-main,
+ .wallet-api-side,.wallet-invoice-panel,.receipt-card,.profile-details){border-radius:var(--nexa-ui-radius)!important}
+#orderModal .modal,#orderModal .modal-body,#orderModal .modal-head{background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important}
+#orderModal :where(input:not([type="checkbox"]):not([type="radio"]),select,textarea){
+ background:var(--surface-2)!important;color:var(--ink)!important;border-color:var(--line-2)!important;color-scheme:inherit!important;caret-color:var(--ink)!important;
+}
+#orderModal :where(input,textarea)::placeholder{color:var(--muted)!important;opacity:1!important}
+:root[data-theme="light"] .app-shell input:-webkit-autofill,:root[data-theme="light"] .app-shell input:-webkit-autofill:hover,
+:root[data-theme="light"] .app-shell input:-webkit-autofill:focus,:root[data-theme="dark"] .app-shell input:-webkit-autofill,
+:root[data-theme="dark"] .app-shell input:-webkit-autofill:hover,:root[data-theme="dark"] .app-shell input:-webkit-autofill:focus{
+ -webkit-text-fill-color:var(--ink)!important;-webkit-box-shadow:0 0 0 1000px var(--surface-2) inset!important;
+}
+.app-shell :where(.page-heading h1,.section-title,.catalog-header h2){line-height:1.38!important}
+.app-shell :where(.page-heading p,.section-sub,.field label,.field small){line-height:1.75!important}
+
+/* A quiet, neutral drawer and a real animated theme switch at its bottom. */
+.app-shell .sidebar{background:var(--drawer-bg)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important}
+.app-shell .sidebar :where(.sidebar-profile-copy strong,.sidebar-account-balance strong,.sidebar-theme-label,.side-link,.sidebar-currency,.sidebar-footer){color:var(--drawer-text)!important}
+.app-shell .sidebar .side-link{border-radius:11px!important;padding:9px 13px!important;transition:background .18s ease,color .18s ease,transform .18s ease!important}
+.app-shell .sidebar .side-link.active{background:var(--drawer-active)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;box-shadow:none!important}
+.app-shell .sidebar .side-link:hover{background:var(--drawer-surface)!important;color:var(--drawer-text)!important}
+.app-shell .sidebar .sidebar-currency{background:var(--drawer-surface)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important}
+.app-shell .sidebar .sidebar-quick-actions button{border-radius:50%!important;box-shadow:none!important}
+.app-shell .sidebar .sidebar-bottom{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:9px!important;margin:auto 0 0!important;padding:10px 0 5px!important}
+.app-shell .sidebar .sidebar-theme-toggle{
+ order:99!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;
+ width:100%!important;min-height:52px!important;flex:0 0 auto!important;margin:6px 0 0!important;padding:8px 13px!important;
+ border:1px solid var(--drawer-line)!important;border-radius:15px!important;background:var(--drawer-surface)!important;
+ color:var(--drawer-text)!important;direction:inherit!important;text-align:start!important;font-size:13px!important;font-weight:800!important;
+ box-shadow:none!important;cursor:pointer!important;transition:background .18s ease,border-color .18s ease!important;
+}
+.app-shell .sidebar .sidebar-theme-toggle:hover{background:var(--drawer-surface-2)!important;border-color:var(--drawer-accent)!important}
+.app-shell .sidebar .sidebar-theme-label{flex:1 1 auto!important;min-width:0!important;text-align:start!important}
+.app-shell .sidebar .sidebar-theme-switch{
+ position:relative!important;display:inline-flex!important;align-items:center!important;justify-content:space-between!important;
+ direction:ltr!important;flex:0 0 70px!important;width:70px!important;height:36px!important;padding:0 9px!important;
+ border:1px solid var(--drawer-line)!important;border-radius:999px!important;background:#dedede!important;overflow:hidden!important;
+ transition:background .2s ease,border-color .2s ease!important;
+}
+:root[data-theme="dark"] .app-shell .sidebar .sidebar-theme-switch{background:#303030!important}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-theme-switch{background:#e2e2e2!important}
+.app-shell .sidebar .sidebar-theme-switch svg{position:relative!important;z-index:1!important;display:block!important;width:15px!important;height:15px!important;flex:0 0 15px!important}
+.app-shell .sidebar .sidebar-theme-sun{color:#997b3c!important}
+.app-shell .sidebar .sidebar-theme-moon{color:#b8b8b8!important}
+.app-shell .sidebar .sidebar-theme-switch-knob{
+ position:absolute!important;z-index:2!important;top:4px!important;left:4px!important;width:26px!important;height:26px!important;border-radius:50%!important;
+ background:#fff!important;box-shadow:0 2px 7px rgba(0,0,0,.2)!important;transform:translateX(0)!important;
+ transition:transform .22s cubic-bezier(.2,.75,.25,1)!important;
+}
+:root[data-theme="dark"] .app-shell .sidebar .sidebar-theme-switch-knob{transform:translateX(34px)!important;background:#e6d7ad!important}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-theme-switch-knob{transform:translateX(0)!important;background:#fff!important}
+.app-shell .sidebar .sidebar-theme-toggle:focus-visible{outline:2px solid var(--drawer-accent)!important;outline-offset:3px!important}
+@media(max-width:1024px){
+ .app-shell .app-main{margin:0!important;width:100%!important}
+ .app-shell .sidebar{inset-block:0!important;max-height:100dvh!important;z-index:120!important;transition:transform .28s cubic-bezier(.22,.8,.22,1)!important}
+ :root[dir="rtl"] .app-shell .sidebar{right:0!important;left:auto!important;transform:translate3d(110%,0,0)!important;border-radius:18px 0 0 18px!important}
+ :root[dir="ltr"] .app-shell .sidebar{left:0!important;right:auto!important;transform:translate3d(-110%,0,0)!important;border-radius:0 18px 18px 0!important;border-right:1px solid var(--drawer-line)!important}
+ :root[dir="rtl"] body.sidebar-open .app-shell .sidebar,:root[dir="ltr"] body.sidebar-open .app-shell .sidebar{transform:translate3d(0,0,0)!important}
+ .app-shell .sidebar-backdrop{z-index:110!important}
+ body.sidebar-open .app-shell .sidebar-backdrop{display:block!important}
+}
+@media(min-width:1025px){
+ :root[dir="rtl"] .app-shell .sidebar{right:0!important;left:auto!important}
+ :root[dir="ltr"] .app-shell .sidebar{left:0!important;right:auto!important}
+}
+@media(max-width:380px){
+ .app-shell .sidebar .sidebar-theme-toggle{min-height:48px!important;padding-inline:10px!important}
+ .app-shell .sidebar .sidebar-theme-switch{width:66px!important;flex-basis:66px!important}
+ :root[data-theme="dark"] .app-shell .sidebar .sidebar-theme-switch-knob{transform:translateX(30px)!important}
+}
+@media(prefers-reduced-motion:reduce){.app-shell .sidebar,.app-shell .sidebar .side-link,.app-shell .sidebar .sidebar-theme-switch-knob{transition:none!important}}
+
+/* Higher-specificity mode rules for legacy hard-coded panels and controls. */
+:root[data-theme="dark"] .app-shell :where(.trust-item,.product-card,.process-card,.faq-item,.catalog-shell,.catalog-tile,
+ .option-card,.pack-card,.support-channel,.support-form-panel,.support-lookup-panel,.support-help-links,.wallet-api-main,
+ .wallet-api-side,.wallet-invoice-panel,.receipt-card,.panel,.data-panel,.data-table-wrap,.reference-panel,
+ .reference-empty-panel,.reference-feature-panel,.reference-warning-panel,.reference-side-note,.reference-login-panel,
+ .reference-security-grid .reference-panel,.profile-details,.about-card,.about-contact,.support-card,.support-safety-panel,
+ .empty-state,.assistant-panel,.assistant-messages,.currency-field,.wallet-receiver,.wallet-order-summary,.wallet-api-security,
+ .wallet-api-note,.home-intro,.home-intro-note,.home-assistant-link),
+:root[data-theme="light"] .app-shell :where(.trust-item,.product-card,.process-card,.faq-item,.catalog-shell,.catalog-tile,
+ .option-card,.pack-card,.support-channel,.support-form-panel,.support-lookup-panel,.support-help-links,.wallet-api-main,
+ .wallet-api-side,.wallet-invoice-panel,.receipt-card,.panel,.data-panel,.data-table-wrap,.reference-panel,
+ .reference-empty-panel,.reference-feature-panel,.reference-warning-panel,.reference-side-note,.reference-login-panel,
+ .reference-security-grid .reference-panel,.profile-details,.about-card,.about-contact,.support-card,.support-safety-panel,
+ .empty-state,.assistant-panel,.assistant-messages,.currency-field,.wallet-receiver,.wallet-order-summary,.wallet-api-security,
+ .wallet-api-note,.home-intro,.home-intro-note,.home-assistant-link){
+ background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] .app-shell .support-form .field input,
+:root[data-theme="dark"] .app-shell .support-form .field textarea,
+:root[data-theme="dark"] .app-shell .support-form .field select,
+:root[data-theme="dark"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field input,
+:root[data-theme="dark"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field select,
+:root[data-theme="light"] .app-shell .support-form .field input,
+:root[data-theme="light"] .app-shell .support-form .field textarea,
+:root[data-theme="light"] .app-shell .support-form .field select,
+:root[data-theme="light"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field input,
+:root[data-theme="light"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field select{
+ background:var(--surface-2)!important;color:var(--ink)!important;border-color:var(--line-2)!important;
+ color-scheme:inherit!important;caret-color:var(--ink)!important;
+}
+:root[data-theme="dark"] .app-shell .sidebar,
+:root[data-theme="light"] .app-shell .sidebar{
+ background:var(--drawer-bg)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;
+}
+:root[data-theme="dark"] .app-shell .sidebar .side-link,
+:root[data-theme="light"] .app-shell .sidebar .side-link{
+ color:var(--drawer-text)!important;
+}
+:root[data-theme="dark"] .app-shell .sidebar .side-link.active,
+:root[data-theme="light"] .app-shell .sidebar .side-link.active{
+ background:var(--drawer-active)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;
+ box-shadow:none!important;
+}
+:root[data-theme="dark"] .app-shell .sidebar .sidebar-currency,
+:root[data-theme="light"] .app-shell .sidebar .sidebar-currency{
+ background:var(--drawer-surface)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;
+}
+:root[data-theme="dark"] .app-shell .sidebar .sidebar-theme-toggle,
+:root[data-theme="light"] .app-shell .sidebar .sidebar-theme-toggle{
+ background:var(--drawer-surface)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;
+}
+:root[data-theme="dark"] .app-shell .header,
+:root[data-theme="light"] .app-shell .header{
+ background:var(--drawer-bg)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;
+}
+:root[data-theme="dark"] .app-shell .header-search,
+:root[data-theme="light"] .app-shell .header-search{
+ background:var(--surface-2)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] .app-shell .menu-toggle,
+:root[data-theme="light"] .app-shell .menu-toggle{
+ background:var(--surface-2)!important;color:var(--ink-2)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] .app-shell :where(h1,h2,h3,h4,.section-title,.page-heading strong),
+:root[data-theme="light"] .app-shell :where(h1,h2,h3,h4,.section-title,.page-heading strong){color:var(--ink)!important}
+:root[data-theme="dark"] .app-shell :where(.page-heading p,.section-sub,.hint,.muted,.field small,.description),
+:root[data-theme="light"] .app-shell :where(.page-heading p,.section-sub,.hint,.muted,.field small,.description){color:var(--muted)!important}
