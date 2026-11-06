@@ -668,7 +668,7 @@ test('Wamda final detail pass covers catalog, account states and admin light nav
 test('storefront drawer matches the fixed dark/light reference palette without changing customer routes', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-reference-v1'), 'Storefront loads the dedicated reference drawer layer');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-reference-v2'), 'Storefront loads the dedicated reference drawer layer');
   for (const id of ['sidebarBalanceValue','sidebarThemeLabel','sidebarSocialLinks','sidebarOwnerBrand']) {
     if (id === 'sidebarSocialLinks' || id === 'sidebarOwnerBrand') continue;
     assert.ok(store.includes('id="' + id + '"'), 'Missing drawer reference element: ' + id);
@@ -689,4 +689,48 @@ test('storefront drawer matches the fixed dark/light reference palette without c
   assert.ok(drawer.includes('.side-link[data-page="orders"] .side-icon{color:#ef4444!important}'), 'Order icon keeps its dedicated red accent');
   assert.ok(drawer.includes(':root[data-theme="light"] .app-shell .side-link.active{background:#e5e7eb!important'), 'Light active item uses the reference gray pill');
   assert.ok(drawer.includes('.app-shell .sidebar-social-links{') && drawer.includes('.app-shell .sidebar-owner-brand{'), 'The reference social row and Nexa logo footer are present');
+});
+
+
+test('storefront drawer language and display currency controls work without altering invoice currency', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
+  const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
+
+  assert.ok(store.includes('nexa-store-language.js?v=20261106-bilingual-v1'), 'The Arabic/English dictionary is loaded before storefront initialization');
+  assert.ok(store.includes('id="sidebarLanguageToggle"'), 'The fourth account shortcut is now the language control');
+  assert.ok(store.includes('id="sidebarCurrencyToggle"'), 'The currency capsule has a real interactive control');
+  const first=store.indexOf('class="sidebar-quick-actions"');
+  const row=store.slice(first,store.indexOf('</div>',first));
+  const order=['data-page="wallet"','data-page="favorites"','data-page="profile"','id="sidebarLanguageToggle"'];
+  let cursor=-1;
+  for (const token of order) {
+    const next=row.indexOf(token);
+    assert.ok(next>cursor,'Quick-action order must remain Add Funds, Favorites, Profile, Language: '+token);
+    cursor=next;
+  }
+  assert.ok(store.includes("let storefrontDisplayCurrency='USD'"), 'USD/SYP display preference is initialized');
+  assert.ok(store.includes("localStorage.setItem('nexa-store-display-currency',storefrontDisplayCurrency)"), 'Display currency is saved between visits');
+  assert.ok(store.includes("const rate=Number(d.fxRate)"), 'The display converter consumes the real public exchange rate from the server');
+  assert.ok(store.includes("storefrontFxReady=d.fxReady===true"), 'USD display is gated by server exchange-rate readiness');
+  assert.ok(store.includes("function setStoreDisplayCurrency(currency,{persist=true,notify=false}={})"), 'Display currency can be switched at runtime');
+  assert.ok(store.includes("window.NexaLocale?.setLanguage(next)"), 'The language control invokes the bilingual locale module');
+  assert.ok(store.includes("function formatDisplaySyp(amount)"), 'Catalog and wallet SYP amounts have a display-currency formatter');
+  assert.ok(store.includes("formatDisplayMinor(customerAccount.balance_minor||'0','SYP')"), 'Wallet balance follows the selected display currency');
+  const currencySwitch=store.slice(store.indexOf('function setStoreDisplayCurrency'),store.indexOf('function initializeStorePreferences'));
+  assert.ok(!currencySwitch.includes("orderCurrency"), 'Switching display currency does not edit invoice currency');
+  assert.doesNotThrow(() => new vm.Script(locale, { filename: "nexa-store-language.js" }), 'The bilingual translation module parses');
+  assert.ok(locale.includes("document.documentElement.dir=language==='ar'?'rtl':'ltr'"), 'Language switching changes page direction');
+  assert.ok(locale.includes("new MutationObserver"), 'Dynamically rendered storefront text is translated as well');
+  assert.ok(locale.includes("'الرئيسية':'Home'") && locale.includes("'طلباتي':'My Orders'"), 'Core drawer navigation has Arabic and English labels');
+  assert.ok(drawer.includes('font-size:14px!important;font-weight:900!important'), 'Drawer menu typography is scaled to normal viewing size');
+  assert.ok(drawer.includes(':root[data-locale="en"] .app-shell .sidebar-nav .side-link'), 'English drawer alignment is handled independently');
+});
+
+
+test('language attribute updates remain synchronized after switching locale', async () => {
+  const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
+  assert.ok(locale.includes('const recovered=reverse.get(currentKey)'), 'Translated ARIA labels can be restored to their original language');
+  assert.ok(locale.includes('else stored[name]=current'), 'New dynamic accessible labels are retained instead of reverting to stale text');
+  assert.ok(locale.includes('document.documentElement.lang = language') || locale.includes('document.documentElement.lang=language'), 'The active language is reflected in the document');
 });
