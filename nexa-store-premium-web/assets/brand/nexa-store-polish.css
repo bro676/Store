@@ -234,7 +234,7 @@ html.store-drawer-scroll-locked body{
  .app-shell .app-main{margin:0!important;width:100%!important;min-width:0!important}
  .app-shell .sidebar{
   position:fixed!important;inset-block:0!important;
-  width:min(88vw,340px)!important;max-width:calc(100vw - 24px)!important;
+  width:var(--nexa-mobile-drawer-width)!important;max-width:calc(100vw - 24px)!important;
   height:100vh!important;height:100dvh!important;max-height:100dvh!important;min-height:0!important;
   padding-block-start:max(12px,env(safe-area-inset-top,0px))!important;
   padding-block-end:max(12px,env(safe-area-inset-bottom,0px))!important;
