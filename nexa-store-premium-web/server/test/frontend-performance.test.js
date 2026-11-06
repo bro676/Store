@@ -179,5 +179,7 @@ test('large catalogue mutations and low-core devices use bounded locale and dire
  assert.ok(direction.includes('record.addedNodes.length>1&&record.target?.nodeType===1'),'Large catalogue inserts are coalesced into one direction root');
  assert.ok(locale.includes('new RegExp(fragmentEntries.map(([phrase])=>phrase)'),'Partial translation phrases are precompiled once');
  assert.ok(server.includes('attempts: 10')&&server.includes('monitorPostgresClientErrors(pool'),'Transient PostgreSQL faults receive bounded retries and client monitoring');
+ assert.ok(server.includes('databaseHealthTimer=setInterval(async()=>{')&&server.includes("await pool.query('SELECT 1')"),'The readiness state recovers when PostgreSQL becomes reachable again');
+ assert.ok(polish.includes('width:44px!important;height:44px!important;min-width:44px!important'),'Touch menu controls meet the 44px target size');
  assert.ok(db.includes("client.on('error', error => onClientError(error, client))"),'Checked-out PostgreSQL clients receive an error listener');
 });
