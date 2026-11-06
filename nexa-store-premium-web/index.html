@@ -2079,20 +2079,6 @@ initializeStoreColorMode();
 initializeStorePreferences();
 init();
 </script>
-<script>
-/* Keep form controls bidirectional without a document-wide text MutationObserver. */
-(() => {
-  const controls=document.querySelectorAll('input,textarea,select');
-  controls.forEach(control=>{
-    if(!control.hasAttribute('dir'))control.setAttribute('dir','auto');
-  });
-  document.addEventListener('focusin',event=>{
-    const control=event.target;
-    if(control instanceof Element && control.matches('input,textarea,select') && !control.hasAttribute('dir')){
-      control.setAttribute('dir','auto');
-    }
-  },true);
-})();
-</script>
+<script src="/assets/brand/nexa-text-direction.js?v=20261106-incremental-direction-v1"></script>
 </body>
 </html>

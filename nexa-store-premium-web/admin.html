@@ -937,17 +937,29 @@ function initializeAdminColorMode(){
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const state={catalog:[],departments:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},bestStoreCatalog:[],bestStoreMeta:{},bestStoreCatalogQuery:'',bestStoreCatalogFilter:'all',wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',categoryIndex:0,selectedDepartmentId:'games',collapsedFolderIds:new Set(),page:'overview',busy:false};
 const pageTitles={overview:'نظرة عامة',appearance:'المظهر والميزات',customers:'العملاء وصور الحسابات',catalog:'المنتجات والأسعار','catalog-api':'ربط المنتجات عبر API',orders:'الطلبات والإيصالات',payments:'شام كاش والمحفظة',exchange:'سعر الصرف'};
+const adminLoadedSections=new Set();
+const adminSectionRequests=new Map();
+function loadSectionOnce(section,loader){
+ if(adminLoadedSections.has(section))return Promise.resolve();
+ if(adminSectionRequests.has(section))return adminSectionRequests.get(section);
+ const request=Promise.resolve().then(loader)
+  .then(result=>{adminLoadedSections.add(section);return result;})
+  .catch(error=>{toast(error?.message||'تعذر تحميل بيانات القسم.');})
+  .finally(()=>adminSectionRequests.delete(section));
+ adminSectionRequests.set(section,request);
+ return request;
+}
 let toastTimer;
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2800)}
 async function api(path,options={}){const response=await fetch(path,{credentials:'same-origin',cache:'no-store',...options,headers:{...(options.headers||{}),...(options.body?{'Content-Type':'application/json'}:{})}});let data={};try{data=await response.json()}catch{}if(!response.ok){if(response.status===401&&path!=='/api/admin/session')showLogin();throw new Error(data.message||data.error||'تعذر تنفيذ العملية.')}return data}
 function showLogin(){state.authed=false;$('app').classList.add('hidden');$('loginScreen').classList.remove('hidden')}
 function showApp(){state.authed=true;$('loginScreen').classList.add('hidden');$('app').classList.remove('hidden')}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginError').textContent='';const key=$('adminKey').value;try{await api('/api/admin/session',{method:'POST',body:JSON.stringify({key})});$('adminKey').value='';showApp();await loadAll();toast('تم تسجيل الدخول بأمان.')}catch(err){$('loginError').textContent=err.message;$('adminKey').focus()}});
-$('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/session',{method:'DELETE'})}catch{}showLogin();toast('تم تسجيل الخروج.')});
-function setPage(name){state.page=name;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!=='page-'+name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('pageTitle').textContent=pageTitles[name]||'Nexa';if(name==='appearance')loadSettings();if(name==='customers')loadCustomers();if(name==='catalog')renderCatalog();if(name==='catalog-api'){loadSettings();loadWamdaCatalog();loadSeagmCatalog();loadBestStoreCatalog()}if(name==='orders')loadOrders();if(name==='payments')loadSettings();if(name==='exchange')loadSettings()}
+$('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/session',{method:'DELETE'})}catch{}adminLoadedSections.clear();adminSectionRequests.clear();showLogin();toast('تم تسجيل الخروج.')});
+function setPage(name){state.page=name;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!=='page-'+name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('pageTitle').textContent=pageTitles[name]||'Nexa';if(name==='overview')loadSectionOnce('overview',loadOverview);if(name==='appearance')loadSectionOnce('settings',loadSettings);if(name==='customers')loadCustomers();if(name==='catalog')loadSectionOnce('catalog',loadCatalog);if(name==='catalog-api'){loadSectionOnce('settings',loadSettings);loadSectionOnce('wamda',loadWamdaCatalog);loadSectionOnce('seagm',loadSeagmCatalog);loadSectionOnce('beststore',loadBestStoreCatalog)}if(name==='orders')loadSectionOnce('orders',loadOrders);if(name==='payments')loadSectionOnce('settings',loadSettings);if(name==='exchange')loadSectionOnce('settings',loadSettings)}
 document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.page)));
 document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.jump)));
-async function loadAll(){showApp();await Promise.all([loadOverview(),loadCatalog(),loadSettings(),loadOrders(),loadWamdaCatalog(),loadSeagmCatalog(),loadBestStoreCatalog()]);}
+async function loadAll(){showApp();await loadSectionOnce('overview',loadOverview);}
 
 let customerAdminRows=[];
 async function loadCustomers(query=$('customerSearch')?.value||''){
@@ -2137,31 +2149,6 @@ boot();
   });
 })();
 </script>
-<script>
-/* Keep each text run in its natural writing direction, including dynamic content. */
-(() => {
-  const selector='h1,h2,h3,h4,p,span,strong,small,label,th,td,li,summary,blockquote,figcaption,button,a,div,em,b,i';
-  const markDirection=()=>{
-    document.querySelectorAll(selector).forEach((element)=>{
-      if(element.closest('.ltr') || (element.hasAttribute('dir') && element.getAttribute('dir')!=='auto')) return;
-      if(element.closest('svg,script,style,code,pre')) return;
-      if(['DIV','SECTION','ARTICLE'].includes(element.tagName) && element.children.length) return;
-      const content=(element.textContent||'').trim();
-      const first=content.match(/[\u0600-\u06FF]|[A-Za-z]/);
-      if(!first) return;
-      const direction=/[\u0600-\u06FF]/.test(first[0])?'rtl':'ltr';
-      element.setAttribute('dir',direction);
-      element.dataset.textDirection=direction;
-    });
-    document.querySelectorAll('input,textarea,select').forEach((element)=>{
-      if(!element.hasAttribute('dir')) element.setAttribute('dir','auto');
-      element.dataset.textDirectionControl='auto';
-    });
-  };
-  markDirection();
-  const observer=new MutationObserver(()=>markDirection());
-  observer.observe(document.body,{childList:true,subtree:true,characterData:true});
-})();
-</script>
+<script src="/assets/brand/nexa-text-direction.js?v=20261106-incremental-direction-v1"></script>
 </body>
 </html>
