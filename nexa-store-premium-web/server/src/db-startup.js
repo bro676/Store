@@ -42,7 +42,7 @@ export async function waitForDatabase(pool, {
     } catch (error) {
       if (!isRetryableDatabaseError(error) || attempt === maxAttempts) {
         const startupError = new Error(
-          \`PostgreSQL startup check failed after \${attempt} attempt\${attempt === 1 ? '' : 's'}: \${error?.message || 'unknown database error'}\`,
+          `PostgreSQL startup check failed after ${attempt} attempt${attempt === 1 ? '' : 's'}: ${error?.message || 'unknown database error'}`,
           { cause: error }
         );
         startupError.code = error?.code || error?.cause?.code || 'DATABASE_STARTUP_FAILED';
