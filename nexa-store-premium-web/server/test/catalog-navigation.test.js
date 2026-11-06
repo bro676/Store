@@ -154,10 +154,10 @@ test('nested storefront order is a dashboard-order depth-first folder tree', asy
     {id:'grandchild',name:'Grandchild',parentId:'child-a',items:[]},
     {id:'nested-b',name:'Nested B',parentId:'games-b',items:[]},
   ];
-  assert.deepEqual(catalog.getOrderedCategories(rows,'games').map(row=>row.id),
+  assert.deepEqual(Array.from(catalog.getOrderedCategories(rows,'games'),row=>row.id),
     ['games-a','child-a','grandchild','child-b','games-b','nested-b']);
   const summary=catalog.getDepartmentSummaries(rows).find(row=>row.id==='games');
-  assert.deepEqual(summary.categories.map(row=>row.id),
+  assert.deepEqual(Array.from(summary.categories,row=>row.id),
     ['games-a','child-a','grandchild','child-b','games-b','nested-b']);
 });
 
@@ -192,7 +192,7 @@ test('hidden folder descendants are excluded from storefront folder navigation',
   assert.equal(catalog.getFolderProductCount(categories[0],categories),1);
 });
 
-test('explicit folder display priority is applied before automatic product-count ordering',async()=>{
+test('explicit folder display priority is applied before original catalog sequence',async()=>{
   const catalog=await loadCatalogHelper();
   const rows=[
     {id:'popular',name:'Popular',sortOrder:0,items:Array.from({length:20},(_,i)=>i)},
@@ -201,7 +201,7 @@ test('explicit folder display priority is applied before automatic product-count
     {id:'automatic-small',name:'Automatic small',sortOrder:0,items:[1]},
   ];
   assert.deepEqual(catalog.sortCategoriesByProductCount(rows).map(row=>row.id),
-    ['first','second','automatic-small','popular']);
+    ['first','second','popular','automatic-small']);
   assert.equal(catalog.compareDisplayOrder({sortOrder:1},{sortOrder:2}),-1);
   assert.equal(catalog.compareDisplayOrder({sortOrder:1},{sortOrder:0}),-1);
 });
