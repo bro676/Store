@@ -63,3 +63,24 @@ test('storefront starts the catalog and storefront configuration requests concur
  assert.ok(init.includes('loadStorefrontConfig()'),'Storefront settings are loaded in the same startup batch');
  assert.ok(!init.includes('await loadStorefrontConfig()'),'Settings no longer wait behind the catalogue response');
 });
+
+
+test('admin catalogue builds one reusable folder index and does not rescan every category for each tree row',async()=>{
+ const admin=await fs.readFile(path.join(webRoot,'admin.html'),'utf8');
+ assert.ok(admin.includes('function buildAdminCatalogTreeIndex()'),'The admin creates a single category lookup for the folder tree');
+ assert.ok(admin.includes('childrenByParent'),'Child folders are retrieved from an indexed parent map');
+ assert.ok(admin.includes('folderProductCountById'),'Visible product totals are precomputed instead of recursively rescanned per row');
+ assert.ok(admin.includes('catalogTreeIndex.departmentById'),'Department membership is memoized for all folder rows');
+ assert.ok(!admin.includes('NexaCatalog.getFolderProductCount('),'Rendering the tree and active folder do not recursively count against the full catalogue');
+});
+
+test('admin product editing renders a small searchable page and defers large move-folder option lists',async()=>{
+ const admin=await fs.readFile(path.join(webRoot,'admin.html'),'utf8');
+ assert.ok(admin.includes('const CATALOG_PRODUCTS_PAGE_SIZE=24'),'Only a bounded page of product editors is created at once');
+ assert.ok(admin.includes('function renderCatalogProductResults()'),'The admin provides incremental product result rendering');
+ assert.ok(admin.includes('filtered.slice(start,start+CATALOG_PRODUCTS_PAGE_SIZE)'),'Only the active page is inserted into the DOM');
+ assert.ok(admin.includes('id="catalogProductsSearch"'),'The active folder can be searched without loading all product editors');
+ assert.ok(admin.includes('data-lazy-move-options'),'Move destinations are not created for every product before its editor opens');
+ assert.ok(admin.includes("addEventListener('toggle',e=>"),'Move destinations are populated on demand when a product editor opens');
+ assert.ok(admin.includes('loading="lazy" decoding="async"'),'Product thumbnails defer decoding and off-screen loading');
+});

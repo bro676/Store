@@ -707,14 +707,13 @@
 
   function makeTranslationJob(root,generation,attributesOnly=false) {
     if(root.nodeType===3){
-      return {root,generation,textNode:root,attributes:[],attributeIndex:0,walker:null};
+      return {root,generation,textNode:root,attributeRoot:null,attributeWalker:null,walker:null};
     }
     if(root.nodeType!==1&&root.nodeType!==9&&root.nodeType!==11)return null;
-    const attributes=[];
-    if(root.nodeType===1&&root.matches?.(attributeSelector))attributes.push(root);
-    if(root.querySelectorAll)attributes.push(...root.querySelectorAll(attributeSelector));
     return {
-      root,generation,textNode:null,attributes,attributeIndex:0,
+      root,generation,textNode:null,
+      attributeRoot:root.nodeType===1&&root.matches?.(attributeSelector)?root:null,
+      attributeWalker:document.createTreeWalker(root,NodeFilter.SHOW_ELEMENT),
       walker:attributesOnly?null:document.createTreeWalker(root,NodeFilter.SHOW_TEXT)
     };
   }
@@ -744,10 +743,21 @@
         queuedRoots.delete(job.root);
         continue;
       }
-      if(job.attributeIndex<job.attributes.length){
-        translateAttributes(job.attributes[job.attributeIndex++]);
+      if(job.attributeRoot){
+        const element=job.attributeRoot;
+        job.attributeRoot=null;
+        translateAttributes(element);
         budget--;
         continue;
+      }
+      if(job.attributeWalker){
+        const element=job.attributeWalker.nextNode();
+        if(element){
+          if(element.matches?.(attributeSelector))translateAttributes(element);
+          budget--;
+          continue;
+        }
+        job.attributeWalker=null;
       }
       if(job.textNode){
         translateTextNode(job.textNode);

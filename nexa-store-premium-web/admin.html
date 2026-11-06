@@ -436,7 +436,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
 @media(max-width:560px){.customer-admin-card{align-items:flex-start;gap:9px;padding:10px}.customer-admin-avatar{width:49px;height:49px}.customer-admin-actions .upload-label{font-size:8px}}
 
 </style>
-<link rel="stylesheet" href="/assets/brand/nexa-wamda-blue.css?v=20261105-wamda-brand-v12">
+<link rel="stylesheet" href="/assets/brand/nexa-wamda-blue.css?v=20261106-admin-catalog-performance-v1">
 <style>
 /* Clear directory-style catalog tree: hierarchy, context, and direct folder selection. */
 .folder-tree-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 10px;padding:9px 10px;border:1px solid #e6e8ec;border-radius:11px;background:#f8f8f8}
@@ -935,8 +935,10 @@ function initializeAdminColorMode(){
  window.addEventListener('storage',event=>{if(event.key===ADMIN_THEME_KEY&&event.newValue)setAdminColorMode(event.newValue,{persist:false});});
 }
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={catalog:[],departments:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},bestStoreCatalog:[],bestStoreMeta:{},bestStoreCatalogQuery:'',bestStoreCatalogFilter:'all',wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',categoryIndex:0,selectedDepartmentId:'games',collapsedFolderIds:new Set(),page:'overview',busy:false};
+const state={catalog:[],departments:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},bestStoreCatalog:[],bestStoreMeta:{},bestStoreCatalogQuery:'',bestStoreCatalogFilter:'all',wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',catalogProductPage:1,catalogProductQuery:'',catalogProductCategoryId:'',catalogProductRows:[],categoryIndex:0,selectedDepartmentId:'games',collapsedFolderIds:new Set(),page:'overview',busy:false};
 const pageTitles={overview:'نظرة عامة',appearance:'المظهر والميزات',customers:'العملاء وصور الحسابات',catalog:'المنتجات والأسعار','catalog-api':'ربط المنتجات عبر API',orders:'الطلبات والإيصالات',payments:'شام كاش والمحفظة',exchange:'سعر الصرف'};
+let catalogTreeIndex=null;
+const CATALOG_PRODUCTS_PAGE_SIZE=24;
 const adminLoadedSections=new Set();
 const adminSectionRequests=new Map();
 function loadSectionOnce(section,loader){
@@ -1026,19 +1028,108 @@ function setDepartmentPath(path,value){const parts=path.split('.'),id=parts.shif
 function departmentField(label,id,key,value,opts={}){const type=opts.type||'text';return `<div class="field ${opts.full?'full':''}"><label>${label}</label>${type==='textarea'?`<textarea data-department-path="${esc(id)}.${key}" maxlength="${opts.max||300}">${esc(value)}</textarea>`:`<input data-department-path="${esc(id)}.${key}" type="${type}" value="${esc(value)}" ${opts.step?`step="${opts.step}"`:''} ${opts.min!==undefined?`min="${opts.min}"`:''} ${opts.max!==undefined?`max="${opts.max}"`:''}>`}</div>`}
 function activeCategory(){return state.categoryIndex>=0?state.catalog[state.categoryIndex]||null:null}
 function categoryDepartmentId(category){return NexaCatalog.getCategoryDepartmentId(category,state.catalog)}
+function adminCategoryDepartmentId(category){
+ if(!category)return 'other';
+ return catalogTreeIndex?.departmentById.get(String(category.id))||categoryDepartmentId(category);
+}
+function buildAdminCatalogTreeIndex(){
+ const entries=state.catalog.map((category,catalogIndex)=>({category,catalogIndex}));
+ const byId=new Map(entries.map(entry=>[String(entry.category.id),entry.category]));
+ const departmentRows=state.departments.length?state.departments:NexaCatalog.departments;
+ const validDepartments=new Set(departmentRows.map(row=>String(row.id)));
+ const departmentById=new Map(),childrenByParent=new Map(),folderProductCountById=new Map();
+ const departmentFolderCount=new Map(),departmentProductCount=new Map(),pathById=new Map();
+ function resolveDepartment(category){
+  const categoryId=String(category?.id??'');
+  if(departmentById.has(categoryId))return departmentById.get(categoryId);
+  const chain=[],visited=new Set();
+  let current=category,result='other';
+  while(current){
+   const id=String(current.id??'');
+   if(departmentById.has(id)){result=departmentById.get(id);break;}
+   if(visited.has(id)){result='other';break;}
+   visited.add(id);chain.push(id);
+   const explicit=String(current.departmentId||'');
+   if(validDepartments.has(explicit)){result=explicit;break;}
+   const parentId=String(current.parentId||'');
+   if(!parentId){result=NexaCatalog.getCategoryDepartmentId(current,[]);break;}
+   current=byId.get(parentId)||null;
+   if(!current){result='other';break;}
+  }
+  for(const id of chain)if(!departmentById.has(id))departmentById.set(id,result);
+  return departmentById.get(categoryId)||result;
+ }
+ for(const entry of entries){
+  const category=entry.category,id=String(category.id),parentId=String(category.parentId||'');
+  const children=childrenByParent.get(parentId)||[];
+  children.push(entry);childrenByParent.set(parentId,children);
+  const departmentId=resolveDepartment(category);
+  departmentFolderCount.set(departmentId,(departmentFolderCount.get(departmentId)||0)+1);
+  departmentProductCount.set(departmentId,(departmentProductCount.get(departmentId)||0)+(Array.isArray(category.items)?category.items.length:0));
+  folderProductCountById.set(id,(category.items||[]).filter(product=>product.visible!==false).length);
+ }
+ for(const rows of childrenByParent.values()){
+  rows.sort((a,b)=>NexaCatalog.compareDisplayOrder(a.category,b.category)||a.catalogIndex-b.catalogIndex);
+ }
+ // Count visible products in all visible ancestors in one indexed pass.
+ for(const entry of entries){
+  const category=entry.category,id=String(category.id),ownCount=folderProductCountById.get(id)||0;
+  if(!ownCount)continue;
+  let current=category,validPath=category.visible!==false;
+  const visited=new Set([id]),ancestors=[];
+  while(current&&current.parentId){
+   const parentId=String(current.parentId);
+   if(visited.has(parentId)){validPath=false;break;}
+   const parent=byId.get(parentId);
+   if(!parent)break;
+   visited.add(parentId);ancestors.push(parent);
+   if(parent.visible===false)validPath=false;
+   current=parent;
+  }
+  if(validPath){
+   for(const parent of ancestors){
+    const parentId=String(parent.id);
+    folderProductCountById.set(parentId,(folderProductCountById.get(parentId)||0)+ownCount);
+   }
+  }
+ }
+ // Build ancestry labels from the shared parent map; avoid per-folder map creation.
+ for(const entry of entries){
+  const chain=[],visited=new Set();
+  let current=entry.category,cycle=false,base=[];
+  while(current){
+   const id=String(current.id);
+   if(pathById.has(id)){base=pathById.get(id).slice();break;}
+   if(visited.has(id)){cycle=true;break;}
+   visited.add(id);chain.push(current);
+   const parentId=String(current.parentId||'');
+   if(!parentId)break;
+   current=byId.get(parentId)||null;
+  }
+  if(cycle){
+   for(const row of chain)pathById.set(String(row.id),[]);
+   continue;
+  }
+  for(const row of chain.reverse()){
+   base=[...base,String(row.name||'')];
+   pathById.set(String(row.id),base);
+  }
+ }
+ return {entries,byId,departmentById,childrenByParent,folderProductCountById,departmentFolderCount,departmentProductCount,pathById};
+}
 function adminFolderChildren(parentId=null,departmentId=null){
- const rows=state.catalog.map((category,catalogIndex)=>({category,catalogIndex})).filter(({category})=>
-  String(category.parentId||'')===String(parentId||'')&&
-  (parentId!==null?true:categoryDepartmentId(category)===departmentId)
- );
- return rows.map(({category,catalogIndex})=>({category,catalogIndex,count:NexaCatalog.getFolderProductCount(category,state.catalog)}))
-  .sort((a,b)=>NexaCatalog.compareDisplayOrder(a.category,b.category)||a.catalogIndex-b.catalogIndex);
+ const key=parentId===null||parentId===undefined?'':String(parentId);
+ let rows=catalogTreeIndex?.childrenByParent.get(key)||[];
+ if(parentId===null||parentId===undefined)rows=rows.filter(entry=>catalogTreeIndex.departmentById.get(String(entry.category.id))===String(departmentId));
+ return rows.map(({category,catalogIndex})=>({
+  category,catalogIndex,count:catalogTreeIndex.folderProductCountById.get(String(category.id))||0
+ }));
 }
 function renderFolderBranch(parentId,departmentId,depth=0){
  const rows=adminFolderChildren(parentId,departmentId);
  if(!rows.length)return '';
  return '<div class="folder-tree-branch" data-folder-depth="'+depth+'">'+rows.map(({category,catalogIndex,count})=>{
-  const childCount=state.catalog.filter(row=>String(row.parentId||'')===String(category.id)).length;
+  const childCount=(catalogTreeIndex.childrenByParent.get(String(category.id))||[]).length;
   const collapsed=state.collapsedFolderIds.has(category.id);
   const folderId=esc(category.id);
   const path=esc(categoryPathLabel(category));
@@ -1051,31 +1142,42 @@ function renderFolderBranch(parentId,departmentId,depth=0){
  }).join('')+'</div>';
 }
 function categoryPathLabel(category){
- const path=NexaCatalog.categoryAncestors(category,state.catalog);
- return path.map(row=>row.name).join(' / ');
+ if(!category)return '';
+ const path=catalogTreeIndex?.pathById.get(String(category.id));
+ return Array.isArray(path)?path.join(' / '):String(category.name||'');
 }
 function folderDescendantIds(category){
- const ids=new Set([category.id]);
- let changed=true;
- while(changed){
-  changed=false;
-  for(const row of state.catalog)if(row.parentId&&ids.has(row.parentId)&&!ids.has(row.id)){ids.add(row.id);changed=true;}
+ const ids=new Set(),queue=[String(category?.id??'')];
+ let cursor=0;
+ while(cursor<queue.length){
+  const id=queue[cursor++];
+  if(!id||ids.has(id))continue;
+  ids.add(id);
+  for(const entry of catalogTreeIndex?.childrenByParent.get(id)||[])queue.push(String(entry.category.id));
  }
  return ids;
 }
 function renderCatalog(){
  const cat=activeCategory();
+ catalogTreeIndex=buildAdminCatalogTreeIndex();
+ const categoryId=cat?String(cat.id):'';
+ if(state.catalogProductCategoryId!==categoryId){
+  state.catalogProductCategoryId=categoryId;
+  state.catalogProductQuery='';
+  state.catalogProductPage=1;
+ }
+ state.catalogProductRows=cat?(cat.items||[]).map((p,pi)=>({p,pi})).sort((a,b)=>NexaCatalog.compareDisplayOrder(a.p,b.p)||a.pi-b.pi):[];
  const departments=(state.departments.length?state.departments:NexaCatalog.departments).map((row,index)=>({row,index})).sort((a,b)=>NexaCatalog.compareDisplayOrder(a.row,b.row)||a.index-b.index).map(entry=>entry.row);
  $('categoryList').innerHTML='<div class="folder-tree-toolbar"><div><strong>شجرة المنتجات</strong><small>افتح المجلدات المتداخلة وحدد أي مستوى لتعديل محتواه.</small></div><div><button type="button" data-tree-expand-all>توسيع الكل</button><button type="button" data-tree-collapse-all>طيّ الكل</button></div></div>'+departments.map(department=>{
-  const count=state.catalog.filter(row=>categoryDepartmentId(row)===department.id).reduce((sum,row)=>sum+(row.items||[]).length,0);
-  const active=state.selectedDepartmentId===department.id&&(state.categoryIndex<0||categoryDepartmentId(cat)===department.id);
+  const count=catalogTreeIndex.departmentProductCount.get(String(department.id))||0;
+  const active=state.selectedDepartmentId===department.id&&(state.categoryIndex<0||adminCategoryDepartmentId(cat)===department.id);
   return '<button type="button" class="category-choice department-choice '+(active?'active':'')+'" data-department-id="'+esc(department.id)+'"><span>'+(department.iconImage?'<img src="'+esc(department.iconImage)+'" alt="">':esc(department.icon))+'</span><strong>'+esc(department.name)+'</strong><span>'+count+'</span></button>'+
    renderFolderBranch(null,department.id,1);
  }).join('')||'<div class="empty">لا توجد مجلدات.</div>';
  if(!cat){
   $('addProductBtn').disabled=true;
   const department=departments.find(row=>row.id===state.selectedDepartmentId)||departments.find(row=>row.id==='other');
-  const folderCount=state.catalog.filter(row=>categoryDepartmentId(row)===department.id).length;
+  const folderCount=catalogTreeIndex.departmentFolderCount.get(String(department.id))||0;
   $('catalogEditor').innerHTML=`
    <div class="category-editor"><div><span class="eyebrow">MAIN DEPARTMENT SETTINGS</span><h3 style="margin:3px 0">${esc(department.name)}</h3><p class="muted">هذا هو القسم الأعلى في شجرة الكتالوج. إعداداته مستقلة عن المجلدات والمنتجات الموجودة تحته.</p></div><div class="toolbar"><span class="tag">${folderCount} مجلدات</span><span class="tag">${department.visible===false?'مخفي':'ظاهر'}</span></div></div>
    <div class="form-grid">
@@ -1095,16 +1197,16 @@ function renderCatalog(){
  }
  $('addProductBtn').disabled=false;
  const ci=state.categoryIndex,descendants=folderDescendantIds(cat);
- const parentOptions=state.catalog.filter(row=>row.id!==cat.id&&!descendants.has(row.id));
+ const parentOptions=state.catalog.filter(row=>String(row.id)!==String(cat.id)&&!descendants.has(String(row.id)));
  const parentSelect='<div class="field"><label>المجلد الأب</label><select data-path="'+ci+'.parentId"><option value="">داخل القسم الرئيسي مباشرة</option>'+parentOptions.map(row=>'<option value="'+esc(row.id)+'" '+(cat.parentId===row.id?'selected':'')+'>'+esc(categoryPathLabel(row))+'</option>').join('')+'</select></div>';
  const departmentId=categoryDepartmentId(cat);
  const departmentSelect='<div class="field"><label>القسم الرئيسي</label><select data-path="'+ci+'.departmentId" '+(cat.parentId?'disabled':'')+'>'+departments.map(row=>'<option value="'+row.id+'" '+(departmentId===row.id?'selected':'')+'>'+esc(row.name)+'</option>').join('')+'</select></div>';
- const childCount=state.catalog.filter(row=>row.parentId===cat.id).length;
+ const childCount=(catalogTreeIndex.childrenByParent.get(String(cat.id))||[]).length;
  const hasContents=(cat.items||[]).length>0||childCount>0;
  $('catalogEditor').innerHTML=`
  <div class="category-editor">
   <div><span class="eyebrow">FOLDER SETTINGS</span><h3 style="margin:3px 0">${esc(cat.name)}</h3><small class="muted">${esc(categoryPathLabel(cat))}</small></div>
-  <div class="toolbar"><span class="tag">${NexaCatalog.getFolderProductCount(cat,state.catalog)} منتجات داخل هذا المجلد وشُعبه</span><span class="tag">${childCount} مجلدات فرعية</span></div>
+  <div class="toolbar"><span class="tag">${(catalogTreeIndex.folderProductCountById.get(String(cat.id))||0)} منتجات داخل هذا المجلد وشُعبه</span><span class="tag">${childCount} مجلدات فرعية</span></div>
  </div>
 
  ${cat.apiSource||cat.apiSources?'<div class="notice info full"><strong>اسم المجلد الأصلي من API:</strong> '+esc((cat.apiSource?.name)||Object.values(cat.apiSources||{})[0]?.name||'غير محفوظ')+' <small>المعرّف الأصلي: '+esc((cat.apiSource?.sourceId)||'—')+'</small>'+(cat.apiSources?'<small>المصادر: '+esc(Object.keys(cat.apiSources).join(' · '))+'</small>':'')+((cat.apiSource?.image||Object.values(cat.apiSources||{}).find(row=>row.image)?.image)?'<div class="image-row"><img class="image-preview" src="'+esc(cat.apiSource?.image||Object.values(cat.apiSources||{}).find(row=>row.image)?.image)+'" alt=""><span class="muted">صورة المجلد الأصلية من المورد.</span></div>':'')+'</div>':''}
@@ -1123,25 +1225,29 @@ function renderCatalog(){
  </div>
  ${hasContents?'<div class="field full"><label>انقل محتويات المجلد إلى</label><select id="deleteFolderDestination"><option value="">اختر مجلد الاستقبال قبل الحذف...</option>'+parentOptions.map(row=>'<option value="'+esc(row.id)+'">'+esc(categoryPathLabel(row))+'</option>').join('')+'</select><small class="muted">ستُنقل المنتجات مباشرة، وتُنقل المجلدات الفرعية داخل مجلد الاستقبال. تبقى خيارات المنتجات وأسعار الموردين ومعرّفاتهم كما هي.</small></div><div class="notice info">لن تضيع المنتجات: يجب تحديد مجلد استقبال قبل حذف مجلد غير فارغ.</div>':''}
  <div class="toolbar"><div><h3 style="margin:0">المنتجات داخل المجلد</h3><small class="muted">يمكنك إضافة منتج يدوي أو نقله من مجلد آخر مع الحفاظ على ربط المورد.</small></div><button class="btn soft" id="addProductInlineBtn">＋ إضافة منتج</button></div>
- <div class="product-grid">${(cat.items||[]).map((p,pi)=>({p,pi})).sort((a,b)=>NexaCatalog.compareDisplayOrder(a.p,b.p)||a.pi-b.pi).map(({p,pi})=>renderProduct(p,ci,pi)).join('')||'<div class="empty">لا توجد منتجات هنا بعد. يمكن نقل المنتجات إلى هذا المجلد أو إضافة منتج يدوياً.</div>'}</div>`;
+ <div class="catalog-products-toolbar">
+  <label class="catalog-products-search"><span>بحث داخل منتجات هذا المجلد</span><input id="catalogProductsSearch" type="search" value="${esc(state.catalogProductQuery)}" placeholder="اسم المنتج أو المعرّف أو المصدر..." autocomplete="off"></label>
+ </div>
+ <div class="catalog-products-pager" aria-label="صفحات المنتجات"><span id="catalogProductsMeta" class="muted"></span><div><button type="button" class="btn soft" data-catalog-products-page="-1">السابق</button><span id="catalogProductsPageLabel" class="muted"></span><button type="button" class="btn soft" data-catalog-products-page="1">التالي</button></div></div>
+ <div class="product-grid" id="catalogProductResults"></div>`;
+ renderCatalogProductResults();
 }
 function renderProduct(p,ci,pi){
  const base=`${ci}.items.${pi}`;
- const destinations=state.catalog.filter(category=>category.id!==state.catalog[ci].id);
- const moveSelect='<div class="field full"><label>نقل المنتج إلى مجلد آخر</label><select data-move-product="'+esc(p.id)+'" data-source-category="'+esc(state.catalog[ci].id)+'"><option value="">اختر مجلداً للنقل...</option>'+destinations.map(category=>'<option value="'+esc(category.id)+'">'+esc(categoryPathLabel(category))+'</option>').join('')+'</select></div>';
+ const moveSelect='<div class="field full"><label>نقل المنتج إلى مجلد آخر</label><select data-move-product="'+esc(p.id)+'" data-source-category="'+esc(state.catalog[ci].id)+'" data-lazy-move-options><option value="">اختر مجلداً للنقل...</option></select></div>';
  const supplierLinked=p.seagm?.provider==='seagm'||p.wamda?.provider==='wamda'||p.bestStore?.provider==='beststore';
  const fulfillmentMode=p.fulfillmentMode||(supplierLinked?'automatic':'manual');
  return `
-<details class="product-editor"><summary><img class="product-thumb" src="${esc(p.image)}" alt=""><span><strong>${esc(p.name)}</strong><small>${(p.options||[]).length} خيارات · ${(p.options||[]).reduce((n,o)=>n+(o.packs||[]).length,0)} باقات · ${supplierLinked?'مرتبط بمورد':'منتج يدوي'} · ${fulfillmentMode==='automatic'?'تسليم آلي':'تسليم يدوي'}</small></span><span class="icon-btn product-editor-chevron" aria-hidden="true">⌄</span></summary>
+<details class="product-editor"><summary><img class="product-thumb" src="${esc(p.image)}" alt="" loading="lazy" decoding="async"><span><strong>${esc(p.name)}</strong><small>${(p.options||[]).length} خيارات · ${(p.options||[]).reduce((n,o)=>n+(o.packs||[]).length,0)} باقات · ${supplierLinked?'مرتبط بمورد':'منتج يدوي'} · ${fulfillmentMode==='automatic'?'تسليم آلي':'تسليم يدوي'}</small></span><span class="icon-btn product-editor-chevron" aria-hidden="true">⌄</span></summary>
 <div class="product-body"><div class="form-grid">
-<div class="notice info full"><strong>الاسم الأصلي القادم من API:</strong> ${esc(p.apiSource?.name||'منتج يدوي')}<small>المصدر: ${esc(p.apiSource?.provider||p.wamda?.provider||p.bestStore?.provider||p.seagm?.provider||'يدوي')} · رقم المورد: ${esc(p.wamda?.productId||p.bestStore?.productId||p.seagm?.typeId||p.seagm?.productId||'—')}</small>${p.apiSource?.image?'<div class="image-row"><img class="image-preview" src="'+esc(p.apiSource.image)+'" alt=""><span class="muted">صورة المصدر الأصلية، منفصلة عن صورة العرض الحالية.</span></div>':''}</div>
+<div class="notice info full"><strong>الاسم الأصلي القادم من API:</strong> ${esc(p.apiSource?.name||'منتج يدوي')}<small>المصدر: ${esc(p.apiSource?.provider||p.wamda?.provider||p.bestStore?.provider||p.seagm?.provider||'يدوي')} · رقم المورد: ${esc(p.wamda?.productId||p.bestStore?.productId||p.seagm?.typeId||p.seagm?.productId||'—')}</small>${p.apiSource?.image?'<div class="image-row"><img class="image-preview" src="'+esc(p.apiSource.image)+'" alt="" loading="lazy" decoding="async"><span class="muted">صورة المصدر الأصلية، منفصلة عن صورة العرض الحالية.</span></div>':''}</div>
 <div class="field"><label>معرّف المنتج الثابت</label><input value="${esc(p.id)}" readonly></div>
 ${field('اسم المنتج',base+'.name',p.name)}
 ${field('ترتيب الظهور (1 أولاً · 0 تلقائي)',base+'.sortOrder',p.sortOrder||0,{type:'number',step:1,min:0,max:1000000})}
 <div class="field"><label>طريقة التسليم</label><select data-path="${base}.fulfillmentMode"><option value="automatic" ${fulfillmentMode==='automatic'?'selected':''} ${supplierLinked?'':'disabled'}>آلي عبر API المورد</option><option value="manual" ${fulfillmentMode==='manual'?'selected':''}>يدوي من لوحة الطلبات</option></select><small class="muted">الآلي متاح فقط للمنتجات المرتبطة بمورد يدعم تنفيذ API. غير ذلك سيُعامل الطلب كتسليم يدوي.</small></div>
 ${field('مهلة التسليم اليدوي (ساعة)',base+'.manualDeliveryHours',p.manualDeliveryHours??24,{type:'number',step:1,min:1,max:168})}
 ${field('الوصف',base+'.desc',p.desc,{type:'textarea',full:true})}
-<div class="field full"><label>صورة المنتج</label><div class="image-row"><img class="image-preview" src="${esc(p.image)}" alt=""><div><input data-path="${base}.image" value="${esc(p.image)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${base}.image"></label></div></div></div>
+<div class="field full"><label>صورة المنتج</label><div class="image-row"><img class="image-preview" src="${esc(p.image)}" alt="" loading="lazy" decoding="async"><div><input data-path="${base}.image" value="${esc(p.image)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${base}.image"></label></div></div></div>
 ${moveSelect}
 <label class="inline-check"><input type="checkbox" data-path="${base}.visible" ${p.visible===false?'':'checked'}> إظهار المنتج في المتجر</label>
 </div>
@@ -1156,16 +1262,42 @@ ${field('معرّف الخيار',path+'.id',o.id)}
 ${field('اسم المنطقة / الخطة',path+'.name',o.name)}
 ${field('الوصف',path+'.desc',o.desc,{full:true})}
 ${field('العلم / الرمز',path+'.flag',o.flag||'✦')}
-<div class="field full"><label>صورة الخيار (اختياري)</label><div class="image-row"><img class="image-preview" src="${esc(o.image||fallbackImage)}" alt=""><div><input data-path="${path}.image" value="${esc(o.image||'')}" placeholder="اتركه فارغاً لاستخدام صورة المنتج"><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${path}.image"></label></div></div></div>
+<div class="field full"><label>صورة الخيار (اختياري)</label><div class="image-row"><img class="image-preview" src="${esc(o.image||fallbackImage)}" alt="" loading="lazy" decoding="async"><div><input data-path="${path}.image" value="${esc(o.image||'')}" placeholder="اتركه فارغاً لاستخدام صورة المنتج"><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${path}.image"></label></div></div></div>
 </div>
 <div class="pack-list">${(o.packs||[]).map((pack,pi)=>`<div class="pack-row"><input data-pack-label="${path}.packs.${pi}" value="${esc(pack[0])}" placeholder="اسم الباقة"><input type="number" min="0" step="0.01" data-pack-price="${path}.packs.${pi}" value="${esc(pack[1])}" placeholder="السعر بالليرة الجديدة"><button class="icon-btn" data-remove-pack="${path}.packs.${pi}">×</button></div>`).join('')}</div>
 <button class="add-row" data-add-pack="${path}">＋ إضافة باقة</button>
 </div>`;}
-$('categoryList').addEventListener('click',e=>{
+function renderCatalogProductResults(){
+ const container=$('catalogProductResults');
+ if(!container)return;
+ const query=String(state.catalogProductQuery||'').trim().toLocaleLowerCase();
+ const rows=Array.isArray(state.catalogProductRows)?state.catalogProductRows:[];
+ const filtered=query?rows.filter(({p})=>{
+  const searchable=[p?.name,p?.desc,p?.id,p?.apiSource?.name,p?.apiSource?.provider,p?.wamda?.productId,p?.bestStore?.productId,p?.seagm?.productId,p?.seagm?.typeId]
+   .filter(value=>value!==undefined&&value!==null).join(' ').toLocaleLowerCase();
+  return searchable.includes(query);
+ }):rows;
+ const total=filtered.length;
+ const pageCount=Math.max(1,Math.ceil(total/CATALOG_PRODUCTS_PAGE_SIZE));
+ state.catalogProductPage=Math.min(Math.max(1,Number(state.catalogProductPage)||1),pageCount);
+ const start=(state.catalogProductPage-1)*CATALOG_PRODUCTS_PAGE_SIZE;
+ const visible=filtered.slice(start,start+CATALOG_PRODUCTS_PAGE_SIZE);
+ container.innerHTML=visible.map(({p,pi})=>renderProduct(p,state.categoryIndex,pi)).join('')||
+  '<div class="empty">'+(query?'لا توجد منتجات تطابق البحث.':'لا توجد منتجات هنا بعد. يمكن نقل المنتجات إلى هذا المجلد أو إضافة منتج يدوياً.')+'</div>';
+ const meta=$('catalogProductsMeta');
+ if(meta)meta.textContent=total?'عرض '+(start+1).toLocaleString('en-US')+'–'+Math.min(start+visible.length,total).toLocaleString('en-US')+' من '+total.toLocaleString('en-US')+' منتج':'0 منتج';
+ const label=$('catalogProductsPageLabel');
+ if(label)label.textContent='صفحة '+state.catalogProductPage.toLocaleString('en-US')+' من '+pageCount.toLocaleString('en-US');
+ const previous=$('catalogEditor').querySelector('[data-catalog-products-page="-1"]');
+ const next=$('catalogEditor').querySelector('[data-catalog-products-page="1"]');
+ if(previous)previous.disabled=state.catalogProductPage<=1;
+ if(next)next.disabled=state.catalogProductPage>=pageCount;
+}
+function renderOption(o,base,oi,fallbackImage){
  const expandAll=e.target.closest('[data-tree-expand-all]');
  if(expandAll){state.collapsedFolderIds.clear();renderCatalog();return;}
  const collapseAll=e.target.closest('[data-tree-collapse-all]');
- if(collapseAll){state.collapsedFolderIds=new Set(state.catalog.filter(row=>state.catalog.some(child=>String(child.parentId||'')===String(row.id))).map(row=>row.id));renderCatalog();return;}
+ if(collapseAll){state.collapsedFolderIds=new Set(state.catalog.filter(row=>(catalogTreeIndex.childrenByParent.get(String(row.id))||[]).length).map(row=>row.id));renderCatalog();return;}
  const folderToggle=e.target.closest('[data-folder-toggle]');
  if(folderToggle){const id=folderToggle.dataset.folderToggle;if(state.collapsedFolderIds.has(id))state.collapsedFolderIds.delete(id);else state.collapsedFolderIds.add(id);renderCatalog();return;}
  const departmentButton=e.target.closest('[data-department-id]');
@@ -1175,6 +1307,31 @@ $('categoryList').addEventListener('click',e=>{
  state.selectedDepartmentId=categoryDepartmentId(activeCategory())||'other';
  renderCatalog();
 });
+$('catalogEditor').addEventListener('input',e=>{
+ if(e.target?.id!=='catalogProductsSearch')return;
+ state.catalogProductQuery=e.target.value||'';
+ state.catalogProductPage=1;
+ renderCatalogProductResults();
+});
+$('catalogEditor').addEventListener('click',e=>{
+ const pageButton=e.target.closest('[data-catalog-products-page]');
+ if(!pageButton||pageButton.disabled)return;
+ state.catalogProductPage+=Number(pageButton.dataset.catalogProductsPage||0);
+ renderCatalogProductResults();
+});
+$('catalogEditor').addEventListener('toggle',e=>{
+ const details=e.target;
+ if(!details?.matches?.('details.product-editor[open]'))return;
+ const select=details.querySelector('select[data-lazy-move-options]');
+ if(!select||select.dataset.optionsLoaded==='true')return;
+ const sourceId=String(select.dataset.sourceCategory||'');
+ const options=state.catalog.filter(category=>String(category.id)!==sourceId).map(category=>{
+  const path=catalogTreeIndex?.pathById.get(String(category.id))||[];
+  return '<option value="'+esc(category.id)+'">'+esc(path.length?path.join(' / '):category.name||category.id)+'</option>';
+ }).join('');
+ if(options)select.insertAdjacentHTML('beforeend',options);
+ select.dataset.optionsLoaded='true';
+},true);
 $('catalogEditor').addEventListener('click',async e=>{
  const resetCategory=e.target.closest('[data-reset-category-api]');
  if(resetCategory){if(!confirm('استعادة اسم ووصف وصورة المجلد من آخر بيانات API؟ ستبقى مكانته وترتيبه وظهوره كما حددتها.'))return;resetCategory.disabled=true;try{await api('/api/admin/catalog/'+encodeURIComponent(resetCategory.dataset.resetCategoryApi)+'/restore-api',{method:'POST',body:'{}'});await loadCatalog();toast('تمت استعادة بيانات المجلد من API.');}catch(error){toast(error.message);resetCategory.disabled=false;}return;}
@@ -1218,8 +1375,10 @@ $('catalogEditor').addEventListener('click',async e=>{
   const category=activeCategory();if(!category)return;
   const id='product-'+Date.now().toString(36);
   category.items.push({id,name:'منتج جديد',desc:'وصف المنتج',image:'assets/products/_shared/product-placeholder.svg',visible:true,options:[{id:'option-'+Date.now().toString(36),name:'الخيار الأساسي',desc:'',flag:'✦',packs:[['باقة جديدة',1]]}]});
+  state.catalogProductQuery='';
+  state.catalogProductPage=Math.max(1,Math.ceil(category.items.length/CATALOG_PRODUCTS_PAGE_SIZE));
   renderCatalog();
-  const details=[...$('catalogEditor').querySelectorAll('.product-editor')].at(-1);if(details)details.open=true;
+  const details=[...$('catalogProductResults').querySelectorAll('.product-editor')].at(-1);if(details)details.open=true;
   return;
  }
  if(button.dataset.removeProduct){
@@ -1337,6 +1496,8 @@ $('addProductBtn').addEventListener('click',()=>{
  const category=activeCategory();if(!category)return;
  const id='product-'+Date.now().toString(36);
  category.items.push({id,name:'منتج جديد',desc:'وصف المنتج',image:'assets/products/_shared/product-placeholder.svg',visible:true,options:[{id:'option-'+Date.now().toString(36),name:'الخيار الأساسي',desc:'',flag:'✦',packs:[['باقة جديدة',1]]}]});
+ state.catalogProductQuery='';
+ state.catalogProductPage=Math.max(1,Math.ceil(category.items.length/CATALOG_PRODUCTS_PAGE_SIZE));
  renderCatalog();
 });
 async function saveCatalogChanges(){

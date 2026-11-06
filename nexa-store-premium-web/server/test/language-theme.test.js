@@ -21,7 +21,7 @@ test('storefront language engine translates static and dynamic text, attributes 
   },
   localStorage:{getItem(){return null},setItem(){}},
   MutationObserver:class{observe(){}},
-  NodeFilter:{SHOW_TEXT:4},
+  NodeFilter:{SHOW_TEXT:4,SHOW_ELEMENT:1},
   CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail}}
  };
  vm.runInNewContext(source,sandbox,{filename:'nexa-store-language.js'});
@@ -38,6 +38,10 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.ok(source.includes("const excludedSelector = 'script,style,code,pre,[data-no-translate]'"),
   'Input and textarea placeholders must remain eligible for attribute translation');
  assert.ok(source.includes('translationLookup[key]'),'The extended translation dictionary must be consulted');
+ assert.ok(source.includes('document.createTreeWalker(root,NodeFilter.SHOW_ELEMENT)'),
+  'Placeholder/title/alt/aria-label attributes are traversed incrementally in animation-frame batches');
+ assert.ok(!source.includes('root.querySelectorAll(attributeSelector)'),
+  'Locale changes must not synchronously query every attribute in a large dashboard or catalogue subtree');
 });
 
 test('all Arabic static storefront text nodes have exact English dictionary entries',async()=>{
