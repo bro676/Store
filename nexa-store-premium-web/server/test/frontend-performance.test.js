@@ -12,7 +12,7 @@ test('store and admin share a batched, incremental auto-direction helper',async(
  const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
  const admin=await fs.readFile(path.join(webRoot,'admin.html'),'utf8');
  const helper=await fs.readFile(path.join(webRoot,'assets/brand/nexa-text-direction.js'),'utf8');
- const source='/assets/brand/nexa-text-direction.js?v=20261106-incremental-direction-v1';
+ const source='/assets/brand/nexa-text-direction.js?v=20261106-incremental-direction-v2';
  assert.ok(store.includes(source),'Storefront loads the shared direction helper');
  assert.ok(admin.includes(source),'Dashboard loads the shared direction helper');
  assert.doesNotThrow(()=>new vm.Script(helper,{filename:'nexa-text-direction.js'}));
@@ -21,6 +21,70 @@ test('store and admin share a batched, incremental auto-direction helper',async(
  assert.ok(!helper.includes('characterData: true'),'Text mutations do not trigger repeated DOM scans');
  assert.ok(!helper.includes('document.querySelectorAll('),'The helper never scans the full document');
  assert.ok(!admin.includes('new MutationObserver(()=>markDirection())'),'The dashboard no longer runs a full-page direction rescan');
+});
+test('auto direction works below an RTL document root and respects nested explicit directions',async()=>{
+ const helper=await fs.readFile(path.join(webRoot,'assets/brand/nexa-text-direction.js'),'utf8');
+ let scheduledFrame=null;
+ const createElement=(tagName,parentElement=null,dir=null)=>{
+  const attributes=new Map();
+  if(dir)attributes.set('dir',dir);
+  const element={
+   nodeType:1,tagName:String(tagName).toUpperCase(),parentElement,children:[],childNodes:[],
+   matches(selector){
+    return selector.split(',').some(part=>part.trim().toUpperCase()===this.tagName);
+   },
+   hasAttribute(name){return attributes.has(name);},
+   getAttribute(name){return attributes.get(name)??null;},
+   setAttribute(name,value){attributes.set(name,String(value));},
+   closest(selector){
+    if(!selector.includes('[dir]:not([dir="auto"])'))return null;
+    for(let current=this;current;current=current.parentElement){
+     if(current.hasAttribute('dir')&&current.getAttribute('dir')!=='auto')return current;
+    }
+    return null;
+   }
+  };
+  if(parentElement){parentElement.children.push(element);parentElement.childNodes.push(element);}
+  return element;
+ };
+ const html=createElement('html');
+ const body=createElement('body',html);
+ const paragraph=createElement('p',body);
+ const explicitRegion=createElement('section',body,'rtl');
+ const nestedSpan=createElement('span',explicitRegion);
+ const input=createElement('input',body);
+ const descendants=[];
+ const visit=node=>{for(const child of node.children){descendants.push(child);visit(child);}};
+ const document={
+  body,documentElement:html,
+  createTreeWalker(root){
+   const nodes=[];const collect=node=>{for(const child of node.children){nodes.push(child);collect(child);}};collect(root);
+   let index=0;return {nextNode:()=>nodes[index++]||null};
+  },
+  addEventListener(){}
+ };
+ const window={requestAnimationFrame(callback){scheduledFrame=callback;return 1;}};
+ class MutationObserver{constructor(callback){this.callback=callback;}observe(){}}
+ vm.runInNewContext(helper,{document,window,MutationObserver,NodeFilter:{SHOW_ELEMENT:1}});
+ assert.equal(typeof scheduledFrame,'function','Initial direction work is scheduled');
+ scheduledFrame();
+ assert.equal(paragraph.getAttribute('dir'),'auto','A text block inherits auto direction even below the RTL html root');
+ assert.equal(nestedSpan.hasAttribute('dir'),false,'A nested explicitly-directed region is not overwritten');
+ assert.equal(input.getAttribute('dir'),'auto','Form controls receive auto direction too');
+});
+
+test('storefront and dashboard drawers have matching tablet and compact-device breakpoints',async()=>{
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-wamda-blue.css'),'utf8');
+ const admin=await fs.readFile(path.join(webRoot,'admin.html'),'utf8');
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ assert.ok(css.includes('@media(max-width:1024px){'),'Both drawers switch to off-canvas behavior on tablets and smaller screens');
+ assert.ok(css.includes('body.sidebar-open .app-shell .sidebar{transform:translate3d(0,0,0)!important}'),'Store drawer has a visible open state');
+ assert.ok(css.includes('body.admin-sidebar-open #app.shell .side{transform:translate3d(0,0,0)!important}'),'Admin drawer has a visible open state at the same breakpoint');
+ assert.ok(css.includes('@media(max-width:860px){')&&css.includes('@media(max-width:600px){')&&css.includes('@media(max-width:380px){'),'Layouts provide additional tablet, phone and compact-phone rules');
+ assert.ok(admin.includes("const drawerMedia = window.matchMedia('(max-width: 1024px)')"),'Admin navigation and CSS use the same tablet breakpoint');
+ assert.ok(admin.includes("event.key === 'Escape'")&&admin.includes("event.key !== 'Tab'"),'Admin drawer supports Escape and keyboard focus containment');
+ assert.ok(admin.includes('adminSidebarBackdrop')&&admin.includes('aria-expanded')&&admin.includes('setOpen(false, true)'),'Admin drawer has backdrop, state semantics and focus restoration');
+ assert.ok(store.includes("window.matchMedia('(max-width: 1024px)')")&&store.includes('closeMenu(true);'),'Storefront closes its drawer after mobile route/language changes');
 });
 
 test('admin dashboard loads the overview first and fetches heavy sections only when opened',async()=>{
@@ -53,15 +117,20 @@ test('public catalogue builds its folder index once instead of once per category
  assert.ok(publicCatalog.includes('catalog.filter(category=>isPublicCatalogCategory(category,byId))'),'All category visibility checks reuse the same index');
 });
 
-test('storefront starts the catalog and storefront configuration requests concurrently',async()=>{
+test('storefront renders the catalog without waiting for slower storefront settings',async()=>{
  const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
  const initStart=store.indexOf('async function init(){');
- const initEnd=store.indexOf('\n',initStart);
+ const initEnd=store.indexOf('\n}',initStart);
  const init=store.slice(initStart,initEnd<0?store.length:initEnd);
- assert.ok(init.includes('Promise.all(['),'The initial catalog and storefront settings are fetched together');
- assert.ok(init.includes("fetch('/api/catalog',{cache:'no-store'})"),'The public catalogue request remains intact');
- assert.ok(init.includes('loadStorefrontConfig()'),'Storefront settings are loaded in the same startup batch');
- assert.ok(!init.includes('await loadStorefrontConfig()'),'Settings no longer wait behind the catalogue response');
+ const configStart=init.indexOf('const configPromise=loadStorefrontConfig();');
+ const catalogStart=init.indexOf("const response=await fetch('/api/catalog',{cache:'no-store'})");
+ const navigateAt=init.indexOf("navigate(resolveStoreLocation(),{historyMode:'replace'})");
+ const configApplyAt=init.indexOf('configPromise.then(');
+ assert.ok(configStart>=0&&catalogStart>configStart,'Storefront settings begin loading while the catalog request starts');
+ assert.ok(navigateAt>catalogStart&&configApplyAt>navigateAt,'The initial route is rendered before slower settings finish');
+ assert.ok(!init.includes('Promise.all(['),'The initial UI is not blocked by the slowest startup request');
+ assert.ok(!init.includes('renderOrders();')&&!init.includes('renderPaymentHistory();')&&!init.includes('renderProfilePage();'),'Inactive pages are not rendered during startup');
+ assert.ok(init.includes('refreshCustomerAccount().catch(()=>{});'),'Account refresh runs in the background without blocking first paint');
 });
 
 
