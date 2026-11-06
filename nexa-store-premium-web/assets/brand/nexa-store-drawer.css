@@ -574,3 +574,31 @@
 @media(prefers-reduced-motion:reduce){
   .app-shell .sidebar,.app-shell .sidebar .side-link,.app-shell .sidebar .sidebar-quick-actions button{transition:none!important}
 }
+
+/* FINAL DRAWER PALETTE — strictly neutral surfaces, prices, selection and focus (no blue accents). */
+:root{--nexa-drawer-neutral-dark:#0d0d0d;--nexa-drawer-neutral-surface:#262626;--nexa-drawer-neutral-light:#fff;--nexa-drawer-neutral-light-surface:#f0f0f0;}
+.app-shell .sidebar{background:var(--nexa-drawer-neutral-dark)!important;color:#f4f4f4!important;border-color:#292929!important;}
+:root[data-theme="dark"] .app-shell .sidebar{background:var(--nexa-drawer-neutral-dark)!important;color:#f4f4f4!important;border-color:#292929!important;}
+:root[data-theme="light"] .app-shell .sidebar{background:var(--nexa-drawer-neutral-light)!important;color:#222!important;border-color:#e5e5e5!important;}
+.app-shell .sidebar .sidebar-account-balance strong{color:inherit!important;text-shadow:none!important;}
+.app-shell .sidebar .sidebar-currency{background:#242424!important;color:#f4f4f4!important;border:1px solid #343434!important;box-shadow:none!important;outline:0!important;}
+.app-shell .sidebar .sidebar-currency strong,.app-shell .sidebar .sidebar-currency span,.app-shell .sidebar .sidebar-currency svg{color:inherit!important;}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-currency{background:#f0f0f0!important;color:#333!important;border:1px solid #e4e4e4!important;}
+.app-shell .sidebar .side-link{border:1px solid transparent!important;box-shadow:none!important;outline:0!important;}
+.app-shell .sidebar .side-link.active{background:#303030!important;color:#fff!important;border-color:transparent!important;box-shadow:none!important;}
+:root[data-theme="light"] .app-shell .sidebar .side-link.active{background:#e7e7e7!important;color:#202020!important;border-color:transparent!important;box-shadow:none!important;}
+.app-shell .sidebar .side-link:hover{background:#242424!important;color:#fff!important;border-color:transparent!important;}
+:root[data-theme="light"] .app-shell .sidebar .side-link:hover{background:#f1f1f1!important;color:#222!important;border-color:transparent!important;}
+.app-shell .sidebar .side-link .side-icon{color:#9a9a9a!important;}
+.app-shell .sidebar .sidebar-notification{background:#303030!important;color:#eee!important;border:1px solid #454545!important;box-shadow:none!important;}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-notification{background:#e8e8e8!important;color:#383838!important;border-color:#dedede!important;}
+.app-shell .sidebar .sidebar-quick-actions button{background:#343434!important;color:#f0f0f0!important;border:0!important;box-shadow:none!important;}
+.app-shell .sidebar .sidebar-quick-actions button:hover{background:#484848!important;color:#fff!important;}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-quick-actions button{background:#e7e7e7!important;color:#353535!important;}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-quick-actions button:hover{background:#dcdcdc!important;}
+.app-shell .sidebar .sidebar-profile-avatar{border-color:#888!important;box-shadow:0 0 0 3px rgba(120,120,120,.12)!important;}
+.app-shell .sidebar .sidebar-social-row a[aria-label="Telegram"],.app-shell .sidebar .sidebar-social-row a[aria-label="Telegram web"]{color:#777!important;}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-social-row a[aria-label="Telegram"],:root[data-theme="light"] .app-shell .sidebar .sidebar-social-row a[aria-label="Telegram web"]{color:#777!important;}
+.app-shell .sidebar .sidebar-theme-toggle{color:#ddd!important;border-top-color:#333!important;}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-theme-toggle{color:#333!important;border-top-color:#e5e5e5!important;}
+.app-shell .sidebar .sidebar-profile-copy strong,.app-shell .sidebar .sidebar-account-balance strong{letter-spacing:0!important;}

@@ -5,6 +5,8 @@ import { runInNewContext } from 'node:vm';
 
 const catalogScript = new URL('../../assets/brand/nexa-catalog.js', import.meta.url);
 const storefrontScript = new URL('../../index.html', import.meta.url);
+const adminScript = new URL('../../admin.html', import.meta.url);
+const drawerStyle = new URL('../../assets/brand/nexa-store-drawer.css', import.meta.url);
 
 async function loadNexaCatalog() {
   const source = await readFile(catalogScript, 'utf8');
@@ -129,4 +131,29 @@ test('main department settings update labels, visibility, sort order and importe
   ]);
   assert.equal(summaries.some(row=>row.id==='games'),false,'Hidden main departments are absent from the customer catalog');
   assert.equal(summaries.find(row=>row.id==='other').name,'خدمات أخرى');
+});
+
+test('storefront featured and category product lists use the dashboard order helpers',async()=>{
+  const source=await readFile(storefrontScript,'utf8');
+  assert.ok(source.includes('NexaCatalog.getOrderedProducts(cat.items||[])'));
+  assert.ok(source.includes('for(const cat of group.categories)'));
+  assert.ok(!source.includes('href="/admin.html"'),'the storefront must not expose a dashboard shortcut');
+});
+
+test('admin folder tree uses real catalog indices and exposes expand/collapse controls',async()=>{
+  const source=await readFile(adminScript,'utf8');
+  assert.ok(source.includes('state.catalog.map((category,catalogIndex)=>({category,catalogIndex}))'));
+  assert.ok(source.includes("data-category-index=\"'+catalogIndex+'\""));
+  assert.ok(source.includes('data-folder-toggle'));
+  assert.ok(source.includes('data-tree-expand-all'));
+  assert.ok(source.includes('data-tree-collapse-all'));
+});
+
+test('drawer final palette overrides blue selection and currency accents with neutral tones',async()=>{
+  const source=await readFile(drawerStyle,'utf8');
+  const finalRules=source.slice(source.lastIndexOf('FINAL DRAWER PALETTE'));
+  assert.ok(finalRules.includes('background:#303030!important;color:#fff!important'));
+  assert.ok(finalRules.includes('background:#e7e7e7!important;color:#202020!important'));
+  assert.ok(finalRules.includes('.sidebar-currency{background:#242424!important'));
+  assert.ok(finalRules.includes('Telegram web"]{color:#777!important'));
 });

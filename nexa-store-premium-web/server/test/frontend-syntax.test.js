@@ -113,7 +113,7 @@ test('catalog department settings, imported source identities and empty nested f
 test('admin catalog exposes a recursive folder tree and safe manual organization controls', async () => {
   const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
-  assert.ok(admin.includes('nexa-catalog.js?v=20261106-catalog-manager-v2'), 'Admin loads the same folder hierarchy helper as storefront');
+  assert.ok(admin.includes('nexa-catalog.js?v=20261106-dashboard-order-v3'), 'Admin loads the same folder hierarchy helper as storefront');
   assert.ok(admin.includes('function renderFolderBranch(parentId,departmentId,depth=0)'), 'Admin renders nested folders recursively');
   assert.ok(admin.includes('data-move-product='), 'Products can be moved between folders');
   assert.ok(admin.includes("data-path=\"'+ci+'.parentId\""), 'A folder can be moved under another folder');
@@ -278,7 +278,7 @@ test('product images and canonical folders use category-specific paths and prese
 
 test('storefront image lookup replaces the old logo placeholder in every primary surface', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
-  assert.ok(store.includes('/assets/brand/nexa-catalog.js?v=20261106-catalog-manager-v2'), 'Updated image and hierarchy helper loads before page scripts');
+  assert.ok(store.includes('/assets/brand/nexa-catalog.js?v=20261106-dashboard-order-v3'), 'Updated image and hierarchy helper loads before page scripts');
   assert.ok(store.includes('NexaCatalog.categoryImage(folder,categories)'), 'Homepage and catalog use department/category covers');
   assert.ok(store.includes('NexaCatalog.productImage(product,cat,categories)'), 'Product tiles use product-specific images');
   assert.ok(store.includes('NexaCatalog.optionImage(o,it,cat,categories)'), 'Option tiles use option artwork or the product fallback');
@@ -357,7 +357,7 @@ test('storefront product cards use robust document-level delegated click and key
   assert.ok(store.includes("openItem(productControl.getAttribute('data-open-item'),productControl.getAttribute('data-open-category')||null)"), 'Product navigation forwards the exact product and category IDs');
   assert.ok(!store.includes("root?.addEventListener('click',handleStoreProductActivation,true)"), 'The click flow no longer depends on stable rendering roots');
   assert.ok(store.includes('document.addEventListener(\'keydown\',e=>'), 'Keyboard activation remains supported');
-  assert.ok(store.includes('nexa-catalog.js?v=20261106-catalog-manager-v2'), 'Updated product navigation helper bypasses stale browser assets');
+  assert.ok(store.includes('nexa-catalog.js?v=20261106-dashboard-order-v3'), 'Updated product navigation helper bypasses stale browser assets');
 });
 
 
@@ -669,7 +669,7 @@ test('Wamda final detail pass covers catalog, account states and admin light nav
 test('storefront drawer matches the fixed dark/light reference palette without changing customer routes', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-performance-v3'), 'Storefront loads the dedicated reference drawer layer');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-neutral-tree-v1'), 'Storefront loads the dedicated reference drawer layer');
   for (const id of ['sidebarBalanceValue','sidebarThemeLabel','sidebarSocialLinks','sidebarOwnerBrand']) {
     if (id === 'sidebarSocialLinks' || id === 'sidebarOwnerBrand') continue;
     assert.ok(store.includes('id="' + id + '"'), 'Missing drawer reference element: ' + id);

@@ -117,18 +117,48 @@ test('product resolver does not guess between duplicate IDs when the supplied ex
   assert.equal(catalog.findProduct(categories, 'duplicate', 'old-category'), null);
 });
 
-test('internal catalog folders are sorted from the fewest products to the most', async () => {
+test('folder display follows explicit dashboard order, then preserves the original dashboard sequence', async () => {
   const catalog = await loadCatalogHelper();
   const rows = [
-    { id:'large', name:'Large', items:[1,2,3] },
-    { id:'small', name:'Small', items:[1] },
-    { id:'empty', name:'Empty', items:[] },
-    { id:'medium', name:'Medium', items:[1,2] },
+    { id:'popular', name:'Zulu popular', sortOrder:0, items:Array.from({length:20},(_,i)=>i) },
+    { id:'second', name:'Second', sortOrder:2, items:[] },
+    { id:'first', name:'First', sortOrder:1, items:Array.from({length:12},(_,i)=>i) },
+    { id:'automatic-small', name:'A small', sortOrder:0, items:[1] },
+    { id:'automatic-empty', name:'Empty', sortOrder:0, items:[] },
   ];
-  assert.deepEqual(
-    catalog.sortCategoriesByProductCount(rows).map(row=>row.id),
-    ['empty','small','medium','large']
-  );
+  assert.deepEqual(catalog.sortCategoriesByProductCount(rows).map(row=>row.id),
+    ['first','second','popular','automatic-small','automatic-empty']);
+  assert.equal(catalog.compareDisplayOrder({sortOrder:1},{sortOrder:2}),-1);
+  assert.equal(catalog.compareDisplayOrder({sortOrder:1},{sortOrder:0}),-1);
+});
+
+test('products keep dashboard order rather than being sorted by product name', async () => {
+  const catalog = await loadCatalogHelper();
+  const products = [
+    {id:'z-first',name:'Zulu',sortOrder:0},
+    {id:'b-second',name:'Second',sortOrder:2},
+    {id:'a-first',name:'Alpha',sortOrder:1},
+    {id:'a-auto',name:'Aardvark',sortOrder:0},
+  ];
+  assert.deepEqual(catalog.getOrderedProducts(products).map(row=>row.id),
+    ['a-first','b-second','z-first','a-auto']);
+});
+
+test('nested storefront order is a dashboard-order depth-first folder tree', async () => {
+  const catalog = await loadCatalogHelper();
+  const rows = [
+    {id:'games-b',name:'Games B',departmentId:'games',sortOrder:2,items:[]},
+    {id:'games-a',name:'Games A',departmentId:'games',sortOrder:1,items:[]},
+    {id:'child-b',name:'Child B',parentId:'games-a',sortOrder:2,items:[]},
+    {id:'child-a',name:'Child A',parentId:'games-a',sortOrder:1,items:[]},
+    {id:'grandchild',name:'Grandchild',parentId:'child-a',items:[]},
+    {id:'nested-b',name:'Nested B',parentId:'games-b',items:[]},
+  ];
+  assert.deepEqual(Array.from(catalog.getOrderedCategories(rows,'games'),row=>row.id),
+    ['games-a','child-a','grandchild','child-b','games-b','nested-b']);
+  const summary=catalog.getDepartmentSummaries(rows).find(row=>row.id==='games');
+  assert.deepEqual(Array.from(summary.categories,row=>row.id),
+    ['games-a','child-a','grandchild','child-b','games-b','nested-b']);
 });
 
 test('nested folder helpers inherit the root department and count products recursively', async () => {
@@ -162,7 +192,7 @@ test('hidden folder descendants are excluded from storefront folder navigation',
   assert.equal(catalog.getFolderProductCount(categories[0],categories),1);
 });
 
-test('explicit folder display priority is applied before automatic product-count ordering',async()=>{
+test('explicit folder display priority is applied before original catalog sequence',async()=>{
   const catalog=await loadCatalogHelper();
   const rows=[
     {id:'popular',name:'Popular',sortOrder:0,items:Array.from({length:20},(_,i)=>i)},
@@ -171,7 +201,7 @@ test('explicit folder display priority is applied before automatic product-count
     {id:'automatic-small',name:'Automatic small',sortOrder:0,items:[1]},
   ];
   assert.deepEqual(catalog.sortCategoriesByProductCount(rows).map(row=>row.id),
-    ['first','second','automatic-small','popular']);
+    ['first','second','popular','automatic-small']);
   assert.equal(catalog.compareDisplayOrder({sortOrder:1},{sortOrder:2}),-1);
   assert.equal(catalog.compareDisplayOrder({sortOrder:1},{sortOrder:0}),-1);
 });
