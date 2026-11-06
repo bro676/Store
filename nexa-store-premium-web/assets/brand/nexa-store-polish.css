@@ -147,3 +147,71 @@ body{line-height:1.72!important;background:var(--paper)!important;color:var(--in
  :root[data-theme="dark"] .app-shell .sidebar .sidebar-theme-switch-knob{transform:translateX(30px)!important}
 }
 @media(prefers-reduced-motion:reduce){.app-shell .sidebar,.app-shell .sidebar .side-link,.app-shell .sidebar .sidebar-theme-switch-knob{transition:none!important}}
+
+/* Higher-specificity mode rules for legacy hard-coded panels and controls. */
+:root[data-theme="dark"] .app-shell :where(.trust-item,.product-card,.process-card,.faq-item,.catalog-shell,.catalog-tile,
+ .option-card,.pack-card,.support-channel,.support-form-panel,.support-lookup-panel,.support-help-links,.wallet-api-main,
+ .wallet-api-side,.wallet-invoice-panel,.receipt-card,.panel,.data-panel,.data-table-wrap,.reference-panel,
+ .reference-empty-panel,.reference-feature-panel,.reference-warning-panel,.reference-side-note,.reference-login-panel,
+ .reference-security-grid .reference-panel,.profile-details,.about-card,.about-contact,.support-card,.support-safety-panel,
+ .empty-state,.assistant-panel,.assistant-messages,.currency-field,.wallet-receiver,.wallet-order-summary,.wallet-api-security,
+ .wallet-api-note,.home-intro,.home-intro-note,.home-assistant-link),
+:root[data-theme="light"] .app-shell :where(.trust-item,.product-card,.process-card,.faq-item,.catalog-shell,.catalog-tile,
+ .option-card,.pack-card,.support-channel,.support-form-panel,.support-lookup-panel,.support-help-links,.wallet-api-main,
+ .wallet-api-side,.wallet-invoice-panel,.receipt-card,.panel,.data-panel,.data-table-wrap,.reference-panel,
+ .reference-empty-panel,.reference-feature-panel,.reference-warning-panel,.reference-side-note,.reference-login-panel,
+ .reference-security-grid .reference-panel,.profile-details,.about-card,.about-contact,.support-card,.support-safety-panel,
+ .empty-state,.assistant-panel,.assistant-messages,.currency-field,.wallet-receiver,.wallet-order-summary,.wallet-api-security,
+ .wallet-api-note,.home-intro,.home-intro-note,.home-assistant-link){
+ background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] .app-shell .support-form .field input,
+:root[data-theme="dark"] .app-shell .support-form .field textarea,
+:root[data-theme="dark"] .app-shell .support-form .field select,
+:root[data-theme="dark"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field input,
+:root[data-theme="dark"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field select,
+:root[data-theme="light"] .app-shell .support-form .field input,
+:root[data-theme="light"] .app-shell .support-form .field textarea,
+:root[data-theme="light"] .app-shell .support-form .field select,
+:root[data-theme="light"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field input,
+:root[data-theme="light"] .app-shell .view[data-view="wallet"] .wallet-payment-form .field select{
+ background:var(--surface-2)!important;color:var(--ink)!important;border-color:var(--line-2)!important;
+ color-scheme:inherit!important;caret-color:var(--ink)!important;
+}
+:root[data-theme="dark"] .app-shell .sidebar,
+:root[data-theme="light"] .app-shell .sidebar{
+ background:var(--drawer-bg)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;
+}
+:root[data-theme="dark"] .app-shell .sidebar .side-link,
+:root[data-theme="light"] .app-shell .sidebar .side-link{
+ color:var(--drawer-text)!important;
+}
+:root[data-theme="dark"] .app-shell .sidebar .side-link.active,
+:root[data-theme="light"] .app-shell .sidebar .side-link.active{
+ background:var(--drawer-active)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;
+ box-shadow:none!important;
+}
+:root[data-theme="dark"] .app-shell .sidebar .sidebar-currency,
+:root[data-theme="light"] .app-shell .sidebar .sidebar-currency{
+ background:var(--drawer-surface)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;
+}
+:root[data-theme="dark"] .app-shell .sidebar .sidebar-theme-toggle,
+:root[data-theme="light"] .app-shell .sidebar .sidebar-theme-toggle{
+ background:var(--drawer-surface)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;
+}
+:root[data-theme="dark"] .app-shell .header,
+:root[data-theme="light"] .app-shell .header{
+ background:var(--drawer-bg)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important;
+}
+:root[data-theme="dark"] .app-shell .header-search,
+:root[data-theme="light"] .app-shell .header-search{
+ background:var(--surface-2)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] .app-shell .menu-toggle,
+:root[data-theme="light"] .app-shell .menu-toggle{
+ background:var(--surface-2)!important;color:var(--ink-2)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] .app-shell :where(h1,h2,h3,h4,.section-title,.page-heading strong),
+:root[data-theme="light"] .app-shell :where(h1,h2,h3,h4,.section-title,.page-heading strong){color:var(--ink)!important}
+:root[data-theme="dark"] .app-shell :where(.page-heading p,.section-sub,.hint,.muted,.field small,.description),
+:root[data-theme="light"] .app-shell :where(.page-heading p,.section-sub,.hint,.muted,.field small,.description){color:var(--muted)!important}
