@@ -669,7 +669,7 @@ test('Wamda final detail pass covers catalog, account states and admin light nav
 test('storefront drawer matches the fixed dark/light reference palette without changing customer routes', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-soft-icons-v3'), 'Storefront loads the dedicated reference drawer layer');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-store-controls-v1'), 'Storefront loads the dedicated reference drawer layer');
   for (const id of ['sidebarBalanceValue','sidebarThemeLabel','sidebarSocialLinks','sidebarOwnerBrand']) {
     if (id === 'sidebarSocialLinks' || id === 'sidebarOwnerBrand') continue;
     assert.ok(store.includes('id="' + id + '"'), 'Missing drawer reference element: ' + id);
@@ -772,7 +772,7 @@ test('light drawer has no blue active rail, active underline, or icon glow',asyn
   const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
   const drawer=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-drawer.css'),'utf8');
   const lightFix=drawer.slice(drawer.lastIndexOf('LIGHT THEME FINISH — remove the blue active rail'));
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-soft-icons-v3'),'The light drawer fix has a fresh stylesheet cache key');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-store-controls-v1'),'The light drawer fix has a fresh stylesheet cache key');
   assert.ok(lightFix.includes('body .app-shell .sidebar .sidebar-nav .side-link.active'),'The light active item receives the stronger neutral override');
   assert.ok(lightFix.includes('box-shadow:none!important;text-decoration:none!important'),'The active blue rail and underline are removed');
   assert.ok(lightFix.includes('side-link.active::before')&&lightFix.includes('side-link.active::after'),'Both active pseudo-element lines are suppressed');
@@ -821,6 +821,53 @@ test('English drawer updates its balance locale and all supported currencies use
   assert.ok(store.includes("const locale=storeLocale()==='en'?'en-US':'ar-SY';"),'SYP amounts use Western digits in English and Arabic digits in Arabic');
   assert.ok(store.includes("return new Intl.NumberFormat(locale,{maximumFractionDigits:2}).format(value)+' '+storeCurrencyLabel('SYP');"),'SYP order amounts use the active language currency label');
   assert.ok(store.includes("new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'})"),'USD amounts always use English currency formatting');
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-soft-icons-v3'),'The updated drawer stylesheet has a fresh cache key');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-store-controls-v1'),'The updated drawer stylesheet has a fresh cache key');
   assert.ok(store.includes('nexa-store-language.js?v=20261106-drawer-english-v3'),'The updated English dictionary has a fresh cache key');
+});
+
+
+test('storefront controls are persisted, validated and applied to real UI elements', async () => {
+  const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  const catalog = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-catalog.js'), 'utf8');
+  const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
+  assert.ok(server.includes('function defaultStorefrontExperience()'), 'Server supplies safe defaults for storefront controls');
+  assert.ok(server.includes('function validateStorefrontExperience(input,current='), 'Server validates appearance, feature, image and social-link inputs');
+  assert.ok(server.includes('next.storefrontExperience=validateStorefrontExperience('), 'Admin settings PATCH persists the validated storefront controls');
+  assert.ok(server.includes('storefrontExperience:validateStorefrontExperience('), 'Public storefront config exposes only validated public settings');
+  assert.ok(server.includes('iconImage,...'), 'Main department icon images are persisted with department settings');
+  assert.ok(admin.includes('id="page-appearance"') && admin.includes('id="saveAppearanceBtn"'), 'Dashboard exposes a dedicated appearance and features page');
+  assert.ok(admin.includes('function saveAppearanceSettings()'), 'Appearance controls submit a real settings API request');
+  assert.ok(admin.includes('data-appearance-feature="verification"'), 'Identity verification visibility is configurable');
+  assert.ok(admin.includes('data-department-icon-image='), 'Main department icon image upload is available');
+  assert.ok(store.includes('function applyStorefrontExperience(value={})'), 'Storefront applies published appearance settings');
+  assert.ok(store.includes("document.querySelectorAll(selector).forEach(element=>element.classList.toggle('storefront-feature-disabled',!enabled))"), 'Feature switches change visibility in the storefront');
+  assert.ok(store.includes("storefront-favorites-disabled',storefrontExperience.features.favorites===false"), 'Newly rendered favorite buttons also obey the saved feature switch');
+  assert.ok(store.includes('pageFeature={notifications:'), 'Disabled feature pages cannot be opened through navigation');
+  assert.ok(store.includes("install:'install',bot:'assistant'"), 'The legacy assistant route also follows the assistant feature switch');
+  assert.ok(store.includes("id=\"sidebarVipIconImage\""), 'Rank icon supports a configured image');
+  assert.ok(store.includes('group.iconImage?'), 'Category tiles render configured department icon images');
+  assert.ok(catalog.includes('incoming.iconImage'), 'Department icon image is retained by the catalogue model');
+  assert.ok(drawer.includes('border-radius:50%!important'), 'Account profile imagery is circular');
+  assert.ok(drawer.includes('--nexa-favorite-accent'), 'Storefront favorite accent is driven by a CSS variable');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-store-controls-v1'), 'Storefront drawer CSS cache key is updated');
+});
+
+
+test('admin can safely manage individual customer profile images', async () => {
+  const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
+  const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const migration = await fs.readFile(path.join(webRoot, 'server/migrations/009_customer_avatar.sql'), 'utf8');
+  assert.ok(server.includes("'009_customer_avatar.sql'"), 'Customer avatar migration is run on server startup');
+  assert.ok(migration.includes('ADD COLUMN IF NOT EXISTS avatar_image TEXT NOT NULL DEFAULT'), 'Customer profile image storage is additive and safe for existing accounts');
+  assert.ok(server.includes("url.pathname==='/api/admin/customers'"), 'Admin customer listing endpoint is available');
+  assert.ok(server.includes("url.pathname==='/api/admin/customers'"), 'Customer search is exposed only through the protected admin API');
+  assert.ok(server.includes("avatarImage!==''&&!isSafeCatalogImage(avatarImage)"), 'Uploaded customer images pass the existing safe-image validator');
+  assert.ok(server.includes('SELECT c.id,c.full_name,c.phone,c.balance_minor::text,c.created_at,c.avatar_image'), 'Authenticated customer sessions include the saved customer image');
+  assert.ok(admin.includes('id="page-customers"') && admin.includes('id="customerAdminGrid"'), 'Dashboard exposes the individual customer profile editor');
+  assert.ok(admin.includes("'/api/admin/customers/'+encodeURIComponent(customerId)+'/avatar'"), 'Dashboard saves profile images using the customer-specific API');
+  assert.ok(admin.includes('data-customer-avatar='), 'Each customer card has its own image upload control');
+  assert.ok(store.includes("customerAccount.avatar_image||storefrontExperience?.avatarImage||storefrontLogoImage"), "The logged-in customer image takes precedence over the storefront fallback");
 });

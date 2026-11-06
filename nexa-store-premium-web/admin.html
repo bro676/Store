@@ -382,6 +382,59 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
 .category-editor .toolbar{margin:0}
 .category-editor h3{font-size:16px}
 @media(max-width:820px){.catalog-layout{grid-template-columns:1fr}.category-list.folder-tree{max-height:340px}.folder-choice{min-width:180px}.department-choice{min-width:190px}}
+
+/* Storefront control center — calm, grouped settings */
+.appearance-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start}
+.appearance-panel{padding:19px!important}
+.appearance-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:15px}
+.appearance-panel-head h3{margin:0;font-size:13px;color:#304438}
+.appearance-panel-head p{margin:4px 0 0;color:#829087;font-size:9px;line-height:1.8}
+.appearance-feature-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.appearance-toggle{position:relative;display:flex;align-items:center;gap:10px;min-width:0;padding:10px 11px;border:1px solid #e3ebe2;border-radius:12px;background:#fbfcfa;color:#435b4a;font-size:10px;font-weight:800;cursor:pointer}
+.appearance-toggle input{position:absolute;opacity:0;pointer-events:none}
+.appearance-switch-track{margin-right:auto;position:relative;flex:none;width:34px;height:20px;border-radius:30px;background:#dfe6df;transition:background .18s}
+.appearance-switch-track:after{content:"";position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(30,50,35,.16);transition:transform .18s}
+.appearance-toggle input:checked+.appearance-switch-track{background:#6f9b78}
+.appearance-toggle input:checked+.appearance-switch-track:after{transform:translateX(-14px)}
+.appearance-toggle:focus-within{outline:3px solid rgba(111,155,120,.14)}
+.appearance-colors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.appearance-color{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 11px;border:1px solid #e4ebe3;border-radius:12px;background:#fbfcfa;font-size:10px;font-weight:800;color:#4a6050}
+.appearance-color input[type=color]{width:35px;height:32px;padding:2px;border:1px solid #e1e8df;border-radius:9px;background:#fff;cursor:pointer}
+.appearance-visual-row{display:grid;grid-template-columns:70px minmax(0,1fr);align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid #edf1eb}
+.appearance-visual-row:last-child{border-bottom:0}
+.appearance-image-preview{width:68px;height:68px;object-fit:cover;border:1px solid #e1e9df;background:#f2f6f0;box-shadow:0 3px 10px rgba(38,62,44,.05)}
+.appearance-image-preview.circle{border-radius:50%}.appearance-image-preview.square{border-radius:15px}
+.appearance-image-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.appearance-image-actions .upload-label{padding:7px 10px;border:1px solid #dce7da;border-radius:9px;background:#fff}
+.appearance-image-actions .upload-label input{display:none}
+.appearance-clear{border:0;background:none;color:#a65e50;font-size:9px;font-weight:800}
+.appearance-preview{display:flex;align-items:center;gap:14px;padding:13px;border-radius:14px;background:#f4f7f2;border:1px solid #e4ebe2;margin-top:13px}
+.appearance-preview-bell,.appearance-preview-heart{display:grid;place-items:center;width:35px;height:35px;border-radius:12px;background:#fff;font-size:18px}
+.appearance-preview-profile{width:44px;height:44px;display:grid;place-items:center;border:3px solid var(--appearance-profile-ring,#8eaa94);border-radius:50%;background:#fff;font-size:16px}
+.appearance-preview-rank{display:grid;place-items:center;color:var(--appearance-rank,#b99b70);font-size:21px}
+.appearance-social-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 10px}
+.appearance-save-row{display:flex;justify-content:flex-end;align-items:center;gap:12px;flex-wrap:wrap;margin-top:15px}
+.appearance-save-row small{margin-left:auto;color:#849187;font-size:9px}
+.category-choice.department-choice>span:first-child img{width:25px;height:25px;display:block;object-fit:cover;border-radius:8px}
+@media(max-width:980px){.appearance-layout{grid-template-columns:1fr}}
+@media(max-width:560px){.appearance-feature-grid,.appearance-colors,.appearance-social-grid{grid-template-columns:1fr}.appearance-save-row{align-items:stretch}.appearance-save-row .btn{width:100%}}
+
+
+.customer-admin-tools{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:15px}
+.customer-admin-tools .field{flex:1;min-width:200px;margin:0}.customer-admin-tools input{width:100%}
+.customer-admin-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.customer-admin-card{display:flex;align-items:center;gap:13px;min-width:0;padding:13px;border:1px solid var(--line);border-radius:15px;background:#fff}
+.customer-admin-avatar{width:62px;height:62px;flex:none;object-fit:cover;border-radius:50%;border:2px solid #e5eee3;background:#f2f6f0}
+.customer-admin-main{flex:1;min-width:0}.customer-admin-main strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#283b30}
+.customer-admin-main small{display:block;color:#859187;font-size:9px;direction:ltr;text-align:right;unicode-bidi:plaintext}
+.customer-admin-meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:5px;color:#89958b;font-size:9px}
+.customer-admin-actions{display:flex;flex:none;flex-direction:column;gap:6px}
+.customer-admin-actions .upload-label{padding:6px 9px;border:1px solid #dce7da;border-radius:9px;background:#f8fbf7;color:#496451;font-weight:800;font-size:9px;cursor:pointer}
+.customer-admin-actions .upload-label input{display:none}.customer-admin-actions button{border:0;background:transparent;color:#a65e50;font-size:9px;font-weight:800}
+.customer-admin-count{margin:0 0 12px;color:#88958b;font-size:10px}.customer-admin-empty{padding:26px;text-align:center;border:1px dashed var(--line);border-radius:14px;color:#89958b}
+@media(max-width:900px){.customer-admin-grid{grid-template-columns:1fr}}
+@media(max-width:560px){.customer-admin-card{align-items:flex-start;gap:9px;padding:10px}.customer-admin-avatar{width:49px;height:49px}.customer-admin-actions .upload-label{font-size:8px}}
+
 </style>
 <link rel="stylesheet" href="/assets/brand/nexa-wamda-blue.css?v=20261105-wamda-brand-v12">
 <style>
@@ -430,6 +483,8 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
     <div class="side-label">إدارة المتجر</div>
     <nav class="nav">
       <button class="active" data-page="overview"><span class="ico">◫</span><span>نظرة عامة</span></button>
+      <button data-page="appearance"><span class="ico">✦</span><span>المظهر والميزات</span></button>
+      <button data-page="customers"><span class="ico">♙</span><span>العملاء وصور الحسابات</span></button>
       <button data-page="catalog"><span class="ico">▦</span><span>المنتجات والأسعار</span></button>
       <button data-page="catalog-api"><span class="ico">↗</span><span>ربط المنتجات عبر API</span></button>
       <button data-page="orders"><span class="ico">▤</span><span>الطلبات والإيصالات</span></button>
@@ -476,6 +531,77 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
           </div>
           <div class="hint">الاسم والشعار يُحدّثان بعد الحفظ، أما ألوان هوية ومضة فثابتة وموحّدة في جميع الصفحات.</div>
         </section>
+      </section>
+
+
+      <section class="page hidden" id="page-customers">
+        <div class="page-head"><div><div class="eyebrow">CUSTOMER PROFILES</div><h2>العملاء وصور الحسابات</h2><p>ابحث عن عميل وعدّل صورة حسابه بشكل مستقل. لا يتغير الرصيد أو رقم الهاتف أو بيانات الدخول من هذه الشاشة.</p></div><span class="status-pill">تحكم آمن بصور الملفات الشخصية</span></div>
+        <section class="panel">
+          <form class="customer-admin-tools" id="customerSearchForm">
+            <div class="field"><input id="customerSearch" type="search" placeholder="ابحث باسم العميل أو رقم الهاتف..." maxlength="100"></div>
+            <button class="btn primary" type="submit">بحث عن عميل</button>
+            <button class="btn soft" type="button" id="reloadCustomersBtn">تحديث القائمة</button>
+          </form>
+          <p class="customer-admin-count" id="customerAdminCount">تظهر أحدث الحسابات المسجلة، بحد أقصى 100 حساب في كل عملية بحث.</p>
+          <div class="customer-admin-grid" id="customerAdminGrid"><div class="customer-admin-empty">حمّل قائمة العملاء لعرض الحسابات.</div></div>
+        </section>
+      </section>
+      <section class="page hidden" id="page-appearance">
+        <div class="page-head"><div><div class="eyebrow">STOREFRONT CONTROL CENTER</div><h2>المظهر والميزات</h2><p>تحكم بعناصر المتجر التي يراها العملاء، واحفظها لتُطبّق على الواجهة العامة.</p></div><span class="status-pill">إعدادات محفوظة مركزياً</span></div>
+        <div class="appearance-layout">
+          <section class="panel appearance-panel">
+            <div class="appearance-panel-head"><div><h3>إظهار وإخفاء أقسام المتجر</h3><p>إخفاء القسم يزيل مدخله من الواجهة ويمنع فتح صفحته عبر التنقل المباشر.</p></div><span class="tag green">12 إعداداً</span></div>
+            <div class="appearance-feature-grid">
+              <label class="appearance-toggle"><span>الإشعارات</span><input type="checkbox" data-appearance-feature="notifications"><span class="appearance-switch-track"></span></label>
+              <label class="appearance-toggle"><span>المفضلة وقلوب المنتجات</span><input type="checkbox" data-appearance-feature="favorites"><span class="appearance-switch-track"></span></label>
+              <label class="appearance-toggle"><span>المحفظة وتبديل العملة</span><input type="checkbox" data-appearance-feature="wallet"><span class="appearance-switch-track"></span></label>
+              <label class="appearance-toggle"><span>المدفوعات</span><input type="checkbox" data-appearance-feature="payments"><span class="appearance-switch-track"></span></label>
+              <label class="appearance-toggle"><span>الطلبات</span><input type="checkbox" data-appearance-feature="orders"><span class="appearance-switch-track"></span></label>
+              <label class="appearance-toggle"><span>الدعم الفني</span><input type="checkbox" data-appearance-feature="support"><span class="appearance-switch-track"></span></label>
+              <label class="appearance-toggle"><span>نظام الوكلاء</span><input type="checkbox" data-appearance-feature="affiliate"><span class="appearance-switch-track"></span></label>
+              <label class="appearance-toggle"><span>الحماية</span><input type="checkbox" data-appearance-feature="security"><span class="appearance-switch-track"></span></label>
+              <label class="appearance-toggle"><span>توثيق الهوية</span><input type="checkbox" data-appearance-feature="verification"><span class="appearance-switch-track"></span></label>
+              <label class="appearance-toggle"><span>المساعد الذكي</span><input type="checkbox" data-appearance-feature="assistant"><span class="appearance-switch-track"></span></label>
+              <label class="appearance-toggle"><span>تثبيت التطبيق</span><input type="checkbox" data-appearance-feature="install"><span class="appearance-switch-track"></span></label>
+              <label class="appearance-toggle"><span>أيقونات التواصل</span><input type="checkbox" data-appearance-feature="social"><span class="appearance-switch-track"></span></label>
+            </div>
+            <div class="notice info">هذه المفاتيح تتحكم بإظهار صفحات وعناصر الواجهة. لا تنشئ خدمة إشعارات فورية أو تحقق هوية جديدة بحد ذاتها؛ تفعيل هذه الخدمات يحتاج مزوداً وتدفق عمل مستقلين.</div>
+          </section>
+          <section class="panel appearance-panel">
+            <div class="appearance-panel-head"><div><h3>لمسات الألوان الهادئة</h3><p>ألوان صغيرة لعناصر محددة، دون تغيير هوية ومضة الأساسية أو فرض لون على الوضعين.</p></div></div>
+            <div class="appearance-colors">
+              <label class="appearance-color">جرس الإشعارات<input id="appearanceNotificationColor" data-appearance-color="notification" type="color" value="#b99b70"></label>
+              <label class="appearance-color">إطار صورة الحساب<input id="appearanceProfileRingColor" data-appearance-color="profileRing" type="color" value="#8eaa94"></label>
+              <label class="appearance-color">قلب المفضلة<input id="appearanceFavoriteColor" data-appearance-color="favorite" type="color" value="#c77c8c"></label>
+              <label class="appearance-color">شارة الرتبة<input id="appearanceRankColor" data-appearance-color="rank" type="color" value="#b99b70"></label>
+            </div>
+            <div class="appearance-preview" aria-label="معاينة الألوان"><span class="appearance-preview-bell" id="appearancePreviewBell">♧</span><span class="appearance-preview-profile" id="appearancePreviewProfile">N</span><span class="appearance-preview-heart" id="appearancePreviewHeart">♥</span><span class="appearance-preview-rank" id="appearancePreviewRank">✦</span><strong>معاينة اللمسات</strong></div>
+          </section>
+          <section class="panel appearance-panel">
+            <div class="appearance-panel-head"><div><h3>صور الحساب والرتبة</h3><p>اختر صورة افتراضية دائرية للحساب، وصورة مخصصة لأيقونة رتبة العضوية.</p></div></div>
+            <div class="appearance-visual-row">
+              <img class="appearance-image-preview circle" id="appearanceAvatarPreview" src="assets/brand/logo.svg" alt="معاينة صورة الحساب">
+              <div><strong>الصورة الافتراضية للحساب</strong><div class="appearance-image-actions"><label class="upload-label">↑ رفع صورة<input id="appearanceAvatarFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><button type="button" class="appearance-clear" id="clearAppearanceAvatar">إزالة الصورة</button></div><small class="muted">تظهر كصورة افتراضية للحسابات التي لا تملك صورة شخصية مرفوعة.</small><input id="appearanceAvatarImage" type="hidden"></div>
+            </div>
+            <div class="appearance-visual-row">
+              <img class="appearance-image-preview square" id="appearanceRankPreview" src="assets/brand/logo.svg" alt="معاينة أيقونة الرتبة">
+              <div><strong>صورة أيقونة الرتبة</strong><div class="appearance-image-actions"><label class="upload-label">↑ رفع أيقونة<input id="appearanceRankFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><button type="button" class="appearance-clear" id="clearAppearanceRank">إزالة الأيقونة</button></div><small class="muted">تُستخدم صورة واحدة لشارة الرتبة الظاهرة في الشريط الجانبي.</small><input id="appearanceRankImage" type="hidden"></div>
+            </div>
+            <div class="field"><label for="appearanceBrandSubtitle">النص الصغير تحت اسم المتجر</label><input id="appearanceBrandSubtitle" maxlength="60" placeholder="DIGITAL STORE"></div>
+          </section>
+          <section class="panel appearance-panel">
+            <div class="appearance-panel-head"><div><h3>روابط منصات التواصل</h3><p>عدّل وجهة كل أيقونة أو اترك الرابط فارغاً لإخفاء الأيقونة.</p></div></div>
+            <div class="appearance-social-grid">
+              <div class="field"><label for="appearanceWhatsAppUrl">WhatsApp</label><input id="appearanceWhatsAppUrl" type="url" dir="ltr" placeholder="https://wa.me/..."></div>
+              <div class="field"><label for="appearanceInstagramUrl">Instagram</label><input id="appearanceInstagramUrl" type="url" dir="ltr" placeholder="https://instagram.com/..."></div>
+              <div class="field"><label for="appearanceTikTokUrl">TikTok</label><input id="appearanceTikTokUrl" type="url" dir="ltr" placeholder="https://tiktok.com/@..."></div>
+              <div class="field"><label for="appearanceTelegramUrl">Telegram</label><input id="appearanceTelegramUrl" type="url" dir="ltr" placeholder="https://t.me/..."></div>
+              <div class="field"><label for="appearanceYouTubeUrl">YouTube</label><input id="appearanceYouTubeUrl" type="url" dir="ltr" placeholder="https://youtube.com/@..."></div>
+            </div>
+            <div class="hint">تُقبل الروابط الآمنة HTTPS فقط. تعديل روابط الدعم الأساسية الأخرى يبقى من إعدادات الدعم نفسها عند الحاجة.</div>
+          </section>
+        </div>
+        <div class="appearance-save-row"><small>التغييرات تُحفظ في إعدادات المتجر، وتظهر للزوار بعد تحديث الصفحة.</small><button class="btn primary" id="saveAppearanceBtn" type="button">حفظ جميع التخصيصات ✓</button></div>
       </section>
       <section class="page hidden" id="page-catalog">
         <div class="page-head"><div><div class="eyebrow">PRODUCT MANAGEMENT</div><h2>الكتالوج والأسعار والصور</h2><p>التغييرات تنعكس على المتجر بعد الحفظ، وتبقى محفوظة بعد إعادة التشغيل.</p></div><button class="btn primary" id="saveCatalogBtn">حفظ كل التعديلات ✓</button></div>
@@ -810,7 +936,7 @@ function initializeAdminColorMode(){
 }
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const state={catalog:[],departments:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},bestStoreCatalog:[],bestStoreMeta:{},bestStoreCatalogQuery:'',bestStoreCatalogFilter:'all',wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',categoryIndex:0,selectedDepartmentId:'games',collapsedFolderIds:new Set(),page:'overview',busy:false};
-const pageTitles={overview:'نظرة عامة',catalog:'المنتجات والأسعار','catalog-api':'ربط المنتجات عبر API',orders:'الطلبات والإيصالات',payments:'شام كاش والمحفظة',exchange:'سعر الصرف'};
+const pageTitles={overview:'نظرة عامة',appearance:'المظهر والميزات',customers:'العملاء وصور الحسابات',catalog:'المنتجات والأسعار','catalog-api':'ربط المنتجات عبر API',orders:'الطلبات والإيصالات',payments:'شام كاش والمحفظة',exchange:'سعر الصرف'};
 let toastTimer;
 function toast(msg){$('toast').textContent=msg;$('toast').classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('show'),2800)}
 async function api(path,options={}){const response=await fetch(path,{credentials:'same-origin',cache:'no-store',...options,headers:{...(options.headers||{}),...(options.body?{'Content-Type':'application/json'}:{})}});let data={};try{data=await response.json()}catch{}if(!response.ok){if(response.status===401&&path!=='/api/admin/session')showLogin();throw new Error(data.message||data.error||'تعذر تنفيذ العملية.')}return data}
@@ -818,10 +944,68 @@ function showLogin(){state.authed=false;$('app').classList.add('hidden');$('logi
 function showApp(){state.authed=true;$('loginScreen').classList.add('hidden');$('app').classList.remove('hidden')}
 $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginError').textContent='';const key=$('adminKey').value;try{await api('/api/admin/session',{method:'POST',body:JSON.stringify({key})});$('adminKey').value='';showApp();await loadAll();toast('تم تسجيل الدخول بأمان.')}catch(err){$('loginError').textContent=err.message;$('adminKey').focus()}});
 $('logoutBtn').addEventListener('click',async()=>{try{await api('/api/admin/session',{method:'DELETE'})}catch{}showLogin();toast('تم تسجيل الخروج.')});
-function setPage(name){state.page=name;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!=='page-'+name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('pageTitle').textContent=pageTitles[name]||'Nexa';if(name==='catalog')renderCatalog();if(name==='catalog-api'){loadSettings();loadWamdaCatalog();loadSeagmCatalog();loadBestStoreCatalog()}if(name==='orders')loadOrders();if(name==='payments')loadSettings();if(name==='exchange')loadSettings()}
+function setPage(name){state.page=name;document.querySelectorAll('.page').forEach(p=>p.classList.toggle('hidden',p.id!=='page-'+name));document.querySelectorAll('[data-page]').forEach(b=>b.classList.toggle('active',b.dataset.page===name));$('pageTitle').textContent=pageTitles[name]||'Nexa';if(name==='appearance')loadSettings();if(name==='customers')loadCustomers();if(name==='catalog')renderCatalog();if(name==='catalog-api'){loadSettings();loadWamdaCatalog();loadSeagmCatalog();loadBestStoreCatalog()}if(name==='orders')loadOrders();if(name==='payments')loadSettings();if(name==='exchange')loadSettings()}
 document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.page)));
 document.querySelectorAll('[data-jump]').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.jump)));
 async function loadAll(){showApp();await Promise.all([loadOverview(),loadCatalog(),loadSettings(),loadOrders(),loadWamdaCatalog(),loadSeagmCatalog(),loadBestStoreCatalog()]);}
+
+let customerAdminRows=[];
+async function loadCustomers(query=$('customerSearch')?.value||''){
+ const target=$('customerAdminGrid');
+ if(target)target.innerHTML='<div class="customer-admin-empty">جارٍ تحميل حسابات العملاء...</div>';
+ try{
+  const result=await api('/api/admin/customers?q='+encodeURIComponent(String(query||'').trim()));
+  customerAdminRows=Array.isArray(result.customers)?result.customers:[];
+  renderCustomers();
+ }catch(error){
+  customerAdminRows=[];
+  if(target)target.innerHTML='<div class="customer-admin-empty">'+esc(error.message||'تعذر تحميل العملاء.')+'</div>';
+  toast(error.message||'تعذر تحميل العملاء.');
+ }
+}
+function renderCustomers(){
+ const target=$('customerAdminGrid');if(!target)return;
+ $('customerAdminCount').textContent=customerAdminRows.length
+  ?'عدد النتائج: '+customerAdminRows.length+' — القائمة تعرض أحدث 100 حساب مطابق للبحث.'
+  :'لا توجد حسابات مطابقة لعبارة البحث.';
+ target.innerHTML=customerAdminRows.length?customerAdminRows.map(row=>{
+  const id=String(row.id||''),name=String(row.full_name||'عميل Nexa'),phone=String(row.phone||'');
+  const joined=row.created_at?new Date(row.created_at).toLocaleDateString('ar-SY'):'—';
+  const balance=(Number(row.balance_minor||0)/100).toLocaleString('en-US',{maximumFractionDigits:2});
+  return '<article class="customer-admin-card" data-customer-card="'+esc(id)+'">'+
+   '<img class="customer-admin-avatar" src="'+esc(row.avatar_image||'assets/brand/logo.svg')+'" alt="صورة '+esc(name)+'">'+
+   '<div class="customer-admin-main"><strong>'+esc(name)+'</strong><small>'+esc(phone)+'</small>'+
+   '<div class="customer-admin-meta"><span>الرصيد: '+balance+' ل.س</span><span>تاريخ التسجيل: '+esc(joined)+'</span></div></div>'+
+   '<div class="customer-admin-actions"><label class="upload-label">تغيير الصورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-customer-avatar="'+esc(id)+'"></label>'+
+   (row.avatar_image?'<button type="button" data-clear-customer-avatar="'+esc(id)+'">إزالة الصورة</button>':'')+
+   '</div></article>';
+ }).join(''):'<div class="customer-admin-empty">لا توجد حسابات مطابقة. جرّب اسماً أو رقماً آخر.</div>';
+}
+async function saveCustomerAvatar(customerId,avatarImage){
+ const result=await api('/api/admin/customers/'+encodeURIComponent(customerId)+'/avatar',{method:'PATCH',body:JSON.stringify({avatarImage})});
+ const index=customerAdminRows.findIndex(row=>String(row.id)===String(customerId));
+ if(index>=0)customerAdminRows[index]=result.customer;
+ renderCustomers();
+ toast(avatarImage?'تم تحديث صورة حساب العميل.':'تمت إزالة صورة العميل.');
+}
+$('customerSearchForm').addEventListener('submit',event=>{event.preventDefault();loadCustomers();});
+$('reloadCustomersBtn').addEventListener('click',()=>loadCustomers());
+$('customerAdminGrid').addEventListener('change',async event=>{
+ const input=event.target.closest('input[data-customer-avatar]');if(!input)return;
+ const file=input.files?.[0];if(!file)return;
+ if(file.size>10*1024*1024){toast('الصورة أكبر من 10 ميغابايت.');input.value='';return;}
+ input.disabled=true;
+ try{const data=await compressImage(file);await saveCustomerAvatar(input.dataset.customerAvatar,data);}
+ catch(error){toast(error.message||'تعذر تحديث صورة العميل.');}
+ finally{input.disabled=false;input.value='';}
+});
+$('customerAdminGrid').addEventListener('click',async event=>{
+ const button=event.target.closest('[data-clear-customer-avatar]');if(!button)return;
+ button.disabled=true;
+ try{await saveCustomerAvatar(button.dataset.clearCustomerAvatar,'');}
+ catch(error){toast(error.message||'تعذر إزالة صورة العميل.');button.disabled=false;}
+});
+
 async function loadOverview(){const d=await api('/api/admin/overview');const o=d.orders||{};const cards=[['إجمالي الطلبات',o.total||0,'▤','كل الطلبات المسجلة'],['مدفوع ومتحقق',o.paid||0,'✓','دفعات أكدها API'],['بانتظار الدفع',o.pending||0,'◷','فواتير فعالة أو قيد المتابعة'],['عدد المنتجات',d.products||0,'▦',`${d.categories||0} أقسام`]];$('stats').innerHTML=cards.map(([t,v,ico,sub])=>`<article class="stat"><div class="stat-top"><span>${t}</span><i class="stat-icon">${ico}</i></div><strong>${Number(v).toLocaleString('en-US')}</strong><small>${sub}</small></article>`).join('');const max=Math.max(1,o.total||0);$('orderBars').innerHTML=[['مدفوع',o.paid||0],['بانتظار الدفع',o.pending||0],['منتهي',o.expired||0],['ملغي',(o.total||0)-(o.paid||0)-(o.pending||0)-(o.expired||0)]].map(([label,v])=>`<div class="bar-row"><span>${label}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Number(v)/max*100)}%"></div></div><b>${v}</b></div>`).join('');$('topStatus').textContent=d.paymentsReady?'الدفع جاهز':'تحقق من الدفع';}
 async function loadCatalog(){const d=await api('/api/admin/catalog');state.catalog=d.catalog||[];state.departments=NexaCatalog.setDepartments(Array.isArray(d.departments)?d.departments:[]);state.categoryIndex=Math.min(state.categoryIndex,Math.max(0,state.catalog.length-1));renderCatalog()}
 function setPath(path,value){const parts=path.split('.');let node=state.catalog;for(let i=0;i<parts.length-1;i++)node=node[parts[i]];node[parts.at(-1)]=value}
@@ -873,7 +1057,7 @@ function renderCatalog(){
  $('categoryList').innerHTML='<div class="folder-tree-toolbar"><div><strong>شجرة المنتجات</strong><small>افتح المجلدات المتداخلة وحدد أي مستوى لتعديل محتواه.</small></div><div><button type="button" data-tree-expand-all>توسيع الكل</button><button type="button" data-tree-collapse-all>طيّ الكل</button></div></div>'+departments.map(department=>{
   const count=state.catalog.filter(row=>categoryDepartmentId(row)===department.id).reduce((sum,row)=>sum+(row.items||[]).length,0);
   const active=state.selectedDepartmentId===department.id&&(state.categoryIndex<0||categoryDepartmentId(cat)===department.id);
-  return '<button type="button" class="category-choice department-choice '+(active?'active':'')+'" data-department-id="'+esc(department.id)+'"><span>'+esc(department.icon)+'</span><strong>'+esc(department.name)+'</strong><span>'+count+'</span></button>'+
+  return '<button type="button" class="category-choice department-choice '+(active?'active':'')+'" data-department-id="'+esc(department.id)+'"><span>'+(department.iconImage?'<img src="'+esc(department.iconImage)+'" alt="">':esc(department.icon))+'</span><strong>'+esc(department.name)+'</strong><span>'+count+'</span></button>'+
    renderFolderBranch(null,department.id,1);
  }).join('')||'<div class="empty">لا توجد مجلدات.</div>';
  if(!cat){
@@ -884,7 +1068,8 @@ function renderCatalog(){
    <div class="category-editor"><div><span class="eyebrow">MAIN DEPARTMENT SETTINGS</span><h3 style="margin:3px 0">${esc(department.name)}</h3><p class="muted">هذا هو القسم الأعلى في شجرة الكتالوج. إعداداته مستقلة عن المجلدات والمنتجات الموجودة تحته.</p></div><div class="toolbar"><span class="tag">${folderCount} مجلدات</span><span class="tag">${department.visible===false?'مخفي':'ظاهر'}</span></div></div>
    <div class="form-grid">
     ${departmentField('اسم القسم الرئيسي',department.id,'name',department.name)}
-    ${departmentField('الأيقونة',department.id,'icon',department.icon)}
+    ${departmentField('الأيقونة النصية (بديلة عند عدم رفع صورة)',department.id,'icon',department.icon)}
+    <div class="field full"><label>صورة أيقونة القسم الرئيسي</label><div class="image-row"><img class="image-preview" src="${esc(department.iconImage||department.cover)}" alt=""><div><input data-department-path="${esc(department.id)}.iconImage" value="${esc(department.iconImage||'')}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع أيقونة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-department-icon-image="${esc(department.id)}"></label></div></div></div>
     ${departmentField('ترتيب الظهور (الأقل أولاً · 0 تلقائي)',department.id,'sortOrder',department.sortOrder||0,{type:'number',step:1,min:0,max:1000000})}
     ${departmentField('الوصف الظاهر للعملاء',department.id,'description',department.description,{type:'textarea',full:true,max:300})}
     <label class="inline-check"><input type="checkbox" data-department-path="${esc(department.id)}.visible" ${department.visible===false?'':'checked'}> إظهار القسم الرئيسي في المتجر</label>
@@ -1071,6 +1256,7 @@ $('catalogEditor').addEventListener('input',e=>{
 $('catalogEditor').addEventListener('change',async e=>{
  const el=e.target;
  if(el.dataset.departmentImage){await handleDepartmentImageUpload(el);return;}
+ if(el.dataset.departmentIconImage){await handleDepartmentIconImageUpload(el);return;}
  if(el.dataset.imagePath){await handleImageUpload(el);return;}
  if(el.dataset.path){
   const parts=el.dataset.path.split('.');
@@ -1104,6 +1290,14 @@ async function handleDepartmentImageUpload(input){
  if(file.size>10*1024*1024){toast('الصورة أكبر من 10 ميغابايت.');input.value='';return;}
  try{const data=await compressImage(file);setDepartmentPath(input.dataset.departmentImage+'.cover',data);renderCatalog();toast('تم تجهيز صورة القسم الرئيسي. اضغط حفظ التعديلات لنشرها.');}
  catch{toast('تعذر قراءة الصورة.');}
+ input.value='';
+}
+
+async function handleDepartmentIconImageUpload(input){
+ const file=input.files?.[0];if(!file)return;
+ if(file.size>10*1024*1024){toast('الصورة أكبر من 10 ميغابايت.');input.value='';return;}
+ try{const data=await compressImage(file);setDepartmentPath(input.dataset.departmentIconImage+'.iconImage',data);renderCatalog();toast('تم تجهيز أيقونة القسم. اضغط حفظ كل التعديلات لنشرها.');}
+ catch{toast('تعذر قراءة الأيقونة.');}
  input.value='';
 }
 async function handleImageUpload(input){
@@ -1196,7 +1390,47 @@ function renderSettings(d={}){const s=state.settings;$('storeName').value=s.stor
   $('bestStorePricingValue').value=bestPolicy.value??0;
   $('bestStoreAutoRefreshEnabled').checked=s.bestStoreAutoRefreshEnabled!==false;
   $('bestStoreRefreshIntervalMinutes').value=s.bestStoreRefreshIntervalMinutes??15;
-  $('bestStoreFxRateDisplay').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س لكل 1 USD';}
+  $('bestStoreFxRateDisplay').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س لكل 1 USD';renderAppearanceSettings();}
+
+const appearanceFeatureKeys=['notifications','favorites','wallet','payments','orders','support','affiliate','security','verification','assistant','install','social'];
+const appearanceDefaults={brandSubtitle:'DIGITAL STORE',avatarImage:'',rankImage:'',features:{notifications:true,favorites:true,wallet:true,payments:true,orders:true,support:true,affiliate:true,security:true,verification:true,assistant:true,install:true,social:true},colors:{notification:'#b99b70',profileRing:'#8eaa94',favorite:'#c77c8c',rank:'#b99b70'},social:{whatsappUrl:'https://wa.me/963936382101',instagramUrl:'https://www.instagram.com/',tiktokUrl:'https://www.tiktok.com/',telegramUrl:'https://t.me/',youtubeUrl:'https://www.youtube.com/'}};
+function applyAppearancePreview(){
+ const colors={notification:$('appearanceNotificationColor').value,profileRing:$('appearanceProfileRingColor').value,favorite:$('appearanceFavoriteColor').value,rank:$('appearanceRankColor').value};
+ $('appearancePreviewBell').style.color=colors.notification;$('appearancePreviewProfile').style.borderColor=colors.profileRing;$('appearancePreviewHeart').style.color=colors.favorite;$('appearancePreviewRank').style.color=colors.rank;
+ document.documentElement.style.setProperty('--appearance-profile-ring',colors.profileRing);document.documentElement.style.setProperty('--appearance-rank',colors.rank);
+}
+function renderAppearanceSettings(){
+ const value=state.settings.storefrontExperience||{},features={...appearanceDefaults.features,...(value.features||{})},colors={...appearanceDefaults.colors,...(value.colors||{})},social={...appearanceDefaults.social,...(value.social||{})};
+ document.querySelectorAll('[data-appearance-feature]').forEach(input=>{input.checked=features[input.dataset.appearanceFeature]!==false;});
+ $('appearanceNotificationColor').value=colors.notification;$('appearanceProfileRingColor').value=colors.profileRing;$('appearanceFavoriteColor').value=colors.favorite;$('appearanceRankColor').value=colors.rank;
+ $('appearanceAvatarImage').value=value.avatarImage||'';$('appearanceRankImage').value=value.rankImage||'';
+ $('appearanceAvatarPreview').src=value.avatarImage||state.settings.storeLogo||'assets/brand/logo.svg';$('appearanceRankPreview').src=value.rankImage||'assets/brand/logo.svg';
+ $('appearanceBrandSubtitle').value=value.brandSubtitle??appearanceDefaults.brandSubtitle;
+ $('appearanceWhatsAppUrl').value=social.whatsappUrl||'';$('appearanceInstagramUrl').value=social.instagramUrl||'';$('appearanceTikTokUrl').value=social.tiktokUrl||'';$('appearanceTelegramUrl').value=social.telegramUrl||'';$('appearanceYouTubeUrl').value=social.youtubeUrl||'';
+ applyAppearancePreview();
+}
+async function uploadAppearanceImage(input,fieldId,previewId){
+ const file=input.files?.[0];if(!file)return;
+ if(file.size>10*1024*1024){toast('الصورة أكبر من 10 ميغابايت.');input.value='';return;}
+ try{const image=await compressImage(file);$(fieldId).value=image;$(previewId).src=image;toast('تم تجهيز الصورة. اضغط حفظ جميع التخصيصات.');}
+ catch{toast('تعذر قراءة الصورة.');}
+ input.value='';
+}
+async function saveAppearanceSettings(){
+ const features={};for(const key of appearanceFeatureKeys)features[key]=document.querySelector('[data-appearance-feature="'+key+'"]').checked;
+ const payload={storefrontExperience:{brandSubtitle:$('appearanceBrandSubtitle').value.trim(),avatarImage:$('appearanceAvatarImage').value,rankImage:$('appearanceRankImage').value,features,colors:{notification:$('appearanceNotificationColor').value,profileRing:$('appearanceProfileRingColor').value,favorite:$('appearanceFavoriteColor').value,rank:$('appearanceRankColor').value},social:{whatsappUrl:$('appearanceWhatsAppUrl').value.trim(),instagramUrl:$('appearanceInstagramUrl').value.trim(),tiktokUrl:$('appearanceTikTokUrl').value.trim(),telegramUrl:$('appearanceTelegramUrl').value.trim(),youtubeUrl:$('appearanceYouTubeUrl').value.trim()}}};
+ const result=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(payload)});
+ state.settings=result.settings||state.settings;renderSettings(result);
+ try{localStorage.setItem('nexa-storefront-experience-updated',String(Date.now()));}catch{}
+ toast('تم حفظ تخصيصات المتجر وتطبيقها في الإعدادات العامة.');return result;
+}
+document.querySelectorAll('[data-appearance-color]').forEach(input=>input.addEventListener('input',applyAppearancePreview));
+$('appearanceAvatarFile').addEventListener('change',event=>uploadAppearanceImage(event.currentTarget,'appearanceAvatarImage','appearanceAvatarPreview'));
+$('appearanceRankFile').addEventListener('change',event=>uploadAppearanceImage(event.currentTarget,'appearanceRankImage','appearanceRankPreview'));
+$('clearAppearanceAvatar').addEventListener('click',()=>{$('appearanceAvatarImage').value='';$('appearanceAvatarPreview').src=state.settings.storeLogo||'assets/brand/logo.svg';});
+$('clearAppearanceRank').addEventListener('click',()=>{$('appearanceRankImage').value='';$('appearanceRankPreview').src='assets/brand/logo.svg';});
+$('saveAppearanceBtn').addEventListener('click',async()=>{const button=$('saveAppearanceBtn');button.disabled=true;try{await saveAppearanceSettings();}catch(error){toast(error.message);}finally{button.disabled=false;}});
+
 $('fxMode').addEventListener('change',()=>{$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api')});
 function paymentPayload(){return{paymentEnabled:$('paymentEnabled').checked,shamApiBase:$('shamApiBase').value.trim(),shamApiToken:$('shamApiToken').value,clearShamApiToken:$('clearShamApiToken').checked,walletId:$('walletId').value.trim(),receiverLabel:$('receiverLabel').value.trim(),orderTtlMinutes:Number($('orderTtlMinutes').value),maxAgeMinutes:Number($('maxAgeMinutes').value),futureSkewSeconds:Number($('futureSkewSeconds').value),timezoneOffsetMinutes:Number($('timezoneOffsetMinutes').value)}}
 $('savePaymentsBtn').addEventListener('click',async()=>{const b=$('savePaymentsBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(paymentPayload())});state.settings=d.settings;renderSettings(d);toast('تم حفظ إعدادات شام كاش والمحفظة.')}catch(e){toast(e.message)}finally{b.disabled=false}});
