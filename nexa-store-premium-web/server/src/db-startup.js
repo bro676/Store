@@ -21,9 +21,9 @@ function isRetryableDatabaseError(error) {
 }
 
 export async function waitForDatabase(pool, {
-  attempts = 5,
-  baseDelayMs = 500,
-  maxDelayMs = 3000,
+  attempts = 12,
+  baseDelayMs = 1000,
+  maxDelayMs = 5000,
   sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms)),
   onRetry,
 } = {}) {
@@ -54,4 +54,36 @@ export async function waitForDatabase(pool, {
       if (delayMs > 0) await sleep(delayMs);
     }
   }
+}
+
+
+/**
+ * Guard a checked-out pg client against connection-level error events.
+ * pg.Pool reports errors for idle clients, but a connection can also reset
+ * while application code holds it inside a transaction. Keep that error
+ * handled and evict the damaged client when the caller releases it.
+ */
+export function guardPoolClient(client, onError = () => {}) {
+  if (!client || typeof client.on !== 'function' || typeof client.release !== 'function') {
+    throw new TypeError('A checked-out PostgreSQL client is required.');
+  }
+
+  const originalRelease = client.release.bind(client);
+  let connectionError = null;
+  let released = false;
+
+  const handleError = error => {
+    connectionError ||= error || new Error('PostgreSQL client connection failed.');
+    try { onError(connectionError, client); } catch {}
+  };
+
+  client.on('error', handleError);
+  client.release = error => {
+    if (released) return;
+    released = true;
+    client.removeListener?.('error', handleError);
+    return originalRelease(connectionError || error);
+  };
+
+  return client;
 }
