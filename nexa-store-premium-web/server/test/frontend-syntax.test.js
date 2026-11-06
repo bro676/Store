@@ -843,6 +843,7 @@ test('storefront controls are persisted, validated and applied to real UI elemen
   assert.ok(admin.includes('data-department-icon-image='), 'Main department icon image upload is available');
   assert.ok(store.includes('function applyStorefrontExperience(value={})'), 'Storefront applies published appearance settings');
   assert.ok(store.includes("document.querySelectorAll(selector).forEach(element=>element.classList.toggle('storefront-feature-disabled',!enabled))"), 'Feature switches change visibility in the storefront');
+  assert.ok(store.includes("storefront-favorites-disabled',storefrontExperience.features.favorites===false"), 'Newly rendered favorite buttons also obey the saved feature switch');
   assert.ok(store.includes('pageFeature={notifications:'), 'Disabled feature pages cannot be opened through navigation');
   assert.ok(store.includes("id=\"sidebarVipIconImage\""), 'Rank icon supports a configured image');
   assert.ok(store.includes('group.iconImage?'), 'Category tiles render configured department icon images');
