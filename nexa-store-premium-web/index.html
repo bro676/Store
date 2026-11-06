@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#3f4a75">
+<meta name="theme-color" content="#0c0c0c">
 <meta name="description" content="Nexa Store — متجر رقمي للألعاب والبطاقات والاشتراكات والخدمات الرقمية.">
 <title>Nexa Store | متجرك الرقمي</title>
 <style>
@@ -605,7 +605,10 @@ body{
 
 </style>
 <link rel="stylesheet" href="/assets/brand/nexa-wamda-blue.css?v=20261105-wamda-brand-v12">
-<link rel="stylesheet" href="/assets/brand/nexa-store-drawer.css?v=20261106-reference-v2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/brand/nexa-store-drawer.css?v=20261106-performance-v3">
 </head>
 <body>
 <div class="app-shell">
@@ -643,8 +646,8 @@ body{
     </div>
 
     <div class="sidebar-quick-actions" aria-label="اختصارات الحساب">
-      <button type="button" data-page="wallet" title="إضافة رصيد" aria-label="إضافة رصيد">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5H20v14H5a2 2 0 0 1-2-2V7.5Z"/><path d="M3 9h17M16 13h.01"/><path d="M8 2v5"/></svg>
+      <button type="button" id="sidebarLanguageToggle" class="sidebar-language-toggle" title="تغيير اللغة" aria-label="تغيير اللغة">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v18M5 4h14l-3.5 4L19 12H5"/></svg>
       </button>
       <button type="button" data-page="favorites" title="المفضلة" aria-label="المفضلة">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 8.8c0 5.2-8.5 10-8.5 10s-8.5-4.8-8.5-10A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8.5 2.8Z"/></svg>
@@ -652,10 +655,13 @@ body{
       <button type="button" data-page="profile" title="حسابي" aria-label="حسابي">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="3.4"/><path d="M3 20a7 7 0 0 1 14 0M19 8v6M16 11h6"/></svg>
       </button>
-      <button type="button" id="sidebarLanguageToggle" class="sidebar-language-toggle" title="Switch to English" aria-label="Switch to English">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v18M5 4h14l-3.5 4L19 12H5"/></svg>
+      <button type="button" id="sidebarLogoutButton" class="sidebar-logout-shortcut" title="تسجيل الخروج" aria-label="تسجيل الخروج">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h7a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-7"/></svg>
       </button>
     </div>
+  </div>
+
+  <button class="sidebar-currency"    </div>
   </div>
 
   <button class="sidebar-currency" id="sidebarCurrencyToggle" type="button" aria-label="تبديل عملة العرض" title="تبديل عملة العرض">
@@ -1030,7 +1036,7 @@ body{
 </section>
 <div class="toast" id="toast"></div>
 <script src="/assets/brand/nexa-catalog.js?v=20261106-catalog-manager-v2"></script>
-<script src="/assets/brand/nexa-store-language.js?v=20261106-bilingual-v1"></script>
+<script src="/assets/brand/nexa-store-language.js?v=20261106-performance-v2"></script>
 <script>
 let categories=[];
 let storefrontDisplayCurrency='USD',storefrontFxRate=145,storefrontFxReady=false,storefrontLanguage='ar',walletTransactions=[];
@@ -1715,11 +1721,11 @@ function renderWalletLedger(){
 function refreshDisplayCurrency(){
  syncSidebarCurrency();
  renderSidebarAccount();
- renderFeatured();
+ if(state.view==='home')renderFeatured();
  if(state.view==='store')renderCatalog();
  if(state.view==='profile')renderProfilePage();
  if($('walletBalanceValue')&&customerAccount)$('walletBalanceValue').textContent=formatDisplayMinor(customerAccount.balance_minor||'0','SYP');
- renderWalletLedger();
+ if(state.view==='wallet')renderWalletLedger();
  if(state.selectedPack&&$('orderModal')?.classList.contains('open'))$('modalPrice').textContent=money(state.selectedPack.price);
 }
 function setStoreDisplayCurrency(currency,{persist=true,notify=false}={}){
@@ -1736,15 +1742,16 @@ function initializeStorePreferences(){
   const next=storeLocale()==='ar'?'en':'ar';
   storefrontLanguage=next;
   window.NexaLocale?.setLanguage(next);
-  syncSidebarCurrency();
-  refreshDisplayCurrency();
   showToast(next==='en'?'Language changed to English':'تم تغيير اللغة إلى العربية');
+ });
+ $('sidebarLogoutButton')?.addEventListener('click',()=>{
+  if(!customerAccount){navigate('profile');showToast('سجّل الدخول أولاً.');return;}
+  $('accountLogoutButton')?.click();
  });
  $('sidebarCurrencyToggle')?.addEventListener('click',()=>setStoreDisplayCurrency(storefrontDisplayCurrency==='USD'?'SYP':'USD',{notify:true}));
  window.addEventListener('nexa:languagechange',event=>{
   storefrontLanguage=event.detail?.language||storeLocale();
   syncSidebarCurrency();
-  refreshDisplayCurrency();
  });
  window.addEventListener('storage',event=>{
   if(event.key==='nexa-store-display-currency'&&(event.newValue==='USD'||event.newValue==='SYP'))setStoreDisplayCurrency(event.newValue,{persist:false});
@@ -1793,7 +1800,7 @@ function setStoreColorMode(mode,{persist=true}={}){
  if(label)label.textContent=selected==='dark'?'الوضع الداكن':'الوضع الفاتح';
  if(button){button.title=selected==='dark'?'التبديل إلى الوضع الفاتح':'التبديل إلى الوضع الداكن';button.setAttribute('aria-label',button.title);button.setAttribute('aria-pressed',String(selected==='dark'));}
  // The drawer has its own fixed reference colors; browser chrome keeps the storefront-wide theme colors.
- const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=selected==='dark'?'#3f4a75':'#f4efea';
+ const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=selected==='dark'?'#0c0c0c':'#ffffff';
  // Legacy text-only label contract: button.textContent=selected==='dark'?'☀ الوضع الفاتح':'☾ الوضع الداكن'; the SVG and label span now render it separately.
 }
 function initializeStoreColorMode(){
@@ -1948,32 +1955,20 @@ initializeStorePreferences();
 init();
 </script>
 <script>
-/* Keep each text run in its natural writing direction, including dynamic content. */
+/* Keep form controls bidirectional without a document-wide text MutationObserver. */
 (() => {
-  const selector='h1,h2,h3,h4,p,span,strong,small,label,th,td,li,summary,blockquote,figcaption,button,a,div,em,b,i';
-  const markDirection=()=>{
-    document.querySelectorAll(selector).forEach((element)=>{
-      if(element.closest('.ltr') || (element.hasAttribute('dir') && !element.dataset.textDirection && element.getAttribute('dir')!=='auto')) return;
-      if(element.closest('svg,script,style,code,pre')) return;
-      if(['DIV','SECTION','ARTICLE'].includes(element.tagName) && element.children.length) return;
-      const content=(element.textContent||'').trim();
-      const first=content.match(/[\u0600-\u06FF]|[A-Za-z]/);
-      if(!first) return;
-      const direction=/[\u0600-\u06FF]/.test(first[0])?'rtl':'ltr';
-      if(element.dataset.textDirection!==direction||element.getAttribute('dir')!==direction){
-       element.setAttribute('dir',direction);
-       element.dataset.textDirection=direction;
-      }
-    });
-    document.querySelectorAll('input,textarea,select').forEach((element)=>{
-      if(!element.hasAttribute('dir')) element.setAttribute('dir','auto');
-      element.dataset.textDirectionControl='auto';
-    });
-  };
-  markDirection();
-  const observer=new MutationObserver(()=>markDirection());
-  observer.observe(document.body,{childList:true,subtree:true,characterData:true});
+  const controls=document.querySelectorAll('input,textarea,select');
+  controls.forEach(control=>{
+    if(!control.hasAttribute('dir'))control.setAttribute('dir','auto');
+  });
+  document.addEventListener('focusin',event=>{
+    const control=event.target;
+    if(control instanceof Element && control.matches('input,textarea,select') && !control.hasAttribute('dir')){
+      control.setAttribute('dir','auto');
+    }
+  },true);
 })();
+</script>
 </script>
 </body>
 </html>
