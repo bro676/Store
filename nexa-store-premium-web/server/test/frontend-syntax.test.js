@@ -868,5 +868,5 @@ test('admin can safely manage individual customer profile images', async () => {
   assert.ok(admin.includes('id="page-customers"') && admin.includes('id="customerAdminGrid"'), 'Dashboard exposes the individual customer profile editor');
   assert.ok(admin.includes("'/api/admin/customers/'+encodeURIComponent(customerId)+'/avatar'"), 'Dashboard saves profile images using the customer-specific API');
   assert.ok(admin.includes('data-customer-avatar='), 'Each customer card has its own image upload control');
-  assert.ok(store.includes('customerAccount.avatar_image||storefrontExperience?.avatarImage||storefrontLogoImage'), 'The logged-in customer's own image takes precedence over the storefront fallback');
+  assert.ok(store.includes("customerAccount.avatar_image||storefrontExperience?.avatarImage||storefrontLogoImage"), "The logged-in customer image takes precedence over the storefront fallback");
 });
