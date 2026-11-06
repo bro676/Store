@@ -1891,25 +1891,25 @@ async function loadStorefrontConfig(){
  try{
   const response=await fetch('/api/storefront-config',{cache:'no-store'});
   if(!response.ok)return;
-  const data=await response.json();
-  const rate=Number(data.fxRate);
+  const d=await response.json();
+  const rate=Number(d.fxRate);
   if(Number.isFinite(rate)&&rate>0)storefrontFxRate=rate;
-  storefrontFxReady=data.fxReady===true;
-  applyStorefrontExperience(data.storefrontExperience||{});
+  storefrontFxReady=d.fxReady===true;
+  applyStorefrontExperience(d.storefrontExperience||{});
   syncSidebarCurrency();
-  if(data.storeName){
-   document.title=storeLocale()==='en'?'Nexa Store | Your digital store':data.storeName+' | متجرك الرقمي';
+  if(d.storeName){
+   document.title=storeLocale()==='en'?'Nexa Store | Your digital store':d.storeName+' | متجرك الرقمي';
    const brand=document.querySelector('.sidebar-brand strong'),headerBrand=document.querySelector('.header-brand-copy strong'),footerName=document.querySelector('.footer-brand strong');
-   if(brand)brand.textContent=data.storeName;if(headerBrand)headerBrand.textContent=data.storeName;if(footerName)footerName.textContent=data.storeName;
+   if(brand)brand.textContent=d.storeName;if(headerBrand)headerBrand.textContent=d.storeName;if(footerName)footerName.textContent=d.storeName;
   }
-  if(data.storeLogo){
+  if(d.storeLogo){
    const selectors=['.sidebar-brand img','.sidebar-owner-brand img','.header-brand-logo','.home-intro-brand-mark img','.footer-brand img'];
-   selectors.forEach(selector=>document.querySelectorAll(selector).forEach(element=>element.src=data.storeLogo));
+   selectors.forEach(selector=>document.querySelectorAll(selector).forEach(element=>element.src=d.storeLogo));
    const avatar=$('sidebarProfileAvatar')?.querySelector('img');
-   if(avatar&&!storefrontExperience?.avatarImage)avatar.src=data.storeLogo;
+   if(avatar&&!storefrontExperience?.avatarImage)avatar.src=d.storeLogo;
   }
   const promo=document.querySelector('.promo-inner');
-  if(promo){promo.textContent=String(data.announcement||'');promo.parentElement?.classList.toggle('storefront-feature-disabled',!String(data.announcement||'').trim());}
+  if(promo){promo.textContent=String(d.announcement||'');promo.parentElement?.classList.toggle('storefront-feature-disabled',!String(d.announcement||'').trim());}
  }catch{}
 }
 window.addEventListener('storage',event=>{if(event.key==='nexa-storefront-experience-updated')loadStorefrontConfig();});
