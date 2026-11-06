@@ -455,9 +455,11 @@
       if(!element.hasAttribute(name))continue;
       const current=element.getAttribute(name)||'';
       if(stored[name]===undefined)stored[name]=current;
-      else if(language==='en'){
-        const oldEnglish=translations[normalize(stored[name])];
-        if(oldEnglish&&normalize(current)!==normalize(oldEnglish)&&!reverse.has(normalize(current)))stored[name]=current;
+      else if(normalize(current)!==normalize(language==='en'?(translations[normalize(stored[name])]||stored[name]):stored[name])){
+        const currentKey=normalize(current);
+        const recovered=reverse.get(currentKey);
+        if(recovered)stored[name]=recovered;
+        else stored[name]=current;
       }
       const next=language==='en'?translated(stored[name]):stored[name];
       if(current!==next)element.setAttribute(name,next);
