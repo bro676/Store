@@ -1145,7 +1145,7 @@ function navigate(view,{historyMode='push',syncLocation=true}={}){
  if(view==='favorites')renderFavorites();
  if(view==='home')renderFeatured();
  if(view==='support')renderSupportState();
- renderSidebarAccount();window.scrollTo({top:0,behavior:'smooth'});if(window.matchMedia('(max-width: 1024px)').matches)closeMenu();
+ renderSidebarAccount();if(storeDrawerMedia.matches)closeMenu(true);window.scrollTo({top:0,behavior:'smooth'});
 }
 window.addEventListener('popstate',()=>navigate(resolveStoreLocation(),{syncLocation:false}));
 const storeDrawerMedia=window.matchMedia('(max-width: 1024px)');
@@ -1221,8 +1221,17 @@ function setStoreMenuState(open,restoreFocus=false){
 }
 function closeMenu(restoreFocus=false){setStoreMenuState(false,restoreFocus)}
 function openMenu(){setStoreMenuState(true)}
+let storeDrawerWasMobile=storeDrawerMedia.matches;
 function syncStoreMenuToViewport(){
- setStoreMenuState(!storeDrawerMedia.matches,true);
+ const nextMobile=storeDrawerMedia.matches;
+ const previousOpen=storeDrawerWasMobile?document.body.classList.contains('sidebar-open'):!document.body.classList.contains('sidebar-closed');
+ const sidebar=$('sidebar'),toggle=$('menuToggle');
+ const focusWasInside=Boolean(sidebar?.contains?.(document.activeElement));
+ const focusWasOnToggle=document.activeElement===toggle;
+ setStoreMenuState(!nextMobile,false);
+ if(nextMobile&&(previousOpen||focusWasInside||focusWasOnToggle))toggle?.focus({preventScroll:true});
+ else if(!nextMobile&&(focusWasInside||focusWasOnToggle))sidebar?.querySelector?.('.sidebar-nav .side-link')?.focus({preventScroll:true});
+ storeDrawerWasMobile=nextMobile;
 }
 if(storeDrawerMedia.addEventListener)storeDrawerMedia.addEventListener('change',syncStoreMenuToViewport);
 else if(storeDrawerMedia.addListener)storeDrawerMedia.addListener(syncStoreMenuToViewport);
