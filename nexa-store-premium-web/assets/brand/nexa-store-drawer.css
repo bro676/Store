@@ -272,3 +272,6 @@
   .app-shell .sidebar,.app-shell .side-link,.app-shell .sidebar-theme-toggle{transition:none!important}
 }
 /* Keep the customer drawer isolated from the admin rail and the page theme. */
+
+/* Preserved route target, intentionally hidden because the reference drawer does not show this row. */
+.app-shell .drawer-compat-link{display:none!important}
