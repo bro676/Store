@@ -47,7 +47,7 @@ test('auto direction works below an RTL document root and respects nested explic
   if(parentElement){parentElement.children.push(element);parentElement.childNodes.push(element);}
   return element;
  };
- const html=createElement('html');
+ const html=createElement('html',null,'rtl');
  const body=createElement('body',html);
  const paragraph=createElement('p',body);
  const explicitRegion=createElement('section',body,'rtl');
