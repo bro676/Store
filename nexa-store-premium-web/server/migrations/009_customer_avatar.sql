@@ -1,0 +1,2 @@
+ALTER TABLE nexa_customers
+  ADD COLUMN IF NOT EXISTS avatar_image TEXT NOT NULL DEFAULT '';
