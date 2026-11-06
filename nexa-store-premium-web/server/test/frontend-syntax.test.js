@@ -669,7 +669,7 @@ test('Wamda final detail pass covers catalog, account states and admin light nav
 test('storefront drawer matches the fixed dark/light reference palette without changing customer routes', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-neutral-tree-v1'), 'Storefront loads the dedicated reference drawer layer');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-light-neutral-v2'), 'Storefront loads the dedicated reference drawer layer');
   for (const id of ['sidebarBalanceValue','sidebarThemeLabel','sidebarSocialLinks','sidebarOwnerBrand']) {
     if (id === 'sidebarSocialLinks' || id === 'sidebarOwnerBrand') continue;
     assert.ok(store.includes('id="' + id + '"'), 'Missing drawer reference element: ' + id);
