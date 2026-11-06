@@ -20,7 +20,8 @@
     }
 
     if (!element.matches(TEXT_SELECTOR) || element.hasAttribute('dir')) return;
-    if (element.parentElement?.closest('[dir]:not([dir="auto"])')) return;
+    const explicitDirectionBoundary = element.parentElement?.closest('[dir]:not([dir="auto"])');
+    if (explicitDirectionBoundary && explicitDirectionBoundary !== document.documentElement) return;
     if (['DIV', 'SECTION', 'ARTICLE'].includes(element.tagName) && element.children.length) {
       const hasDirectText = Array.from(element.childNodes).some(node => node.nodeType === 3 && node.textContent.trim());
       if (!hasDirectText) return;

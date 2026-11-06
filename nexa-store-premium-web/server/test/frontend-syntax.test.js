@@ -572,7 +572,7 @@ test('Wamda palette, theme boundaries, oval geometry and bilingual direction are
   assert.ok(css.includes('.app-shell .header-back-button{display:none!important}'), 'The topbar contains only the logo/name at left and action group at right');
   assert.ok(css.includes('direction:rtl!important;flex-direction:row!important;'), 'Header actions are ordered from the physical right');
   assert.ok(css.includes('margin-left:auto!important;margin-right:0!important;'), 'Header actions are anchored to the right');
-  const directionSource='/assets/brand/nexa-text-direction.js?v=20261106-incremental-direction-v1';
+  const directionSource='/assets/brand/nexa-text-direction.js?v=20261106-incremental-direction-v2';
   assert.ok(locale.includes('document.documentElement.dataset.locale=language') && direction.includes("element.setAttribute('dir', 'auto')") && store.includes(directionSource) && admin.includes(directionSource), 'Store and dashboard use the shared browser-managed bilingual direction helper');
   assert.ok(store.includes('nexa-wamda-blue.css?v=20261106-admin-catalog-performance-v1') && admin.includes('nexa-wamda-blue.css?v=20261106-admin-catalog-performance-v1'), 'Both pages load the refreshed stylesheet');
   assert.ok(!logo.includes('#73d7fa') && !logo.includes('#168ec5'), 'Nexa logo no longer uses the retired blue gradient');
