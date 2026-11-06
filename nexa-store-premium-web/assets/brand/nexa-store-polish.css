@@ -273,9 +273,10 @@ body{line-height:1.72!important;background:var(--paper)!important;color:var(--in
 }
 @media(hover:none) and (pointer:coarse){
   .app-shell .sidebar-nav .side-link{min-height:44px!important}
-  .app-shell .sidebar .sidebar-close,
-  .app-shell .sidebar .sidebar-theme-toggle,
-  .app-shell .menu-toggle{min-height:44px!important}
+  .app-shell .sidebar .sidebar-close,.app-shell .menu-toggle{
+    width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;flex:0 0 44px!important;
+  }
+  .app-shell .sidebar .sidebar-theme-toggle{min-height:44px!important}
 }
 @media(prefers-reduced-motion:reduce){
   .app-shell .sidebar,.app-shell .sidebar-backdrop,.app-shell .sidebar-nav .side-link,
