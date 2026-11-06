@@ -87,3 +87,38 @@ test('database startup fails clearly after exhausting transient retries', async 
 test('database startup validates the PostgreSQL pool input', async () => {
   await assert.rejects(waitForDatabase(null), TypeError);
 });
+
+test('database errors are classified by PostgreSQL/network codes, including nested causes', async () => {
+  const { isRetryableDatabaseError } = await import('../src/db-startup.js');
+  for (const code of ['ENOTFOUND','EAI_AGAIN','ECONNREFUSED','ECONNRESET','ETIMEDOUT','08004']) {
+    assert.equal(isRetryableDatabaseError({ code }), true, code + ' should retry');
+  }
+  assert.equal(isRetryableDatabaseError({ cause: { code: 'ECONNRESET' } }), true);
+  assert.equal(isRetryableDatabaseError({ code: '28P01' }), false, 'Authentication errors are not treated as transient');
+  assert.equal(isRetryableDatabaseError(new Error('unknown error')), false);
+});
+
+test('background database retry schedule backs off to one minute and throttles repeated logs', async () => {
+  const { nextDatabaseRetry } = await import('../src/db-startup.js');
+  let state = null;
+  const delays = [];
+  const first = nextDatabaseRetry(state, 1_000);
+  state = first; delays.push(first.delayMs);
+  assert.equal(first.shouldLog, true);
+  for (const now of [6_000,16_000,36_000,76_000,136_000]) {
+    const next = nextDatabaseRetry(state, now);
+    state = next; delays.push(next.delayMs);
+    if (now < 61_000) assert.equal(next.shouldLog, false, 'Logs stay throttled inside the one-minute window');
+  }
+  assert.deepEqual(delays,[5_000,10_000,20_000,40_000,60_000,60_000]);
+  const afterLogWindow=nextDatabaseRetry(state,197_000);
+  assert.equal(afterLogWindow.shouldLog,true,'A new diagnostic is emitted after the one-minute log interval');
+  assert.equal(afterLogWindow.nextLogAt,257_000);
+});
+
+test('non-transient database claim errors use a slow diagnostic retry cadence', async () => {
+  const { nextDatabaseRetry } = await import('../src/db-startup.js');
+  const retry=nextDatabaseRetry(null,5_000,{baseDelayMs:60_000,maxDelayMs:60_000});
+  assert.equal(retry.delayMs,60_000);
+  assert.equal(retry.nextAttemptAt,65_000);
+});
