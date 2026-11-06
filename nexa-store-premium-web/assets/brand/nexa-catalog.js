@@ -310,6 +310,28 @@
   departmentSummaryCache.set(source,result);
   return result;
  }
+ function createDebouncedTask(callback,delayMs=140,scheduler=window){
+  if(typeof callback!=='function')throw new TypeError('A callback is required.');
+  const delay=Number.isFinite(delayMs)&&delayMs>=0?delayMs:140;
+  let timer=null,generation=0;
+  return Object.freeze({
+   schedule(...args){
+    if(timer!==null)scheduler.clearTimeout(timer);
+    const ticket=++generation;
+    timer=scheduler.setTimeout(()=>{
+     if(ticket!==generation)return;
+     timer=null;
+     callback(...args);
+    },delay);
+    return ticket;
+   },
+   cancel(){
+    generation++;
+    if(timer!==null){scheduler.clearTimeout(timer);timer=null;}
+   },
+   get pending(){return timer!==null}
+  });
+ }
  function safeImage(candidate){
   const value=String(candidate??'').trim();if(!value||placeholders.has(value))return '';
   if(/^data:image\/(?:png|jpeg|webp|gif|svg\+xml);base64,/i.test(value))return value;
@@ -351,5 +373,5 @@
   if(pack)parts.push('packs','pack-'+slugify(pack?.[0]||'offer'));
   return parts.join('/');
  }
- window.NexaCatalog=Object.freeze({get departments(){return DEPARTMENTS.map(row=>Object.freeze({...row}))},setDepartments,classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,getCategoryDepartmentId,categoryAncestors,isCategoryVisible,getFolderProductCount,sortCategoriesByProductCount,compareDisplayOrder,getOrderedProducts,getOrderedCategories,getChildFolders,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
+ window.NexaCatalog=Object.freeze({createDebouncedTask,get departments(){return DEPARTMENTS.map(row=>Object.freeze({...row}))},setDepartments,classifyCategory,department,normalizeId,isValidPack,getProductOptions,initialOptionId,resolveProductNavigation,findProduct,findProductControl,getCategoryDepartmentId,categoryAncestors,isCategoryVisible,getFolderProductCount,sortCategoriesByProductCount,compareDisplayOrder,getOrderedProducts,getOrderedCategories,getChildFolders,getDepartmentSummaries,categoryImage,productImage,optionImage,slugify,folderFor});
 })();

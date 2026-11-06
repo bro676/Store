@@ -1127,7 +1127,14 @@ function resolveStoreLocation(){
  }
  return STORE_PATH_VIEWS[pathname]||'home';
 }
+const catalogSearchRender=NexaCatalog.createDebouncedTask((id,selectionStart,selectionEnd,selectionDirection)=>{
+ if(state.view!=='store')return;
+ renderCatalog();
+ const next=$(id);
+ if(next){next.focus({preventScroll:true});try{next.setSelectionRange(selectionStart,selectionEnd,selectionDirection)}catch{}}
+},140);
 function navigate(view,{historyMode='push',syncLocation=true}={}){
+ catalogSearchRender.cancel();
  const pageFeature={notifications:'notifications',favorites:'favorites',wallet:'wallet',payments:'payments',orders:'orders',support:'support',affiliate:'affiliate',security:'security',verify:'verification',install:'install',bot:'assistant'};
  if(storefrontExperience&&pageFeature[view]&&storefrontExperience.features[pageFeature[view]]===false){showToast(storeLocale()==='en'?'This section is currently unavailable.':'هذا القسم غير متاح حالياً.');view='home';historyMode='replace';}
  state.view=view;
@@ -2010,14 +2017,16 @@ async function init(){
   const element=target?.nodeType===1?target:target?.parentElement;
   return element?.closest?.(selector)||null;
  }
- document.addEventListener('click',e=>{const favoriteControl=eventElement(e,'[data-favorite]');if(favoriteControl){toggleFavorite(favoriteControl.dataset.favorite);return;}
+ document.addEventListener('click',e=>{const favoriteControl=eventElement(e,'[data-favorite]');if(favoriteControl){catalogSearchRender.cancel();toggleFavorite(favoriteControl.dataset.favorite);return;}
  const productControl=NexaCatalog.findProductControl(e)||eventElement(e,'[data-open-item]');
  if(productControl){
+  catalogSearchRender.cancel();
   e.preventDefault();e.stopPropagation();
   openItem(productControl.getAttribute('data-open-item'),productControl.getAttribute('data-open-category')||null);
   return;
  }
  const el=eventElement(e,'[data-open-assistant],[data-assistant-prompt],[data-page],[data-nav],[data-department],[data-category],[data-browse-category],[data-browse-item],[data-browse-option],[data-bc],[data-select-pack],[data-reset-catalog],[data-scroll],[data-catalog-page],[data-category-page],[data-product-page],[data-search-page]');if(!el)return;
+ catalogSearchRender.cancel();
  if(el.dataset.openAssistant!==undefined){openAssistant();return}
  if(el.dataset.assistantPrompt){sendAssistantPrompt(el.dataset.assistantPrompt);return}
  if(el.dataset.page){e.preventDefault();if(el.dataset.page==='store')resetCatalog();navigate(el.dataset.page);return}
@@ -2037,14 +2046,15 @@ async function init(){
  if(el.dataset.selectPack!==undefined){openOrder(Number(el.dataset.selectPack));return}
  if(el.dataset.resetCatalog){resetCatalog();renderCatalog();return}
  },true);
-  document.addEventListener('input',event=>{
+document.addEventListener('input',event=>{
  const id=event.target?.id;
  if(!['storeCatalogSearch','storeCategorySearch','storeProductSearch'].includes(id))return;
  const value=event.target.value;
  if(id==='storeCatalogSearch'){state.catalogQuery=value;state.catalogPage=1;}else if(id==='storeCategorySearch'){state.categoryQuery=value;state.categoryPage=1;}else{state.productQuery=value;state.productPage=1;}
- const keepId=id,caret=value.length;
- renderCatalog();
- const next=$(keepId);if(next){next.focus();try{next.setSelectionRange(caret,caret)}catch{}}
+ const selectionStart=Number.isFinite(event.target.selectionStart)?event.target.selectionStart:value.length;
+ const selectionEnd=Number.isFinite(event.target.selectionEnd)?event.target.selectionEnd:value.length;
+ const selectionDirection=event.target.selectionDirection||'none';
+ catalogSearchRender.schedule(id,selectionStart,selectionEnd,selectionDirection);
 });
 document.addEventListener('click',e=>{const copy=e.target.closest('[data-copy-value]');if(copy){const text=copy.dataset.copyValue||'';if(navigator.clipboard?.writeText)navigator.clipboard.writeText(text).then(()=>showToast('تم النسخ')).catch(()=>showToast('تعذر النسخ التلقائي'));else showToast('انسخ النص يدوياً من الحقل.');}});
 document.addEventListener('click',e=>{if(e.target.closest('[data-print-receipt]')){document.body.classList.add('printing-receipt');window.print();}});window.addEventListener('afterprint',()=>document.body.classList.remove('printing-receipt'));$('orderForm').addEventListener('submit',doOrder);$('orderCurrency').addEventListener('change',renderCurrencyPreview);

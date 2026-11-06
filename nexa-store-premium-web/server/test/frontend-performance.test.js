@@ -241,6 +241,64 @@ test('supplier comparison aggregates invalid-price diagnostics instead of loggin
  assert.ok(!server.includes("console.warn('supplier candidate skipped: invalid calculated supplier selling price'"),'The sync no longer emits a separate warning for every rejected product');
 });
 
+
+test('catalog search rendering is debounced, cancellable and preserves only the latest query',async()=>{
+ const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-catalog.js'),'utf8');
+ const window={};
+ vm.runInNewContext(source,{window,URL,Set,Map,WeakMap});
+ const api=window.NexaCatalog;
+ let nextId=0;
+ const pending=new Map(),callbacks=new Map(),delays=new Map();
+ const scheduler={
+  setTimeout(callback,delay){const id=++nextId;pending.set(id,callback);callbacks.set(id,callback);delays.set(id,delay);return id;},
+  clearTimeout(id){pending.delete(id);}
+ };
+ const rendered=[];
+ const task=api.createDebouncedTask(value=>rendered.push(value),140,scheduler);
+ task.schedule('p');
+ const stale=[...pending.values()][0];
+ task.schedule('pu');
+ assert.equal(pending.size,1,'Typing again cancels the previous pending render');
+ assert.equal(delays.get(nextId),140,'Search uses a short fixed debounce interval');
+ stale();
+ assert.deepEqual(rendered,[],'A stale callback cannot render after a newer query was scheduled');
+ const latest=pending.get(nextId);
+ pending.delete(nextId);
+ latest();
+ assert.deepEqual(rendered,['pu'],'Only the final query renders once');
+ task.schedule('cancelled route query');
+ const cancelled=[...pending.values()][0];
+ task.cancel();
+ assert.equal(task.pending,false,'Navigation cancels pending search rendering');
+ cancelled();
+ assert.deepEqual(rendered,['pu'],'A cancelled search cannot redraw a different route');
+
+ task.schedule('next');
+ const next=[...pending.values()][0];
+ pending.clear();
+ next();
+ assert.deepEqual(rendered,['pu','next'],'The scheduler remains reusable after cancellation');
+});
+
+test('storefront debounces expensive catalog search renders and cancels stale work on navigation and clicks',async()=>{
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ const navigateStart=store.indexOf('function navigate(view,');
+ const navigateEnd=store.indexOf('\n}',navigateStart);
+ const navigate=store.slice(navigateStart,navigateEnd<0?store.length:navigateEnd);
+ const clickStart=store.indexOf("document.addEventListener('click',e=>{const favoriteControl");
+ const clickEnd=store.indexOf('},true);',clickStart);
+ const click=store.slice(clickStart,clickEnd<0?store.length:clickEnd+8);
+ const inputStart=store.indexOf("document.addEventListener('input',event=>{");
+ const inputEnd=store.indexOf("\n});",inputStart);
+ const input=store.slice(inputStart,inputEnd<0?store.length:inputEnd);
+ assert.ok(store.includes('const catalogSearchRender=NexaCatalog.createDebouncedTask('),'The storefront uses the shared cancellable debouncer');
+ assert.ok(navigate.includes('catalogSearchRender.cancel();'),'Route changes cannot receive a stale catalog search render');
+ assert.ok(click.includes('catalogSearchRender.cancel()'),'Folder, product and pager clicks cancel a pending input render');
+ assert.ok(input.includes('catalogSearchRender.schedule(id,selectionStart,selectionEnd,selectionDirection)'),'Typing schedules one render after the latest input');
+ assert.ok(!input.includes('renderCatalog();'),'The input event does not synchronously rebuild the entire catalog on each keystroke');
+ assert.ok(input.includes('state.productQuery=value;state.productPage=1;'),'The search state still updates immediately for paging and navigation');
+});
+
 test('admin dashboard loads the overview first and fetches heavy sections only when opened',async()=>{
  const admin=await fs.readFile(path.join(webRoot,'admin.html'),'utf8');
  const loadAll=admin.match(/async function loadAll\(\)\{([\s\S]*?)\}/)?.[1]||'';
