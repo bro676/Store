@@ -766,3 +766,17 @@ test('language switching is frame-batched and does not rerender the full storefr
   assert.ok(!store.includes('new MutationObserver(()=>markDirection())'), 'The document-wide direction rescan observer is removed');
   assert.ok(store.includes("document.querySelectorAll('input,textarea,select')"), 'Form controls retain automatic mixed-direction input');
 });
+
+
+test('light drawer has no blue active rail, active underline, or icon glow',async()=>{
+  const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+  const drawer=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-drawer.css'),'utf8');
+  const lightFix=drawer.slice(drawer.lastIndexOf('LIGHT THEME FINISH — remove the blue active rail'));
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-light-neutral-v2'),'The light drawer fix has a fresh stylesheet cache key');
+  assert.ok(lightFix.includes('body .app-shell .sidebar .sidebar-nav .side-link.active'),'The light active item receives the stronger neutral override');
+  assert.ok(lightFix.includes('box-shadow:none!important;text-decoration:none!important'),'The active blue rail and underline are removed');
+  assert.ok(lightFix.includes('side-link.active::before')&&lightFix.includes('side-link.active::after'),'Both active pseudo-element lines are suppressed');
+  assert.ok(lightFix.includes('content:none!important;display:none!important'),'Decorative pseudo-elements are disabled');
+  assert.ok(lightFix.includes('color:#777!important;fill:none!important;stroke:currentColor!important'),'All light drawer navigation icons use a neutral gray');
+  assert.ok(lightFix.includes('filter:none!important;-webkit-filter:none!important;text-shadow:none!important'),'No blue icon glow or drop-shadow remains');
+});
