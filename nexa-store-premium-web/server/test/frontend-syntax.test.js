@@ -669,7 +669,7 @@ test('Wamda final detail pass covers catalog, account states and admin light nav
 test('storefront drawer matches the fixed dark/light reference palette without changing customer routes', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-soft-icons-v3'), 'Storefront loads the dedicated reference drawer layer');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-store-controls-v1'), 'Storefront loads the dedicated reference drawer layer');
   for (const id of ['sidebarBalanceValue','sidebarThemeLabel','sidebarSocialLinks','sidebarOwnerBrand']) {
     if (id === 'sidebarSocialLinks' || id === 'sidebarOwnerBrand') continue;
     assert.ok(store.includes('id="' + id + '"'), 'Missing drawer reference element: ' + id);
@@ -772,7 +772,7 @@ test('light drawer has no blue active rail, active underline, or icon glow',asyn
   const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
   const drawer=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-drawer.css'),'utf8');
   const lightFix=drawer.slice(drawer.lastIndexOf('LIGHT THEME FINISH — remove the blue active rail'));
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-soft-icons-v3'),'The light drawer fix has a fresh stylesheet cache key');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-store-controls-v1'),'The light drawer fix has a fresh stylesheet cache key');
   assert.ok(lightFix.includes('body .app-shell .sidebar .sidebar-nav .side-link.active'),'The light active item receives the stronger neutral override');
   assert.ok(lightFix.includes('box-shadow:none!important;text-decoration:none!important'),'The active blue rail and underline are removed');
   assert.ok(lightFix.includes('side-link.active::before')&&lightFix.includes('side-link.active::after'),'Both active pseudo-element lines are suppressed');
@@ -821,7 +821,7 @@ test('English drawer updates its balance locale and all supported currencies use
   assert.ok(store.includes("const locale=storeLocale()==='en'?'en-US':'ar-SY';"),'SYP amounts use Western digits in English and Arabic digits in Arabic');
   assert.ok(store.includes("return new Intl.NumberFormat(locale,{maximumFractionDigits:2}).format(value)+' '+storeCurrencyLabel('SYP');"),'SYP order amounts use the active language currency label');
   assert.ok(store.includes("new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'})"),'USD amounts always use English currency formatting');
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-soft-icons-v3'),'The updated drawer stylesheet has a fresh cache key');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-store-controls-v1'),'The updated drawer stylesheet has a fresh cache key');
   assert.ok(store.includes('nexa-store-language.js?v=20261106-drawer-english-v3'),'The updated English dictionary has a fresh cache key');
 });
 
