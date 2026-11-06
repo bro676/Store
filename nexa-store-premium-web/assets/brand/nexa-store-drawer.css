@@ -427,3 +427,150 @@
 :root[data-locale="en"] .app-shell .sidebar-theme-toggle{direction:ltr!important;justify-content:flex-start!important}
 :root[data-locale="en"] .app-shell .sidebar-currency{direction:ltr!important}
 :root[data-locale="en"] .app-shell .sidebar-profile-copy{direction:ltr!important}
+
+
+/* NEXA DRAWER REFINEMENT v3 — neutral charcoal/white, Click Store typography and logical side. */
+:root{
+  --nexa-drawer-dark:#0c0c0c;
+  --nexa-drawer-dark-surface:#242424;
+  --nexa-drawer-dark-quick:#343434;
+  --nexa-drawer-light:#ffffff;
+  --nexa-drawer-light-surface:#f0f0f0;
+  --nexa-drawer-light-quick:#e7e7e7;
+  --nexa-drawer-active-light:#e7e7e7;
+  --nexa-drawer-text-dark:#f7f7f7;
+  --nexa-drawer-text-light:#202020;
+}
+.app-shell .sidebar{
+  inset-block:0!important;
+  inset-inline-start:0!important;
+  inset-inline-end:auto!important;
+  border-left:0!important;
+  border-right:0!important;
+  border-inline-end:1px solid #292929!important;
+  font-family:"IBM Plex Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif!important;
+  transition:transform .2s ease,background-color .16s ease,color .16s ease!important;
+}
+.app-shell .sidebar *:not(svg):not(path){
+  font-family:"IBM Plex Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif!important;
+}
+.app-shell .sidebar .side-link{
+  font-size:14px!important;
+  font-weight:700!important;
+  letter-spacing:0!important;
+  min-height:43px!important;
+  border-radius:9px!important;
+}
+.app-shell .sidebar .side-link>span:nth-child(2){font-size:14px!important;font-weight:700!important}
+.app-shell .sidebar .sidebar-profile-copy strong{font-size:14px!important;font-weight:700!important}
+.app-shell .sidebar .sidebar-profile-copy small{font-size:11px!important;font-weight:500!important}
+.app-shell .sidebar .sidebar-vip-badge{border-radius:9px!important}
+.app-shell .sidebar .sidebar-account-balance strong{font-size:23px!important;font-weight:700!important}
+.app-shell .sidebar .sidebar-notification{
+  background:#343434!important;color:#f5f5f5!important;
+  border:1px solid #454545!important;border-radius:50%!important;
+}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-notification{
+  background:#e7e7e7!important;color:#303030!important;border-color:#dedede!important;
+}
+.app-shell .sidebar .sidebar-quick-actions{
+  direction:ltr!important;
+  flex-direction:row!important;
+  justify-content:space-between!important;
+  gap:10px!important;
+  padding:3px 2px 12px!important;
+}
+.app-shell .sidebar .sidebar-quick-actions button{
+  flex:0 0 44px!important;width:44px!important;height:44px!important;
+  border-radius:50%!important;background:#343434!important;color:#f5f5f5!important;
+  border:0!important;box-shadow:none!important;
+  transition:background-color .14s ease,transform .14s ease!important;
+}
+.app-shell .sidebar .sidebar-quick-actions button:hover{
+  background:#484848!important;transform:translateY(-1px)!important;
+}
+.app-shell .sidebar .sidebar-quick-actions button svg{width:20px!important;height:20px!important}
+.app-shell .sidebar .sidebar-quick-actions button[data-page="favorites"]{color:#ef646e!important}
+.app-shell .sidebar .sidebar-quick-actions button.sidebar-language-toggle{color:#f5f5f5!important}
+.app-shell .sidebar .sidebar-quick-actions button.sidebar-logout-shortcut{color:#d6d6d6!important}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-quick-actions button{
+  background:#e7e7e7!important;color:#353535!important;
+}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-quick-actions button:hover{background:#dcdcdc!important}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-quick-actions button[data-page="favorites"]{color:#df4553!important}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-quick-actions button.sidebar-language-toggle,
+:root[data-theme="light"] .app-shell .sidebar .sidebar-quick-actions button.sidebar-logout-shortcut{color:#353535!important}
+.app-shell .sidebar .sidebar-currency{
+  min-height:44px!important;border-radius:13px!important;
+  background:#242424!important;color:#f4f4f4!important;border:1px solid #303030!important;
+}
+.app-shell .sidebar .sidebar-currency strong{color:#fff!important}
+.app-shell .sidebar .sidebar-currency span,
+.app-shell .sidebar .sidebar-currency svg{color:#bdbdbd!important}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-currency{
+  background:#f0f0f0!important;color:#222!important;border:1px solid #e5e5e5!important;
+}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-currency strong,
+:root[data-theme="light"] .app-shell .sidebar .sidebar-currency span,
+:root[data-theme="light"] .app-shell .sidebar .sidebar-currency svg{color:#383838!important}
+.app-shell .sidebar .side-link .side-icon{color:#9a9a9a!important}
+.app-shell .sidebar .side-link[data-page="home"] .side-icon{color:#4caf76!important}
+.app-shell .sidebar .side-link[data-page="payments"] .side-icon{color:#c99a4a!important}
+.app-shell .sidebar .side-link[data-page="orders"] .side-icon{color:#e35d66!important}
+.app-shell .sidebar .side-link[data-page="support"] .side-icon{color:#a0a0a0!important}
+.app-shell .sidebar .side-link[data-page="affiliate"] .side-icon{color:#6caa91!important}
+.app-shell .sidebar .side-link[data-page="security"] .side-icon{color:#62aa82!important}
+.app-shell .sidebar .side-link[data-page="verify"] .side-icon{color:#b59a68!important}
+.app-shell .sidebar .side-link[data-page="install"] .side-icon{color:#999999!important}
+.app-shell .sidebar .side-link[data-page="about"] .side-icon{color:#8f9b91!important}
+.app-shell .sidebar .side-link.active{
+  background:#303030!important;color:#fff!important;border-radius:9px!important;
+}
+.app-shell .sidebar .side-link:hover{background:#272727!important;color:#fff!important}
+:root[data-theme="light"] .app-shell .sidebar .side-link{color:#252525!important}
+:root[data-theme="light"] .app-shell .sidebar .side-link.active{
+  background:#e7e7e7!important;color:#202020!important;
+}
+:root[data-theme="light"] .app-shell .sidebar .side-link:hover{
+  background:#f2f2f2!important;color:#171717!important;
+}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-theme-toggle{color:#252525!important}
+.app-shell .sidebar .sidebar-social-row a{color:#777!important}
+.app-shell .sidebar .sidebar-social-row a[aria-label="TikTok"]{color:#efefef!important}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-social-row a[aria-label="TikTok"]{color:#252525!important}
+.app-shell .sidebar .sidebar-social-row a[aria-label="Instagram"]{color:#df5794!important}
+.app-shell .sidebar .sidebar-social-row a[aria-label="WhatsApp"],
+.app-shell .sidebar .sidebar-social-row a[aria-label="WhatsApp Web"]{color:#279d62!important}
+.app-shell .sidebar .sidebar-social-row a[aria-label="Telegram"],
+.app-shell .sidebar .sidebar-social-row a[aria-label="Telegram web"]{color:#727b78!important}
+.app-shell .sidebar .sidebar-profile-avatar{
+  border-color:#a69b85!important;
+  box-shadow:0 0 0 3px rgba(166,155,133,.14)!important;
+}
+.app-shell .sidebar .sidebar-profile-avatar,
+:root[data-theme="light"] .app-shell .sidebar .sidebar-profile-avatar{background:#fff!important}
+.app-shell .sidebar .sidebar-vip-badge{background:#272727!important;color:#e5cc91!important;border-color:#514832!important}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-vip-badge{background:#f3eee2!important;color:#806a3f!important;border-color:#e8dcc0!important}
+.app-shell .sidebar .sidebar-footer{color:#a6a6a6!important}
+:root[data-theme="light"] .app-shell .sidebar .sidebar-footer{color:#555!important}
+.app-shell .app-main{
+  margin-inline-start:var(--rail-width)!important;
+  margin-inline-end:0!important;
+}
+:root[data-locale="en"] .app-shell .sidebar{direction:ltr!important}
+:root[data-locale="en"] .app-shell .sidebar .sidebar-profile-copy{direction:ltr!important}
+:root[data-locale="en"] .app-shell .sidebar .side-link{
+  direction:ltr!important;flex-direction:row!important;text-align:left!important;
+}
+:root[data-locale="en"] .app-shell .sidebar .side-link>span:nth-child(2){text-align:left!important}
+:root[data-locale="en"] .app-shell .sidebar .sidebar-theme-toggle{direction:ltr!important;text-align:left!important}
+:root[data-locale="en"] .app-shell .sidebar .sidebar-currency{direction:ltr!important}
+@media(max-width:1024px){
+  .app-shell .sidebar{inset-block:0!important;inset-inline-start:0!important;inset-inline-end:auto!important}
+  :root[dir="rtl"] .app-shell .sidebar{transform:translateX(110%)!important}
+  :root[dir="ltr"] .app-shell .sidebar{transform:translateX(-110%)!important}
+  body.sidebar-open .app-shell .sidebar{transform:translateX(0)!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .app-shell .sidebar,.app-shell .sidebar .side-link,.app-shell .sidebar .sidebar-quick-actions button{transition:none!important}
+}
