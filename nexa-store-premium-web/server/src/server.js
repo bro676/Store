@@ -106,6 +106,19 @@ if (cfg.databaseUrl) {
   databaseReady = true;
 }
 
+if(pool){
+  const databaseHealthTimer=setInterval(async()=>{
+    try{
+      await pool.query('SELECT 1');
+      databaseReady=true;
+    }catch(error){
+      databaseReady=false;
+      console.error('[database] periodic health probe failed:',error?.code||error?.message||'unknown error');
+    }
+  },30_000);
+  databaseHealthTimer.unref?.();
+}
+
 const mime = { '.html':'text/html; charset=utf-8', '.css':'text/css; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.json':'application/json; charset=utf-8', '.png':'image/png', '.svg':'image/svg+xml', '.ico':'image/x-icon' };
 const rate = new Map();
 let cachedShamWallet = null;
