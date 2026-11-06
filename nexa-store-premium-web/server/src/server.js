@@ -3278,9 +3278,9 @@ const server = http.createServer(async (req,res) => {
         ORDER BY created_at DESC LIMIT 100`,[query,pattern]);
       return send(res,200,{ok:true,customers:result.rows});
     }
-    if(req.method==='PATCH'&&/^\\/api\\/admin\\/customers\\/[^/]+\\/avatar$/.test(url.pathname)){
+    if(req.method==='PATCH'&&/^\/api\/admin\/customers\/[^/]+\/avatar$/.test(url.pathname)){
       if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
-      const match=url.pathname.match(/^\\/api\\/admin\\/customers\\/([^/]+)\\/avatar$/);
+      const match=url.pathname.match(/^\/api\/admin\/customers\/([^/]+)\/avatar$/);
       let customerId='';
       try{customerId=decodeURIComponent(match?.[1]||'');}catch{return send(res,400,{ok:false,error:'INVALID_CUSTOMER_ID'});}
       if(!customerId||customerId.length>100)return send(res,400,{ok:false,error:'INVALID_CUSTOMER_ID'});
