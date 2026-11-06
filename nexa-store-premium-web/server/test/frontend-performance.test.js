@@ -153,3 +153,31 @@ test('admin product editing renders a small searchable page and defers large mov
  assert.ok(admin.includes("addEventListener('toggle',e=>"),'Move destinations are populated on demand when a product editor opens');
  assert.ok(admin.includes('loading="lazy" decoding="async"'),'Product thumbnails defer decoding and off-screen loading');
 });
+
+test('storefront Drawer closes to the correct side and restores focus across navigation and viewport changes',async()=>{
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ const polish=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
+ assert.ok(polish.includes(':root[dir="rtl"] body.sidebar-closed .app-shell .sidebar{')&&polish.includes('transform:translate3d(110%,0,0)!important}'),'Arabic desktop Drawer slides out to the right');
+ assert.ok(polish.includes(':root[dir="ltr"] body.sidebar-closed .app-shell .sidebar{')&&polish.includes('transform:translate3d(-110%,0,0)!important}'),'English desktop Drawer slides out to the left');
+ assert.ok(polish.includes(':root[dir="rtl"] body.sidebar-open .app-shell .sidebar')&&polish.includes(':root[dir="ltr"] body.sidebar-open .app-shell .sidebar'),'Both languages share a visible mobile open state');
+ assert.ok(store.includes("if(window.matchMedia('(max-width: 1024px)').matches)closeMenu(true);"),'Navigation from the mobile Drawer restores focus to its opener');
+ assert.ok(store.includes("const focusWasInside=$('sidebar')?.contains(document.activeElement);"),'Crossing the tablet breakpoint returns focus from the hidden Drawer');
+ assert.ok(store.includes('else if(storeDrawerMedia.addListener)storeDrawerMedia.addListener(syncStoreMenuToViewport);'),'Older matchMedia implementations still synchronize Drawer state');
+ assert.ok(polish.includes('env(safe-area-inset-top)')&&polish.includes('env(safe-area-inset-bottom)'),'Mobile safe areas keep the first and last controls clear');
+ assert.ok(polish.includes('@media(max-width:1024px) and (max-height:560px)'),'Short landscape screens receive a compact Drawer layout');
+ assert.ok(polish.includes('@media(hover:none) and (pointer:coarse)'),'Touch devices retain comfortable tap targets');
+});
+
+test('large catalogue mutations and low-core devices use bounded locale and direction work',async()=>{
+ const locale=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
+ const direction=await fs.readFile(path.join(webRoot,'assets/brand/nexa-text-direction.js'),'utf8');
+ const server=await fs.readFile(path.join(webRoot,'server/src/server.js'),'utf8');
+ const db=await fs.readFile(path.join(webRoot,'server/src/db-startup.js'),'utf8');
+ assert.ok(locale.includes('const TRANSLATION_BATCH_SIZE = DEVICE_CONCURRENCY <= 4 ? 120 : 220'),'Translation work is smaller on low-core devices');
+ assert.ok(direction.includes('const BATCH_SIZE = DEVICE_CONCURRENCY <= 4 ? 120 : 220'),'Direction work is smaller on low-core devices');
+ assert.ok(locale.includes('record.addedNodes.length>1&&record.target?.nodeType===1'),'Large catalogue inserts are coalesced into one translation root');
+ assert.ok(direction.includes('record.addedNodes.length>1&&record.target?.nodeType===1'),'Large catalogue inserts are coalesced into one direction root');
+ assert.ok(locale.includes('new RegExp(fragmentEntries.map(([phrase])=>phrase)'),'Partial translation phrases are precompiled once');
+ assert.ok(server.includes('attempts: 10')&&server.includes('monitorPostgresClientErrors(pool'),'Transient PostgreSQL faults receive bounded retries and client monitoring');
+ assert.ok(db.includes("client.on('error', error => onClientError(error, client))"),'Checked-out PostgreSQL clients receive an error listener');
+});
