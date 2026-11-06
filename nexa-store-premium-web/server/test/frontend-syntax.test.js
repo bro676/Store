@@ -669,7 +669,7 @@ test('Wamda final detail pass covers catalog, account states and admin light nav
 test('storefront drawer matches the fixed dark/light reference palette without changing customer routes', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-light-neutral-v2'), 'Storefront loads the dedicated reference drawer layer');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-soft-icons-v3'), 'Storefront loads the dedicated reference drawer layer');
   for (const id of ['sidebarBalanceValue','sidebarThemeLabel','sidebarSocialLinks','sidebarOwnerBrand']) {
     if (id === 'sidebarSocialLinks' || id === 'sidebarOwnerBrand') continue;
     assert.ok(store.includes('id="' + id + '"'), 'Missing drawer reference element: ' + id);
@@ -699,7 +699,7 @@ test('storefront drawer language and display currency controls work without alte
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
   const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
 
-  assert.ok(store.includes('nexa-store-language.js?v=20261106-performance-v2'), 'The Arabic/English dictionary is loaded before storefront initialization');
+  assert.ok(store.includes('nexa-store-language.js?v=20261106-drawer-english-v3'), 'The Arabic/English dictionary is loaded before storefront initialization');
   assert.ok(store.includes('id="sidebarLanguageToggle"'), 'The fourth account shortcut is now the language control');
   assert.ok(store.includes('id="sidebarCurrencyToggle"'), 'The currency capsule has a real interactive control');
   const first=store.indexOf('class="sidebar-quick-actions"');
@@ -772,7 +772,7 @@ test('light drawer has no blue active rail, active underline, or icon glow',asyn
   const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
   const drawer=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-drawer.css'),'utf8');
   const lightFix=drawer.slice(drawer.lastIndexOf('LIGHT THEME FINISH — remove the blue active rail'));
-  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-light-neutral-v2'),'The light drawer fix has a fresh stylesheet cache key');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-soft-icons-v3'),'The light drawer fix has a fresh stylesheet cache key');
   assert.ok(lightFix.includes('body .app-shell .sidebar .sidebar-nav .side-link.active'),'The light active item receives the stronger neutral override');
   assert.ok(lightFix.includes('box-shadow:none!important;text-decoration:none!important'),'The active blue rail and underline are removed');
   assert.ok(lightFix.includes('side-link.active::before')&&lightFix.includes('side-link.active::after'),'Both active pseudo-element lines are suppressed');
