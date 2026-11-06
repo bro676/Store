@@ -609,6 +609,24 @@ body{
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/assets/brand/nexa-store-drawer.css?v=20261106-soft-icons-v3">
+
+<style id="nexa-storefront-experience-style">
+:root{--nexa-notification-accent:#b99b70;--nexa-profile-ring:#8eaa94;--nexa-favorite-accent:#c77c8c;--nexa-rank-accent:#b99b70}
+.storefront-feature-disabled{display:none!important}
+.sidebar-notification{color:var(--nexa-notification-accent)!important;border-color:color-mix(in srgb,var(--nexa-notification-accent) 28%,transparent)!important;background:color-mix(in srgb,var(--nexa-notification-accent) 8%,transparent)!important}
+.sidebar-avatar-wrap{outline:2px solid color-mix(in srgb,var(--nexa-profile-ring) 75%,transparent)!important;outline-offset:2px!important;border-radius:50%!important}
+.sidebar-profile-avatar{border-radius:50%!important;overflow:hidden!important}
+.sidebar-profile-avatar img{width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important}
+.sidebar-quick-actions button[data-page="favorites"],.sidebar-quick-actions button[data-page="favorites"] svg{color:var(--nexa-favorite-accent)!important;stroke:var(--nexa-favorite-accent)!important}
+.favorite{color:var(--nexa-favorite-accent)!important}
+.favorite.active{background:color-mix(in srgb,var(--nexa-favorite-accent) 14%,transparent)!important}
+.sidebar-vip-badge svg{fill:var(--nexa-rank-accent)!important;color:var(--nexa-rank-accent)!important}
+.sidebar-vip-badge img{width:17px;height:17px;object-fit:contain}
+.department-card-art i.has-icon-image{padding:0!important;overflow:hidden!important}
+.department-card-art i.has-icon-image img{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}
+.category-choice.department-choice>span:first-child img{width:25px;height:25px;display:block;object-fit:cover;border-radius:8px}
+</style>
+
 </head>
 <body>
 <div class="app-shell">
@@ -636,7 +654,8 @@ body{
     </button>
 
     <div class="sidebar-vip-badge" aria-label="رتبة الحساب">
-      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2.7 2.83 5.73 6.32.92-4.57 4.46 1.08 6.3L12 17.13l-5.66 2.98 1.08-6.3-4.57-4.46 6.32-.92L12 2.7Z"/></svg>
+      <svg id="sidebarVipIcon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2.7 2.83 5.73 6.32.92-4.57 4.46 1.08 6.3L12 17.13l-5.66 2.98 1.08-6.3-4.57-4.46 6.32-.92L12 2.7Z"/></svg>
+      <img id="sidebarVipIconImage" src="" alt="" aria-hidden="true" style="display:none">
       <span id="sidebarVipBadge">BRONZE</span>
       <span class="sidebar-rank-medal" aria-hidden="true">●</span>
     </div>
@@ -693,15 +712,15 @@ body{
 
     <div class="sidebar-social-links" aria-label="منصات التواصل">
       <div class="sidebar-social-row">
-        <a href="https://www.tiktok.com/" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.6 7.1a6.2 6.2 0 0 1-4-1.5v8.1a6.1 6.1 0 1 1-5.1-6V11a2.7 2.7 0 1 0 1.8 2.6V2h3.3c.2 2 1.4 3.7 4 4.1v1Z"/></svg></a>
-        <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01" stroke-linecap="round"/></svg></a>
-        <a href="https://wa.me/963936382101" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.5-4A8 8 0 1 1 20 11.5Z"/><path d="M9 9c.7 2 2 3.4 4.2 4.4l1.2-1 2 1c-.2 1.3-1.1 2-2.4 2-3.5-.4-6.8-3.7-7.1-7.1 0-1.3.7-2.2 2-2.4l1 2L9 9Z"/></svg></a>
+        <a id="storeTikTokLink" href="https://www.tiktok.com/" target="_blank" rel="noopener noreferrer" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.6 7.1a6.2 6.2 0 0 1-4-1.5v8.1a6.1 6.1 0 1 1-5.1-6V11a2.7 2.7 0 1 0 1.8 2.6V2h3.3c.2 2 1.4 3.7 4 4.1v1Z"/></svg></a>
+        <a id="storeInstagramLink" href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><path d="M17.5 6.5h.01" stroke-linecap="round"/></svg></a>
+        <a id="storeWhatsAppLink" href="https://wa.me/963936382101" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.5-4A8 8 0 1 1 20 11.5Z"/><path d="M9 9c.7 2 2 3.4 4.2 4.4l1.2-1 2 1c-.2 1.3-1.1 2-2.4 2-3.5-.4-6.8-3.7-7.1-7.1 0-1.3.7-2.2 2-2.4l1 2L9 9Z"/></svg></a>
         <a href="https://web.whatsapp.com/" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Web"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.5-4A8 8 0 1 1 20 11.5Z"/><path d="M9 9c.7 2 2 3.4 4.2 4.4l1.2-1 2 1"/></svg></a>
-        <a href="https://t.me/" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m21.6 3.4-3.2 17c-.2 1.2-.9 1.5-1.8.9l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.2L5.8 14l-5-1.6c-1.1-.4-1.1-1.1.2-1.6L20.5 3c.9-.3 1.5.2 1.1.4Z"/></svg></a>
+        <a id="storeTelegramLink" href="https://t.me/" target="_blank" rel="noopener noreferrer" aria-label="Telegram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m21.6 3.4-3.2 17c-.2 1.2-.9 1.5-1.8.9l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.2L5.8 14l-5-1.6c-1.1-.4-1.1-1.1.2-1.6L20.5 3c.9-.3 1.5.2 1.1.4Z"/></svg></a>
         <a href="https://telegram.org/" target="_blank" rel="noopener noreferrer" aria-label="Telegram web"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m21.6 3.4-3.2 17c-.2 1.2-.9 1.5-1.8.9l-5-3.7-2.4 2.3c-.3.3-.5.5-1 .5l.4-5.1 9.3-8.4c.4-.4-.1-.6-.6-.2L5.8 14l-5-1.6c-1.1-.4-1.1-1.1.2-1.6L20.5 3c.9-.3 1.5.2 1.1.4Z"/></svg></a>
       </div>
       <div class="sidebar-social-row sidebar-social-row-video">
-        <a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12a31 31 0 0 0 .5 4.8 3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8ZM9.6 15.4V8.6l6 3.4-6 3.4Z"/></svg></a>
+        <a id="storeYouTubeLink" href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer" aria-label="YouTube"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 7.2a3 3 0 0 0-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 0 0 1 7.2 31 31 0 0 0 .5 12a31 31 0 0 0 .5 4.8 3 3 0 0 0 2.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 0 0 2.1-2.1 31 31 0 0 0 .5-4.8 31 31 0 0 0-.5-4.8ZM9.6 15.4V8.6l6 3.4-6 3.4Z"/></svg></a>
       </div>
     </div>
 
@@ -1105,6 +1124,8 @@ function resolveStoreLocation(){
  return STORE_PATH_VIEWS[pathname]||'home';
 }
 function navigate(view,{historyMode='push',syncLocation=true}={}){
+ const pageFeature={notifications:'notifications',favorites:'favorites',wallet:'wallet',payments:'payments',orders:'orders',support:'support',affiliate:'affiliate',security:'security',verify:'verification',install:'install'};
+ if(storefrontExperience&&pageFeature[view]&&storefrontExperience.features[pageFeature[view]]===false){showToast(storeLocale()==='en'?'This section is currently unavailable.':'هذا القسم غير متاح حالياً.');view='home';historyMode='replace';}
  state.view=view;
  document.documentElement.dataset.currentPage=view;
  if(syncLocation)syncStoreViewUrl(view,{replace:historyMode==='replace'});
@@ -1165,7 +1186,7 @@ if(storeDrawerMedia.addEventListener)storeDrawerMedia.addEventListener('change',
 syncStoreMenuToViewport();
 function renderDepartmentCard(group){
  return '<button type="button" class="department-card" data-department="'+esc(group.id)+'" aria-label="فتح '+esc(group.name)+'">'+
-  '<span class="department-card-art"><img src="'+esc(group.cover)+'" alt="" loading="lazy"><i>'+esc(group.icon)+'</i></span>'+
+  '<span class="department-card-art"><img src="'+esc(group.cover)+'" alt="" loading="lazy"><i class="'+(group.iconImage?'has-icon-image':'')+'">'+(group.iconImage?'<img src="'+esc(group.iconImage)+'" alt="" loading="lazy">':esc(group.icon))+'</i></span>'+
   '<span class="department-card-copy"><strong>'+esc(group.name)+'</strong><small>'+esc(group.description)+'</small>'+
   '<span class="department-card-meta">'+group.categoryCount.toLocaleString('en-US')+' أقسام داخلية · '+group.productCount.toLocaleString('en-US')+' منتج</span></span>'+
   '<span class="department-card-arrow">←</span></button>';
@@ -1332,6 +1353,7 @@ function closestStoreTarget(event,selector){
 }
 function resetCatalog(){state.department=null;state.category=null;state.item=null;state.option=null;state.catalogPage=1;state.catalogQuery='';state.categoryPage=1;state.categoryQuery='';state.productPage=1;state.productQuery='';}
 function openOrder(packIndex){
+ if(storefrontExperience&&(storefrontExperience.features.orders===false||storefrontExperience.features.payments===false)){showToast('الطلبات والدفع غير متاحين حالياً.');return;}
  const it=getItem(state.item,state.category),op=getOption(state.option),p=op?.packs?.[packIndex],supplier=it?.wamda||it?.seagm||it?.bestStore||null;
  if(!it||!op||!p||!NexaCatalog.isValidPack(p)){showToast('تعذر تحميل تفاصيل الباقة. حدّث الكتالوج وحاول مجدداً.');return;}
  if(supplier?.available===false){showToast('هذا المنتج غير متوفر حالياً لدى المورد.');return;}
@@ -1417,7 +1439,7 @@ function showSearchResults(q){
  for(const c of categories)for(const i of c.items||[])if(`${i.name} ${i.desc} ${c.name}`.toLocaleLowerCase('ar').includes(query))state.searchResults.push({c,i});
  navigate('store');renderSearchResults();
 }
-let paymentConfigEnabled=false;let sypPerUsd=145;let customerAccount=null;
+let paymentConfigEnabled=false;let sypPerUsd=145;let customerAccount=null;let storefrontExperience=null;
 function renderCurrencyPreview(){
  const p=state.selectedPack,choice=$('orderCurrency')?.value||'SYP',preview=$('currencyPreview'),hint=$('currencyRateHint');
  if(!p||!preview)return;
@@ -1809,7 +1831,87 @@ function initializeStoreColorMode(){
  $('storeThemeToggle')?.addEventListener('click',()=>setStoreColorMode(document.documentElement.dataset.theme==='dark'?'light':'dark'));
  window.addEventListener('storage',event=>{if(event.key===NEXA_THEME_KEY&&event.newValue)setStoreColorMode(event.newValue,{persist:false});});
 }
-async function loadStorefrontConfig(){try{const r=await fetch('/api/storefront-config',{cache:'no-store'});if(!r.ok)return;const d=await r.json();const rate=Number(d.fxRate);if(Number.isFinite(rate)&&rate>0)storefrontFxRate=rate;storefrontFxReady=d.fxReady===true;syncSidebarCurrency();if(d.storeName){document.title=storeLocale()==='en'?'Nexa Store | Your digital store':d.storeName+' | متجرك الرقمي';const brand=document.querySelector('.sidebar-brand strong'),headerBrand=document.querySelector('.header-brand-copy strong'),footerName=document.querySelector('.footer-brand strong');if(brand)brand.textContent=d.storeName;if(headerBrand)headerBrand.textContent=d.storeName;if(footerName)footerName.textContent=d.storeName;}if(d.storeLogo){const sidebarLogo=document.querySelector('.sidebar-brand img'),avatarLogo=document.querySelector('#sidebarProfileAvatar img'),ownerLogo=document.querySelector('.sidebar-owner-brand img'),headerLogo=document.querySelector('.header-brand-logo'),homeLogo=document.querySelector('.home-intro-brand-mark img'),footerLogo=document.querySelector('.footer-brand img');if(sidebarLogo)sidebarLogo.src=d.storeLogo;if(avatarLogo)avatarLogo.src=d.storeLogo;if(ownerLogo)ownerLogo.src=d.storeLogo;if(headerLogo)headerLogo.src=d.storeLogo;if(homeLogo)homeLogo.src=d.storeLogo;if(footerLogo)footerLogo.src=d.storeLogo;}const promo=document.querySelector('.promo-inner');if(promo&&d.announcement)promo.textContent=d.announcement;}catch{}}
+
+function applyStorefrontExperience(value={}){
+ const defaults={
+  brandSubtitle:'DIGITAL STORE',avatarImage:'',rankImage:'',
+  features:{notifications:true,favorites:true,wallet:true,payments:true,orders:true,support:true,affiliate:true,security:true,verification:true,assistant:true,install:true,social:true},
+  colors:{notification:'#b99b70',profileRing:'#8eaa94',favorite:'#c77c8c',rank:'#b99b70'},
+  social:{whatsappUrl:'',instagramUrl:'',tiktokUrl:'',telegramUrl:'',youtubeUrl:''}
+ };
+ const source=value&&typeof value==='object'?value:{};
+ storefrontExperience={
+  ...defaults,...source,
+  features:{...defaults.features,...(source.features||{})},
+  colors:{...defaults.colors,...(source.colors||{})},
+  social:{...defaults.social,...(source.social||{})}
+ };
+ const root=document.documentElement,colors=storefrontExperience.colors;
+ root.style.setProperty('--nexa-notification-accent',colors.notification||defaults.colors.notification);
+ root.style.setProperty('--nexa-profile-ring',colors.profileRing||defaults.colors.profileRing);
+ root.style.setProperty('--nexa-favorite-accent',colors.favorite||defaults.colors.favorite);
+ root.style.setProperty('--nexa-rank-accent',colors.rank||defaults.colors.rank);
+ const featureSelectors={
+  notifications:['#sidebarNotificationsButton','[data-page="notifications"]'],
+  favorites:['.sidebar-quick-actions [data-page="favorites"]','.favorite'],
+  wallet:['[data-page="wallet"]','#sidebarCurrencyToggle'],
+  payments:['[data-page="payments"]'],
+  orders:['[data-page="orders"]'],
+  support:['[data-page="support"]','.support-channel-grid','.support-main-grid'],
+  affiliate:['[data-page="affiliate"]'],
+  security:['[data-page="security"]'],
+  verification:['[data-page="verify"]'],
+  assistant:['[data-open-assistant]'],
+  install:['[data-page="install"]'],
+  social:['.sidebar-social-links']
+ };
+ for(const [key,selectors] of Object.entries(featureSelectors)){
+  const enabled=storefrontExperience.features[key]!==false;
+  for(const selector of selectors)document.querySelectorAll(selector).forEach(element=>element.classList.toggle('storefront-feature-disabled',!enabled));
+ }
+ const socialIds={whatsappUrl:'storeWhatsAppLink',instagramUrl:'storeInstagramLink',tiktokUrl:'storeTikTokLink',telegramUrl:'storeTelegramLink',youtubeUrl:'storeYouTubeLink'};
+ for(const [key,id] of Object.entries(socialIds)){
+  const link=$(id),url=String(storefrontExperience.social[key]||'').trim();
+  if(link){if(url)link.href=url;link.classList.toggle('storefront-feature-disabled',!url);}
+ }
+ const avatarSource=storefrontExperience.avatarImage||'';
+ const avatar=$('sidebarProfileAvatar')?.querySelector('img');
+ if(avatar&&avatarSource)avatar.src=avatarSource;
+ const rankIcon=$('sidebarVipIcon'),rankImage=$('sidebarVipIconImage');
+ if(rankImage){
+  if(storefrontExperience.rankImage){rankImage.src=storefrontExperience.rankImage;rankImage.style.display='inline-block';if(rankIcon)rankIcon.style.display='none';}
+  else{rankImage.removeAttribute('src');rankImage.style.display='none';if(rankIcon)rankIcon.style.display='';}
+ }
+ const subtitle=String(storefrontExperience.brandSubtitle||'').trim();
+ document.querySelectorAll('.sidebar-brand small,.header-brand-copy small').forEach(element=>{element.textContent=subtitle;element.classList.toggle('storefront-feature-disabled',!subtitle);});
+}
+async function loadStorefrontConfig(){
+ try{
+  const response=await fetch('/api/storefront-config',{cache:'no-store'});
+  if(!response.ok)return;
+  const data=await response.json();
+  const rate=Number(data.fxRate);
+  if(Number.isFinite(rate)&&rate>0)storefrontFxRate=rate;
+  storefrontFxReady=data.fxReady===true;
+  applyStorefrontExperience(data.storefrontExperience||{});
+  syncSidebarCurrency();
+  if(data.storeName){
+   document.title=storeLocale()==='en'?'Nexa Store | Your digital store':data.storeName+' | متجرك الرقمي';
+   const brand=document.querySelector('.sidebar-brand strong'),headerBrand=document.querySelector('.header-brand-copy strong'),footerName=document.querySelector('.footer-brand strong');
+   if(brand)brand.textContent=data.storeName;if(headerBrand)headerBrand.textContent=data.storeName;if(footerName)footerName.textContent=data.storeName;
+  }
+  if(data.storeLogo){
+   const selectors=['.sidebar-brand img','.sidebar-owner-brand img','.header-brand-logo','.home-intro-brand-mark img','.footer-brand img'];
+   selectors.forEach(selector=>document.querySelectorAll(selector).forEach(element=>element.src=data.storeLogo));
+   const avatar=$('sidebarProfileAvatar')?.querySelector('img');
+   if(avatar&&!storefrontExperience?.avatarImage)avatar.src=data.storeLogo;
+  }
+  const promo=document.querySelector('.promo-inner'),promoWrap=document.querySelector('.promo');
+  if(promo){promo.textContent=String(data.announcement||'');if(promoWrap)promoWrap.classList.toggle('storefront-feature-disabled',!String(data.announcement||'').trim());}
+ }catch{}
+}
+window.addEventListener('storage',event=>{if(event.key==='nexa-storefront-experience-updated')loadStorefrontConfig();});
+
 async function init(){try{const r=await fetch('/api/catalog',{cache:'no-store'});if(r.ok){const d=await r.json();if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items));if(typeof NexaCatalog.setDepartments==='function')NexaCatalog.setDepartments(Array.isArray(d.departments)?d.departments:[]);}}catch{}await loadStorefrontConfig();renderHomeCategories();renderFeatured();renderOrders();renderPaymentHistory();renderProfilePage();renderSidebarAccount();loadPaymentConfig();$('year').textContent=new Date().getFullYear();navigate(resolveStoreLocation(),{historyMode:'replace'});$('sideYear').textContent=new Date().getFullYear();await refreshCustomerAccount();}
 // delegated interactions
  function eventElement(event,selector){
