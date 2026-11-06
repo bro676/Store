@@ -1145,7 +1145,7 @@ function navigate(view,{historyMode='push',syncLocation=true}={}){
  if(view==='favorites')renderFavorites();
  if(view==='home')renderFeatured();
  if(view==='support')renderSupportState();
- renderSidebarAccount();window.scrollTo({top:0,behavior:'smooth'});if(window.matchMedia('(max-width: 1024px)').matches)closeMenu();
+ renderSidebarAccount();const reduceMotion=window.matchMedia('(prefers-reduced-motion: reduce)').matches;window.scrollTo({top:0,behavior:reduceMotion?'auto':'smooth'});if(window.matchMedia('(max-width: 1024px)').matches)closeMenu(true);
 }
 window.addEventListener('popstate',()=>navigate(resolveStoreLocation(),{syncLocation:false}));
 const storeDrawerMedia=window.matchMedia('(max-width: 1024px)');
@@ -1184,10 +1184,16 @@ function setStoreMenuState(open,restoreFocus=false){
 function closeMenu(restoreFocus=false){setStoreMenuState(false,restoreFocus)}
 function openMenu(){setStoreMenuState(true)}
 function syncStoreMenuToViewport(){
- if(storeDrawerMedia.matches)setStoreMenuState(false);
- else setStoreMenuState(true);
+ if(storeDrawerMedia.matches){
+  const focusWasInside=$('sidebar')?.contains(document.activeElement);
+  setStoreMenuState(false);
+  if(focusWasInside)$('menuToggle')?.focus({preventScroll:true});
+  return;
+ }
+ setStoreMenuState(true);
 }
 if(storeDrawerMedia.addEventListener)storeDrawerMedia.addEventListener('change',syncStoreMenuToViewport);
+else if(storeDrawerMedia.addListener)storeDrawerMedia.addListener(syncStoreMenuToViewport);
 syncStoreMenuToViewport();
 function renderDepartmentCard(group){
  return '<button type="button" class="department-card" data-department="'+esc(group.id)+'" aria-label="فتح '+esc(group.name)+'">'+
