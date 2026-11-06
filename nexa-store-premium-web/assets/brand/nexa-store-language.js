@@ -388,12 +388,22 @@
     const key = String(en).trim().replace(/\s+/g,' ');
     if (!reverse.has(key)) reverse.set(key, ar);
   }
+
   const normalize = value => String(value || '').replace(/\s+/g,' ').trim();
   const originalText = new WeakMap();
   const originalAttributes = new WeakMap();
+  const ownTextMutationCounts = new WeakMap();
+  const ownAttributeMutationCounts = new WeakMap();
+  const attributeSelector = '[placeholder],[title],[aria-label],[alt]';
+  const excludedSelector = 'script,style,code,pre,textarea,input,svg,[data-no-translate]';
+  const TRANSLATION_BATCH_SIZE = 180;
+
   let language = 'ar';
   let observer = null;
-  let applying = false;
+  let translationGeneration = 0;
+  let translationFrame = 0;
+  let translationJobs = [];
+  let queuedRoots = new WeakSet();
 
   function translated(value) {
     const key = normalize(value);
@@ -416,38 +426,65 @@
     return leading + replacement + trailing;
   }
 
+  function incrementTextMutation(node) {
+    ownTextMutationCounts.set(node,(ownTextMutationCounts.get(node)||0)+1);
+  }
+
+  function consumeTextMutation(node) {
+    const count=ownTextMutationCounts.get(node)||0;
+    if(!count)return false;
+    if(count===1)ownTextMutationCounts.delete(node);
+    else ownTextMutationCounts.set(node,count-1);
+    return true;
+  }
+
+  function incrementAttributeMutation(element,name) {
+    let counts=ownAttributeMutationCounts.get(element);
+    if(!counts){counts=new Map();ownAttributeMutationCounts.set(element,counts);}
+    counts.set(name,(counts.get(name)||0)+1);
+  }
+
+  function consumeAttributeMutation(element,name) {
+    const counts=ownAttributeMutationCounts.get(element);
+    const count=counts?.get(name)||0;
+    if(!count)return false;
+    if(count===1)counts.delete(name);
+    else counts.set(name,count-1);
+    if(counts.size===0)ownAttributeMutationCounts.delete(element);
+    return true;
+  }
+
   function translateTextNode(node) {
-    if (!node || node.nodeType !== 3 || applying) return;
-    const parent = node.parentElement;
-    if (!parent || parent.closest('script,style,code,pre,textarea,input,svg,[data-no-translate]')) return;
-    const current = node.nodeValue || '';
-    let original = originalText.get(node);
-    if (original === undefined) {
-      original = current;
+    if (!node || node.nodeType !== 3) return;
+    const parent=node.parentElement;
+    if (!parent || parent.closest(excludedSelector)) return;
+    const current=node.nodeValue||'';
+    let original=originalText.get(node);
+    if(original===undefined){
+      original=current;
       originalText.set(node,original);
-    } else if (language === 'en') {
+    }else if(language==='en'){
       const currentKey=normalize(current),originalKey=normalize(original),expected=translations[originalKey];
-      if (expected && currentKey !== normalize(expected) && !reverse.has(currentKey)) {
+      if(expected&&currentKey!==normalize(expected)&&!reverse.has(currentKey)){
         original=current;
         originalText.set(node,original);
       }
-    } else {
+    }else{
       const currentKey=normalize(current),recovered=reverse.get(currentKey);
-      if (recovered && currentKey !== normalize(original)) {
+      if(recovered&&currentKey!==normalize(original)){
         original=recovered;
         originalText.set(node,original);
       }
     }
     const next=language==='en'?translated(original):original;
     if(current!==next){
-      applying=true;
+      incrementTextMutation(node);
       node.nodeValue=preserveWhitespace(original,next);
-      applying=false;
     }
   }
 
   function translateAttributes(element) {
-    if (!element || element.nodeType !== 1 || element.closest('script,style,code,pre,[data-no-translate]')) return;
+    if (!element || element.nodeType !== 1 || element.closest(excludedSelector)) return;
     const names=['placeholder','title','aria-label','alt'];
     let stored=originalAttributes.get(element);
     if(!stored){stored={};originalAttributes.set(element,stored);}
@@ -456,28 +493,110 @@
       const current=element.getAttribute(name)||'';
       if(stored[name]===undefined)stored[name]=current;
       else if(normalize(current)!==normalize(language==='en'?(translations[normalize(stored[name])]||stored[name]):stored[name])){
-        const currentKey=normalize(current);
-        const recovered=reverse.get(currentKey);
+        const recovered=reverse.get(normalize(current));
         if(recovered)stored[name]=recovered;
         else stored[name]=current;
       }
       const next=language==='en'?translated(stored[name]):stored[name];
-      if(current!==next)element.setAttribute(name,next);
+      if(current!==next){
+        incrementAttributeMutation(element,name);
+        element.setAttribute(name,next);
+      }
     }
   }
 
-  function translateTree(root) {
-    if(!root)return;
-    if(root.nodeType===3){translateTextNode(root);return;}
-    if(root.nodeType!==1&&root.nodeType!==9&&root.nodeType!==11)return;
-    if(root.nodeType===1)translateAttributes(root);
-    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
-    let node;
-    while((node=walker.nextNode()))translateTextNode(node);
-    if(root.querySelectorAll)root.querySelectorAll('[placeholder],[title],[aria-label],[alt]').forEach(translateAttributes);
+  function scheduleTranslationFrame() {
+    if(translationFrame||!translationJobs.length)return;
+    const request=window.requestAnimationFrame||((callback)=>window.setTimeout(callback,16));
+    translationFrame=request.call(window,flushTranslationJobs);
   }
 
-  function updateDocumentLanguage(){
+  function makeTranslationJob(root,generation,attributesOnly=false) {
+    if(root.nodeType===3){
+      return {root,generation,textNode:root,attributes:[],attributeIndex:0,walker:null};
+    }
+    if(root.nodeType!==1&&root.nodeType!==9&&root.nodeType!==11)return null;
+    const attributes=[];
+    if(root.nodeType===1&&root.matches?.(attributeSelector))attributes.push(root);
+    if(root.querySelectorAll)attributes.push(...root.querySelectorAll(attributeSelector));
+    return {
+      root,generation,textNode:null,attributes,attributeIndex:0,
+      walker:attributesOnly?null:document.createTreeWalker(root,NodeFilter.SHOW_TEXT)
+    };
+  }
+
+  function enqueueTranslation(root,{restart=false,attributesOnly=false}={}) {
+    if(!root)return;
+    if(restart){
+      translationGeneration++;
+      translationJobs=[];
+      queuedRoots=new WeakSet();
+    }
+    if(queuedRoots.has(root))return;
+    const job=makeTranslationJob(root,translationGeneration,attributesOnly);
+    if(!job)return;
+    queuedRoots.add(root);
+    translationJobs.push(job);
+    scheduleTranslationFrame();
+  }
+
+  function flushTranslationJobs() {
+    translationFrame=0;
+    let budget=TRANSLATION_BATCH_SIZE;
+    while(translationJobs.length&&budget>0){
+      const job=translationJobs[0];
+      if(job.generation!==translationGeneration){
+        translationJobs.shift();
+        queuedRoots.delete(job.root);
+        continue;
+      }
+      if(job.attributeIndex<job.attributes.length){
+        translateAttributes(job.attributes[job.attributeIndex++]);
+        budget--;
+        continue;
+      }
+      if(job.textNode){
+        translateTextNode(job.textNode);
+        job.textNode=null;
+        budget--;
+        continue;
+      }
+      const next=job.walker?.nextNode();
+      if(next){
+        translateTextNode(next);
+        budget--;
+        continue;
+      }
+      translationJobs.shift();
+      queuedRoots.delete(job.root);
+    }
+    if(translationJobs.length)scheduleTranslationFrame();
+  }
+
+  function observeDynamicContent() {
+    if(observer||!document.body)return;
+    observer=new MutationObserver(records=>{
+      const addedRoots=new Set();
+      for(const record of records){
+        if(record.type==='characterData'){
+          if(!consumeTextMutation(record.target))addedRoots.add(record.target);
+        }else if(record.type==='attributes'){
+          if(!consumeAttributeMutation(record.target,record.attributeName))enqueueTranslation(record.target,{attributesOnly:true});
+        }else if(record.type==='childList'){
+          for(const node of record.addedNodes){
+            if(node.nodeType===1||node.nodeType===3)addedRoots.add(node);
+          }
+        }
+      }
+      for(const root of addedRoots)enqueueTranslation(root);
+    });
+    observer.observe(document.body,{
+      childList:true,subtree:true,characterData:true,
+      attributes:true,attributeFilter:['placeholder','title','aria-label','alt']
+    });
+  }
+
+  function updateDocumentLanguage() {
     document.documentElement.lang=language;
     document.documentElement.dir=language==='ar'?'rtl':'ltr';
     document.documentElement.dataset.locale=language;
@@ -485,28 +604,25 @@
     if(title)title.textContent=language==='en'?'Nexa Store | Your digital store':'Nexa Store | متجرك الرقمي';
   }
 
-  function setLanguage(next,{persist=true}={}){
-    language=next==='en'?'en':'ar';
+  function setLanguage(next,{persist=true}={}) {
+    const selected=next==='en'?'en':'ar';
+    if(selected===language)return language;
+    language=selected;
     updateDocumentLanguage();
-    translateTree(document.body);
     if(persist){try{localStorage.setItem('nexa-store-language',language)}catch{}}
+    enqueueTranslation(document.body,{restart:true});
     window.dispatchEvent(new CustomEvent('nexa:languagechange',{detail:{language}}));
     return language;
   }
 
-  function initialize(){
+  function initialize() {
     if(observer)return language;
     let saved='ar';
     try{const value=localStorage.getItem('nexa-store-language');if(value==='ar'||value==='en')saved=value}catch{}
-    setLanguage(saved,{persist:false});
-    observer=new MutationObserver(records=>{
-      for(const record of records){
-        if(record.type==='characterData')translateTextNode(record.target);
-        for(const node of record.addedNodes||[])translateTree(node);
-        if(record.type==='attributes')translateAttributes(record.target);
-      }
-    });
-    observer.observe(document.body,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['placeholder','title','aria-label','alt']});
+    language=saved;
+    updateDocumentLanguage();
+    observeDynamicContent();
+    enqueueTranslation(document.body,{restart:true});
     return language;
   }
 
