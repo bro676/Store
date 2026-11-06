@@ -82,7 +82,7 @@ if (cfg.databaseUrl) {
   pool.on('error', (error) => {
     console.error('[database] idle PostgreSQL client error:', error?.message || 'unknown error');
   });
-  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql', '008_manual_fulfillment.sql']) {
+  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql', '008_manual_fulfillment.sql', '009_customer_avatar.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
   }
 }
@@ -964,7 +964,7 @@ async function currentCustomer(req) {
   if (!pool) return null;
   const token = readCookie(req,'nexa_customer_session');
   if (!/^[A-Za-z0-9_-]{40,80}$/.test(token)) return null;
-  const result = await pool.query(`SELECT c.id,c.full_name,c.phone,c.balance_minor::text,c.created_at
+  const result = await pool.query(`SELECT c.id,c.full_name,c.phone,c.balance_minor::text,c.created_at,c.avatar_image
     FROM nexa_customer_sessions s JOIN nexa_customers c ON c.id=s.customer_id
     WHERE s.session_hash=$1 AND s.expires_at>NOW() LIMIT 1`,[customerSessionHash(token)]);
   return result.rows[0] || null;
@@ -2617,7 +2617,7 @@ const server = http.createServer(async (req,res) => {
       if(expected.length!==supplied.length||!crypto.timingSafeEqual(expected,supplied))return send(res,401,{ok:false,error:'INVALID_CREDENTIALS',message:'رقم الهاتف أو كلمة المرور غير صحيحة.'});
       await pool.query('UPDATE nexa_customers SET last_login_at=NOW() WHERE id=$1',[found.rows[0].id]);
       await createCustomerSession(req,res,found.rows[0].id);
-      const customer=await pool.query('SELECT id,full_name,phone,balance_minor::text,created_at FROM nexa_customers WHERE id=$1',[found.rows[0].id]);
+      const customer=await pool.query('SELECT id,full_name,phone,balance_minor::text,created_at,avatar_image FROM nexa_customers WHERE id=$1',[found.rows[0].id]);
       return send(res,200,{ok:true,customer:customer.rows[0]});
     }
     if(req.method==='POST'&&url.pathname==='/api/account/logout'){
@@ -3266,6 +3266,35 @@ const server = http.createServer(async (req,res) => {
       try{return send(res,200,await testNexaAiConnection());}
       catch(error){return send(res,error?.status||422,{ok:false,error:error?.code||'NEXA_AI_TEST_FAILED',message:String(error?.message||'تعذر اختبار الاتصال بالمساعد.').slice(0,260)});}
     }
+
+    if(req.method==='GET'&&url.pathname==='/api/admin/customers'){
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const query=String(url.searchParams.get('q')||'').trim().slice(0,100);
+      const pattern='%'+query.replace(/[\\%_]/g,'\\$&')+'%';
+      const result=await pool.query(`SELECT id,full_name,phone,balance_minor::text AS balance_minor,
+        created_at,last_login_at,avatar_image
+        FROM nexa_customers
+        WHERE $1='' OR full_name ILIKE $2 ESCAPE '\\' OR phone ILIKE $2 ESCAPE '\\'
+        ORDER BY created_at DESC LIMIT 100`,[query,pattern]);
+      return send(res,200,{ok:true,customers:result.rows});
+    }
+    if(req.method==='PATCH'&&/^\\/api\\/admin\\/customers\\/[^/]+\\/avatar$/.test(url.pathname)){
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const match=url.pathname.match(/^\\/api\\/admin\\/customers\\/([^/]+)\\/avatar$/);
+      let customerId='';
+      try{customerId=decodeURIComponent(match?.[1]||'');}catch{return send(res,400,{ok:false,error:'INVALID_CUSTOMER_ID'});}
+      if(!customerId||customerId.length>100)return send(res,400,{ok:false,error:'INVALID_CUSTOMER_ID'});
+      const input=await bodyJson(req,2_500_000);
+      const avatarImage=input?.avatarImage;
+      if(typeof avatarImage!=='string'||avatarImage.length>2_400_000||(avatarImage!==''&&!isSafeCatalogImage(avatarImage)))
+        return send(res,400,{ok:false,error:'INVALID_CUSTOMER_AVATAR',message:'صيغة صورة المستخدم غير صالحة أو حجمها كبير.'});
+      const result=await pool.query(`UPDATE nexa_customers SET avatar_image=$2
+        WHERE id=$1
+        RETURNING id,full_name,phone,balance_minor::text AS balance_minor,created_at,last_login_at,avatar_image`,[customerId,avatarImage]);
+      if(!result.rowCount)return send(res,404,{ok:false,error:'CUSTOMER_NOT_FOUND',message:'لم يتم العثور على المستخدم.'});
+      return send(res,200,{ok:true,customer:result.rows[0]});
+    }
+
     if (req.method === 'GET' && url.pathname === '/api/admin/settings') {
       return send(res,200,{ok:true,settings:safeSettingsForAdmin(),paymentsReady,fxReady:fxRateReady()});
     }
