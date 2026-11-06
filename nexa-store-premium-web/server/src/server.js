@@ -200,8 +200,7 @@ function pricePack(pack, currency) {
   return { ...pack, currency, amountMinor };
 }
 
-function isPublicCatalogCategory(category, rows=catalog) {
-  const byId=new Map(rows.map(row=>[String(row.id),row]));
+function isPublicCatalogCategory(category, byId) {
   const visited=new Set();let current=category;
   while(current){
     const id=String(current.id||'');
@@ -212,7 +211,8 @@ function isPublicCatalogCategory(category, rows=catalog) {
   return true;
 }
 function publicCatalog() {
-  return catalog.filter(category=>isPublicCatalogCategory(category)).map(category => ({
+  const byId=new Map(catalog.map(row=>[String(row.id),row]));
+  return catalog.filter(category=>isPublicCatalogCategory(category,byId)).map(category => ({
     ...category,
     apiSource:undefined,apiSources:undefined,sourceCategoryAliases:undefined,manualOverrides:undefined,
     items: category.items.filter(product=>product.visible!==false).map(product => {

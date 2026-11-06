@@ -38,3 +38,28 @@ test('admin dashboard loads the overview first and fetches heavy sections only w
  assert.ok(pageRouter.includes("loadSectionOnce('seagm',loadSeagmCatalog)"),'SEAGM products load only on the supplier API page');
  assert.ok(pageRouter.includes("loadSectionOnce('beststore',loadBestStoreCatalog)"),'Best Store products load only on the supplier API page');
 });
+
+
+test('public catalogue builds its folder index once instead of once per category',async()=>{
+ const server=await fs.readFile(path.resolve(here,'../src/server.js'),'utf8');
+ const predicateStart=server.indexOf('function isPublicCatalogCategory(');
+ const publicStart=server.indexOf('function publicCatalog()',predicateStart);
+ const publicEnd=server.indexOf('\nfunction ',publicStart+1);
+ const predicate=server.slice(predicateStart,publicStart);
+ const publicCatalog=server.slice(publicStart,publicEnd<0?server.length:publicEnd);
+ assert.ok(predicate.includes('function isPublicCatalogCategory(category, byId)'));
+ assert.ok(!predicate.includes('new Map('),'The category predicate reuses its caller-provided lookup map');
+ assert.ok(publicCatalog.includes('const byId=new Map(catalog.map(row=>[String(row.id),row]));'),'One parent lookup index is built per public-catalog response');
+ assert.ok(publicCatalog.includes('catalog.filter(category=>isPublicCatalogCategory(category,byId))'),'All category visibility checks reuse the same index');
+});
+
+test('storefront starts the catalog and storefront configuration requests concurrently',async()=>{
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ const initStart=store.indexOf('async function init(){');
+ const initEnd=store.indexOf('\n',initStart);
+ const init=store.slice(initStart,initEnd<0?store.length:initEnd);
+ assert.ok(init.includes('Promise.all(['),'The initial catalog and storefront settings are fetched together');
+ assert.ok(init.includes("fetch('/api/catalog',{cache:'no-store'})"),'The public catalogue request remains intact');
+ assert.ok(init.includes('loadStorefrontConfig()'),'Storefront settings are loaded in the same startup batch');
+ assert.ok(!init.includes('await loadStorefrontConfig()'),'Settings no longer wait behind the catalogue response');
+});
