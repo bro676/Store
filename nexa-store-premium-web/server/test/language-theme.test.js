@@ -31,6 +31,9 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(translate('صفحة ٢ من ٥'),'Page 2 of 5');
  assert.equal(translate('إنشاء فاتورة شحن ١٢'),'Create top-up invoice 12');
  assert.equal(translate('لا توجد طلبات حتى الآن.'),'No orders yet.');
+ assert.equal(translate('مرحباً بك في NEXA STORE'),'Welcome to NEXA STORE');
+ assert.ok(source.includes('const fragmentPattern = fragmentEntries.length'),'Partial translations are compiled once rather than scanned in a long phrase loop');
+ assert.ok(source.includes('raw.replace(fragmentPattern'),'Partial Arabic phrases are replaced in one pass');
  assert.equal(sandbox.document.documentElement.direction,'ltr');
  sandbox.window.NexaLocale.setLanguage('ar');
  assert.equal(translate('Order 27'),'Order ٢٧');
