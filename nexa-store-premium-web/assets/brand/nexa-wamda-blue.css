@@ -2726,3 +2726,36 @@ body{color-scheme:inherit}
 }
 
 /* End Wamda final detail pass. */
+
+
+/* Admin catalogue performance controls: responsive search and compact page navigation. */
+#app.shell #catalogEditor .catalog-products-toolbar{
+ display:grid!important;grid-template-columns:minmax(0,1fr) minmax(240px,380px)!important;
+ align-items:end!important;gap:14px!important;margin:20px 0 10px!important;min-width:0!important;
+}
+#app.shell #catalogEditor .catalog-products-search{display:grid!important;gap:6px!important;min-width:0!important;color:var(--muted)!important;font-size:11px!important;font-weight:800!important}
+#app.shell #catalogEditor .catalog-products-search input{
+ width:100%!important;min-width:0!important;min-height:43px!important;padding:10px 14px!important;
+ border-radius:var(--radius-pill)!important;background:var(--surface-2)!important;color:var(--ink)!important;
+ border:1px solid var(--line)!important;box-shadow:none!important;
+}
+#app.shell #catalogEditor .catalog-products-pager{
+ display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;
+ flex-wrap:wrap!important;margin:10px 0 14px!important;padding:10px 12px!important;
+ border:1px solid var(--line)!important;border-radius:18px!important;background:var(--surface-2)!important;
+}
+#app.shell #catalogEditor .catalog-products-pager>div{display:flex!important;align-items:center!important;gap:9px!important;flex-wrap:wrap!important}
+#app.shell #catalogEditor .catalog-products-pager button{min-height:34px!important;padding:7px 14px!important;font-size:11px!important}
+#app.shell #catalogEditor .catalog-products-pager button:disabled{opacity:.42!important;cursor:not-allowed!important;transform:none!important}
+#app.shell #catalogEditor #catalogProductResults{content-visibility:auto!important;contain-intrinsic-size:1px 900px!important}
+#app.shell #catalogEditor .product-thumb{object-fit:cover!important}
+@media(max-width:760px){
+ #app.shell #catalogEditor .catalog-products-toolbar{grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
+ #app.shell #catalogEditor .catalog-products-pager{align-items:flex-start!important;flex-direction:column!important}
+ #app.shell #catalogEditor .catalog-products-pager>div{width:100%!important;justify-content:space-between!important}
+ #app.shell #catalogEditor .catalog-products-pager button{flex:1 1 0!important}
+}
+@media(max-width:420px){
+ #app.shell #catalogEditor .catalog-products-search input{min-height:41px!important;font-size:13px!important}
+ #app.shell #catalogEditor .catalog-products-pager{padding:8px!important}
+}

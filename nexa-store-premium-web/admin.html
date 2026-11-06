@@ -1293,7 +1293,7 @@ function renderCatalogProductResults(){
  if(previous)previous.disabled=state.catalogProductPage<=1;
  if(next)next.disabled=state.catalogProductPage>=pageCount;
 }
-function renderOption(o,base,oi,fallbackImage){
+$('categoryList').addEventListener('click',e=>{
  const expandAll=e.target.closest('[data-tree-expand-all]');
  if(expandAll){state.collapsedFolderIds.clear();renderCatalog();return;}
  const collapseAll=e.target.closest('[data-tree-collapse-all]');
