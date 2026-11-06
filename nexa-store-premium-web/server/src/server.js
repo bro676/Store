@@ -22,7 +22,7 @@ import { parseSeagmCallbackBody, mergeSeagmCallbackParams, verifySeagmCallbackSi
 import { verifyBestStoreWebhookSecret, parseBestStoreWebhookBody, isBestStoreWebhookTest, resolveBestStoreWebhookReference } from './best-store-webhook.js';
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
 import { expirePendingOrders } from './order-expiry.js';
-import { waitForDatabase } from './db-startup.js';
+import { waitForDatabase, isRetryableDatabaseError, nextDatabaseRetry } from './db-startup.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -44,6 +44,7 @@ let bestStoreApiTokenRuntime = '';
 let bestStoreCatalogSyncInProgress = false;
 let supplierCompareSyncInProgress = false;
 let seagmFulfillmentWorkerBusy = false;
+let seagmFulfillmentDbRetryState = null;
 const { Pool } = pg;
 const cfg = {
   port: Number(process.env.PORT || 3000),
@@ -2409,15 +2410,33 @@ async function processSeagmFulfillmentJob(job) {
 }
 async function runSeagmFulfillmentWorker() {
   if(!pool||seagmFulfillmentWorkerBusy||(!storeSettings?.seagmUid||!seagmSecretRuntime)&&!wamdaApiTokenRuntime&&!bestStoreApiTokenRuntime)return;
+  if(seagmFulfillmentDbRetryState&&Date.now()<seagmFulfillmentDbRetryState.nextAttemptAt)return;
   seagmFulfillmentWorkerBusy=true;
   let job=null;
   try {
     job=await claimSeagmFulfillmentJob();
+    seagmFulfillmentDbRetryState=null;
     if(!job)return;
     await processSeagmFulfillmentJob(job);
   } catch(error) {
     if(!job) {
-      console.error('SEAGM fulfillment worker failed to claim a job',String(error?.code||error?.message||'unknown').slice(0,120));
+      const retryable=isRetryableDatabaseError(error);
+      const retry=nextDatabaseRetry(
+        seagmFulfillmentDbRetryState,
+        Date.now(),
+        retryable?{}:{baseDelayMs:60_000,maxDelayMs:60_000}
+      );
+      seagmFulfillmentDbRetryState=retry;
+      if(retry.shouldLog){
+        const details=JSON.stringify({
+          code:String(error?.code||error?.cause?.code||'unknown'),
+          attempt:retry.attempt,
+          retryInMs:retry.delayMs,
+          retryable,
+        });
+        if(retryable)console.warn('[database] SEAGM worker paused after a transient database connection failure',details);
+        else console.error('[database] SEAGM worker paused after a database claim error',details);
+      }
       return;
     }
     const decision=job.supplier_provider==='wamda'?classifyWamdaError(error,Number(job.failure_count||0)):(job.supplier_provider==='beststore'?classifyBestStoreError(error,Number(job.failure_count||0)):classifySeagmFulfillmentError(error,Number(job.failure_count||0)));

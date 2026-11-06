@@ -15,9 +15,33 @@ const RETRYABLE_DATABASE_ERRORS = new Set([
   '08007',
 ]);
 
-function isRetryableDatabaseError(error) {
+export function isRetryableDatabaseError(error) {
   const code = error?.code || error?.cause?.code;
   return RETRYABLE_DATABASE_ERRORS.has(String(code || '').toUpperCase());
+}
+
+export function nextDatabaseRetry(state = null, now = Date.now(), {
+  baseDelayMs = 5_000,
+  maxDelayMs = 60_000,
+  logIntervalMs = 60_000,
+} = {}) {
+  const baseDelay = Number.isFinite(baseDelayMs) && baseDelayMs > 0 ? baseDelayMs : 5_000;
+  const maxDelay = Number.isFinite(maxDelayMs) && maxDelayMs >= baseDelay
+    ? maxDelayMs
+    : Math.max(baseDelay, 60_000);
+  const logInterval = Number.isFinite(logIntervalMs) && logIntervalMs > 0 ? logIntervalMs : 60_000;
+  const previousAttempt = Number.isSafeInteger(state?.attempt) && state.attempt > 0 ? state.attempt : 0;
+  const attempt = previousAttempt + 1;
+  const delayMs = Math.min(baseDelay * (2 ** Math.min(attempt - 1, 20)), maxDelay);
+  const previousLogAt = Number(state?.nextLogAt);
+  const shouldLog = !Number.isFinite(previousLogAt) || now >= previousLogAt;
+  return {
+    attempt,
+    delayMs,
+    nextAttemptAt: now + delayMs,
+    nextLogAt: shouldLog ? now + logInterval : previousLogAt,
+    shouldLog,
+  };
 }
 
 export async function waitForDatabase(pool, {
