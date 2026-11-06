@@ -94,7 +94,7 @@ test('store drawer locks background scroll and restores focus and accessibility 
  const end=store.indexOf('\nfunction renderDepartmentCard',start);
  assert.ok(start>=0&&end>start,'The drawer controller has a dedicated state boundary');
  const controller=store.slice(start,end);
- let locale='en',changeHandler=null,scrollY=360,restoredY=null;
+ let locale='en',changeHandler=null,scrollY=360,restoredY=null,activeElement=null;
  const makeClassList=()=>{
   const classes=new Set();
   return {
@@ -112,15 +112,17 @@ test('store drawer locks background scroll and restores focus and accessibility 
   getAttribute(name){return attributes.get(name)??null},
   removeAttribute(name){attributes.delete(name)},
   hasAttribute(name){return attributes.has(name)},
-  focus(){this.focused=true},
+  focus(){this.focused=true;activeElement=this},
   getClientRects(){return [1]}
  });
- const body=makeElement(),root=makeElement(),sidebar=makeElement(),toggle=makeElement(),close=makeElement();
+ const body=makeElement(),root=makeElement(),sidebar=makeElement(),toggle=makeElement(),close=makeElement(),firstLink=makeElement();
+ sidebar.contains=element=>element===close||element===firstLink;
+ sidebar.querySelector=selector=>selector==='.sidebar-nav .side-link'?firstLink:null;
  const elements={menuToggle:toggle,sidebar,sidebarClose:close};
  const media={matches:true,addEventListener(type,callback){if(type==='change')changeHandler=callback},addListener(callback){changeHandler=callback}};
  const sandbox={
   storeDrawerMedia:media,
-  document:{body,documentElement:root},
+  document:{body,documentElement:root,get activeElement(){return activeElement}},
   window:{get scrollY(){return scrollY},scrollTo(_x,y){restoredY=y;scrollY=y}},
   $:id=>elements[id]||null,
   storeLocale:()=>locale
@@ -153,10 +155,12 @@ test('store drawer locks background scroll and restores focus and accessibility 
  assert.equal(sidebar.getAttribute('aria-hidden'),'false','Desktop rail remains available');
  assert.equal(sidebar.getAttribute('role'),null,'Desktop rail is not announced as a modal dialog');
  assert.equal(toggle.getAttribute('aria-expanded'),'true','Desktop rail reports its visible state');
+ assert.equal(activeElement,firstLink,'Focus moves to a visible navigation item when the mobile close control disappears on desktop');
  media.matches=true;changeHandler();
  assert.ok(!body.classList.contains('sidebar-open'),'Changing back to mobile starts with the drawer closed');
  assert.ok(sidebar.hasAttribute('inert'),'The mobile drawer is inert after crossing back to mobile');
  assert.ok(!root.classList.contains('store-drawer-scroll-locked'),'Viewport changes do not leave page scroll locked');
+ assert.equal(activeElement,toggle,'Focus moves to the visible menu toggle when returning to mobile');
 });
 
 test('responsive drawer has a bounded viewport width, safe-area padding and a compact landscape layout',async()=>{
@@ -202,6 +206,16 @@ test('public catalogue builds its folder index once instead of once per category
  assert.ok(!predicate.includes('new Map('),'The category predicate reuses its caller-provided lookup map');
  assert.ok(publicCatalog.includes('const byId=new Map(catalog.map(row=>[String(row.id),row]));'),'One parent lookup index is built per public-catalog response');
  assert.ok(publicCatalog.includes('catalog.filter(category=>isPublicCatalogCategory(category,byId))'),'All category visibility checks reuse the same index');
+});
+
+test('mobile route navigation unlocks the drawer before scrolling to the new page',async()=>{
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ const start=store.indexOf('function navigate(view,');
+ const end=store.indexOf('\n}',start);
+ const navigate=store.slice(start,end<0?store.length:end);
+ const closeAt=navigate.indexOf('closeMenu(true)');
+ const scrollAt=navigate.indexOf("window.scrollTo({top:0,behavior:'smooth'})");
+ assert.ok(closeAt>=0&&scrollAt>closeAt,'The drawer restores its saved page scroll before route navigation moves to the top');
 });
 
 test('storefront renders the catalog without waiting for slower storefront settings',async()=>{
