@@ -663,3 +663,30 @@ test('Wamda final detail pass covers catalog, account states and admin light nav
   assert.ok(admin.includes('nexa-wamda-blue.css?v=20261105-wamda-brand-v12'), 'Admin loads Wamda detail pass');
   assert.ok(css.includes('End Wamda precision pass.'), 'The prior precision stylesheet layer remains');
 });
+
+
+test('storefront drawer matches the fixed dark/light reference palette without changing customer routes', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
+  assert.ok(store.includes('nexa-store-drawer.css?v=20261106-reference-v1'), 'Storefront loads the dedicated reference drawer layer');
+  for (const id of ['sidebarBalanceValue','sidebarThemeLabel','sidebarSocialLinks','sidebarOwnerBrand']) {
+    if (id === 'sidebarSocialLinks' || id === 'sidebarOwnerBrand') continue;
+    assert.ok(store.includes('id="' + id + '"'), 'Missing drawer reference element: ' + id);
+  }
+  for (const route of ['home','wallet','favorites','profile','login','notifications','payments','orders','support','affiliate','security','verify','install','about']) {
+    assert.ok(store.includes('data-page="' + route + '"'), 'Drawer must preserve route: ' + route);
+  }
+  assert.ok(store.includes('data-open-assistant'), 'The assistant still opens through its existing action');
+  assert.ok(store.includes('id="menuToggle"') && store.includes('id="sidebarBackdrop"') && store.includes('id="sidebarClose"'), 'Existing drawer open and close controls remain available');
+  assert.ok(store.includes("if($('sidebarBalanceValue'))$('sidebarBalanceValue').textContent=balance"), 'Drawer balance remains bound to the authenticated customer balance');
+  assert.ok(drawer.includes(':root[data-theme="dark"] .app-shell .sidebar{background:#0c0c0c!important'), 'Dark drawer background is fixed to the reference near-black');
+  assert.ok(drawer.includes(':root[data-theme="light"] .app-shell .sidebar{background:#ffffff!important'), 'Light drawer background is fixed to the reference white');
+  assert.ok(drawer.includes('background:#252d39!important;color:#f8fafc!important'), 'Dark currency capsule matches the reference slate surface');
+  assert.ok(drawer.includes('background:#eef0f3!important;color:#34404f!important'), 'Light currency capsule matches the reference light-gray surface');
+  assert.ok(drawer.includes('background:#374151!important;color:#f1f5f9!important'), 'Dark shortcut circles retain the reference slate tone');
+  assert.ok(drawer.includes('background:#e5e7eb!important;color:#334155!important'), 'Light shortcut circles retain the reference gray tone');
+  assert.ok(drawer.includes('.side-link[data-page="home"] .side-icon{color:#22c55e!important}'), 'Menu icon accents remain identical between the two color modes');
+  assert.ok(drawer.includes('.side-link[data-page="orders"] .side-icon{color:#ef4444!important}'), 'Order icon keeps its dedicated red accent');
+  assert.ok(drawer.includes(':root[data-theme="light"] .app-shell .side-link.active{background:#e5e7eb!important'), 'Light active item uses the reference gray pill');
+  assert.ok(drawer.includes('.app-shell .sidebar-social-links{') && drawer.includes('.app-shell .sidebar-owner-brand{'), 'The reference social row and Nexa logo footer are present');
+});
