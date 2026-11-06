@@ -1848,6 +1848,8 @@ function applyStorefrontExperience(value={}){
   social:{...defaults.social,...(source.social||{})}
  };
  const root=document.documentElement,colors=storefrontExperience.colors;
+ root.classList.toggle('storefront-favorites-disabled',storefrontExperience.features.favorites===false);
+ root.classList.toggle('storefront-assistant-disabled',storefrontExperience.features.assistant===false);
  root.style.setProperty('--nexa-notification-accent',colors.notification||defaults.colors.notification);
  root.style.setProperty('--nexa-profile-ring',colors.profileRing||defaults.colors.profileRing);
  root.style.setProperty('--nexa-favorite-accent',colors.favorite||defaults.colors.favorite);
