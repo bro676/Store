@@ -832,6 +832,7 @@
   "تم تسجيل الخروج.": "You have been signed out.",
   "تعذر تسجيل الدخول.": "Could not sign in.",
   "تم تأكيد الدفع لهذا الطلب.": "Payment has been confirmed for this order.",
+  "سيصل طلبك قريباً": "Your order will arrive soon.",
   "انتهت صلاحية الفاتورة.": "The invoice has expired.",
   "تم إلغاء الطلب.": "The order has been cancelled.",
   "تم تسجيل الدخول بنجاح.": "You have signed in successfully.",
