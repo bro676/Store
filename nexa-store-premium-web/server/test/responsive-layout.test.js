@@ -7,7 +7,7 @@ const storefrontHtml = readFileSync(new URL('../../index.html', import.meta.url)
 const adminHtml = readFileSync(new URL('../../admin.html', import.meta.url), 'utf8');
 
 test('responsive layout stylesheet is loaded after legacy styles on both pages', () => {
-  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-layout-final-v5');
+  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-drawer-single-rail-v6');
   const storePreviousLayer = storefrontHtml.indexOf('nexa-store-polish.css');
   const adminLink = adminHtml.indexOf('nexa-responsive.css?v=20261107-layout-final-v5');
   const adminTheme = adminHtml.indexOf('nexa-wamda-blue.css');
@@ -86,14 +86,18 @@ test('stylesheet braces are balanced and narrow viewports remove the old fixed b
 });
 
 
-test('storefront responsive shell targets the actual #appMain element', () => {
+test('storefront drawer reserves sidebar width once and keeps the page and top bar full-width', () => {
   const mainMarkup = storefrontHtml.match(/<main\s+id="appMain"[^>]*>/)?.[0] || '';
   assert.ok(mainMarkup, 'The storefront main element is #appMain');
   assert.ok(responsiveCss.includes('.app-shell #appMain,'), 'The actual storefront main element receives responsive sizing');
   assert.ok(responsiveCss.includes('container-name:nexa-stage'), 'The main content is the responsive container');
   assert.ok(responsiveCss.includes('container-type:inline-size!important'), 'Container breakpoints have a real container');
-  assert.ok(responsiveCss.includes(':root[dir="ltr"] .app-shell #appMain'), 'LTR desktop content reserves the rail on the left');
-  assert.ok(responsiveCss.includes('body.sidebar-closed .app-shell #appMain'), 'Desktop content expands when the drawer closes');
+  assert.ok(responsiveCss.includes('/* DRAWER SINGLE-RAIL CONTRACT v6'), 'The final drawer contract is loaded after legacy spacing rules');
+  assert.ok(responsiveCss.includes(':root[dir="rtl"] .app-shell > .app-main{'), 'RTL rail spacing is applied to the outer content shell');
+  assert.ok(responsiveCss.includes(':root[dir="ltr"] .app-shell > .app-main{'), 'LTR rail spacing is applied to the outer content shell');
+  assert.ok(responsiveCss.includes(':root[dir="rtl"] .app-shell > .app-main > #appMain,:root[dir="ltr"] .app-shell > .app-main > #appMain{'), 'The inner page never reserves the sidebar a second time');
+  assert.ok(responsiveCss.includes('body.sidebar-closed .app-shell > .app-main'), 'The outer shell expands when the desktop drawer closes');
+  assert.ok(responsiveCss.includes('.app-shell > .app-main > .header > .wrap.header-main{width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;box-sizing:border-box!important}'), 'The top bar inner row fills the available shell width');
 });
 
 test('mobile drawer lock and header layout stay stable during drawer transitions', () => {

@@ -684,3 +684,34 @@ html.store-drawer-scroll-locked body{
   color:var(--ink)!important;border-color:var(--line)!important;
 }
 :root[data-theme="dark"] #orderModal :is(.field,input,select,textarea){border-color:var(--line-2)!important}
+
+
+/* DRAWER SINGLE-RAIL CONTRACT v6 — reserve sidebar width once, on the outer shell only. */
+.app-shell > .app-main{
+  display:flex!important;
+  flex-direction:column!important;
+  min-width:0!important;
+  width:auto!important;
+  max-width:none!important;
+  transition:margin .24s ease,width .24s ease!important;
+}
+:root[dir="rtl"] .app-shell > .app-main{margin:0 var(--rail-width) 0 0!important;}
+:root[dir="ltr"] .app-shell > .app-main{margin:0 0 0 var(--rail-width)!important;}
+:root[dir="rtl"] .app-shell > .app-main > #appMain,:root[dir="ltr"] .app-shell > .app-main > #appMain{
+  width:100%!important;max-width:100%!important;min-width:0!important;margin:0!important;
+}
+.app-shell > .app-main > .header{width:100%!important;max-width:none!important;margin:0!important;}
+.app-shell > .app-main > .header > .wrap.header-main{width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;box-sizing:border-box!important;}
+@media(min-width:1025px){
+  :root[dir="rtl"] body.sidebar-closed .app-shell > .app-main,:root[dir="ltr"] body.sidebar-closed .app-shell > .app-main{
+    margin:0!important;width:100%!important;max-width:100%!important;
+  }
+}
+@media(max-width:1024px){
+  :root[dir="rtl"] .app-shell > .app-main,:root[dir="ltr"] .app-shell > .app-main{
+    margin:0!important;width:100%!important;max-width:100%!important;
+  }
+  :root[dir="rtl"] .app-shell > .app-main > #appMain,:root[dir="ltr"] .app-shell > .app-main > #appMain{
+    margin:0!important;width:100%!important;max-width:100%!important;
+  }
+}
