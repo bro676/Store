@@ -519,7 +519,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
           <div class="form-grid">
             <div class="field"><label>اسم المتجر</label><input id="storeName" maxlength="80" placeholder="Nexa Store"></div>
             <div class="field"><label>النص الظاهر في الشريط العلوي</label><input id="announcement" maxlength="240" placeholder="وجهتك للألعاب والبطاقات..."></div>
-            <div class="field full"><label>شعار المتجر</label><div class="image-row"><img class="image-preview" id="storeLogoPreview" src="assets/brand/logo.svg" alt=""><div><input id="storeLogo" value="assets/brand/logo.svg" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع شعار<input type="file" id="storeLogoFile" accept="image/png,image/jpeg,image/webp,image/gif"></label></div></div></div>
+            <div class="field full"><label>شعار المتجر</label><div class="image-row"><img class="image-preview" id="storeLogoPreview" src="assets/brand/logo.svg" alt=""><div><input id="storeLogo" value="assets/brand/logo.svg" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع شعار<input type="file" id="storeLogoFile" accept="image/*"></label></div></div></div>
             <div class="field full palette-field nexa-fixed-palette">
               <label>هوية ومضة المعتمدة — ألوان ثابتة</label>
               <div class="nexa-fixed-swatches">
@@ -583,11 +583,11 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
             <div class="appearance-panel-head"><div><h3>صور الحساب والرتبة</h3><p>اختر صورة افتراضية دائرية للحساب، وصورة مخصصة لأيقونة رتبة العضوية.</p></div></div>
             <div class="appearance-visual-row">
               <img class="appearance-image-preview circle" id="appearanceAvatarPreview" src="assets/brand/logo.svg" alt="معاينة صورة الحساب">
-              <div><strong>الصورة الافتراضية للحساب</strong><div class="appearance-image-actions"><label class="upload-label">↑ رفع صورة<input id="appearanceAvatarFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><button type="button" class="appearance-clear" id="clearAppearanceAvatar">إزالة الصورة</button></div><small class="muted">تظهر كصورة افتراضية للحسابات التي لا تملك صورة شخصية مرفوعة.</small><input id="appearanceAvatarImage" type="hidden"></div>
+              <div><strong>الصورة الافتراضية للحساب</strong><div class="appearance-image-actions"><label class="upload-label">↑ رفع صورة<input id="appearanceAvatarFile" type="file" accept="image/*"></label><button type="button" class="appearance-clear" id="clearAppearanceAvatar">إزالة الصورة</button></div><small class="muted">تظهر كصورة افتراضية للحسابات التي لا تملك صورة شخصية مرفوعة.</small><input id="appearanceAvatarImage" type="hidden"></div>
             </div>
             <div class="appearance-visual-row">
               <img class="appearance-image-preview square" id="appearanceRankPreview" src="assets/brand/logo.svg" alt="معاينة أيقونة الرتبة">
-              <div><strong>صورة أيقونة الرتبة</strong><div class="appearance-image-actions"><label class="upload-label">↑ رفع أيقونة<input id="appearanceRankFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif"></label><button type="button" class="appearance-clear" id="clearAppearanceRank">إزالة الأيقونة</button></div><small class="muted">تُستخدم صورة واحدة لشارة الرتبة الظاهرة في الشريط الجانبي.</small><input id="appearanceRankImage" type="hidden"></div>
+              <div><strong>صورة أيقونة الرتبة</strong><div class="appearance-image-actions"><label class="upload-label">↑ رفع أيقونة<input id="appearanceRankFile" type="file" accept="image/*"></label><button type="button" class="appearance-clear" id="clearAppearanceRank">إزالة الأيقونة</button></div><small class="muted">تُستخدم صورة واحدة لشارة الرتبة الظاهرة في الشريط الجانبي.</small><input id="appearanceRankImage" type="hidden"></div>
             </div>
             <div class="field"><label for="appearanceBrandSubtitle">النص الصغير تحت اسم المتجر</label><input id="appearanceBrandSubtitle" maxlength="60" placeholder="DIGITAL STORE"></div>
           </section>
@@ -992,7 +992,7 @@ function renderCustomers(){
    '<img class="customer-admin-avatar" src="'+esc(row.avatar_image||'assets/brand/logo.svg')+'" alt="صورة '+esc(name)+'">'+
    '<div class="customer-admin-main"><strong>'+esc(name)+'</strong><small>'+esc(phone)+'</small>'+
    '<div class="customer-admin-meta"><span>الرصيد: '+balance+' ل.س</span><span>تاريخ التسجيل: '+esc(joined)+'</span></div></div>'+
-   '<div class="customer-admin-actions"><label class="upload-label">تغيير الصورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-customer-avatar="'+esc(id)+'"></label>'+
+   '<div class="customer-admin-actions"><label class="upload-label">تغيير الصورة<input type="file" accept="image/*" data-customer-avatar="'+esc(id)+'"></label>'+
    (row.avatar_image?'<button type="button" data-clear-customer-avatar="'+esc(id)+'">إزالة الصورة</button>':'')+
    '</div></article>';
  }).join(''):'<div class="customer-admin-empty">لا توجد حسابات مطابقة. جرّب اسماً أو رقماً آخر.</div>';
@@ -1009,8 +1009,7 @@ $('reloadCustomersBtn').addEventListener('click',()=>loadCustomers());
 $('customerAdminGrid').addEventListener('change',async event=>{
  const input=event.target.closest('input[data-customer-avatar]');if(!input)return;
  const file=input.files?.[0];if(!file)return;
- if(file.size>10*1024*1024){toast('الصورة أكبر من 10 ميغابايت.');input.value='';return;}
- input.disabled=true;
+  input.disabled=true;
  try{const data=await compressImage(file);await saveCustomerAvatar(input.dataset.customerAvatar,data);}
  catch(error){toast(error.message||'تعذر تحديث صورة العميل.');}
  finally{input.disabled=false;input.value='';}
@@ -1185,12 +1184,12 @@ function renderCatalog(){
    <div class="form-grid">
     ${departmentField('اسم القسم الرئيسي',department.id,'name',department.name)}
     ${departmentField('الأيقونة النصية (بديلة عند عدم رفع صورة)',department.id,'icon',department.icon)}
-    <div class="field full"><label>صورة أيقونة القسم الرئيسي</label><div class="image-row"><img class="image-preview" src="${esc(department.iconImage||department.cover)}" alt=""><div><input data-department-path="${esc(department.id)}.iconImage" value="${esc(department.iconImage||'')}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع أيقونة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-department-icon-image="${esc(department.id)}"></label></div></div></div>
+    <div class="field full"><label>صورة أيقونة القسم الرئيسي</label><div class="image-row"><img class="image-preview" src="${esc(department.iconImage||department.cover)}" alt=""><div><input data-department-path="${esc(department.id)}.iconImage" value="${esc(department.iconImage||'')}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع أيقونة<input type="file" accept="image/*" data-department-icon-image="${esc(department.id)}"></label></div></div></div>
     ${departmentField('ترتيب الظهور (الأقل أولاً · 0 تلقائي)',department.id,'sortOrder',department.sortOrder||0,{type:'number',step:1,min:0,max:1000000})}
     ${departmentField('الوصف الظاهر للعملاء',department.id,'description',department.description,{type:'textarea',full:true,max:300})}
     <label class="inline-check"><input type="checkbox" data-department-path="${esc(department.id)}.visible" ${department.visible===false?'':'checked'}> إظهار القسم الرئيسي في المتجر</label>
    </div>
-   <div class="toolbar"><span class="muted">صورة القسم الرئيسي</span><div class="image-row" style="max-width:360px"><img class="image-preview" src="${esc(department.cover)}" alt=""><div><input data-department-path="${esc(department.id)}.cover" value="${esc(department.cover)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-department-image="${esc(department.id)}"></label></div></div></div>
+   <div class="toolbar"><span class="muted">صورة القسم الرئيسي</span><div class="image-row" style="max-width:360px"><img class="image-preview" src="${esc(department.cover)}" alt=""><div><input data-department-path="${esc(department.id)}.cover" value="${esc(department.cover)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/*" data-department-image="${esc(department.id)}"></label></div></div></div>
    <div class="notice info">لا يُحذف القسم الرئيسي من النظام حتى لا تنكسر روابط المنتجات القديمة؛ يمكنك إخفاؤه وإعادة إظهاره متى شئت. لإنشاء مجلد داخل هذا القسم اضغط «＋ إضافة مجلد».</div>
    <div class="toolbar"><div><h3 style="margin:0">المجلدات التابعة للقسم</h3><small class="muted">اختر أي مجلد من الشجرة لفتح إعداداته أو إنشاء مستويات أعمق.</small></div><button class="btn soft" id="createFolderFromDepartment">＋ مجلد رئيسي داخل القسم</button></div>
    <div class="empty">اختر مجلداً من الشجرة لتعديل محتوياته، أو أنشئ مجلداً جديداً في هذا القسم.</div>`;
@@ -1221,7 +1220,7 @@ function renderCatalog(){
   ${departmentSelect}
   <label class="inline-check"><input type="checkbox" data-path="${ci}.visible" ${cat.visible===false?'':'checked'}> إظهار هذا المجلد في المتجر</label>
  </div>
- <div class="toolbar"><span class="muted">صورة المجلد</span><div class="image-row" style="max-width:360px"><img class="image-preview" src="${esc(cat.image)}" alt=""><div><input data-path="${ci}.image" value="${esc(cat.image)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${ci}.image"></label></div></div>
+ <div class="toolbar"><span class="muted">صورة المجلد</span><div class="image-row" style="max-width:360px"><img class="image-preview" src="${esc(cat.image)}" alt=""><div><input data-path="${ci}.image" value="${esc(cat.image)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/*" data-image-path="${ci}.image"></label></div></div>
   ${cat.apiSource||cat.apiSources?'<button class="btn soft" type="button" data-reset-category-api="'+esc(cat.id)+'">استعادة اسم وصورة API</button>':''}
   <button class="btn danger" data-remove-category="${ci}">حذف المجلد</button>
  </div>
@@ -1249,7 +1248,7 @@ ${field('ترتيب الظهور (1 أولاً · 0 تلقائي)',base+'.sortOr
 <div class="field"><label>طريقة التسليم</label><select data-path="${base}.fulfillmentMode"><option value="automatic" ${fulfillmentMode==='automatic'?'selected':''} ${supplierLinked?'':'disabled'}>آلي عبر API المورد</option><option value="manual" ${fulfillmentMode==='manual'?'selected':''}>يدوي من لوحة الطلبات</option></select><small class="muted">الآلي متاح فقط للمنتجات المرتبطة بمورد يدعم تنفيذ API. غير ذلك سيُعامل الطلب كتسليم يدوي.</small></div>
 ${field('مهلة التسليم اليدوي (ساعة)',base+'.manualDeliveryHours',p.manualDeliveryHours??24,{type:'number',step:1,min:1,max:168})}
 ${field('الوصف',base+'.desc',p.desc,{type:'textarea',full:true})}
-<div class="field full"><label>صورة المنتج</label><div class="image-row"><img class="image-preview" src="${esc(p.image)}" alt="" loading="lazy" decoding="async"><div><input data-path="${base}.image" value="${esc(p.image)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${base}.image"></label></div></div></div>
+<div class="field full"><label>صورة المنتج</label><div class="image-row"><img class="image-preview" src="${esc(p.image)}" alt="" loading="lazy" decoding="async"><div><input data-path="${base}.image" value="${esc(p.image)}" placeholder="رابط HTTPS أو assets/..."><label class="upload-label">↑ رفع صورة<input type="file" accept="image/*" data-image-path="${base}.image"></label></div></div></div>
 ${moveSelect}
 <label class="inline-check"><input type="checkbox" data-path="${base}.visible" ${p.visible===false?'':'checked'}> إظهار المنتج في المتجر</label>
 </div>
@@ -1264,7 +1263,7 @@ ${field('معرّف الخيار',path+'.id',o.id)}
 ${field('اسم المنطقة / الخطة',path+'.name',o.name)}
 ${field('الوصف',path+'.desc',o.desc,{full:true})}
 ${field('العلم / الرمز',path+'.flag',o.flag||'✦')}
-<div class="field full"><label>صورة الخيار (اختياري)</label><div class="image-row"><img class="image-preview" src="${esc(o.image||fallbackImage)}" alt="" loading="lazy" decoding="async"><div><input data-path="${path}.image" value="${esc(o.image||'')}" placeholder="اتركه فارغاً لاستخدام صورة المنتج"><label class="upload-label">↑ رفع صورة<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-image-path="${path}.image"></label></div></div></div>
+<div class="field full"><label>صورة الخيار (اختياري)</label><div class="image-row"><img class="image-preview" src="${esc(o.image||fallbackImage)}" alt="" loading="lazy" decoding="async"><div><input data-path="${path}.image" value="${esc(o.image||'')}" placeholder="اتركه فارغاً لاستخدام صورة المنتج"><label class="upload-label">↑ رفع صورة<input type="file" accept="image/*" data-image-path="${path}.image"></label></div></div></div>
 </div>
 <div class="pack-list">${(o.packs||[]).map((pack,pi)=>`<div class="pack-row"><input data-pack-label="${path}.packs.${pi}" value="${esc(pack[0])}" placeholder="اسم الباقة"><input type="number" min="0" step="0.01" data-pack-price="${path}.packs.${pi}" value="${esc(pack[1])}" placeholder="السعر بالليرة الجديدة"><button class="icon-btn" data-remove-pack="${path}.packs.${pi}">×</button></div>`).join('')}</div>
 <button class="add-row" data-add-pack="${path}">＋ إضافة باقة</button>
@@ -1460,47 +1459,73 @@ $('catalogEditor').addEventListener('change',async e=>{
 });
 async function handleDepartmentImageUpload(input){
  const file=input.files?.[0];if(!file)return;
- if(file.size>10*1024*1024){toast('الصورة أكبر من 10 ميغابايت.');input.value='';return;}
- try{const data=await compressImage(file);setDepartmentPath(input.dataset.departmentImage+'.cover',data);renderCatalog();toast('تم تجهيز صورة القسم الرئيسي. اضغط حفظ التعديلات لنشرها.');}
- catch{toast('تعذر قراءة الصورة.');}
+  try{const data=await compressImage(file);setDepartmentPath(input.dataset.departmentImage+'.cover',data);renderCatalog();toast('تم تجهيز صورة القسم الرئيسي. اضغط حفظ التعديلات لنشرها.');}
+ catch(error){toast(error.message||'تعذر معالجة الصورة.');}
  input.value='';
 }
 
 async function handleDepartmentIconImageUpload(input){
  const file=input.files?.[0];if(!file)return;
- if(file.size>10*1024*1024){toast('الصورة أكبر من 10 ميغابايت.');input.value='';return;}
- try{const data=await compressImage(file);setDepartmentPath(input.dataset.departmentIconImage+'.iconImage',data);renderCatalog();toast('تم تجهيز أيقونة القسم. اضغط حفظ كل التعديلات لنشرها.');}
- catch{toast('تعذر قراءة الأيقونة.');}
+  try{const data=await compressImage(file);setDepartmentPath(input.dataset.departmentIconImage+'.iconImage',data);renderCatalog();toast('تم تجهيز أيقونة القسم. اضغط حفظ كل التعديلات لنشرها.');}
+ catch(error){toast(error.message||'تعذر معالجة الأيقونة.');}
  input.value='';
 }
 async function handleImageUpload(input){
  const file=input.files?.[0];if(!file)return;
- if(file.size>10*1024*1024){toast('الصورة أكبر من 10 ميغابايت.');input.value='';return;}
- try{const data=await compressImage(file);setPath(input.dataset.imagePath,data);renderCatalog();toast('تم تجهيز الصورة. اضغط حفظ التعديلات لنشرها.');}
- catch{toast('تعذر قراءة الصورة.');}
+  try{const data=await compressImage(file);setPath(input.dataset.imagePath,data);renderCatalog();toast('تم تجهيز الصورة. اضغط حفظ التعديلات لنشرها.');}
+ catch(error){toast(error.message||'تعذر معالجة الصورة.');}
  input.value='';
 }
-function compressImage(file){
- return new Promise((resolve,reject)=>{
-  const url=URL.createObjectURL(file),img=new Image();
-  img.onload=()=>{
-   try{
-    let scale=Math.min(1,1200/Math.max(img.width,img.height)),data='';
-    const canvas=document.createElement('canvas'),context=canvas.getContext('2d');
-    for(let attempt=0;attempt<8;attempt++){
-     canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
-     context.clearRect(0,0,canvas.width,canvas.height);context.drawImage(img,0,0,canvas.width,canvas.height);
-     for(const quality of [.82,.72,.62,.52,.42]){
-      data=canvas.toDataURL('image/jpeg',quality);
-      if(data.length<=2300000){URL.revokeObjectURL(url);resolve(data);return;}
-     }
-     scale*=.82;
-    }
-    URL.revokeObjectURL(url);reject(new Error('IMAGE_TOO_LARGE'));
-   }catch(error){URL.revokeObjectURL(url);reject(error);}
-  };
-  img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('BAD_IMAGE'));};img.src=url;
- });
+async function compressImage(file){
+ if(!file||!Number(file.size))throw new Error('ملف الصورة فارغ أو غير صالح.');
+ let bitmap=null,image=null,objectUrl='';
+ try{
+  if(typeof createImageBitmap==='function'){
+   try{bitmap=await createImageBitmap(file);}catch{bitmap=null;}
+  }
+  if(!bitmap){
+   objectUrl=URL.createObjectURL(file);
+   image=new Image();
+   image.decoding='async';
+   await new Promise((resolve,reject)=>{
+    image.onload=resolve;
+    image.onerror=()=>reject(new Error('المتصفح لا يستطيع قراءة هذا النوع من الصور. جرّب صورة بصيغة JPG أو PNG أو WebP.'));
+    image.src=objectUrl;
+   });
+  }
+  const source=bitmap||image;
+  const sourceWidth=Number(source.width||source.naturalWidth);
+  const sourceHeight=Number(source.height||source.naturalHeight);
+  if(!sourceWidth||!sourceHeight)throw new Error('لم أتمكن من تحديد أبعاد الصورة.');
+  const maxDimension=1920;
+  let scale=Math.min(1,maxDimension/Math.max(sourceWidth,sourceHeight));
+  const canvas=document.createElement('canvas');
+  const context=canvas.getContext('2d',{alpha:true});
+  if(!context)throw new Error('تعذر تجهيز مساحة ضغط الصورة.');
+  const probe=document.createElement('canvas');
+  const webpSupported=probe.toDataURL('image/webp').startsWith('data:image/webp');
+  const outputMime=webpSupported?'image/webp':'image/png';
+  const maxDataUrlLength=1850000;
+  const qualities=[.88,.82,.76,.70,.64,.58,.52,.46,.40,.34,.28];
+  for(let resizeAttempt=0;resizeAttempt<14;resizeAttempt++){
+   canvas.width=Math.max(1,Math.round(sourceWidth*scale));
+   canvas.height=Math.max(1,Math.round(sourceHeight*scale));
+   context.clearRect(0,0,canvas.width,canvas.height);
+   context.drawImage(source,0,0,canvas.width,canvas.height);
+   for(const quality of qualities){
+    const data=canvas.toDataURL(outputMime,quality);
+    if(data&&data.startsWith('data:image/')&&data.length<=maxDataUrlLength)return data;
+   }
+   scale*=.75;
+  }
+  throw new Error('تعذر ضغط الصورة إلى حجم مناسب. جرّب صورة أخرى بدقة أقل.');
+ }catch(error){
+  if(error instanceof Error)throw error;
+  throw new Error('حدث خطأ أثناء معالجة الصورة. تأكد أن الملف صورة يستطيع المتصفح فتحها.');
+ }finally{
+  if(bitmap&&typeof bitmap.close==='function')bitmap.close();
+  if(objectUrl)URL.revokeObjectURL(objectUrl);
+ }
 }
 $('addCategoryBtn').addEventListener('click',()=>{
  const parent=activeCategory(),departmentId=parent?categoryDepartmentId(parent):(state.selectedDepartmentId||'other');
@@ -1706,9 +1731,8 @@ function renderAppearanceSettings(){
 }
 async function uploadAppearanceImage(input,fieldId,previewId){
  const file=input.files?.[0];if(!file)return;
- if(file.size>10*1024*1024){toast('الصورة أكبر من 10 ميغابايت.');input.value='';return;}
- try{const image=await compressImage(file);$(fieldId).value=image;$(previewId).src=image;toast('تم تجهيز الصورة. اضغط حفظ جميع التخصيصات.');}
- catch{toast('تعذر قراءة الصورة.');}
+  try{const image=await compressImage(file);$(fieldId).value=image;$(previewId).src=image;toast('تم تجهيز الصورة. اضغط حفظ جميع التخصيصات.');}
+ catch(error){toast(error.message||'تعذر معالجة الصورة.');}
  input.value='';
 }
 async function saveAppearanceSettings(){
@@ -1736,7 +1760,7 @@ $('saveFxBtn').addEventListener('click',async()=>{const b=$('saveFxBtn');b.disab
 $('refreshFxBtn').addEventListener('click',async()=>{const b=$('refreshFxBtn');b.disabled=true;try{await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(fxPayload())});const d=await api('/api/admin/fx/refresh',{method:'POST',body:'{}'});await loadSettings();toast(d.message||'تم تحديث سعر الصرف.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 $('saveBrandBtn').addEventListener('click',async()=>{const b=$('saveBrandBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify({storeName:$('storeName').value.trim(),announcement:$('announcement').value.trim(),storeLogo:$('storeLogo').value.trim()})});state.settings=d.settings;renderSettings(d);toast('تم حفظ اسم المتجر والشعار والإعلان.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 $('storeLogo').addEventListener('input',()=>{$('storeLogoPreview').src=$('storeLogo').value});
-$('storeLogoFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=await compressImage(file);$('storeLogo').value=data;$('storeLogoPreview').src=data;toast('تم تجهيز الشعار، اضغط حفظ الهوية.')}catch{toast('تعذر قراءة الشعار.')}e.target.value=''});
+$('storeLogoFile').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{const data=await compressImage(file);$('storeLogo').value=data;$('storeLogoPreview').src=data;toast('تم تجهيز الشعار، اضغط حفظ الهوية.')}catch(error){toast(error.message||'تعذر معالجة الشعار.')}e.target.value=''});
 
 async function loadWamdaCatalog(){
   try{

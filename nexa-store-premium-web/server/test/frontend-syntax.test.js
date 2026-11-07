@@ -901,3 +901,48 @@ test('major account, checkout, notice and modal panels have both light and dark 
  assert.ok(css.includes('select option')&&css.includes('input:-webkit-autofill'),'Select options and autofill follow the active theme');
  assert.ok(css.includes('.drawer-direction-switching .app-shell .sidebar'),'Drawer direction switch does not animate across the screen');
 });
+
+test('admin image uploads accept browser-decodable image types and compress large originals automatically', async () => {
+  const html = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
+  assert.equal((html.match(/accept="image\/\*"/g) || []).length, 9, 'all image pickers accept browser-supported image formats');
+  assert.doesNotMatch(html, /file\.size\s*>\s*10\s*\*\s*1024\s*\*\s*1024/, 'no arbitrary 10 MB source-file rejection remains');
+
+  const start = html.indexOf('async function compressImage(file){');
+  const end = html.indexOf("\n$('addCategoryBtn')", start);
+  assert.notEqual(start, -1, 'shared image compressor exists');
+  assert.notEqual(end, -1, 'compressor has a clear boundary');
+
+  let bitmapClosed = false;
+  let drawnWidth = 0;
+  let drawnHeight = 0;
+  const canvas = {
+    width: 0,
+    height: 0,
+    getContext() {
+      return {
+        clearRect() {},
+        drawImage(_source, _x, _y, width, height) { drawnWidth = width; drawnHeight = height; },
+      };
+    },
+    toDataURL(mime, quality = 1) {
+      const size = Math.ceil(this.width * this.height * quality / 2);
+      return 'data:' + mime + ';base64,' + 'A'.repeat(size);
+    },
+  };
+  const context = vm.createContext({
+    createImageBitmap: async (file) => {
+      assert.ok(file.size > 10 * 1024 * 1024, 'large original reaches the decoder without an upfront size rejection');
+      return { width: 6000, height: 4000, close() { bitmapClosed = true; } };
+    },
+    document: { createElement: () => canvas },
+    URL: { createObjectURL() { throw new Error('fallback must not be used'); }, revokeObjectURL() {} },
+    Image: class {},
+  });
+  vm.runInContext(html.slice(start, end), context, { filename: 'admin-image-compressor.js' });
+  const result = await context.compressImage({ size: 48 * 1024 * 1024, type: 'image/png' });
+  assert.ok(result.startsWith('data:image/webp;base64,'), 'image is converted to compact WebP');
+  assert.ok(result.length <= 1_850_000, 'result remains below image and request-body limits');
+  assert.ok(drawnWidth <= 1920 && drawnHeight <= 1920, 'large dimensions are reduced');
+  assert.equal(bitmapClosed, true, 'decoded image memory is released');
+});
+
