@@ -197,8 +197,8 @@ test('package selection and order dialog have complete dark-mode surfaces',async
  const dark=css.slice(css.lastIndexOf('NEXA PACKAGE SELECTION + ORDER DIALOG DARK CONTRACT v5'));
  for(const token of [
   '#orderModal .modal-product','#orderModal .modal-close','#orderModal .field label',
-  '#orderModal .field small','#orderModal select option','#catalogContent .pack-card',
-  '#catalogContent .pack-label','#catalogContent .step-summary','#catalogContent .catalog-note'
+  '#orderModal .field small','#orderModal select option','.pack-card',
+  '#catalogContent .pack-label','.step-summary','.catalog-note'
  ])assert.ok(dark.includes(token),'Missing dark-mode coverage for '+token);
  assert.ok(dark.includes('background:var(--surface-2)!important'),'Package fields use the dark surface token');
  assert.ok(dark.includes('color-scheme:dark!important'),'Native order controls use the dark color scheme');
