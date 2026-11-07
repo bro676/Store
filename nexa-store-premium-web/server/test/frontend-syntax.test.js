@@ -100,7 +100,7 @@ test('catalog department settings, imported source identities and empty nested f
   assert.ok(admin.includes('data-department-image='),'Main department cover images can be uploaded');
   assert.ok(admin.includes('data-reset-category-api='),'API-backed folders can restore their original source name and image');
   assert.ok(admin.includes('الاسم الأصلي القادم من API'),'Product editor shows the external source name separately from the storefront name');
-  assert.ok(admin.includes('sortOrder:state.departments')||admin.includes('departments:state.departments'),'Department settings are included in catalog saves');
+  assert.ok(admin.includes("api('/api/admin/catalog/departments'")&&admin.includes('departments:departmentPayloads'),'Department settings are saved through the dedicated incremental endpoint');
   assert.ok(server.includes('catalogDepartments:[]'),'Root department settings are persisted in store settings');
   assert.ok(server.includes('backfillSupplierCategorySources'),'Existing supplier folders receive source snapshots on startup');
   assert.ok(server.includes('restoreCategoryApiMatch'),'Folder API metadata has a restore endpoint');
