@@ -937,7 +937,7 @@ function initializeAdminColorMode(){
  window.addEventListener('storage',event=>{if(event.key===ADMIN_THEME_KEY&&event.newValue)setAdminColorMode(event.newValue,{persist:false});});
 }
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const state={catalog:[],departments:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},bestStoreCatalog:[],bestStoreMeta:{},bestStoreCatalogQuery:'',bestStoreCatalogFilter:'all',wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',catalogProductPage:1,catalogProductQuery:'',catalogProductCategoryId:'',catalogProductRows:[],categoryIndex:0,selectedDepartmentId:'games',collapsedFolderIds:new Set(),page:'overview',busy:false};
+const state={catalog:[],catalogBaseline:[],departments:[],departmentsBaseline:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},bestStoreCatalog:[],bestStoreMeta:{},bestStoreCatalogQuery:'',bestStoreCatalogFilter:'all',wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',catalogProductPage:1,catalogProductQuery:'',catalogProductCategoryId:'',catalogProductRows:[],categoryIndex:0,selectedDepartmentId:'games',collapsedFolderIds:new Set(),page:'overview',busy:false};
 const pageTitles={overview:'نظرة عامة',appearance:'المظهر والميزات',customers:'العملاء وصور الحسابات',catalog:'المنتجات والأسعار','catalog-api':'ربط المنتجات عبر API',orders:'الطلبات والإيصالات',payments:'شام كاش والمحفظة',exchange:'سعر الصرف'};
 let catalogTreeIndex=null;
 const CATALOG_PRODUCTS_PAGE_SIZE=24;
@@ -1023,7 +1023,7 @@ $('customerAdminGrid').addEventListener('click',async event=>{
 });
 
 async function loadOverview(){const d=await api('/api/admin/overview');const o=d.orders||{};const cards=[['إجمالي الطلبات',o.total||0,'▤','كل الطلبات المسجلة'],['مدفوع ومتحقق',o.paid||0,'✓','دفعات أكدها API'],['بانتظار الدفع',o.pending||0,'◷','فواتير فعالة أو قيد المتابعة'],['عدد المنتجات',d.products||0,'▦',`${d.categories||0} أقسام`]];$('stats').innerHTML=cards.map(([t,v,ico,sub])=>`<article class="stat"><div class="stat-top"><span>${t}</span><i class="stat-icon">${ico}</i></div><strong>${Number(v).toLocaleString('en-US')}</strong><small>${sub}</small></article>`).join('');const max=Math.max(1,o.total||0);$('orderBars').innerHTML=[['مدفوع',o.paid||0],['بانتظار الدفع',o.pending||0],['منتهي',o.expired||0],['ملغي',(o.total||0)-(o.paid||0)-(o.pending||0)-(o.expired||0)]].map(([label,v])=>`<div class="bar-row"><span>${label}</span><div class="bar-track"><div class="bar-fill" style="width:${Math.min(100,Number(v)/max*100)}%"></div></div><b>${v}</b></div>`).join('');$('topStatus').textContent=d.paymentsReady?'الدفع جاهز':'تحقق من الدفع';}
-async function loadCatalog(){const d=await api('/api/admin/catalog');state.catalog=d.catalog||[];state.departments=NexaCatalog.setDepartments(Array.isArray(d.departments)?d.departments:[]);state.categoryIndex=Math.min(state.categoryIndex,Math.max(0,state.catalog.length-1));renderCatalog()}
+async function loadCatalog(){const d=await api('/api/admin/catalog');state.catalog=d.catalog||[];state.departments=NexaCatalog.setDepartments(Array.isArray(d.departments)?d.departments:[]);state.catalogBaseline=JSON.parse(JSON.stringify(state.catalog));state.departmentsBaseline=JSON.parse(JSON.stringify(state.departments));state.categoryIndex=Math.min(state.categoryIndex,Math.max(0,state.catalog.length-1));renderCatalog()}
 function setPath(path,value){const parts=path.split('.');let node=state.catalog;for(let i=0;i<parts.length-1;i++)node=node[parts[i]];node[parts.at(-1)]=value}
 function field(label,path,value,opts={}){const type=opts.type||'text';return `<div class="field ${opts.full?'full':''}"><label>${label}</label>${type==='textarea'?`<textarea data-path="${path}" placeholder="${esc(opts.placeholder||'')}" maxlength="${opts.max||700}">${esc(value)}</textarea>`:`<input data-path="${path}" type="${type}" value="${esc(value)}" ${opts.step?`step="${opts.step}"`:''} ${opts.min!==undefined?`min="${opts.min}"`:''} ${opts.max!==undefined?`max="${opts.max}"`:''}>`}</div>`}
 function setDepartmentPath(path,value){const parts=path.split('.'),id=parts.shift(),row=state.departments.find(item=>item.id===id);if(!row)return;row[parts.join('.')]=value;}
@@ -1452,7 +1452,7 @@ $('catalogEditor').addEventListener('change',async e=>{
   const sourceCategoryId=el.dataset.sourceCategory,productId=el.dataset.moveProduct;
   el.disabled=true;
   try{
-   await api('/api/admin/catalog',{method:'PUT',body:JSON.stringify({catalog:state.catalog,departments:state.departments})});
+   await saveCatalogChanges();
    await api('/api/admin/catalog/move-product',{method:'POST',body:JSON.stringify({sourceCategoryId,destinationCategoryId,productId})});
    await loadCatalog();toast('تم نقل المنتج مع الحفاظ على بيانات المورد.');
   }catch(error){toast(error.message);el.disabled=false;}
@@ -1483,9 +1483,22 @@ async function handleImageUpload(input){
 function compressImage(file){
  return new Promise((resolve,reject)=>{
   const url=URL.createObjectURL(file),img=new Image();
-  img.onload=()=>{const scale=Math.min(1,1200/Math.max(img.width,img.height)),canvas=document.createElement('canvas');
-   canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
-   canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);URL.revokeObjectURL(url);resolve(canvas.toDataURL('image/jpeg',.82));};
+  img.onload=()=>{
+   try{
+    let scale=Math.min(1,1200/Math.max(img.width,img.height)),data='';
+    const canvas=document.createElement('canvas'),context=canvas.getContext('2d');
+    for(let attempt=0;attempt<8;attempt++){
+     canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));
+     context.clearRect(0,0,canvas.width,canvas.height);context.drawImage(img,0,0,canvas.width,canvas.height);
+     for(const quality of [.82,.72,.62,.52,.42]){
+      data=canvas.toDataURL('image/jpeg',quality);
+      if(data.length<=2300000){URL.revokeObjectURL(url);resolve(data);return;}
+     }
+     scale*=.82;
+    }
+    URL.revokeObjectURL(url);reject(new Error('IMAGE_TOO_LARGE'));
+   }catch(error){URL.revokeObjectURL(url);reject(error);}
+  };
   img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('BAD_IMAGE'));};img.src=url;
  });
 }
@@ -1502,10 +1515,117 @@ $('addProductBtn').addEventListener('click',()=>{
  state.catalogProductPage=Math.max(1,Math.ceil(category.items.length/CATALOG_PRODUCTS_PAGE_SIZE));
  renderCatalog();
 });
+function catalogDeepCopy(value){return JSON.parse(JSON.stringify(value));}
+function isCatalogDataImage(value){return typeof value==='string'&&/^data:image\//i.test(value);}
+function categorySavePayload(category){
+ const value=catalogDeepCopy(category);
+ delete value.items;delete value.apiSource;delete value.apiSources;delete value.manualOverrides;delete value.sourceCategoryAliases;
+ if(isCatalogDataImage(value.image))delete value.image;
+ return value;
+}
+function productSavePayload(product){
+ const value=catalogDeepCopy(product);
+ delete value.apiSource;delete value.manualOverrides;
+ if(isCatalogDataImage(value.image))delete value.image;
+ for(const option of value.options||[])if(isCatalogDataImage(option.image))delete option.image;
+ return value;
+}
+function departmentSavePayload(department){
+ const value=catalogDeepCopy(department);
+ if(isCatalogDataImage(value.cover))delete value.cover;
+ if(isCatalogDataImage(value.iconImage))delete value.iconImage;
+ return value;
+}
+async function saveCatalogImage(target,payload){
+ await api('/api/admin/catalog/image',{method:'PATCH',body:JSON.stringify({target,...payload})});
+}
+async function saveCatalogProductBatches(updates,deletions){
+ const maxBytes=2700000,encoder=new TextEncoder();
+ let batch={updates:[],deletions:[]},batchBytes=2;
+ const flush=async()=>{
+  if(!batch.updates.length&&!batch.deletions.length)return;
+  await api('/api/admin/catalog/products',{method:'PATCH',body:JSON.stringify(batch)});
+  batch={updates:[],deletions:[]};batchBytes=2;
+ };
+ for(const row of updates){
+  const size=encoder.encode(JSON.stringify(row)).length+16;
+  if(size>maxBytes)throw new Error('أحد المنتجات يحتوي بيانات كبيرة جداً. قلّل عدد الخيارات أو الصور ثم أعد الحفظ.');
+  if(batchBytes+size>maxBytes)await flush();
+  batch.updates.push(row);batchBytes+=size;
+ }
+ for(const row of deletions){
+  const size=encoder.encode(JSON.stringify(row)).length+16;
+  if(batchBytes+size>maxBytes)await flush();
+  batch.deletions.push(row);batchBytes+=size;
+ }
+ await flush();
+}
 async function saveCatalogChanges(){
  const button=$('saveCatalogBtn');button.disabled=true;
- try{await api('/api/admin/catalog',{method:'PUT',body:JSON.stringify({catalog:state.catalog,departments:state.departments})});NexaCatalog.setDepartments(state.departments);toast('تم حفظ الأقسام الرئيسية وشجرة المجلدات والمنتجات والإعدادات اليدوية.');}
- catch(error){toast(error.message);throw error;}
+ try{
+  const baselineCatalog=Array.isArray(state.catalogBaseline)?state.catalogBaseline:[];
+  const baselineDepartments=Array.isArray(state.departmentsBaseline)?state.departmentsBaseline:[];
+  const oldCategories=new Map(baselineCatalog.map(row=>[row.id,row]));
+  const categoryUpdates=state.catalog
+   .filter(category=>JSON.stringify(categorySavePayload(category))!==JSON.stringify(oldCategories.has(category.id)?categorySavePayload(oldCategories.get(category.id)):null))
+   .map(category=>categorySavePayload(category));
+  if(categoryUpdates.length)await api('/api/admin/catalog/categories',{method:'PATCH',body:JSON.stringify({categories:categoryUpdates})});
+  const oldDepartments=new Map(baselineDepartments.map(row=>[row.id,row]));
+  const departmentPayloads=state.departments.map(row=>departmentSavePayload(row));
+  const departmentsChanged=JSON.stringify(departmentPayloads)!==JSON.stringify(baselineDepartments.map(row=>departmentSavePayload(row)));
+  if(departmentsChanged)await api('/api/admin/catalog/departments',{method:'PATCH',body:JSON.stringify({departments:departmentPayloads})});
+
+  const productUpdates=[],productDeletions=[];
+  for(const category of state.catalog){
+   const oldCategory=oldCategories.get(category.id);
+   const oldProducts=new Map((oldCategory?.items||[]).map(product=>[product.id,product]));
+   const currentProductIds=new Set();
+   for(const product of category.items||[]){
+    currentProductIds.add(product.id);
+    const oldProduct=oldProducts.get(product.id);
+    const nextPayload=productSavePayload(product),oldPayload=oldProduct?productSavePayload(oldProduct):null;
+    if(!oldProduct||JSON.stringify(nextPayload)!==JSON.stringify(oldPayload))productUpdates.push({categoryId:category.id,product:nextPayload});
+   }
+   for(const product of oldCategory?.items||[])if(!currentProductIds.has(product.id))productDeletions.push({categoryId:category.id,productId:product.id});
+  }
+  await saveCatalogProductBatches(productUpdates,productDeletions);
+
+  let imageWrites=0;
+  for(const category of state.catalog){
+   const oldCategory=oldCategories.get(category.id);
+   const oldCategoryImage=oldCategory?.image??'assets/products/_shared/category-placeholder.svg';
+   if(category.image!==oldCategoryImage&&isCatalogDataImage(category.image)){
+    await saveCatalogImage('category',{categoryId:category.id,image:category.image});imageWrites++;
+   }
+   const oldProducts=new Map((oldCategory?.items||[]).map(product=>[product.id,product]));
+   for(const product of category.items||[]){
+    const oldProduct=oldProducts.get(product.id),oldImage=oldProduct?.image??'assets/products/_shared/product-placeholder.svg';
+    if(product.image!==oldImage&&isCatalogDataImage(product.image)){
+     await saveCatalogImage('product',{categoryId:category.id,productId:product.id,image:product.image});imageWrites++;
+    }
+    const oldOptions=new Map((oldProduct?.options||[]).map(option=>[option.id,option]));
+    for(const option of product.options||[]){
+     const oldOption=oldOptions.get(option.id),oldOptionImage=oldOption?.image??'';
+     if(option.image!==oldOptionImage&&isCatalogDataImage(option.image)){
+      await saveCatalogImage('option',{categoryId:category.id,productId:product.id,optionId:option.id,image:option.image});imageWrites++;
+     }
+    }
+   }
+  }
+  for(const department of state.departments){
+   const previous=oldDepartments.get(department.id);
+   for(const field of ['cover','iconImage']){
+    const oldImage=previous?.[field]??(field==='cover'?'assets/products/_shared/category-placeholder.svg':'');
+    if(department[field]!==oldImage&&isCatalogDataImage(department[field])){
+     await saveCatalogImage('department',{departmentId:department.id,field,image:department[field]});imageWrites++;
+    }
+   }
+  }
+  state.catalogBaseline=catalogDeepCopy(state.catalog);state.departmentsBaseline=catalogDeepCopy(state.departments);
+  NexaCatalog.setDepartments(state.departments);
+  const savedCount=categoryUpdates.length+(departmentsChanged?1:0)+productUpdates.length+productDeletions.length+imageWrites;
+  toast(savedCount?'تم حفظ '+savedCount.toLocaleString('en-US')+' من تعديلات المنتجات والمجلدات والصور والترتيب.':'لا توجد تعديلات جديدة لحفظها.');
+ }catch(error){toast(error.message);throw error;}
  finally{button.disabled=false;}
 }
 $('saveCatalogBtn').addEventListener('click',async()=>{try{await saveCatalogChanges()}catch{}});

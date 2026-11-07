@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   createAdminSession, verifyAdminSession, encryptSecret, decryptSecret,
-  isSafeCatalogImage, validateCatalog, mergeCatalog, deleteCatalogFolder, upsertCatalogProduct, getJsonPath, validateCatalogApiUrl, normalizeFxRate,
+  isSafeCatalogImage, validateCatalog, mergeCatalog, deleteCatalogFolder, upsertCatalogProduct, updateCatalogCategories, updateCatalogProducts, getJsonPath, validateCatalogApiUrl, normalizeFxRate,
 } from '../src/admin-core.js';
 
 const secret = 'a-strong-admin-key-for-tests-only-2026';
@@ -315,4 +315,83 @@ test('catalogue sync preserves manual fulfillment choice and its delivery SLA',(
 test('catalog sort priorities are non-negative integers',()=>{
   assert.throws(()=>validateCatalog([{...catalog[0],sortOrder:-1}]),/INVALID_CATEGORY_SORT_ORDER/);
   assert.throws(()=>validateCatalog([{...catalog[0],items:[{...catalog[0].items[0],sortOrder:-1}]}]),/INVALID_PRODUCT_SORT_ORDER/);
+});
+
+
+test('incremental category updates preserve products and supplier snapshots while saving order overrides',()=>{
+ const source={provider:'catalog-api',name:'Original games',image:'assets/categories/source.svg'};
+ const original=[{...catalog[0],apiSource:source,items:[{...catalog[0].items[0]}]}];
+ const saved=updateCatalogCategories(original,[{id:'games',name:'Games',sortOrder:1}]);
+ assert.equal(saved[0].name,'Games');assert.equal(saved[0].sortOrder,1);assert.equal(saved[0].items[0].id,'freefire');
+ assert.deepEqual(saved[0].apiSource,source);assert.equal(saved[0].manualOverrides.name,'Games');assert.equal(saved[0].manualOverrides.sortOrder,1);
+});
+
+test('incremental category updates can add a parent and nested folder in one batch',()=>{
+ const saved=updateCatalogCategories(catalog,[
+  {id:'new-parent',name:'New parent',desc:'Parent',image:'assets/products/_shared/category-placeholder.svg',departmentId:'games',folderManual:true},
+  {id:'new-child',name:'New child',desc:'Child',image:'assets/products/_shared/category-placeholder.svg',parentId:'new-parent',folderManual:true}
+ ]);
+ assert.equal(saved.find(row=>row.id==='new-child').parentId,'new-parent');assert.equal(saved.find(row=>row.id==='new-parent').folderManual,true);
+});
+
+test('incremental product updates preserve omitted images and supplier metadata',()=>{
+ const source={provider:'seagm',name:'Original product',image:'assets/products/source.svg'};
+ const supplier={provider:'seagm',kind:'card',categoryId:1,typeId:2};
+ const originalProduct={...catalog[0].items[0],image:'assets/products/custom.svg',
+  options:[{...catalog[0].items[0].options[0],image:'assets/products/option.svg'}],seagm:supplier,apiSource:source};
+ const original=[{...catalog[0],items:[originalProduct]}];
+ const productPatch={...originalProduct,name:'Edited product'};
+ delete productPatch.image;delete productPatch.apiSource;delete productPatch.manualOverrides;
+ productPatch.options=originalProduct.options.map(option=>{const copy={...option};delete copy.image;return copy;});
+ const saved=updateCatalogProducts(original,[{categoryId:'games',product:productPatch}]),product=saved[0].items[0];
+ assert.equal(product.name,'Edited product');assert.equal(product.image,'assets/products/custom.svg');
+ assert.equal(product.options[0].image,'assets/products/option.svg');assert.deepEqual(product.apiSource,source);assert.equal(product.manualOverrides.name,'Edited product');
+});
+
+test('incremental product changes add and delete products without replacing unrelated entries',()=>{
+ const newProduct={id:'new-product',name:'New product',desc:'New',image:'assets/products/new.svg',
+  options:[{id:'new-option',name:'Default',desc:'',packs:[['Pack',3]]}]};
+ const added=updateCatalogProducts(catalog,[{categoryId:'games',product:newProduct}]);
+ assert.equal(added[0].items.at(-1).id,'new-product');
+ const reduced=updateCatalogProducts(added,[],[{categoryId:'games',productId:'new-product'}]);
+ assert.equal(reduced[0].items.some(product=>product.id==='new-product'),false);assert.equal(reduced[0].items[0].id,'freefire');
+});
+
+test('incremental category updates preserve products and supplier snapshots while saving order overrides',()=>{
+ const source={provider:'catalog-api',name:'Original games',image:'assets/categories/source.svg'};
+ const original=[{...catalog[0],apiSource:source,items:[{...catalog[0].items[0]}]}];
+ const saved=updateCatalogCategories(original,[{id:'games',name:'Games',sortOrder:1}]);
+ assert.equal(saved[0].name,'Games');assert.equal(saved[0].sortOrder,1);assert.equal(saved[0].items[0].id,'freefire');
+ assert.deepEqual(saved[0].apiSource,source);assert.equal(saved[0].manualOverrides.name,'Games');assert.equal(saved[0].manualOverrides.sortOrder,1);
+});
+
+test('incremental category updates can add a parent and nested folder in one batch',()=>{
+ const saved=updateCatalogCategories(catalog,[
+  {id:'new-parent',name:'New parent',desc:'Parent',image:'assets/products/_shared/category-placeholder.svg',departmentId:'games',folderManual:true},
+  {id:'new-child',name:'New child',desc:'Child',image:'assets/products/_shared/category-placeholder.svg',parentId:'new-parent',folderManual:true}
+ ]);
+ assert.equal(saved.find(row=>row.id==='new-child').parentId,'new-parent');assert.equal(saved.find(row=>row.id==='new-parent').folderManual,true);
+});
+
+test('incremental product updates preserve omitted images and supplier metadata',()=>{
+ const source={provider:'seagm',name:'Original product',image:'assets/products/source.svg'};
+ const supplier={provider:'seagm',kind:'card',categoryId:1,typeId:2};
+ const originalProduct={...catalog[0].items[0],image:'assets/products/custom.svg',
+  options:[{...catalog[0].items[0].options[0],image:'assets/products/option.svg'}],seagm:supplier,apiSource:source};
+ const original=[{...catalog[0],items:[originalProduct]}];
+ const productPatch={...originalProduct,name:'Edited product'};
+ delete productPatch.image;delete productPatch.apiSource;delete productPatch.manualOverrides;
+ productPatch.options=originalProduct.options.map(option=>{const copy={...option};delete copy.image;return copy;});
+ const saved=updateCatalogProducts(original,[{categoryId:'games',product:productPatch}]),product=saved[0].items[0];
+ assert.equal(product.name,'Edited product');assert.equal(product.image,'assets/products/custom.svg');
+ assert.equal(product.options[0].image,'assets/products/option.svg');assert.deepEqual(product.apiSource,source);assert.equal(product.manualOverrides.name,'Edited product');
+});
+
+test('incremental product changes add and delete products without replacing unrelated entries',()=>{
+ const newProduct={id:'new-product',name:'New product',desc:'New',image:'assets/products/new.svg',
+  options:[{id:'new-option',name:'Default',desc:'',packs:[['Pack',3]]}]};
+ const added=updateCatalogProducts(catalog,[{categoryId:'games',product:newProduct}]);
+ assert.equal(added[0].items.at(-1).id,'new-product');
+ const reduced=updateCatalogProducts(added,[],[{categoryId:'games',productId:'new-product'}]);
+ assert.equal(reduced[0].items.some(product=>product.id==='new-product'),false);assert.equal(reduced[0].items[0].id,'freefire');
 });

@@ -9,7 +9,7 @@ import { httpStatusForResult, isHttpErrorResult, safeHttpStatus } from './http-s
 import { convertSypMinorToUsdMinor } from './exchange-rate.js';
 import {
   createAdminSession, verifyAdminSession, encryptSecret, decryptSecret,
-  validateCatalog, mergeCatalog, upsertCatalogProduct, deleteCatalogFolder, isSafeCatalogImage, getJsonPath, normalizeFxRate, validateCatalogApiUrl,
+  validateCatalog, mergeCatalog, upsertCatalogProduct, updateCatalogCategories, updateCatalogProducts, deleteCatalogFolder, isSafeCatalogImage, getJsonPath, normalizeFxRate, validateCatalogApiUrl,
 } from './admin-core.js';
 import { createSeagmClient } from './seagm-api.js';
 import { createWamdaClient } from './wamda-api.js';
@@ -3090,6 +3090,90 @@ const server = http.createServer(async (req,res) => {
     }
     if (req.method === 'GET' && url.pathname === '/api/admin/catalog') {
       return send(res,200,{ok:true,catalog,departments:storeSettings?.catalogDepartments||[]});
+    }
+
+    if (req.method === 'PATCH' && url.pathname === '/api/admin/catalog/categories') {
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const input=await bodyJson(req,2_000_000);
+      let nextCatalog;
+      try{nextCatalog=updateCatalogCategories(catalog,input.categories);}
+      catch(error){return send(res,error?.status||400,{ok:false,error:error?.message||'INVALID_CATALOG_CATEGORY_PATCHES',message:'تعذر حفظ تعديلات المجلدات. تحقق من الاسم والترتيب والمجلد الأب.'});}
+      await persistCatalog(nextCatalog);
+      return send(res,200,{ok:true,message:'تم حفظ تعديلات المجلدات.',updated:input.categories.length});
+    }
+    if (req.method === 'PATCH' && url.pathname === '/api/admin/catalog/products') {
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const input=await bodyJson(req,3_000_000);
+      let nextCatalog;
+      try{nextCatalog=updateCatalogProducts(catalog,input.updates||[],input.deletions||[]);}
+      catch(error){return send(res,error?.status||400,{ok:false,error:error?.message||'INVALID_CATALOG_PRODUCT_CHANGES',message:'تعذر حفظ تعديلات المنتجات أو ترتيبها. تحقق من بيانات المنتج وخياراته.'});}
+      await persistCatalog(nextCatalog);
+      return send(res,200,{ok:true,message:'تم حفظ تعديلات المنتجات.',updated:(input.updates||[]).length,deleted:(input.deletions||[]).length});
+    }
+    if (req.method === 'PATCH' && url.pathname === '/api/admin/catalog/departments') {
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      const input=await bodyJson(req,128_000);
+      if(!Array.isArray(input.departments))return send(res,400,{ok:false,error:'INVALID_CATALOG_DEPARTMENTS'});
+      const previousRows=Array.isArray(storeSettings.catalogDepartments)?storeSettings.catalogDepartments:[];
+      const mergedRows=input.departments.map(row=>{
+        const previous=previousRows.find(item=>item.id===row?.id);
+        return {...(previous||{}),...row,
+         cover:Object.prototype.hasOwnProperty.call(row||{},'cover')?row.cover:(previous?.cover||'assets/products/_shared/category-placeholder.svg'),
+         iconImage:Object.prototype.hasOwnProperty.call(row||{},'iconImage')?row.iconImage:(previous?.iconImage||'')};
+      });
+      let departments;
+      try{departments=validateCatalogDepartmentSettings(mergedRows);}
+      catch(error){return send(res,error?.status||400,{ok:false,error:error?.message||'INVALID_CATALOG_DEPARTMENTS',message:'تعذر حفظ إعدادات الأقسام الرئيسية.'});}
+      const nextSettings={...storeSettings,catalogDepartments:departments};
+      await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+      storeSettings=nextSettings;
+      return send(res,200,{ok:true,message:'تم حفظ إعدادات الأقسام الرئيسية.',departments});
+    }
+    if (req.method === 'PATCH' && url.pathname === '/api/admin/catalog/image') {
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED'});
+      let input;
+      try{input=await bodyJson(req,2_500_000);}
+      catch(error){return send(res,error?.status||400,{ok:false,error:error?.message||'INVALID_IMAGE_UPLOAD',message:'حجم الصورة بعد الضغط أكبر من الحد المسموح أو أن بياناتها غير صالحة.'});}
+      const target=String(input.target||''),field=String(input.field||''),image=input.image;
+      const emptyAllowed=(target==='option'||(target==='department'&&field==='iconImage'))&&image==='';
+      if(typeof image!=='string'||(!emptyAllowed&&!isSafeCatalogImage(image)))
+       return send(res,400,{ok:false,error:'INVALID_CATALOG_IMAGE',message:'الصورة غير صالحة أو حجمها أكبر من الحد المسموح.'});
+      if(target==='department'){
+       if(!['cover','iconImage'].includes(field))return send(res,400,{ok:false,error:'INVALID_DEPARTMENT_IMAGE_FIELD'});
+       const rows=Array.isArray(storeSettings.catalogDepartments)?storeSettings.catalogDepartments.map(row=>({...row})):[];
+       const department=rows.find(row=>row.id===String(input.departmentId||''));
+       if(!department)return send(res,404,{ok:false,error:'CATALOG_DEPARTMENT_NOT_FOUND'});
+       department[field]=image;
+       let departments;
+       try{departments=validateCatalogDepartmentSettings(rows);}
+       catch(error){return send(res,error?.status||400,{ok:false,error:error?.message||'INVALID_CATALOG_DEPARTMENT_IMAGE',message:'تعذر حفظ صورة القسم الرئيسي.'});}
+       const nextSettings={...storeSettings,catalogDepartments:departments};
+       await pool.query("UPDATE nexa_store_state SET settings=$1::jsonb,updated_at=NOW() WHERE singleton=TRUE",[JSON.stringify(nextSettings)]);
+       storeSettings=nextSettings;
+       return send(res,200,{ok:true,message:'تم حفظ صورة القسم الرئيسي.'});
+      }
+      const nextCatalog=JSON.parse(JSON.stringify(catalog));
+      const category=nextCatalog.find(row=>row.id===String(input.categoryId||''));
+      if(!category)return send(res,404,{ok:false,error:'CATALOG_FOLDER_NOT_FOUND'});
+      if(target==='category'){
+       category.image=image;category.manualOverrides={...(category.manualOverrides||{}),image};
+      }else{
+       const product=category.items.find(row=>row.id===String(input.productId||''));
+       if(!product)return send(res,404,{ok:false,error:'CATALOG_PRODUCT_NOT_FOUND'});
+       if(target==='product'){
+        product.image=image;product.manualOverrides={...(product.manualOverrides||{}),image};
+       }else if(target==='option'){
+        const option=product.options.find(row=>row.id===String(input.optionId||''));
+        if(!option)return send(res,404,{ok:false,error:'CATALOG_OPTION_NOT_FOUND'});
+        if(image==='')delete option.image;else option.image=image;
+        product.manualOverrides={...(product.manualOverrides||{}),options:product.options};
+       }else return send(res,400,{ok:false,error:'INVALID_CATALOG_IMAGE_TARGET'});
+      }
+      let validated;
+      try{validated=validateCatalog(nextCatalog);}
+      catch(error){return send(res,error?.status||400,{ok:false,error:error?.message||'INVALID_CATALOG_IMAGE',message:'تعذر حفظ الصورة في الكتالوج.'});}
+      await persistCatalog(validated);
+      return send(res,200,{ok:true,message:'تم حفظ الصورة في الكتالوج.'});
     }
     if (req.method === 'PUT' && url.pathname === '/api/admin/catalog') {
       if (!pool) return send(res,503,{error:'DATABASE_NOT_CONFIGURED'});

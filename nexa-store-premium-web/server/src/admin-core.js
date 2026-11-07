@@ -318,6 +318,97 @@ export function upsertCatalogProduct(existingCatalog, categoryId, productInput) 
   return { catalog:validateCatalog(current),created:productIndex<0,productId:validated.id };
 }
 
+
+export function updateCatalogCategories(existingCatalog, patches) {
+ const current=validateCatalog(existingCatalog);
+ if(!Array.isArray(patches)||patches.length>MAX_CATALOG_CATEGORIES)
+  throw Object.assign(new Error('INVALID_CATALOG_CATEGORY_PATCHES'),{status:400});
+ const result=current.map(row=>JSON.parse(JSON.stringify(row)));
+ const indexById=new Map(result.map((row,index)=>[row.id,index])),seen=new Set();
+ for(const patch of patches){
+  if(!patch||typeof patch!=='object'||Array.isArray(patch))
+   throw Object.assign(new Error('INVALID_CATALOG_CATEGORY_PATCH'),{status:400});
+  const id=String(patch.id||'');validId(id,'CATEGORY');
+  if(seen.has(id))throw Object.assign(new Error('DUPLICATE_CATEGORY_PATCH'),{status:400});
+  seen.add(id);
+  const index=indexById.get(id),previous=index===undefined?null:result[index];
+  const next=previous?{...previous}:{id,name:'',desc:'',image:'assets/products/_shared/category-placeholder.svg',items:[]};
+  for(const key of ['name','desc','image','icon','parentId','departmentId','sortOrder','visible','folderManual']){
+   if(Object.prototype.hasOwnProperty.call(patch,key))next[key]=patch[key];
+  }
+  next.id=id;next.items=previous?previous.items:[];
+  const apiSource=previous?.apiSource||{name:previous?.name||next.name,desc:previous?.desc||next.desc,image:previous?.image||next.image,icon:previous?.icon||next.icon};
+  next.apiSource=apiSource;
+  const overrides=previous?.manualOverrides&&typeof previous.manualOverrides==='object'&&!Array.isArray(previous.manualOverrides)?{...previous.manualOverrides}:{};
+  for(const key of CATEGORY_MANUAL_KEYS){
+   if(Object.prototype.hasOwnProperty.call(patch,key)&&JSON.stringify(next[key]??null)!==JSON.stringify(previous?.[key]??null))
+    overrides[key]=next[key]??null;
+  }
+  if(Object.keys(overrides).length)next.manualOverrides=overrides;else delete next.manualOverrides;
+  next.sourceCategoryAliases=Array.from(new Set([
+   ...(Array.isArray(previous?.sourceCategoryAliases)?previous.sourceCategoryAliases:[]),
+   ...(Array.isArray(patch.sourceCategoryAliases)?patch.sourceCategoryAliases:[]),
+   ...(apiSource?.name?[apiSource.name]:[]),...(previous?.name?[previous.name]:[]),...(next.name?[next.name]:[])
+  ].filter(value=>typeof value==='string'&&value.trim()))).slice(0,40);
+  if(index===undefined){indexById.set(id,result.length);result.push(next);}else result[index]=next;
+ }
+ try{return validateCatalog(result);}catch(error){throw Object.assign(error,{status:error?.status||400});}
+}
+
+export function updateCatalogProducts(existingCatalog, updates, deletions=[]) {
+ const current=validateCatalog(existingCatalog);
+ if(!Array.isArray(updates)||!Array.isArray(deletions)||updates.length>MAX_CATALOG_PRODUCTS||deletions.length>MAX_CATALOG_PRODUCTS)
+  throw Object.assign(new Error('INVALID_CATALOG_PRODUCT_CHANGES'),{status:400});
+ const result=current.map(row=>({...row,items:row.items.map(product=>({...product}))}));
+ const categoryById=new Map(result.map(category=>[category.id,category])),seenUpdates=new Set(),seenDeletions=new Set();
+ for(const entry of updates){
+  const categoryId=String(entry?.categoryId||''),input=entry?.product;
+  if(!categoryId||!input||typeof input!=='object'||Array.isArray(input))
+   throw Object.assign(new Error('INVALID_CATALOG_PRODUCT_PATCH'),{status:400});
+  const category=categoryById.get(categoryId);
+  if(!category)throw Object.assign(new Error('CATEGORY_NOT_FOUND'),{status:404});
+  const productId=String(input.id||'');validId(productId,'PRODUCT');
+  const identity=categoryId+'::'+productId;
+  if(seenUpdates.has(identity))throw Object.assign(new Error('DUPLICATE_PRODUCT_PATCH'),{status:400});
+  seenUpdates.add(identity);
+  const productIndex=category.items.findIndex(item=>item.id===productId),previous=productIndex<0?null:category.items[productIndex];
+  const next={...(previous||{}),...input,id:productId};
+  if(previous){
+   if(!Object.prototype.hasOwnProperty.call(input,'image'))next.image=previous.image;
+   if(Array.isArray(input.options)){
+    const oldOptions=new Map((previous.options||[]).map(option=>[option.id,option]));
+    next.options=input.options.map(option=>{
+     const oldOption=oldOptions.get(option.id);
+     return !Object.prototype.hasOwnProperty.call(option,'image')&&oldOption?.image!==undefined?{...option,image:oldOption.image}:option;
+    });
+   }else next.options=previous.options;
+   next.apiSource=previous.apiSource||{name:previous.name,desc:previous.desc,image:previous.image,options:previous.options};
+   const overrides=previous.manualOverrides&&typeof previous.manualOverrides==='object'&&!Array.isArray(previous.manualOverrides)?{...previous.manualOverrides}:{};
+   for(const key of PRODUCT_MANUAL_KEYS){
+    if(Object.prototype.hasOwnProperty.call(input,key)&&JSON.stringify(next[key]??null)!==JSON.stringify(previous[key]??null))
+     overrides[key]=next[key]??null;
+   }
+   if(Object.keys(overrides).length)next.manualOverrides=overrides;else delete next.manualOverrides;
+  }else if(!next.image)next.image='assets/products/_shared/product-placeholder.svg';
+  let validated;
+  try{validated=validateCatalog([{id:'catalog-patch',name:'Catalogue patch',desc:'',image:'assets/brand/logo.svg',items:[next]}])[0].items[0];}
+  catch(error){throw Object.assign(error,{status:error?.status||400});}
+  if(productIndex<0)category.items.push(validated);else category.items[productIndex]=validated;
+ }
+ for(const entry of deletions){
+  const categoryId=String(entry?.categoryId||''),productId=String(entry?.productId||'');
+  if(!categoryId||!productId)throw Object.assign(new Error('INVALID_CATALOG_PRODUCT_DELETE'),{status:400});
+  const identity=categoryId+'::'+productId;
+  if(seenDeletions.has(identity)||seenUpdates.has(identity))
+   throw Object.assign(new Error('DUPLICATE_CATALOG_PRODUCT_CHANGE'),{status:400});
+  seenDeletions.add(identity);
+  const category=categoryById.get(categoryId);
+  if(!category)throw Object.assign(new Error('CATEGORY_NOT_FOUND'),{status:404});
+  const index=category.items.findIndex(item=>item.id===productId);if(index>=0)category.items.splice(index,1);
+ }
+ try{return validateCatalog(result);}catch(error){throw Object.assign(error,{status:error?.status||400});}
+}
+
 export function getJsonPath(root, path) {
   if (typeof path !== 'string' || path.length > 160 || !/^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/.test(path)) {
     throw new Error('INVALID_FX_JSON_PATH');
