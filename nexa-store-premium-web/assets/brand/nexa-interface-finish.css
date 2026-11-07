@@ -222,6 +222,7 @@ html[dir="ltr"] .sidebar-language-toggle{direction:ltr}
   #app.shell .page-head{align-items:flex-start!important;flex-wrap:wrap!important}
 }
 @media(max-width:760px){
+  :root[dir="ltr"] #app.shell .main,:root[dir="rtl"] #app.shell .main{margin:0!important}
   .app-shell .header-main{gap:12px!important;padding-inline:14px!important}
   .app-shell .wrap{width:calc(100% - 28px)!important}
   .app-shell :is(.home-grid,.catalog-grid,.product-grid,.category-grid,.department-grid,.feature-grid){min-width:0}
