@@ -887,7 +887,7 @@
   "أقسام إضافية لا تندرج تحت الأقسام الرئيسية.": "Additional services outside the main departments.",
 });
   const editorialUiTranslations = Object.freeze({
-    "تصّفح حسب القسم": "BROWSE BY CATEGORY",
+    "تصفّح حسب القسم": "BROWSE BY CATEGORY",
     "اختيارات شائعة": "POPULAR PICKS",
     "كيف يعمل المتجر": "HOW IT WORKS",
     "مركز المساعدة": "HELP CENTER",
