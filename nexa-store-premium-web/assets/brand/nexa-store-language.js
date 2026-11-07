@@ -1098,6 +1098,7 @@
       output=output.replace(/^(\s*)Choose(?=\s)/i,'$1اختر');
       output=output.replace(/^(\s*)Search inside(?=\s)/i,'$1ابحث داخل');
       output=output.replace(/^(\s*)Quantity(?=\s*[·:])/i,'$1الكمية');
+      output=replaceEnglishProductTerms(output);
       for(const [english,arabic] of reverseFragmentEntries){
         const escaped=english.replace(/[|\\{}()[\]^$+*?.-]/g,'\\$&').replace(/\s+/g,'\\s+');
         const pattern=new RegExp('(^|[^A-Za-z0-9])('+escaped+')(?=$|[^A-Za-z0-9])','gi');
