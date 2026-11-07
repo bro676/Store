@@ -982,9 +982,20 @@
     }
     return output;
   }
+  const canonicalEnglishProductTerms = Object.freeze([
+    ["Gold Package","الباقة الذهبية"],["Silver Package","الباقة الفضية"],
+    ["Direct top-up","شحن مباشر"],["for the player account","لحساب اللاعب"],
+    ["Silver","فضي"],["Gold","ذهبي"],["Bronze","برونزي"],["Platinum","بلاتيني"],["Diamond","ماسي"],
+    ["Monthly","شهري"],["Weekly","أسبوعي"],["Daily","يومي"],["Yearly","سنوي"]
+  ]);
+  const canonicalEnglishProductTermSet = new Set(canonicalEnglishProductTerms.map(([english])=>english.toLowerCase()));
   function replaceEnglishProductTerms(value){
     let output=value;
-    for(const [arabic,english] of productNameTermEntries){
+    const replacements=[
+      ...canonicalEnglishProductTerms.map(([english,arabic])=>[arabic,english]),
+      ...productNameTermEntries.filter(([,english])=>!canonicalEnglishProductTermSet.has(english.toLowerCase()))
+    ];
+    for(const [arabic,english] of replacements){
       let position=0;
       while((position=output.toLowerCase().indexOf(english.toLowerCase(),position))>=0){
         const before=position===0?"":output[position-1];
