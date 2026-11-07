@@ -341,7 +341,7 @@ test('package picker and wallet top-up terms translate in both directions', asyn
   ['السعر المعتمد','Approved price'],
   ['شحن رصيد الحساب','Top up account balance'],
   ['اشحن عبر شام كاش؛ سيضاف المبلغ بعد التحقق من الفاتورة ورقم العملية.','Top up with Sham Cash. Funds are added after the invoice and transaction reference are verified.'],
-  ['إنشاء فاتورة شحن','Create Top-up Invoice'],
+  ['إنشاء فاتورة شحن','Create top-up invoice'],
   ['الحد الأدنى 1,000 والحد الأعلى 5,000,000 ليرة سورية جديدة.','Minimum 1,000 and maximum 5,000,000 new Syrian pounds.'],
   ['الفاتورة صالحة حتى','Invoice valid until'],
   ['حوّل قيمة الفاتورة إلى محفظة Nexa، ثم أدخل رقم العملية في نموذج التحقق.','Transfer the invoice amount to your Nexa wallet, then enter the transaction reference in the verification form.']
@@ -350,7 +350,7 @@ test('package picker and wallet top-up terms translate in both directions', asyn
  for(const [arabic,english] of [
   ['متاح للطلب','Available to order'],
   ['اختيار الباقة ←','Choose package ←'],
-  ['إنشاء فاتورة شحن','Create Top-up Invoice'],
+  ['إنشاء فاتورة شحن','Create top-up invoice'],
   ['الفاتورة صالحة حتى','Invoice valid until']
  ])assert.equal(translate(english),arabic,'Missing Arabic locale for '+english);
 });
