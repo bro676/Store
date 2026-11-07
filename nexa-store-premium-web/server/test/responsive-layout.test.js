@@ -7,7 +7,7 @@ const storefrontHtml = readFileSync(new URL('../../index.html', import.meta.url)
 const adminHtml = readFileSync(new URL('../../admin.html', import.meta.url), 'utf8');
 
 test('responsive layout stylesheet is loaded after legacy styles on both pages', () => {
-  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-catalog-checkout-theme-v8');
+  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-catalog-checkout-theme-v9');
   const storePreviousLayer = storefrontHtml.indexOf('nexa-store-polish.css');
   const adminLink = adminHtml.indexOf('nexa-responsive.css?v=20261107-layout-final-v5');
   const adminTheme = adminHtml.indexOf('nexa-wamda-blue.css');
@@ -166,4 +166,18 @@ test('catalog cards have distinct visual identities and drawer-open content has 
     assert.ok(responsiveCss.includes(selector), 'Missing card or checkout design rule: '+selector);
   }
   assert.ok(responsiveCss.includes('@media(max-width:600px)'), 'The checkout form has a dedicated mobile layout');
+});
+
+test('invoice status, receiver address and payment summary inherit both store themes', () => {
+  assert.ok(responsiveCss.includes('NEXA CHECKOUT INVOICE THEME COMPLETION v9'), 'The invoice panel theme completion layer is present');
+  for (const selector of [
+    '.wallet-invoice-meta .invoice-detail-copy',
+    '.wallet-invoice-meta .invoice-detail-address',
+    '.wallet-invoice-meta .invoice-address-row',
+    '.wallet-invoice-meta .invoice-meta-item',
+    '.wallet-receiver-address',
+    '.wallet-order-summary'
+  ]) assert.ok(responsiveCss.includes(selector), 'Missing invoice detail style: '+selector);
+  assert.ok(responsiveCss.includes(':root[data-theme="dark"] .app-shell :is(.wallet-api-main'), 'Invoice surfaces have explicit dark-mode colors');
+  assert.ok(responsiveCss.includes(':root[data-theme="light"] .app-shell :is(.wallet-api-main'), 'Invoice surfaces have explicit light-mode colors');
 });

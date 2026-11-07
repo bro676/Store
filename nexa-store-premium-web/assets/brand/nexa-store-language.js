@@ -1008,7 +1008,26 @@
     'اسم المستخدم':'Username','رقم الهاتف':'Phone number','البريد الإلكتروني':'Email address',
     'المنطقة':'Region','النسخة':'Version','الخطة':'Plan','الخادم':'Server','السيرفر':'Server',
     'بلد الحساب':'Account country','منصة الحساب':'Account platform','اسم الحساب':'Account name',
-    'الحساب':'Account','اختر المنطقة':'Choose region','اختر النسخة':'Choose version','اختر الخطة':'Choose plan'
+    'الحساب':'Account','اختر المنطقة':'Choose region','اختر النسخة':'Choose version','اختر الخطة':'Choose plan',
+    'لم يرد عنوان المحفظة مع الفاتورة.':'The receiving wallet address was not returned with the invoice.',
+    'عنوان الاستلام مرتبط بهذه الفاتورة ويجب استخدامه لهذا الطلب فقط.':'The receiving address is linked to this invoice and must only be used for this order.',
+    'ستظهر بياناتها بعد إنشاء الفاتورة الرسمية':'Its details will appear after the official invoice is created.',
+    'لن نطلب كلمة مرور شام كاش أو رمز OTP في أي مرحلة.':'We will never ask for your Sham Cash password or OTP.',
+    'يجري التحقق من تهيئة بوابة الدفع…':'Checking payment gateway configuration…',
+    'بوابة API جاهزة':'API gateway ready','بانتظار إعداد الخادم':'Waiting for server setup',
+    'الخادم غير متصل':'Server unavailable',
+    'تعذر الوصول إلى خادم الدفع. شغّل الموقع عبر خادم Nexa وليس بفتح ملف HTML مباشرة.':'The payment server is unavailable. Open the store through the Nexa server, not as a local HTML file.',
+    'حالة بوابة الدفع غير معروفة.':'Payment gateway status is unknown.',
+    'تعذر فحص بوابة الدفع.':'Could not check the payment gateway.',
+    'تحقق من عملية التحويل':'Verify the transfer',
+    'أدخل رقم الطلب ورقم العملية كما يظهران في النظامين.':'Enter the order ID and transaction ID exactly as shown in both systems.',
+    'تم تأكيد الدفع لهذا الطلب.':'Payment has been confirmed for this order.',
+    'انتهت صلاحية الفاتورة.':'The invoice has expired.',
+    'تم إلغاء الطلب.':'The order has been cancelled.',
+    'مدفوع':'Paid','منتهي':'Expired','ملغي':'Cancelled','بانتظار الدفع':'Awaiting payment',
+    'لم نعثر على هذا الرقم ضمن طلبات حسابك. تحقق من الرقم أو حالة الطلب.':'We could not find this ID in your account orders. Check the ID or order status.',
+    'لم نعثر على هذا الرقم ضمن طلبات الزوار المحفوظة على هذا الجهاز.':'We could not find this ID in the guest orders saved on this device.'
+
   });
   const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations,completionTranslations,editorialUiTranslations,paymentBrandTranslations,storefrontDynamicTranslations,productNameTermTranslations,catalogCheckoutTranslations);
   const reverse = new Map();

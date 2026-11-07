@@ -286,7 +286,7 @@ test('package flow dynamic UI strings and sidebar open/close labels are translat
   '"اختر المنطقة أو النسخة أو الخطة المناسبة.": "Choose the suitable region, version or plan."',
   '"الكمية": "Quantity"'
  ])assert.ok(source.includes(phrase),'Missing package-flow translation '+phrase);
- assert.ok(store.includes('nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v10'),'Package flow locale cache version is fresh');
+ assert.ok(store.includes('nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v11'),'Package flow locale cache version is fresh');
 });
 
 
@@ -300,8 +300,18 @@ test('catalog folder/product and order/invoice terms are translated in both dire
   ["'اسم العميل':'Customer name'","'عملة الدفع':'Payment currency'"],["'إنشاء الطلب والمتابعة للدفع':'Create order and continue to payment'","'عنوان محفظة الاستلام':'Receiving wallet address'"],
   ["'فاتورة شام كاش الرسمية':'Official Sham Cash invoice'","'بيانات المنتج':'Product details'"]
  ]){assert.ok(source.includes(arabic)&&source.includes(english),'Missing exact bilingual flow terms '+arabic+' / '+english);}
- assert.ok(store.includes('nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v10'),'the expanded locale dictionary cache is refreshed');
- assert.ok(store.includes('nexa-responsive.css?v=20261107-catalog-checkout-theme-v8'),'the new catalog and modal styles are cache-busted');
+ assert.ok(store.includes('nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v11'),'the expanded locale dictionary cache is refreshed');
+ assert.ok(store.includes('nexa-responsive.css?v=20261107-catalog-checkout-theme-v9'),'the new catalog and modal styles are cache-busted');
  const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-responsive.css'),'utf8');
  for(const selector of [':root[data-theme="dark"] #orderModal',':root[data-theme="light"] #orderModal','#orderModal .modal-body','#orderModal .modal-actions'])assert.ok(css.includes(selector),'Missing theme coverage for '+selector);
+});
+
+test('invoice receiver and payment-status content has complete English labels',async()=>{
+ const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
+ for(const phrase of [
+  "'لم يرد عنوان المحفظة مع الفاتورة.':'The receiving wallet address was not returned with the invoice.'",
+  "'عنوان الاستلام مرتبط بهذه الفاتورة ويجب استخدامه لهذا الطلب فقط.':'The receiving address is linked to this invoice and must only be used for this order.'",
+  "'لن نطلب كلمة مرور شام كاش أو رمز OTP في أي مرحلة.':'We will never ask for your Sham Cash password or OTP.'",
+  "'تحقق من عملية التحويل':'Verify the transfer'"
+ ])assert.ok(source.includes(phrase),'Missing invoice / payment translation '+phrase);
 });

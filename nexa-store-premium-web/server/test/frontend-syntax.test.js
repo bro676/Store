@@ -701,7 +701,7 @@ test('storefront drawer language and display currency controls work without alte
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
   const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
 
-  assert.ok(store.includes('nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v10'), 'The Arabic/English dictionary is loaded before storefront initialization');
+  assert.ok(store.includes('nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v11'), 'The Arabic/English dictionary is loaded before storefront initialization');
   assert.ok(store.includes('id="sidebarLanguageToggle"'), 'The fourth account shortcut is now the language control');
   assert.ok(store.includes('id="sidebarCurrencyToggle"'), 'The currency capsule has a real interactive control');
   const first=store.indexOf('class="sidebar-quick-actions"');
@@ -826,7 +826,7 @@ test('English drawer updates its balance locale and all supported currencies use
   assert.ok(store.includes("return new Intl.NumberFormat(locale,{maximumFractionDigits:2}).format(value)+' '+storeCurrencyLabel('SYP');"),'SYP order amounts use the active language currency label');
   assert.ok(store.includes("new Intl.NumberFormat(storeLocale()==='en'?'en-US':'ar-SY',{style:'currency',currency:'USD'})"),'USD amounts follow the selected storefront language');
   assert.ok(store.includes('nexa-store-drawer.css?v=20261106-drawer-ltr-v2'),'The updated drawer stylesheet has a fresh cache key');
-  assert.ok(store.includes('nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v10'),'The updated English dictionary has a fresh cache key');
+  assert.ok(store.includes('nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v11'),'The updated English dictionary has a fresh cache key');
 });
 
 

@@ -1163,3 +1163,125 @@ html.store-drawer-scroll-locked body{
   #orderModal .modal-actions{flex-direction:column!important}
   #orderModal .modal-actions .btn{width:100%!important;flex-basis:auto!important}
 }
+
+
+/* NEXA CHECKOUT INVOICE THEME COMPLETION v9 — the invoice status and receiver details must not retain legacy white surfaces. */
+.app-shell :is(.wallet-api-main,.wallet-receiver,.wallet-order-summary,.wallet-invoice-meta,.wallet-payment-form){
+  min-width:0!important;border-radius:17px!important;
+}
+.app-shell .wallet-invoice-meta{
+  display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:12px!important;
+  padding:14px!important;border:1px solid var(--line)!important;border-radius:16px!important;
+  background:var(--surface)!important;color:var(--ink)!important;box-shadow:var(--shadow-soft)!important;
+}
+.app-shell .wallet-invoice-meta .invoice-empty-mark{
+  width:40px!important;height:40px!important;display:grid!important;place-items:center!important;flex:0 0 40px!important;
+  border:1px solid var(--line)!important;border-radius:13px!important;background:var(--surface-2)!important;
+  color:var(--ink-2)!important;
+}
+.app-shell .wallet-invoice-meta .invoice-detail-copy{
+  display:grid!important;gap:4px!important;min-width:0!important;flex:1 1 180px!important;
+}
+.app-shell .wallet-invoice-meta .invoice-detail-copy strong{
+  color:var(--ink)!important;font-size:12px!important;font-weight:900!important;line-height:1.6!important;
+}
+.app-shell .wallet-invoice-meta .invoice-detail-copy small{
+  color:var(--muted)!important;font-size:10px!important;line-height:1.8!important;overflow-wrap:anywhere!important;
+}
+.app-shell .wallet-invoice-meta .invoice-detail-address{
+  flex:1 1 100%!important;min-width:0!important;width:100%!important;
+  padding-top:11px!important;border-top:1px solid var(--line)!important;
+}
+.app-shell .wallet-invoice-meta .invoice-address-row{
+  display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:8px 10px!important;
+  min-width:0!important;padding:10px 11px!important;border:1px solid var(--line)!important;
+  border-radius:12px!important;background:var(--surface-2)!important;color:var(--ink-2)!important;
+}
+.app-shell .wallet-invoice-meta .invoice-address-row>span{
+  color:var(--muted)!important;font-size:10px!important;font-weight:800!important;
+}
+.app-shell .wallet-invoice-meta .invoice-address-row>strong,
+.app-shell .wallet-invoice-meta .invoice-address-row>code{
+  min-width:0!important;max-width:100%!important;color:var(--ink)!important;
+  font-size:11px!important;overflow-wrap:anywhere!important;word-break:break-word!important;
+}
+.app-shell .wallet-invoice-meta .invoice-address-row>code{
+  flex:1 1 180px!important;padding:7px 9px!important;border:1px solid var(--line)!important;
+  border-radius:9px!important;background:var(--surface-3)!important;
+}
+.app-shell :is(.wallet-receiver,.wallet-order-summary){
+  padding:14px!important;border:1px solid var(--line)!important;
+  background:var(--surface-2)!important;color:var(--ink)!important;box-shadow:none!important;
+}
+.app-shell :is(.wallet-receiver,.wallet-order-summary)>span{
+  color:var(--muted)!important;font-size:10px!important;font-weight:800!important;
+}
+.app-shell :is(.wallet-receiver,.wallet-order-summary)>strong{
+  display:block!important;color:var(--ink)!important;font-size:13px!important;line-height:1.7!important;
+  overflow-wrap:anywhere!important;
+}
+.app-shell :is(.wallet-receiver,.wallet-order-summary)>small{
+  display:block!important;color:var(--muted)!important;font-size:10px!important;line-height:1.8!important;
+}
+.app-shell .wallet-receiver-address{
+  margin-top:10px!important;padding:10px!important;border:1px solid var(--line)!important;
+  border-radius:12px!important;background:var(--surface)!important;color:var(--ink)!important;
+}
+.app-shell .wallet-receiver-address :is(span,small){color:var(--muted)!important}
+.app-shell .wallet-receiver-address code{
+  max-width:100%!important;overflow-wrap:anywhere!important;word-break:break-word!important;
+  background:var(--surface-2)!important;color:var(--ink)!important;border:1px solid var(--line)!important;
+}
+.app-shell .wallet-copy-address,.app-shell .invoice-copy{
+  border:1px solid var(--line)!important;border-radius:10px!important;
+  background:var(--surface-3)!important;color:var(--ink)!important;
+}
+.app-shell .wallet-invoice-meta .invoice-meta-grid{
+  width:100%!important;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;
+}
+.app-shell .wallet-invoice-meta .invoice-meta-item{
+  min-width:0!important;padding:10px!important;border:1px solid var(--line)!important;
+  border-radius:12px!important;background:var(--surface-2)!important;color:var(--ink)!important;
+}
+.app-shell .wallet-invoice-meta .invoice-meta-item span{color:var(--muted)!important;font-size:9px!important}
+.app-shell .wallet-invoice-meta .invoice-meta-item strong{color:var(--ink)!important;font-size:11px!important}
+.app-shell .wallet-payment-form{
+  padding:15px!important;border:1px solid var(--line)!important;border-radius:16px!important;
+  background:var(--surface)!important;color:var(--ink)!important;
+}
+.app-shell .wallet-payment-form :is(h2,h3,label,strong){color:var(--ink)!important}
+.app-shell .wallet-payment-form :is(p,small,.hint){color:var(--muted)!important}
+:root[data-theme="dark"] .app-shell :is(.wallet-api-main,.wallet-receiver,.wallet-order-summary,.wallet-invoice-meta,.wallet-payment-form,.invoice-address-row,.invoice-meta-item,.wallet-receiver-address){
+  background-color:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] .app-shell :is(.wallet-receiver,.wallet-order-summary,.invoice-address-row,.invoice-meta-item,.wallet-receiver-address code){
+  background-color:var(--surface-2)!important;
+}
+:root[data-theme="dark"] .app-shell :is(.wallet-invoice-meta .invoice-detail-copy strong,.wallet-invoice-meta .invoice-address-row strong,.wallet-invoice-meta .invoice-address-row code,.invoice-meta-item strong,.wallet-receiver-address code){
+  color:var(--ink)!important;
+}
+:root[data-theme="dark"] .app-shell :is(.wallet-invoice-meta small,.wallet-invoice-meta .invoice-address-row span,.invoice-meta-item span,.wallet-receiver small,.wallet-order-summary small,.wallet-receiver-address small){
+  color:var(--muted)!important;
+}
+:root[data-theme="dark"] .app-shell :is(.wallet-invoice-meta .invoice-empty-mark,.wallet-copy-address,.invoice-copy){
+  background:var(--surface-3)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+:root[data-theme="light"] .app-shell :is(.wallet-api-main,.wallet-receiver,.wallet-order-summary,.wallet-invoice-meta,.wallet-payment-form,.invoice-address-row,.invoice-meta-item,.wallet-receiver-address){
+  background-color:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+:root[data-theme="light"] .app-shell :is(.wallet-receiver,.wallet-order-summary,.invoice-address-row,.invoice-meta-item,.wallet-receiver-address code){
+  background-color:var(--surface-2)!important;
+}
+:root[data-theme="light"] .app-shell :is(.wallet-invoice-meta .invoice-detail-copy strong,.wallet-invoice-meta .invoice-address-row strong,.wallet-invoice-meta .invoice-address-row code,.invoice-meta-item strong,.wallet-receiver-address code){
+  color:var(--ink)!important;
+}
+:root[data-theme="light"] .app-shell :is(.wallet-invoice-meta small,.wallet-invoice-meta .invoice-address-row span,.invoice-meta-item span,.wallet-receiver small,.wallet-order-summary small,.wallet-receiver-address small){
+  color:var(--muted)!important;
+}
+@media(max-width:600px){
+  .app-shell .wallet-invoice-meta{align-items:flex-start!important;padding:11px!important}
+  .app-shell .wallet-invoice-meta .invoice-meta-grid{grid-template-columns:minmax(0,1fr)!important}
+  .app-shell .wallet-invoice-meta .invoice-address-row{align-items:stretch!important;flex-direction:column!important}
+  .app-shell .wallet-invoice-meta .invoice-address-row>*{width:100%!important}
+  .app-shell .wallet-copy-address{min-height:38px!important}
+}
