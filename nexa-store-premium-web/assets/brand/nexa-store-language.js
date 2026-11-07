@@ -927,7 +927,32 @@
     "بوابة دفع آمنة عبر API": "SECURE API PAYMENT GATEWAY",
     "مسار الدفع": "PAYMENT FLOW"
   });
-  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations,completionTranslations,editorialUiTranslations,paymentBrandTranslations);
+  // Supplier product/option names may combine Latin brands with Arabic variants and terms.
+  const productNameTermTranslations = Object.freeze({
+    "الشحن المباشر":"Direct top-up","شحن مباشر":"Direct top-up","شحن":"Top-up","رصيد":"Balance",
+    "نقاط":"Points","جواهر":"Diamonds","جوهرة":"Diamond","كريستال":"Crystals","كوينز":"Coins","كوين":"Coin",
+    "بطاقة":"Card","بطاقات":"Cards","اشتراك":"Subscription","اشتراكات":"Subscriptions",
+    "باقة":"Package","الباقة":"Package","قسيمة":"Voucher","كوبون":"Coupon","كود":"Code","رمز":"Code",
+    "حساب":"Account","حسابات":"Accounts","يومي":"Daily","يومية":"Daily","أسبوعي":"Weekly","أسبوعية":"Weekly",
+    "شهري":"Monthly","شهرية":"Monthly","سنوي":"Yearly","سنوية":"Yearly","أيام":"Days","يوم":"Day",
+    "شهر":"Month","سنة":"Year","عالمي":"Global","عالمية":"Global","دولي":"International","دولية":"International",
+    "منطقة":"Region","المنطقة":"Region","نسخة":"Version","النسخة":"Version","نسخ":"Versions",
+    "سيرفر":"Server","السيرفر":"Server","خادم":"Server","أمريكي":"US","الأمريكي":"US",
+    "سعودي":"Saudi","سعودية":"Saudi","تركي":"Turkish","تركية":"Turkish","كويتي":"Kuwaiti","قطري":"Qatari",
+    "إماراتي":"UAE","إماراتية":"UAE","أوروبي":"European","أوروبا":"Europe","آسيا":"Asia","آسيوي":"Asian",
+    "سنغافورة":"Singapore","الهند":"India","مصر":"Egypt","تركيا":"Turkey","السعودية":"Saudi Arabia",
+    "الإمارات":"UAE","الكويت":"Kuwait","قطر":"Qatar","إندونيسيا":"Indonesia","اندونيسيا":"Indonesia",
+    "ماليزيا":"Malaysia","الفلبين":"Philippines","فيتنام":"Vietnam","البرازيل":"Brazil","تايلاند":"Thailand",
+    "اليابان":"Japan","كندا":"Canada","فرنسا":"France","ألمانيا":"Germany","إيطاليا":"Italy","إسبانيا":"Spain",
+    "بريطانيا":"United Kingdom","عربي":"Arabic","عربية":"Arabic","إنجليزي":"English","إنجليزية":"English",
+    "دولار":"USD","ليرة":"SYP","فضة":"Silver","ذهب":"Gold","مجاني":"Free","مجانية":"Free",
+    "محدود":"Limited","محدودة":"Limited","غير محدود":"Unlimited","غير محدودة":"Unlimited",
+    "جوجل":"Google","نتفلكس":"Netflix","يوتيوب":"YouTube","سبوتيفاي":"Spotify","تيك توك":"TikTok",
+    "واتساب":"WhatsApp","تلغرام":"Telegram","ديسكورد":"Discord","انستغرام":"Instagram","إنستغرام":"Instagram",
+    "فيسبوك":"Facebook","بلايستيشن":"PlayStation","بلاي ستيشن":"PlayStation","اكس بوكس":"Xbox",
+    "إكس بوكس":"Xbox","ستيم":"Steam","آيفون":"iPhone","أيفون":"iPhone","أندرويد":"Android","اندرويد":"Android"
+  });
+  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations,completionTranslations,editorialUiTranslations,paymentBrandTranslations,productNameTermTranslations);
   const reverse = new Map();
   for (const [ar,en] of Object.entries(translationLookup)) {
     const englishKey=String(en).trim().replace(/\s+/g,' ');
@@ -937,6 +962,42 @@
   }
   const fragmentEntries=Object.entries(translationLookup).filter(([phrase])=>phrase.length>=8).sort((a,b)=>b[0].length-a[0].length);
   const reverseFragmentEntries=[...reverse.entries()].filter(([phrase])=>phrase.length>=4&&/[A-Za-z]/.test(phrase)).sort((a,b)=>b[0].length-a[0].length);
+  // Include short dictionary terms (Silver, Gold, etc.) in composed supplier product names.
+  const productNameTermEntries = [
+    ...Object.entries(productNameTermTranslations),
+    ...["فضي","ذهبي","برونزي","بلاتيني","ماسي"].map(term=>[term,translationLookup[term]])
+  ].filter(entry=>Boolean(entry[1])).sort((a,b)=>b[0].length-a[0].length);
+  function replaceArabicProductTerms(value){
+    let output=value;
+    for(const [arabic,english] of productNameTermEntries){
+      let position=0;
+      while((position=output.indexOf(arabic,position))>=0){
+        const before=position===0?"":output[position-1];
+        const after=position+arabic.length>=output.length?"":output[position+arabic.length];
+        if(!/[\u0600-\u06FF]/.test(before)&&!/[\u0600-\u06FF]/.test(after)){
+          output=output.slice(0,position)+english+output.slice(position+arabic.length);
+          position+=english.length;
+        }else position+=arabic.length;
+      }
+    }
+    return output;
+  }
+  function replaceEnglishProductTerms(value){
+    let output=value;
+    for(const [arabic,english] of productNameTermEntries){
+      let position=0;
+      while((position=output.toLowerCase().indexOf(english.toLowerCase(),position))>=0){
+        const before=position===0?"":output[position-1];
+        const after=position+english.length>=output.length?"":output[position+english.length];
+        if(!/[A-Za-z0-9]/.test(before)&&!/[A-Za-z0-9]/.test(after)){
+          output=output.slice(0,position)+arabic+output.slice(position+english.length);
+          position+=arabic.length;
+        }else position+=english.length;
+      }
+    }
+    return output;
+  }
+
 
   const normalize = value => String(value || '').replace(/\s+/g,' ').trim();
   const arabicDigits='٠١٢٣٤٥٦٧٨٩';
@@ -1016,6 +1077,8 @@
       output=output.replace(/^(\s*)ابحث داخل(?=\s)/,'$1Search inside');
       output=output.replace(/^(\s*)الكمية(?=\s*[·:])/,'$1Quantity');
       for(const [phrase,english] of fragmentEntries)if(output.includes(phrase))output=output.split(phrase).join(english);
+      output=replaceArabicProductTerms(output);
+      output=replaceEnglishProductTerms(output);
       return output;
     }
     if(targetLanguage==='ar'&&/[A-Za-z]/.test(raw)){
