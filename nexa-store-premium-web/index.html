@@ -628,7 +628,7 @@ body{
 </style>
 
 <link rel="stylesheet" href="/assets/brand/nexa-store-polish.css?v=20261107-package-modal-dark-v5">
-<link rel="stylesheet" href="/assets/brand/nexa-responsive.css?v=20261107-package-wallet-theme-v10">
+<link rel="stylesheet" href="/assets/brand/nexa-responsive.css?v=20261107-package-order-wallet-final-v11">
 </head>
 <body>
 <div class="app-shell">
@@ -819,24 +819,24 @@ body{
 <section class="view hidden" data-view="orders"><div class="wrap page-shell"><div class="page-heading"><div><span class="section-kicker">YOUR ACTIVITY</span><h1>طلباتي</h1><p>عند تسجيل الدخول، يعرض هذا القسم طلبات حسابك المرتبطة برقم هاتفك. وتظهر طلبات الزوار المحفوظة على هذا الجهاز عند عدم تسجيل الدخول.</p></div><button class="btn btn-soft" data-page="store">إنشاء طلب جديد</button></div><div class="data-panel"><div class="data-table-wrap"><table class="data-table"><thead><tr><th>رقم الطلب</th><th>الخدمة</th><th>التاريخ</th><th>الإجمالي</th><th>الحالة</th><th>الإجراء</th></tr></thead><tbody id="ordersTable"><tr><td colspan="5">لا توجد طلبات حتى الآن.</td></tr></tbody></table></div></div></div></section>
 <section class="view hidden" data-view="favorites"><div class="wrap page-shell"><div class="page-heading"><div><span class="section-kicker">SAVED ITEMS</span><h1>المفضلة</h1><p>تحفظ المفضلة في حسابك وتبقى متاحة عند تسجيل الدخول من أجهزتك، أما مفضلة الزوار فتحفظ على هذا الجهاز.</p></div><button class="btn btn-soft" data-page="store">استكشف المتجر</button></div><div class="featured-grid" id="favoritesGrid"><div class="empty-state"><strong>المفضلة فارغة</strong><p>احفظ المنتجات التي تهمك من بطاقاتها.</p></div></div></div></section>
 <section class="view hidden" data-view="wallet"><div class="wrap page-shell"><div class="page-heading"><div><span class="section-kicker">SECURE CHECKOUT · SHAM CASH</span><h1>الدفع الآمن عبر شام كاش</h1><p>فاتورة رسمية لكل طلب، ومطابقة آلية لرقم التحويل والمبلغ ومحفظة الاستلام قبل اعتماد الدفع.</p></div><span class="status-pill" id="shamCashStatusBadge">جارٍ فحص الاتصال…</span></div><section class="customer-wallet-card" id="customerWalletCard">
-  <div class="customer-wallet-head"><div><span class="section-kicker">NEXA WALLET</span><h2>حسابك ورصيدك</h2><p>سجّل الدخول لعرض رصيدك ومتابعة عمليات الشحن والشراء.</p></div><span class="account-status-pill" id="walletAccountStatus">غير مسجل الدخول</span></div>
+  <div class="customer-wallet-head"><div><span class="section-kicker">NEXA WALLET</span><h2 id="walletAccountTitle">حسابك ورصيدك</h2><p id="walletAccountDescription">سجّل الدخول لعرض رصيدك ومتابعة عمليات الشحن والشراء.</p></div><span class="account-status-pill" id="walletAccountStatus">غير مسجل الدخول</span></div>
   <div id="customerGuestPanel">
     <div class="account-auth-grid">
       <form id="accountLoginForm" class="account-auth-form">
-        <h3>تسجيل الدخول</h3>
-        <div class="field"><label for="accountLoginPhone">رقم الهاتف</label><input id="accountLoginPhone" type="tel" inputmode="tel" autocomplete="username" placeholder="+963..." required maxlength="22"></div>
-        <div class="field"><label for="accountLoginPassword">كلمة المرور</label><input id="accountLoginPassword" type="password" autocomplete="current-password" minlength="8" required maxlength="128"></div>
-        <button class="btn btn-primary" type="submit">دخول إلى حسابي</button>
+        <h3 id="walletLoginHeading">تسجيل الدخول</h3>
+        <div class="field"><label id="walletLoginPhoneLabel" for="accountLoginPhone">رقم الهاتف</label><input id="accountLoginPhone" type="tel" inputmode="tel" autocomplete="username" placeholder="+963..." required maxlength="22"></div>
+        <div class="field"><label id="walletLoginPasswordLabel" for="accountLoginPassword">كلمة المرور</label><input id="accountLoginPassword" type="password" autocomplete="current-password" minlength="8" required maxlength="128"></div>
+        <button id="walletLoginSubmit" class="btn btn-primary" type="submit">دخول إلى حسابي</button>
       </form>
     </div>
     <p class="account-auth-message" id="accountAuthMessage" role="status"></p>
-    <p class="account-auth-note">يمكنك التسجيل برقم الهاتف وكلمة مرور دون رمز OTP. يجب أن يكون الرقم لك؛ لا يمكن تسجيل رقم مرتبط بحساب حالي.</p>
-    <button class="btn btn-soft" type="button" data-page="register">إنشاء حساب جديد</button>
+    <p id="walletAccountNotice" class="account-auth-note">يمكنك التسجيل برقم الهاتف وكلمة مرور دون رمز OTP. يجب أن يكون الرقم لك؛ لا يمكن تسجيل رقم مرتبط بحساب حالي.</p>
+    <button id="walletRegisterButton" class="btn btn-soft" type="button" data-page="register">إنشاء حساب جديد</button>
   </div>
   <div id="customerSignedPanel" class="hidden">
     <div class="wallet-account-summary">
-      <div><small>مرحباً بك</small><strong id="walletCustomerName">—</strong><span id="walletCustomerPhone" dir="ltr">—</span></div>
-      <div class="wallet-account-balance"><small>رصيدك المتاح</small><strong id="walletBalanceValue">0 ل.س جديدة</strong></div>
+      <div><small id="walletWelcomeLabel">مرحباً بك</small><strong id="walletCustomerName">—</strong><span id="walletCustomerPhone" dir="ltr">—</span></div>
+      <div class="wallet-account-balance"><small id="walletAvailableBalanceLabel">رصيدك المتاح</small><strong id="walletBalanceValue">0 ل.س جديدة</strong></div>
       <button type="button" class="btn btn-soft" id="accountLogoutButton">تسجيل الخروج</button>
     </div>
     <form id="walletTopupForm" class="wallet-topup-form">
@@ -844,7 +844,7 @@ body{
       <div class="wallet-topup-controls"><input id="walletTopupAmount" type="number" min="1000" max="5000000" step="1" value="10000" required aria-label="مبلغ الشحن بالليرة السورية الجديدة"><button class="btn btn-primary" type="submit">إنشاء فاتورة شحن</button></div>
       <small>الحد الأدنى 1,000 والحد الأعلى 5,000,000 ليرة سورية جديدة.</small>
     </form>
-    <div class="wallet-ledger-panel"><div class="wallet-ledger-head"><strong>آخر حركات الرصيد</strong><small>عمليات الشحن والشراء المؤكدة</small></div><div id="walletLedgerList"><p class="wallet-ledger-empty">لا توجد حركات بعد.</p></div></div>
+    <div class="wallet-ledger-panel"><div class="wallet-ledger-head"><strong id="walletLedgerTitle">آخر حركات الرصيد</strong><small id="walletLedgerDescription">عمليات الشحن والشراء المؤكدة</small></div><div id="walletLedgerList"><p class="wallet-ledger-empty">لا توجد حركات بعد.</p></div></div>
   </div>
 </section>
 <div class="wallet-api-layout"><section class="wallet-api-main"><div class="wallet-api-brand"><div class="wallet-api-mark">ش</div><div><strong>Sham Cash</strong><small>SECURE API PAYMENT GATEWAY</small></div><span class="wallet-api-live-dot"></span></div><div class="wallet-api-state" id="shamCashServiceStatus" role="status">يجري التحقق من تهيئة بوابة الدفع…</div><div class="wallet-receiver" id="shamCashReceiverInfo"><span>محفظة الاستلام</span><strong>ستظهر بياناتها بعد إنشاء الفاتورة الرسمية</strong><small>لن نطلب كلمة مرور شام كاش أو رمز OTP في أي مرحلة.</small></div><div class="wallet-receiver wallet-order-summary" id="paymentOrderSummary"><span>ملخص الطلب</span><strong>يظهر بعد إنشاء الطلب</strong><small>السعر والعملة ومدة الفاتورة يحددها الخادم.</small></div><div class="wallet-invoice-meta" id="paymentInvoiceMeta"><div class="invoice-empty-mark">✦</div><div><strong>بانتظار إنشاء فاتورة</strong><small>اختر المنتج والباقة ثم أنشئ طلبك من المتجر.</small></div></div><form id="shamCashPaymentForm" class="wallet-payment-form"><div class="support-section-head"><div><span class="support-kicker">LIVE TRANSACTION CHECK</span><h2>تحقق من عملية التحويل</h2><p>أدخل رقم الطلب ورقم العملية كما يظهران في النظامين.</p></div><span class="lookup-icon">✓</span></div><div class="form-grid"><div class="field full"><label for="paymentOrderId">رقم طلب Nexa *</label><input id="paymentOrderId" required maxlength="24" placeholder="NX-XXXXXXXXXXXXXXXXXXXX" autocomplete="off" dir="ltr"></div><div class="field full"><label for="shamCashTransactionId">رقم عملية شام كاش *</label><input id="shamCashTransactionId" required inputmode="text" pattern="[A-Za-z0-9_-]{1,64}" minlength="1" maxlength="64" placeholder="اكتب رقم العملية من سجل شام كاش" autocomplete="off" dir="ltr"><small>نقبل التحويل الوارد إلى محفظة الفاتورة نفسها فقط، وبالمبلغ والعملة نفسيهما تماماً.</small></div></div><button class="btn btn-primary" id="verifyShamCashButton" type="submit">تحقق واعتماد الدفع <span>←</span></button><p class="wallet-payment-result" id="shamCashPaymentResult" aria-live="polite"></p></form><div class="payment-receipt hidden" id="paymentReceipt" aria-live="polite"></div><div class="wallet-api-security"><span>🔐</span><p>حماية متعددة الطبقات: فاتورة مرتبطة بمحفظتك، صلاحية زمنية، تحقق مباشر من سجل التحويل، مطابقة دقيقة للمبلغ والعملة، ومنع استخدام رقم العملية أكثر من مرة.</p></div></section><aside class="wallet-api-side"><div class="wallet-side-heading"><span>PAYMENT FLOW</span><h3>خطوات الدفع</h3><p>كل خطوة مرتبطة بفاتورة ورقم طلب محدد.</p></div><ol><li><b>01</b><span><strong>أنشئ الطلب</strong>اختر المنتج والباقة وأدخل بياناتك.</span></li><li><b>02</b><span><strong>استلم الفاتورة</strong>سيظهر عنوان محفظة الاستلام والمبلغ ووقت الانتهاء.</span></li><li><b>03</b><span><strong>حوّل المبلغ</strong>أرسل المبلغ نفسه تماماً إلى العنوان الظاهر.</span></li><li><b>04</b><span><strong>أدخل رقم العملية</strong>انسخ رقم التحويل من سجل شام كاش.</span></li><li><b>05</b><span><strong>اعتماد تلقائي</strong>نراجع العملية والفاتورة لدى API ثم نثبتها مرة واحدة.</span></li></ol><div class="wallet-api-note"><strong>تنبيه أمني</strong><p>لا ترسل لقطة شاشة أو PIN أو OTP. لا تعاود التحويل عند التأخير؛ افحص حالة الطلب أو تواصل مع الدعم.</p></div><div class="wallet-provider-foot"><span class="secure-lock">✓</span><span>API مباشر · لا إيصالات يدوية · لا تأكيد من المتصفح</span></div></aside></div></div></section>
@@ -1073,7 +1073,7 @@ body{
 </section>
 <div class="toast" id="toast"></div>
 <script src="/assets/brand/nexa-catalog.js?v=20261106-dashboard-order-v3"></script>
-<script src="/assets/brand/nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v11"></script>
+<script src="/assets/brand/nexa-store-language.js?v=20261107-supplier-fields-and-wallet-i18n-v12"></script>
 <script>
 let categories=[];
 let storefrontDisplayCurrency='USD',storefrontFxRate=145,storefrontFxReady=false,storefrontLanguage='ar',walletTransactions=[];
@@ -1081,7 +1081,28 @@ try{const savedCurrency=localStorage.getItem('nexa-store-display-currency');if(s
 const $=id=>document.getElementById(id);
 const storeLocale=()=>window.NexaLocale?.getLanguage?.()||storefrontLanguage||'ar';
 const storeText=value=>window.NexaLocale?.translate?window.NexaLocale.translate(value):String(value??'');
+function setWalletAccountStatus(value){
+ const source=String(value||'غير مسجل الدخول');
+ const node=$('walletAccountStatus');
+ if(node){node.dataset.localeSource=source;node.textContent=storeText(source);}
+}
 function localizeWalletTopupForm(){
+ const setText=(id,source)=>{const node=$(id);if(node)node.textContent=storeText(source);};
+ setText('walletAccountTitle','حسابك ورصيدك');
+ setText('walletAccountDescription','سجّل الدخول لعرض رصيدك ومتابعة عمليات الشحن والشراء.');
+ setText('walletLoginHeading','تسجيل الدخول');
+ setText('walletLoginPhoneLabel','رقم الهاتف');
+ setText('walletLoginPasswordLabel','كلمة المرور');
+ setText('walletLoginSubmit','دخول إلى حسابي');
+ setText('walletAccountNotice','يمكنك التسجيل برقم الهاتف وكلمة مرور دون رمز OTP. يجب أن يكون الرقم لك؛ لا يمكن تسجيل رقم مرتبط بحساب حالي.');
+ setText('walletRegisterButton','إنشاء حساب جديد');
+ setText('walletWelcomeLabel','مرحباً بك');
+ setText('walletAvailableBalanceLabel','رصيدك المتاح');
+ setText('accountLogoutButton','تسجيل الخروج');
+ setText('walletLedgerTitle','آخر حركات الرصيد');
+ setText('walletLedgerDescription','عمليات الشحن والشراء المؤكدة');
+ const status=$('walletAccountStatus');
+ if(status)setWalletAccountStatus(status.dataset.localeSource||status.textContent||'غير مسجل الدخول');
  const form=$('walletTopupForm');if(!form)return;
  const intro=form.children?.[0],controls=form.querySelector('.wallet-topup-controls'),hint=form.children?.[2];
  const title=intro?.querySelector('strong'),description=intro?.querySelector('small');
@@ -2163,20 +2184,20 @@ $('orderQuantity').addEventListener('input',renderCurrencyPreview);$('shamCashPa
 
 function resetCustomerAccountView(statusText='غير مسجل الدخول'){
  customerAccount=null;accountOrders=[];accountFavorites=[];walletTransactions=[];
- $('customerGuestPanel').classList.remove('hidden');$('customerSignedPanel').classList.add('hidden');$('walletAccountStatus').textContent=statusText;
- renderSidebarAccount();renderProfilePage();renderLoginPage();renderWalletLedger();renderOrders();renderPaymentHistory();syncFavorites();if(state.view==='favorites')renderFavorites();
+ $('customerGuestPanel').classList.remove('hidden');$('customerSignedPanel').classList.add('hidden');setWalletAccountStatus(statusText);
+ renderSidebarAccount();renderProfilePage();renderLoginPage();localizeWalletTopupForm();renderWalletLedger();renderOrders();renderPaymentHistory();syncFavorites();if(state.view==='favorites')renderFavorites();
 }
 async function refreshCustomerAccount(){
  const generation=++accountRefreshGeneration;
  try{
   const response=await fetch('/api/account/me',{credentials:'same-origin',cache:'no-store'});if(generation!==accountRefreshGeneration)return;
   if(response.status===401){resetCustomerAccountView('غير مسجل الدخول');return;}
-  if(!response.ok){if(!customerAccount)resetCustomerAccountView('تعذر تحميل الحساب');else{$('walletAccountStatus').textContent='تعذر تحميل الحساب';renderSidebarAccount();}return;}
+  if(!response.ok){if(!customerAccount)resetCustomerAccountView('تعذر تحميل الحساب');else{setWalletAccountStatus('تعذر تحميل الحساب');renderSidebarAccount();}return;}
   const data=await response.json(),nextCustomer=data.customer||null;if(!nextCustomer){resetCustomerAccountView('غير مسجل الدخول');return;}
   const accountChanged=String(customerAccount?.id||'')!==String(nextCustomer.id||'');customerAccount=nextCustomer;
   if(accountChanged){accountOrders=[];accountFavorites=[];walletTransactions=[];}storageRead();
-  $('customerGuestPanel').classList.add('hidden');$('customerSignedPanel').classList.remove('hidden');$('walletAccountStatus').textContent='حساب نشط';
-  renderSidebarAccount();renderProfilePage();renderLoginPage();$('walletCustomerName').textContent=customerAccount.full_name||'';$('walletCustomerPhone').textContent=customerAccount.phone||'';
+  $('customerGuestPanel').classList.add('hidden');$('customerSignedPanel').classList.remove('hidden');setWalletAccountStatus('حساب نشط');
+  renderSidebarAccount();renderProfilePage();renderLoginPage();localizeWalletTopupForm();$('walletCustomerName').textContent=customerAccount.full_name||'';$('walletCustomerPhone').textContent=customerAccount.phone||'';
   $('walletBalanceValue').textContent=formatDisplayMinor(customerAccount.balance_minor||'0','SYP');$('customerName').value=customerAccount.full_name||$('customerName').value;$('customerPhone').value=customerAccount.phone||$('customerPhone').value;
   const customerId=String(customerAccount.id||'');
   const [txResponse,orderResponse,preferencesResponse]=await Promise.all([
@@ -2198,7 +2219,7 @@ async function refreshCustomerAccount(){
   if(['dark','light'].includes(preferences.theme))setStoreColorMode(preferences.theme,{persist:false});
   if(['SYP','USD'].includes(preferences.displayCurrency))setStoreDisplayCurrency(preferences.displayCurrency,{persist:false});
   renderWalletLedger();renderOrders();renderPaymentHistory();syncFavorites();if(state.view==='favorites')renderFavorites();if(state.selectedPack)renderCurrencyPreview();
- }catch{if(generation!==accountRefreshGeneration)return;if(!customerAccount)resetCustomerAccountView('تعذر تحميل الحساب');else{$('walletAccountStatus').textContent='تعذر تحميل الحساب';renderSidebarAccount();}}
+ }catch{if(generation!==accountRefreshGeneration)return;if(!customerAccount)resetCustomerAccountView('تعذر تحميل الحساب');else{setWalletAccountStatus('تعذر تحميل الحساب');renderSidebarAccount();}}
 }
 async function logoutCustomerAccount(){try{await fetch('/api/account/logout',{method:'POST',credentials:'same-origin'});}catch{}resetCustomerAccountView('غير مسجل الدخول');await refreshCustomerAccount();showToast('تم تسجيل الخروج.');}
 async function submitAccountForm(form,endpoint,payload){

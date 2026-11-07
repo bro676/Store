@@ -701,7 +701,7 @@ test('storefront drawer language and display currency controls work without alte
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
   const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
 
-  assert.ok(store.includes('nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v11'), 'The Arabic/English dictionary is loaded before storefront initialization');
+  assert.ok(store.includes('nexa-store-language.js?v=20261107-supplier-fields-and-wallet-i18n-v12'), 'The Arabic/English dictionary is loaded before storefront initialization');
   assert.ok(store.includes('id="sidebarLanguageToggle"'), 'The fourth account shortcut is now the language control');
   assert.ok(store.includes('id="sidebarCurrencyToggle"'), 'The currency capsule has a real interactive control');
   const first=store.indexOf('class="sidebar-quick-actions"');
@@ -826,7 +826,7 @@ test('English drawer updates its balance locale and all supported currencies use
   assert.ok(store.includes("return new Intl.NumberFormat(locale,{maximumFractionDigits:2}).format(value)+' '+storeCurrencyLabel('SYP');"),'SYP order amounts use the active language currency label');
   assert.ok(store.includes("new Intl.NumberFormat(storeLocale()==='en'?'en-US':'ar-SY',{style:'currency',currency:'USD'})"),'USD amounts follow the selected storefront language');
   assert.ok(store.includes('nexa-store-drawer.css?v=20261106-drawer-ltr-v2'),'The updated drawer stylesheet has a fresh cache key');
-  assert.ok(store.includes('nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v11'),'The updated English dictionary has a fresh cache key');
+  assert.ok(store.includes('nexa-store-language.js?v=20261107-supplier-fields-and-wallet-i18n-v12'),'The updated English dictionary has a fresh cache key');
 });
 
 
@@ -959,4 +959,12 @@ test('package picker and Add Funds content use the current language for dynamic 
     'localizeWalletTopupForm();'
   ]) assert.ok(store.includes(token), 'Missing synchronous locale application: '+token);
   assert.ok(store.includes("button.dataset.busy='true'"), 'Switching language during invoice creation does not overwrite the loading state');
+});
+
+test('Add Funds account headings and login labels refresh through the active locale localizer', async()=>{
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ for(const id of ['walletAccountTitle','walletAccountDescription','walletLoginHeading','walletLoginPhoneLabel','walletLoginPasswordLabel','walletLoginSubmit','walletAccountNotice','walletRegisterButton','walletWelcomeLabel','walletAvailableBalanceLabel','walletLedgerTitle','walletLedgerDescription'])assert.ok(store.includes('id="'+id+'"'),'Missing localizable Add Funds element '+id);
+ for(const token of ["setText('walletAccountTitle','حسابك ورصيدك')","setText('walletLoginSubmit','دخول إلى حسابي')","setText('walletAvailableBalanceLabel','رصيدك المتاح')","setWalletAccountStatus(status.dataset.localeSource||status.textContent||'غير مسجل الدخول')","localizeWalletTopupForm();"])assert.ok(store.includes(token),'Missing explicit Add Funds localization '+token);
+ assert.ok(store.includes('function setWalletAccountStatus(value)'),'Wallet status retains its source phrase across language changes');
+ assert.ok(store.includes('setWalletAccountStatus(statusText);'),'Account refresh preserves the localizable status source');
 });

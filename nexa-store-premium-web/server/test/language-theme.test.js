@@ -286,7 +286,7 @@ test('package flow dynamic UI strings and sidebar open/close labels are translat
   '"اختر المنطقة أو النسخة أو الخطة المناسبة.": "Choose the suitable region, version or plan."',
   '"الكمية": "Quantity"'
  ])assert.ok(source.includes(phrase),'Missing package-flow translation '+phrase);
- assert.ok(store.includes('nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v11'),'Package flow locale cache version is fresh');
+ assert.ok(store.includes('nexa-store-language.js?v=20261107-supplier-fields-and-wallet-i18n-v12'),'Package flow locale cache version is fresh');
 });
 
 
@@ -300,7 +300,7 @@ test('catalog folder/product and order/invoice terms are translated in both dire
   ["'اسم العميل':'Customer name'","'عملة الدفع':'Payment currency'"],["'إنشاء الطلب والمتابعة للدفع':'Create order and continue to payment'","'عنوان محفظة الاستلام':'Receiving wallet address'"],
   ["'فاتورة شام كاش الرسمية':'Official Sham Cash invoice'","'بيانات المنتج':'Product details'"]
  ]){assert.ok(source.includes(arabic)&&source.includes(english),'Missing exact bilingual flow terms '+arabic+' / '+english);}
- assert.ok(store.includes('nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v11'),'the expanded locale dictionary cache is refreshed');
+ assert.ok(store.includes('nexa-store-language.js?v=20261107-supplier-fields-and-wallet-i18n-v12'),'the expanded locale dictionary cache is refreshed');
  assert.ok(store.includes('nexa-responsive.css?v=20261107-package-wallet-theme-v10'),'the new catalog and modal styles are cache-busted');
  const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-responsive.css'),'utf8');
  for(const selector of [':root[data-theme="dark"] #orderModal',':root[data-theme="light"] #orderModal','#orderModal .modal-body','#orderModal .modal-actions'])assert.ok(css.includes(selector),'Missing theme coverage for '+selector);
@@ -353,4 +353,13 @@ test('package picker and wallet top-up terms translate in both directions', asyn
   ['إنشاء فاتورة شحن','Create top-up invoice'],
   ['الفاتورة صالحة حتى','Invoice valid until']
  ])assert.equal(translate(english),arabic,'Missing Arabic locale for '+english);
+});
+
+test('supplier package names, supplier field labels and wallet account strings translate both ways', async()=>{
+ const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
+ const sandbox={window:{addEventListener(){},dispatchEvent(){},requestAnimationFrame(){return 1}},document:{documentElement:{dataset:{},set lang(value){this.language=value},set dir(value){this.direction=value}},body:{nodeType:1,matches(){return false},querySelectorAll(){return []}},querySelector(){return null},createTreeWalker(){return {nextNode(){return null}}}},localStorage:{getItem(){return null},setItem(){}},MutationObserver:class{observe(){}},NodeFilter:{SHOW_TEXT:4,SHOW_ELEMENT:1},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail}}};
+ vm.runInNewContext(source,sandbox,{filename:'nexa-store-language.js'});sandbox.window.NexaLocale.initialize();const translate=sandbox.window.NexaLocale.translate;
+ const pairs=[['سعر البيع','Sale price'],['منتج رقمي مرتبط بمصدر ومضة','Digital product linked to Wamda source'],['منتج مرتبط بمصدر Best Store','Product linked to Best Store source'],['منتج مرتبط بمصدر ومضة','Product linked to Wamda source'],['المنتج يعمل بشكل تلقائي 24 ساعة ☑','This product runs automatically 24/7 ☑'],['شحن رصيد الحساب','Top up account balance'],['سجّل الدخول لعرض رصيدك ومتابعة عمليات الشحن والشراء.','Sign in to view your balance and track top-ups and purchases.'],['حساب نشط','Active account'],['رصيدك المتاح','Available balance'],['إنشاء فاتورة شحن','Create top-up invoice'],['اشحن عبر شام كاش؛ سيضاف المبلغ بعد التحقق من الفاتورة ورقم العملية.','Top up with Sham Cash. Funds are added after the invoice and transaction reference are verified.'],['كلمة المرور','Password'],['الرقم المصري','Egyptian phone number'],['ايميلك','Your email'],['ادخل عنوان بيب Bep20','Enter BEP20 wallet address'],['رقم واتساب للتواصل','WhatsApp contact number'],['معرف اللاعب','Player ID'],['حساب شام كاش للمستلم','Recipient Sham Cash account'],['اختر المدينة','Choose city'],['رقم الهاتف الخاص بك','Your phone number'],['يرجى التأكد من "أيدي" المستخدم قبل الإرسال','Please verify the user ID before submitting']];
+ sandbox.window.NexaLocale.setLanguage('en');for(const [ar,en] of pairs)assert.equal(translate(ar),en,'Missing English translation for '+ar);
+ sandbox.window.NexaLocale.setLanguage('ar');for(const [ar,en] of pairs)assert.equal(translate(en),ar,'Missing Arabic translation for '+en);
 });

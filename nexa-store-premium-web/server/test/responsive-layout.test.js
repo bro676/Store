@@ -7,7 +7,7 @@ const storefrontHtml = readFileSync(new URL('../../index.html', import.meta.url)
 const adminHtml = readFileSync(new URL('../../admin.html', import.meta.url), 'utf8');
 
 test('responsive layout stylesheet is loaded after legacy styles on both pages', () => {
-  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-package-wallet-theme-v10');
+  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-package-order-wallet-final-v11');
   const storePreviousLayer = storefrontHtml.indexOf('nexa-store-polish.css');
   const adminLink = adminHtml.indexOf('nexa-responsive.css?v=20261107-layout-final-v5');
   const adminTheme = adminHtml.indexOf('nexa-wamda-blue.css');
@@ -183,7 +183,7 @@ test('invoice status, receiver address and payment summary inherit both store th
 });
 
 test('package availability badge, package details and Add Funds form fully inherit light and dark themes', () => {
-  assert.ok(responsiveCss.includes('NEXA PACKAGE PICKER + WALLET TOP-UP THEME COMPLETION v10'), 'The final package and Add Funds theme layer is present');
+  assert.ok(responsiveCss.includes('NEXA PACKAGE ORDER MODAL + WALLET THEME HARDENING v11'), 'The final package and Add Funds theme layer is present');
   for (const selector of [
     '.pack-card .pack-label',
     '.pack-card .pack-image',
@@ -201,4 +201,13 @@ test('package availability badge, package details and Add Funds form fully inher
   assert.ok(responsiveCss.includes(':root[data-theme="light"] body .app-shell .wallet-topup-controls input'), 'Add Funds field has light-mode colors');
   assert.ok(responsiveCss.includes(':root[data-theme="dark"] #orderModal .supplier-dependent-field'), 'Supplier-dependent package fields have dark-mode colors');
   assert.ok(responsiveCss.includes(':root[data-theme="light"] #orderModal .supplier-dependent-field'), 'Supplier-dependent package fields have light-mode colors');
+});
+
+test('package order modal and every Add Funds account surface inherit the active theme', () => {
+  assert.ok(responsiveCss.includes('NEXA PACKAGE ORDER MODAL + WALLET THEME HARDENING v11'), 'The final modal and account theme layer is present');
+  for (const selector of ['#orderModal #seagmFieldsContainer','#orderModal .supplier-dependent-field','#orderModal .modal-product','.customer-wallet-head','.wallet-account-summary','.wallet-account-balance','.account-auth-form','.account-auth-note','.wallet-topup-form','.wallet-ledger-panel']) assert.ok(responsiveCss.includes(selector), 'Missing theme rule: '+selector);
+  assert.ok(responsiveCss.includes(':root[data-theme="dark"] body #orderModal'), 'Order dialog has explicit dark theme coverage');
+  assert.ok(responsiveCss.includes(':root[data-theme="light"] body #orderModal'), 'Order dialog has explicit light theme coverage');
+  assert.ok(responsiveCss.includes(':root[data-theme="dark"] body .app-shell :is(#customerWalletCard'), 'Add Funds has explicit dark theme coverage');
+  assert.ok(responsiveCss.includes(':root[data-theme="light"] body .app-shell :is(#customerWalletCard'), 'Add Funds has explicit light theme coverage');
 });

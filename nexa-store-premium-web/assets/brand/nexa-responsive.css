@@ -1473,3 +1473,72 @@ html.store-drawer-scroll-locked body{
   .app-shell .wallet-ledger-row>b{grid-column:2!important;justify-self:start!important}
   #orderModal .supplier-dependent-field{padding:9px!important}
 }
+
+/* NEXA PACKAGE ORDER MODAL + WALLET THEME HARDENING v11. */
+.app-shell #catalogContent .pack-grid{min-width:0!important}
+.app-shell #catalogContent .pack-card,.app-shell #catalogContent .pack-card .pack-body,.app-shell #catalogContent .pack-card .pack-price{background:var(--surface)!important;background-color:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important}
+.app-shell #catalogContent .pack-card .pack-body{background-image:none!important;box-shadow:none!important}
+.app-shell #catalogContent .pack-card .pack-label{background:var(--surface-2)!important;background-image:none!important;color:var(--ink-2)!important;border:1px solid var(--line)!important;box-shadow:none!important}
+.app-shell #catalogContent .pack-card .pack-image{background-color:var(--surface-3)!important}
+.app-shell #catalogContent .pack-card .pack-body :is(h1,h2,h3,h4,strong,b){color:var(--ink)!important}
+.app-shell #catalogContent .pack-card .pack-body :is(p,small,span){color:var(--muted)!important}
+.app-shell #catalogContent .pack-card .pack-body .pack-price{color:var(--ink)!important}
+.app-shell #catalogContent .pack-card .pack-body .pack-price small{color:var(--muted)!important}
+.app-shell #catalogContent .pack-card .pack-body .btn-primary{color:#fff!important}
+.app-shell #catalogContent .pack-card.selected,.app-shell #catalogContent .pack-card[aria-pressed="true"]{background:var(--surface-2)!important;border-color:var(--line-2)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--ink) 15%,transparent)!important}
+:root[data-theme="dark"] body .app-shell #catalogContent .pack-card,:root[data-theme="dark"] body .app-shell #catalogContent .pack-card .pack-body,:root[data-theme="dark"] body .app-shell #catalogContent .pack-card .pack-price{background:var(--surface)!important;background-color:var(--surface)!important;background-image:none!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-theme="dark"] body .app-shell #catalogContent .pack-card .pack-label{background:var(--surface-3)!important;background-color:var(--surface-3)!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-theme="dark"] body .app-shell #catalogContent .pack-card .pack-body :is(h1,h2,h3,h4,strong,b){color:var(--ink)!important}
+:root[data-theme="dark"] body .app-shell #catalogContent .pack-card .pack-body :is(p,small,span){color:var(--muted)!important}
+:root[data-theme="dark"] body .app-shell #catalogContent .pack-card .pack-body .btn-primary{color:#fff!important}
+:root[data-theme="light"] body .app-shell #catalogContent .pack-card,:root[data-theme="light"] body .app-shell #catalogContent .pack-card .pack-body,:root[data-theme="light"] body .app-shell #catalogContent .pack-card .pack-price{background:var(--surface)!important;background-color:var(--surface)!important;background-image:none!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-theme="light"] body .app-shell #catalogContent .pack-card .pack-label{background:var(--surface-2)!important;color:var(--ink-2)!important;border-color:var(--line)!important}
+:root[data-theme="light"] body .app-shell #catalogContent .pack-card .pack-body :is(h1,h2,h3,h4,strong,b){color:var(--ink)!important}
+:root[data-theme="light"] body .app-shell #catalogContent .pack-card .pack-body :is(p,small,span){color:var(--muted)!important}
+#orderModal .modal,#orderModal .modal-head,#orderModal .modal-body,#orderModal #orderForm,#orderModal .modal-product,#orderModal #seagmFieldsContainer,#orderModal .supplier-dependent-field{min-width:0!important;border-color:var(--line)!important;color:var(--ink)!important}
+#orderModal .modal{background:var(--surface)!important;background-image:none!important}
+#orderModal .modal-head{background:var(--surface-2)!important;background-image:none!important}
+#orderModal .modal-body,#orderModal #orderForm{background:var(--surface)!important;background-image:none!important}
+#orderModal .modal-product,#orderModal #seagmFieldsContainer,#orderModal .supplier-dependent-field{background:var(--surface-2)!important;background-image:none!important}
+#orderModal #seagmFieldsContainer{display:grid!important;gap:10px!important}
+#orderModal #seagmFieldsContainer>.field,#orderModal .supplier-dependent-field{padding:11px!important;border:1px solid var(--line)!important;border-radius:13px!important}
+#orderModal .field label{color:var(--ink-2)!important}
+#orderModal .field small,#orderModal #orderForm>p{color:var(--muted)!important}
+#orderModal :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){background:var(--surface-2)!important;background-color:var(--surface-2)!important;color:var(--ink)!important;border:1px solid var(--line-2)!important;box-shadow:none!important}
+#orderModal :is(input,textarea)::placeholder{color:var(--muted)!important;opacity:1!important}
+#orderModal select option{background:var(--surface-2)!important;color:var(--ink)!important}
+:root[data-theme="dark"] body #orderModal,:root[data-theme="dark"] body #orderModal :is(.modal,.modal-head,.modal-body,#orderForm,.modal-product,#seagmFieldsContainer,.supplier-dependent-field){background-color:var(--surface)!important;background-image:none!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-theme="dark"] body #orderModal .modal-head,:root[data-theme="dark"] body #orderModal .modal-product,:root[data-theme="dark"] body #orderModal #seagmFieldsContainer,:root[data-theme="dark"] body #orderModal .supplier-dependent-field{background:var(--surface-2)!important;background-image:none!important}
+:root[data-theme="dark"] body #orderModal :is(.field label,.modal-product strong,.modal-head h2){color:var(--ink)!important}
+:root[data-theme="dark"] body #orderModal :is(.field small,#orderForm>p,.modal-product small){color:var(--muted)!important}
+:root[data-theme="dark"] body #orderModal :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){background:var(--surface-2)!important;background-color:var(--surface-2)!important;color:var(--ink)!important;border-color:var(--line-2)!important;color-scheme:dark!important}
+:root[data-theme="dark"] body #orderModal select option{background:var(--surface-2)!important;color:var(--ink)!important}
+:root[data-theme="light"] body #orderModal,:root[data-theme="light"] body #orderModal :is(.modal,.modal-head,.modal-body,#orderForm,.modal-product,#seagmFieldsContainer,.supplier-dependent-field){background-color:var(--surface)!important;background-image:none!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-theme="light"] body #orderModal .modal-head,:root[data-theme="light"] body #orderModal .modal-product,:root[data-theme="light"] body #orderModal #seagmFieldsContainer,:root[data-theme="light"] body #orderModal .supplier-dependent-field{background:var(--surface-2)!important;background-image:none!important}
+:root[data-theme="light"] body #orderModal :is(.field label,.modal-product strong,.modal-head h2){color:var(--ink-2)!important}
+:root[data-theme="light"] body #orderModal :is(.field small,#orderForm>p,.modal-product small){color:var(--muted)!important}
+:root[data-theme="light"] body #orderModal :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){background:var(--surface-2)!important;background-color:var(--surface-2)!important;color:var(--ink)!important;border-color:var(--line-2)!important;color-scheme:light!important}
+:root[data-theme="light"] body #orderModal select option{background:var(--surface-2)!important;color:var(--ink)!important}
+.app-shell #customerWalletCard,.app-shell .customer-wallet-head,.app-shell .wallet-account-summary,.app-shell .wallet-account-balance,.app-shell .account-auth-form,.app-shell .account-auth-note,.app-shell .account-auth-message{min-width:0!important;border-color:var(--line)!important;color:var(--ink)!important}
+.app-shell #customerWalletCard{background:var(--surface)!important;background-image:none!important}
+.app-shell .customer-wallet-head,.app-shell .wallet-account-summary,.app-shell .wallet-account-balance,.app-shell .account-auth-form,.app-shell .account-auth-note,.app-shell .account-auth-message{background:var(--surface-2)!important;background-image:none!important;color:var(--ink)!important}
+.app-shell .customer-wallet-head :is(h2,h3,strong){color:var(--ink)!important}
+.app-shell .customer-wallet-head p,.app-shell .customer-wallet-head small,.app-shell .account-auth-note,.app-shell .account-auth-message{color:var(--muted)!important}
+.app-shell .wallet-account-summary :is(strong,small,span),.app-shell .wallet-account-balance :is(strong,small){color:var(--ink)!important}
+.app-shell .wallet-topup-form,.app-shell .wallet-ledger-panel{background:var(--surface)!important;background-image:none!important;color:var(--ink)!important;border-color:var(--line)!important}
+.app-shell .wallet-topup-form :is(strong,label){color:var(--ink)!important}
+.app-shell .wallet-topup-form small,.app-shell .wallet-ledger-head small,.app-shell .wallet-ledger-copy small,.app-shell .wallet-ledger-empty{color:var(--muted)!important}
+.app-shell .wallet-topup-controls input{background:var(--surface-2)!important;color:var(--ink)!important;border-color:var(--line-2)!important}
+:root[data-theme="dark"] body .app-shell :is(#customerWalletCard,.customer-wallet-head,.wallet-account-summary,.wallet-account-balance,.account-auth-form,.account-auth-note,.account-auth-message,.wallet-topup-form,.wallet-ledger-panel){background:var(--surface)!important;background-color:var(--surface)!important;background-image:none!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-theme="dark"] body .app-shell :is(.customer-wallet-head,.wallet-account-summary,.wallet-account-balance,.account-auth-form,.account-auth-note,.account-auth-message){background:var(--surface-2)!important;background-color:var(--surface-2)!important;color:var(--ink)!important}
+:root[data-theme="dark"] body .app-shell :is(.customer-wallet-head h2,.customer-wallet-head h3,.wallet-account-summary strong,.wallet-account-balance strong,.wallet-topup-form strong,.wallet-topup-form label){color:var(--ink)!important}
+:root[data-theme="dark"] body .app-shell :is(.customer-wallet-head p,.customer-wallet-head small,.account-auth-note,.account-auth-message,.wallet-topup-form small,.wallet-ledger-head small,.wallet-ledger-copy small,.wallet-ledger-empty){color:var(--muted)!important}
+:root[data-theme="dark"] body .app-shell .wallet-topup-controls input{background:var(--surface-2)!important;color:var(--ink)!important;border-color:var(--line-2)!important;color-scheme:dark!important}
+:root[data-theme="dark"] body .app-shell .wallet-ledger-row{background:transparent!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-theme="light"] body .app-shell :is(#customerWalletCard,.customer-wallet-head,.wallet-account-summary,.wallet-account-balance,.account-auth-form,.account-auth-note,.account-auth-message,.wallet-topup-form,.wallet-ledger-panel){background:var(--surface)!important;background-color:var(--surface)!important;background-image:none!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-theme="light"] body .app-shell :is(.customer-wallet-head,.wallet-account-summary,.wallet-account-balance,.account-auth-form,.account-auth-note,.account-auth-message){background:var(--surface-2)!important;background-color:var(--surface-2)!important;color:var(--ink)!important}
+:root[data-theme="light"] body .app-shell :is(.customer-wallet-head h2,.customer-wallet-head h3,.wallet-account-summary strong,.wallet-account-balance strong,.wallet-topup-form strong,.wallet-topup-form label){color:var(--ink)!important}
+:root[data-theme="light"] body .app-shell :is(.customer-wallet-head p,.customer-wallet-head small,.account-auth-note,.account-auth-message,.wallet-topup-form small,.wallet-ledger-head small,.wallet-ledger-copy small,.wallet-ledger-empty){color:var(--muted)!important}
+:root[data-theme="light"] body .app-shell .wallet-topup-controls input{background:var(--surface-2)!important;color:var(--ink)!important;border-color:var(--line-2)!important;color-scheme:light!important}
+:root[data-theme="light"] body .app-shell .wallet-ledger-row{background:transparent!important;color:var(--ink)!important;border-color:var(--line)!important}
+@media(max-width:600px){.app-shell .customer-wallet-head,.app-shell .wallet-account-summary,.app-shell .account-auth-form{padding:12px!important}#orderModal #seagmFieldsContainer>.field,#orderModal .supplier-dependent-field{padding:9px!important}}
