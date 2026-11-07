@@ -1089,7 +1089,6 @@
       output=output.replace(/^(\s*)الكمية(?=\s*[·:])/,'$1Quantity');
       for(const [phrase,english] of fragmentEntries)if(output.includes(phrase))output=output.split(phrase).join(english);
       output=replaceArabicProductTerms(output);
-      output=replaceEnglishProductTerms(output);
       return output;
     }
     if(targetLanguage==='ar'&&/[A-Za-z]/.test(raw)){
