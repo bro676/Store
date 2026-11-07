@@ -53,7 +53,7 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(translate('4 مجلدات رئيسية'),'4 main folders');
  assert.equal(translate('2 أقسام رئيسية'),'2 main categories');
  assert.equal(translate('تبديل عملة العرض إلى الدولار الأمريكي'),'Switch display currency to US dollar');
- assert.equal(translate('تم تأكيد الدفع. سيصل طلبك قريباً'),'Payment confirmed. Your order will arrive soon');
+ assert.equal(translate('تم تأكيد الدفع. سيصل طلبك قريباً'),'Payment confirmed. Your order will arrive soon.');
  sandbox.window.NexaLocale.setLanguage('ar');
  assert.equal(translate('5 subcategories · 7 products'),'٥ أقسام داخلية · ٧ منتجات');
  assert.equal(translate('Page 2 of 5'),'صفحة ٢ من ٥');
