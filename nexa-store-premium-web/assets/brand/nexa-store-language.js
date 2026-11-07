@@ -896,12 +896,12 @@
 
     if(targetLanguage==='en'){
       const units={'أقسام داخلية':'subcategories','أقسام رئيسية':'main categories','مجلدات رئيسية':'main folders','مجلدات':'folders','منتجات':'products','منتج':'product','خيارات':'options','باقات':'packages','نتائج':'results','نتيجة':'result'};
-      const output=key.replace(/(^|[\\s·|•])([0-9٠-٩۰-۹,٬]+)\\s+(أقسام داخلية|أقسام رئيسية|مجلدات رئيسية|مجلدات|منتجات|منتج|خيارات|باقات|نتائج|نتيجة)(?=$|[\\s·|•])/g,(all,prefix,count,unit)=>prefix+count+' '+units[unit]);
+      const output=key.replace(/(^|[\s·|•])([0-9٠-٩۰-۹,٬]+)\s+(أقسام داخلية|أقسام رئيسية|مجلدات رئيسية|مجلدات|منتجات|منتج|خيارات|باقات|نتائج|نتيجة)(?=$|[\s·|•])/g,(all,prefix,count,unit)=>prefix+count+' '+units[unit]);
       if(output!==key)return output;
     }
     if(targetLanguage==='ar'){
       const units={'subcategories':'أقسام داخلية','main categories':'أقسام رئيسية','main folders':'مجلدات رئيسية','folders':'مجلدات','products':'منتجات','product':'منتج','options':'خيارات','packages':'باقات','results':'نتائج','result':'نتيجة'};
-      const output=key.replace(/(^|[\\s·|•])([0-9,]+)\\s+(main categories|main folders|subcategories|folders|products|product|options|packages|results|result)(?=$|[\\s·|•])/gi,(all,prefix,count,unit)=>prefix+count+' '+units[unit.toLowerCase()]);
+      const output=key.replace(/(^|[\s·|•])([0-9,]+)\s+(main categories|main folders|subcategories|folders|products|product|options|packages|results|result)(?=$|[\s·|•])/gi,(all,prefix,count,unit)=>prefix+count+' '+units[unit.toLowerCase()]);
       if(output!==key)return output;
     }
     let match;

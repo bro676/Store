@@ -19,7 +19,7 @@ test('store and admin share a batched, incremental auto-direction helper',async(
  assert.ok(helper.includes("element.setAttribute('dir', 'auto')"),'Editable controls inherit browser-managed natural direction');
  assert.ok(helper.includes("const CONTROL_SELECTOR = 'input,textarea'"),'Only editable text controls receive automatic direction');
  assert.ok(!helper.includes('TEXT_SELECTOR'),'Visible layout and text nodes inherit the document direction');
- assert.ok(helper.includes("observer.observe(document.body, { childList: true, subtree: true })"),'Only inserted subtrees are observed');
+ assert.ok(helper.includes("observer.observe(document.body, {childList:true, subtree:true})"),'Only inserted subtrees are observed');
  assert.ok(!helper.includes('characterData: true'),'Text mutations do not trigger repeated DOM scans');
  assert.ok(!helper.includes('document.querySelectorAll('),'The helper never scans the full document');
  assert.ok(!admin.includes('new MutationObserver(()=>markDirection())'),'The dashboard no longer runs a full-page direction rescan');
