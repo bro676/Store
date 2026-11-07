@@ -97,7 +97,7 @@ test('storefront drawer reserves sidebar width once and keeps the page and top b
   assert.ok(responsiveCss.includes(':root[dir="ltr"] .app-shell > .app-main{'), 'LTR rail spacing is applied to the outer content shell');
   assert.ok(responsiveCss.includes(':root[dir="rtl"] .app-shell > .app-main > #appMain,:root[dir="ltr"] .app-shell > .app-main > #appMain{'), 'The inner page never reserves the sidebar a second time');
   assert.ok(responsiveCss.includes('body.sidebar-closed .app-shell > .app-main'), 'The outer shell expands when the desktop drawer closes');
-  assert.ok(responsiveCss.includes('.app-shell > .app-main > .header > .wrap.header-main{width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;box-sizing:border-box!important}'), 'The top bar inner row fills the available shell width');
+  assert.ok(responsiveCss.includes('.app-shell > .app-main > .header > .wrap.header-main{width:100%!important;max-width:none!important;min-width:0!important;margin:0!important;box-sizing:border-box!important;}'), 'The top bar inner row fills the available shell width');
 });
 
 test('mobile drawer lock and header layout stay stable during drawer transitions', () => {
