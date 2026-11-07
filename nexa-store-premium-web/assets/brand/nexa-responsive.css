@@ -9,7 +9,7 @@ button,input,select,textarea{min-width:0;max-width:100%}
 .app-shell .app-main{min-width:0!important;max-width:100%!important}
 .app-shell :is(.category-grid,.featured-grid,.department-grid,.catalog-department-grid,.catalog-grid,.option-list,.pack-grid,.process-grid,.faq-grid,.about-grid,.support-channel-grid,.support-main-grid,.reference-auth-layout,.reference-security-grid,.receipt-cards,.receipt-grid,.form-grid,.account-auth-grid,.grid-2){min-width:0}
 .app-shell :is(.category-card,.product-card,.catalog-tile,.option-card,.pack-card,.process-card,.faq-item,.support-channel,.reference-panel,.reference-empty-panel,.data-panel,.customer-wallet-card,.panel,.stat){min-width:0;max-width:100%}
-.app-shell :is(.category-card,.product-card,.catalog-tile,.option-card,.pack-card,.process-card,.faq-item,.support-channel,.reference-panel,.reference-empty-panel,.data-panel,.customer-wallet-card,.panel,.stat) :where(h1,h2,h3,h4,p,strong,small,span,a,button){overflow-wrap:anywhere}
+.app-shell :is(.category-card,.product-card,.catalog-tile,.option-card,.pack-card,.process-card,.faq-item,.support-channel,.reference-panel,.reference-empty-panel,.data-panel,.customer-wallet-card,.panel,.stat) :is(h1,h2,h3,h4,p,strong,small,span,a,button){overflow-wrap:anywhere}
 .app-shell :is(.header-main,.header-brand,.header-brand-copy,.header-actions,.section-head,.page-heading,.catalog-header,.catalog-toolbar,.store-catalog-toolbar,.back-row,.support-form-actions,.footer-main,.footer-bottom){min-width:0}
 .app-shell .header-brand{flex:0 1 auto!important}
 .app-shell .header-brand-copy{min-width:0!important}
@@ -92,7 +92,7 @@ button,input,select,textarea{min-width:0;max-width:100%}
   .app-shell .header-brand-logo{width:34px!important;height:34px!important;flex:0 0 34px!important}
   .app-shell .header-brand-copy strong{font-size:clamp(11px,3.4vw,14px)!important;letter-spacing:0!important}
   .app-shell .header-actions{gap:4px!important}
-  .app-shell .header-actions :where(.icon-button,.menu-toggle){width:34px!important;height:34px!important;flex:0 0 34px!important}
+  .app-shell .header-actions :is(.icon-button,.menu-toggle){width:34px!important;height:34px!important;flex:0 0 34px!important}
   .app-shell .header-wallet-chip,.app-shell .header-api-pill{display:none!important}
   .app-shell .wallet-chip{max-width:110px!important;min-width:0!important;padding-inline:8px!important;white-space:normal!important}
   .app-shell .header-vip-chip{min-height:31px!important;padding:4px 7px!important;font-size:9px!important;gap:4px!important}
@@ -147,7 +147,7 @@ button,input,select,textarea{min-width:0;max-width:100%}
   .app-shell .header-brand-logo{width:30px!important;height:30px!important;flex-basis:30px!important}
   .app-shell .header-brand-copy strong{font-size:clamp(10px,3.1vw,12px)!important}
   .app-shell .header-actions{gap:3px!important}
-  .app-shell .header-actions :where(.icon-button,.menu-toggle){width:31px!important;height:31px!important;flex-basis:31px!important}
+  .app-shell .header-actions :is(.icon-button,.menu-toggle){width:31px!important;height:31px!important;flex-basis:31px!important}
   .app-shell .header-actions .wallet-chip{max-width:82px!important;min-height:30px!important;padding:3px 6px!important}
   .app-shell .header-actions .wallet-chip span{display:none!important}
   .app-shell .header-vip-chip{min-height:29px!important;padding:3px 6px!important;font-size:8px!important}
@@ -217,7 +217,7 @@ button,input,select,textarea{min-width:0;max-width:100%}
   .app-shell .header-brand-copy{display:none!important}
   .app-shell .header-brand-logo{width:28px!important;height:28px!important;flex-basis:28px!important}
   .app-shell .header-actions{gap:2px!important}
-  .app-shell .header-actions :where(.icon-button,.menu-toggle){width:29px!important;height:29px!important;flex-basis:29px!important}
+  .app-shell .header-actions :is(.icon-button,.menu-toggle){width:29px!important;height:29px!important;flex-basis:29px!important}
   .app-shell .header-vip-chip{display:none!important}
   .app-shell :is(.category-grid,.department-grid,.catalog-department-grid,.featured-grid,.catalog-grid){grid-template-columns:minmax(0,1fr)!important}
   #orderModal .modal-product{align-items:flex-start}
