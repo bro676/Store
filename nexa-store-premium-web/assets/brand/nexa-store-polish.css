@@ -315,3 +315,12 @@ html.store-drawer-scroll-locked body{
 @media(prefers-reduced-motion:reduce){
  .app-shell .sidebar,.app-shell .sidebar-backdrop{transition:none!important}
 }
+/* Dark checkout and notices share the same dark surface tokens. */
+:root[data-theme="dark"] .app-shell :where(.customer-wallet-card,.account-auth-form,.wallet-account-summary,.wallet-topup-form,.wallet-ledger-panel,.wallet-api-state,.wallet-invoice-meta,.wallet-payment-form,.payment-receipt,.catalog-note,.support-ticket-result,.wallet-side-heading,.wallet-api-note,.wallet-ledger-row,.wallet-receiver,.wallet-order-summary,.wallet-api-security,.support-safety-panel,.support-help-links,.reference-quiet-note,.reference-warning-panel){
+ background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;box-shadow:0 8px 24px rgba(0,0,0,.18)!important;}
+:root[data-theme="dark"] .app-shell :where(.wallet-payment-result,.wallet-invoice-meta,.wallet-api-state){background:var(--surface-2)!important;border-color:var(--line)!important;color:var(--ink)!important;}
+:root[data-theme="dark"] .app-shell .wallet-payment-result.success{color:#9fe1ad!important}
+:root[data-theme="dark"] .app-shell .wallet-payment-result.error{color:#ffaaa8!important}
+:root[data-theme="dark"] .app-shell :where(select,select option){color:var(--ink)!important;background-color:var(--surface-2)!important;color-scheme:dark!important;}
+:root[data-theme="dark"] .app-shell :where(.reference-empty-icon,.reference-feature-icon,.reference-panel-icon){background:var(--surface-2)!important;color:var(--ink-2)!important;}
+:root[data-theme="dark"] .app-shell :where(.catalog-note p,.catalog-note strong,.wallet-api-note p,.wallet-api-note strong,.wallet-side-heading p,.wallet-side-heading h3,.wallet-invoice-meta strong,.wallet-invoice-meta small,.wallet-ledger-head strong,.wallet-ledger-head small,.wallet-account-summary small,.wallet-account-summary strong,.wallet-topup-form strong,.wallet-topup-form small,.support-ticket-result small,.reference-quiet-note,.reference-warning-panel){color:var(--ink)!important;}

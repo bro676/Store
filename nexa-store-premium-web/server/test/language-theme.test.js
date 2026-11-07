@@ -90,3 +90,34 @@ test('date and time output use the selected storefront locale instead of a fixed
  assert.ok(!/new Intl\.DateTimeFormat\('ar-SY'/.test(store),'Explicit date formatters must follow the selected language');
  assert.ok(store.includes("storeLocale()==='en'?'en-US':'ar-SY'"),'Both supported storefront locales are selected dynamically');
 });
+
+test('account orders and favourites stay isolated from guest storage',async()=>{
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ assert.ok(store.includes('nexa-store-client:account:'),'account storage is namespaced by customer id');
+ assert.ok(store.includes('nexa-store-client:guest'),'guest storage has its own namespace');
+ assert.ok(store.includes('function visibleOrders(){return customerAccount?accountOrders:(storageRead().guestOrders||[])}'),'signed-in order history comes from account API results');
+ assert.ok(store.includes('accountOrders=(orderData.orders||[])'),'account orders are held separately in memory');
+ assert.ok(!store.includes('const saved=storageRead();saved.orders=orders;storageSave(saved)'),'account orders are not copied to guest local storage');
+ assert.ok(store.includes("fetch('/api/account/preferences'"),'account favourites and preferences sync through the server');
+});
+
+test('desktop drawer labels refresh in the selected language',async()=>{
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ const start=store.indexOf("window.addEventListener('nexa:languagechange'");const end=store.indexOf("window.addEventListener('storage'",start);
+ const handler=store.slice(start,end);
+ assert.ok(handler.includes('setStoreMenuState(isStoreMenuOpen(),false)'),'desktop drawer preserves open state and localizes aria-label');
+ assert.ok(handler.includes('closeMenu(true)'),'mobile drawer closes and restores focus on language change');
+});
+
+test('visible number formatting follows the storefront language',async()=>{
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ assert.ok(!store.includes(".toLocaleString('en-US')"),'counts do not hard-code English locale');
+ assert.ok(!store.includes("Intl.NumberFormat('en-US'"),'currency formatter follows selected locale');
+ assert.ok(store.includes("storeLocale()==='en'?'en-US':'ar-SY'"),'both Arabic and English formats are selected');
+});
+
+test('dark checkout and notice surfaces use dark theme tokens',async()=>{
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
+ for(const selector of ['.wallet-payment-form','.wallet-payment-result','.wallet-invoice-meta','.catalog-note','.wallet-api-note','.support-ticket-result','.reference-warning-panel'])assert.ok(css.includes(selector),'missing dark styling for '+selector);
+ assert.ok(css.includes('select option')&&css.includes('background-color:var(--surface-2)!important'),'native select options use dark surfaces');
+});

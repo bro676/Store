@@ -23,6 +23,7 @@ import { verifyBestStoreWebhookSecret, parseBestStoreWebhookBody, isBestStoreWeb
 import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError } from './seagm-fulfillment.js';
 import { expirePendingOrders } from './order-expiry.js';
 import { waitForDatabase, isRetryableDatabaseError, nextDatabaseRetry } from './db-startup.js';
+import { normalizeCustomerPreferences, mergeCustomerPreferences } from './customer-preferences.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -92,7 +93,7 @@ if (cfg.databaseUrl) {
       console.error(`[database] startup connection attempt ${attempt}/5 failed (${error?.code || 'unknown'}); retrying in ${delayMs}ms`);
     },
   });
-  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql', '008_manual_fulfillment.sql', '009_customer_avatar.sql']) {
+  for (const migration of ['001_init.sql', '002_shamcash_invoices.sql', '003_store_admin.sql', '004_seagm_fulfillment.sql', '005_seagm_fulfillment_reliability.sql', '006_customer_wallet.sql', '007_order_expiry_index.sql', '008_manual_fulfillment.sql', '009_customer_avatar.sql', '010_customer_preferences.sql']) {
     await pool.query(await fs.readFile(path.join(__dirname, '..', 'migrations', migration), 'utf8'));
   }
 }
@@ -2667,6 +2668,26 @@ const server = http.createServer(async (req,res) => {
       const customer=await currentCustomer(req);
       if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك.'});
       return send(res,200,{ok:true,customer});
+    }
+    if(req.method==='GET'&&url.pathname==='/api/account/preferences'){
+      const customer=await currentCustomer(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك.'});
+      const saved=await pool.query('SELECT preferences FROM nexa_customers WHERE id=$1',[customer.id]);
+      return send(res,200,{ok:true,preferences:normalizeCustomerPreferences(saved.rows[0]?.preferences)});
+    }
+    if(req.method==='PUT'&&url.pathname==='/api/account/preferences'){
+      const customer=await currentCustomer(req);
+      if(!customer)return send(res,401,{ok:false,error:'CUSTOMER_LOGIN_REQUIRED',message:'سجّل الدخول إلى حسابك.'});
+      const input=await bodyJson(req,32*1024);
+      if(!input||typeof input!=='object'||Array.isArray(input))return send(res,400,{ok:false,error:'INVALID_CUSTOMER_PREFERENCES',message:'إعدادات الحساب أو المفضلة غير صالحة.'});
+      if(input.customerId&&String(input.customerId)!==String(customer.id))return send(res,409,{ok:false,error:'CUSTOMER_SESSION_CHANGED',message:'تغيّر الحساب النشط. حدّث الصفحة ثم حاول مجدداً.'});
+      delete input.customerId;
+      const saved=await pool.query('SELECT preferences FROM nexa_customers WHERE id=$1',[customer.id]);
+      let preferences;
+      try{preferences=mergeCustomerPreferences(saved.rows[0]?.preferences,input);}
+      catch{return send(res,400,{ok:false,error:'INVALID_CUSTOMER_PREFERENCES',message:'إعدادات الحساب أو المفضلة غير صالحة.'});}
+      await pool.query('UPDATE nexa_customers SET preferences=$2::jsonb WHERE id=$1',[customer.id,JSON.stringify(preferences)]);
+      return send(res,200,{ok:true,preferences});
     }
     if(req.method==='GET'&&url.pathname==='/api/account/orders'){
       const customer=await currentCustomer(req);

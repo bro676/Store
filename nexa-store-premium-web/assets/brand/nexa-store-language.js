@@ -390,6 +390,15 @@
 
 
   const additionalTranslations = Object.freeze({
+    "عند تسجيل الدخول، يعرض هذا القسم طلبات حسابك المرتبطة برقم هاتفك. وتظهر طلبات الزوار المحفوظة على هذا الجهاز عند عدم تسجيل الدخول.": "When you sign in, this section shows orders linked to your phone number. Guest orders saved on this device appear when you are signed out.",
+    "تحفظ المفضلة في حسابك وتبقى متاحة عند تسجيل الدخول من أجهزتك، أما مفضلة الزوار فتحفظ على هذا الجهاز.": "Your favourites are saved to your account and available when you sign in on your devices. Guest favourites are saved on this device.",
+    "اختر طريقة التواصل المناسبة، أو ابحث ضمن الطلبات المرتبطة بحسابك أو طلبات الزوار المحفوظة على هذا الجهاز، أو أرسل تفاصيل المشكلة لفريق الدعم.": "Choose a contact method, search orders linked to your account or guest orders saved on this device, or send the support team details about the issue.",
+    "ابحث ضمن طلبات حسابك أو طلبات الزوار المحفوظة على هذا الجهاز.": "Search your account orders or guest orders saved on this device.",
+    "افتح صفحة «طلباتي» لمراجعة الطلبات المرتبطة بحسابك عند تسجيل الدخول، أو طلبات الزوار المحفوظة على هذا الجهاز. للمساعدة، احتفظ برقم الطلب.": "Open My Orders to review account orders when signed in, or guest orders saved on this device. Keep your order number when contacting support.",
+    "المسودة محفوظة محلياً على هذا الجهاز ضمن مساحة الحساب الحالي أو الزائر، ولا تصل إلى فريق الدعم قبل إرسالها.": "This draft is saved locally on this device in the current account or guest space. It is not sent to support until you submit it.",
+    "تعذر حفظ إعدادات الحساب.": "Could not save account preferences.",
+    "تغيّر الحساب النشط. حدّث الصفحة ثم حاول مجدداً.": "The active account changed. Refresh the page and try again.",
+    "إعدادات الحساب أو المفضلة غير صالحة.": "The account settings or favourites are invalid.",
   "القائمة الرئيسية": "Main menu",
   "العملة الثانوية": "Display currency",
   "إضافة رصيد": "Add funds",
