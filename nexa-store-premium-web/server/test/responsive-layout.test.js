@@ -7,7 +7,7 @@ const storefrontHtml = readFileSync(new URL('../../index.html', import.meta.url)
 const adminHtml = readFileSync(new URL('../../admin.html', import.meta.url), 'utf8');
 
 test('responsive layout stylesheet is loaded after legacy styles on both pages', () => {
-  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-drawer-gap-direction-v7');
+  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-catalog-checkout-theme-v8');
   const storePreviousLayer = storefrontHtml.indexOf('nexa-store-polish.css');
   const adminLink = adminHtml.indexOf('nexa-responsive.css?v=20261107-layout-final-v5');
   const adminTheme = adminHtml.indexOf('nexa-wamda-blue.css');
@@ -156,7 +156,7 @@ test('drawer content gap is tiny and the storefront top bar mirrors with documen
 
 
 test('catalog cards have distinct visual identities and drawer-open content has a small gutter', () => {
-  assert.ok(storefrontHtml.includes('data-catalog-card-kind="'+cardKind+'"') || storefrontHtml.includes('data-catalog-card-kind=\"'+cardKind+'\"'), 'The folder/product tile kind is emitted by the shared renderer');
+  assert.ok(storefrontHtml.includes("data-catalog-card-kind=\"'+cardKind+'\""), 'The folder/product tile kind is emitted by the shared renderer');
   assert.ok(storefrontHtml.includes("actionMarkup.includes('data-browse-category=')"), 'Nested folders are identified as folder cards');
   assert.ok(storefrontHtml.includes("actionMarkup.includes('data-open-item=')"), 'Purchasable products are identified separately');
   assert.ok(responsiveCss.includes('NEXA CATALOG CARD FAMILY + CHECKOUT SURFACE CONTRACT v8'), 'The complete catalog and checkout style contract is loaded last');

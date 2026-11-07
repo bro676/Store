@@ -982,7 +982,7 @@
     'الكميات المسموحة:':'Allowed quantities:','معلومة مهمة:':'Important information:',
     'تنبيه التوفر:':'Availability notice:','بيانات إضافية':'Additional details',
     'ابحث داخل المجلدات...':'Search folders...','ابحث داخل المجلدات الفرعية...':'Search subfolders...',
-    'ابحث باسم المنتج...':'Search products...','ابحث باسم القسم الرئيسي أو الخدمة...':'Search main departments or services...',
+    'ابحث باسم القسم الرئيسي أو الخدمة...':'Search main departments or services...',
     'ابحث داخل':'Search in','العودة إلى المنتجات':'Back to products','العودة إلى الخيارات':'Back to options',
     'العودة إلى':'Back to','فتح':'Open','اختر':'Choose','نتيجة':'Result','نتائج':'Results',
     'تأكيد الطلب':'Confirm order','اسم العميل':'Customer name','اكتب اسمك':'Enter your name',
