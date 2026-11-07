@@ -743,7 +743,45 @@
     "تُعرض هذه البيانات من جلسة حسابك الحالية. تعديل معلومات الهوية غير متاح من هذه الصفحة.": "This data is shown from your current account session. Identity information cannot be edited from this page.",
     "ونحدّثك بنتيجة التسليم.": "We'll update you with the delivery result.",
   });
-  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations);
+  const packageFlowTranslations = Object.freeze({
+    "إغلاق القائمة الجانبية": "Close sidebar",
+    "فتح القائمة الجانبية": "Open sidebar",
+    "تم تغيير اللغة إلى العربية": "Language changed to Arabic",
+    "| متجرك الرقمي": "| Your digital store",
+    "اختر المنطقة أو النسخة أو الخطة المناسبة.": "Choose the suitable region, version or plan.",
+    "اختر الباقة المناسبة وراجع السعر والعملة قبل إنشاء الفاتورة.": "Choose a package and review the price and currency before creating the invoice.",
+    "السعر المعروض هو سعر البيع المحدد لهذا الخيار.": "The displayed amount is the store selling price for this option.",
+    "سعر البيع المعتمد من المتجر، ويظهر المبلغ النهائي في الفاتورة.": "The store-approved selling price is shown; the final amount appears on the invoice.",
+    "العودة إلى الخيارات": "Back to options",
+    "العودة إلى المنتجات": "Back to products",
+    "أقسام رئيسية": "Main categories",
+    "افتح المجلدات المتداخلة": "Open nested folders",
+    "بيانات المنتج": "Product details",
+    "بيانات إضافية": "Additional details",
+    "بيانات الحساب": "Account details",
+    "معرّف اللاعب / الحساب": "Player / account ID",
+    "أدخل المعرّف عند الحاجة": "Enter the ID when required",
+    "اسم العميل": "Customer name",
+    "رقم التواصل": "Contact number",
+    "عملة الدفع": "Payment currency",
+    "طريقة الدفع": "Payment method",
+    "الكمية": "Quantity",
+    "ملاحظات إضافية": "Additional notes",
+    "أي تفاصيل تساعد على فهم طلبك...": "Any details that help us understand your order...",
+    "لا تدخل كلمة المرور أو رمز التحقق.": "Do not enter your password or verification code.",
+    "الكميات المسموحة": "Allowed quantities",
+    "السعر المعروض لكل وحدة؛ يتم ضربه بالكمية قبل إنشاء فاتورة الدفع.": "The displayed price is per unit and is multiplied by the quantity before the payment invoice is created.",
+    "؛ راجع حالة الدفع والتنفيذ من صفحة «طلباتي».": "; review payment and order status from My Orders.",
+    "حوّل حصراً إلى هذا العنوان، وتأكد من مطابقة مبلغ الفاتورة.": "Transfer only to this address and ensure the invoice amount matches.",
+    "لم نعثر على هذا الرقم ضمن طلبات الزوار المحفوظة على هذا الجهاز.": "We could not find this number among guest orders saved on this device.",
+    "تعذر تحميل عنوان المحفظة. تحقق من اتصال الخادم ثم أعد تحميل الصفحة.": "Could not load the wallet address. Check the server connection and reload the page.",
+    "لم نعثر على هذا الرقم ضمن طلبات حسابك. تحقق من الرقم أو حالة الطلب.": "We could not find this number in your account orders. Check the number or order status.",
+    "لم يُرجع مزوّد شام كاش عنوان المحفظة بعد. سيظهر هنا بمجرد نجاح الاتصال.": "Sham Cash has not returned the wallet address yet. It will appear here once the connection succeeds.",
+    "تعذر الوصول إلى خادم الدفع. شغّل الموقع عبر خادم Nexa وليس بفتح ملف HTML مباشرة.": "Could not reach the payment server. Run the site through the Nexa server instead of opening the HTML file directly.",
+    "نطابق العملية الواردة مع عنوان المحفظة والوقت والمبلغ والفاتورة، ثم نثبتها مرة واحدة فقط…": "We match the incoming transaction against the wallet address, time, amount and invoice, then confirm it only once…",
+    "تم تأكيد الدفع لكن طلب المورد يحتاج مراجعة من الدعم. رقم طلبك محفوظ ولن تتم إعادة الشراء تلقائياً.": "Payment is confirmed, but the supplier order needs support review. Your order number is saved and the purchase will not be repeated automatically.",
+  });
+  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations);
   const reverse = new Map();
   for (const [ar,en] of Object.entries(translationLookup)) {
     const englishKey=String(en).trim().replace(/\s+/g,' ');
@@ -793,10 +831,10 @@
       if(match)return 'Page '+match[1]+' of '+match[2];
       match=key.match(/^نتائج مطابقة لعبارة:\s*(.+)$/);
       if(match)return 'Results matching: '+match[1];
-      match=key.match(/^([0-9٠-٩۰-۹,٬]+)\s+(أقسام|مجلدات|منتجات|خيارات|باقات|نتائج)$/);
+      match=key.match(/^([0-9٠-٩۰-۹,٬]+)\s+(أقسام|مجلدات|منتجات|خيارات|باقات|نتائج)(\s*[·|•].*)?$/);
       if(match){
         const units={'أقسام':'departments','مجلدات':'folders','منتجات':'products','خيارات':'options','باقات':'packages','نتائج':'results'};
-        return match[1]+' '+units[match[2]];
+        return match[1]+' '+units[match[2]]+(match[3]||'');
       }
       match=key.match(/^سعر ثابت:\s*1 USD\s*=\s*(.+)$/);
       if(match)return 'Fixed rate: 1 USD = '+match[1];
@@ -805,10 +843,10 @@
       if(match)return 'صفحة '+match[1]+' من '+match[2];
       match=key.match(/^Results matching:\s*(.+)$/i);
       if(match)return 'نتائج مطابقة لعبارة: '+match[1];
-      match=key.match(/^([0-9٠-٩۰-۹,٬]+)\s+(departments?|folders?|products?|options?|packages?|results?)$/i);
+      match=key.match(/^([0-9٠-٩۰-۹,٬]+)\s+(departments?|folders?|products?|options?|packages?|results?)(\s*[·|•].*)?$/i);
       if(match){
         const units={departments:'أقسام',department:'أقسام',folders:'مجلدات',folder:'مجلدات',products:'منتجات',product:'منتجات',options:'خيارات',option:'خيارات',packages:'باقات',package:'باقات',results:'نتائج',result:'نتائج'};
-        return match[1]+' '+units[match[2].toLowerCase()];
+        return match[1]+' '+units[match[2].toLowerCase()]+(match[3]||'');
       }
       match=key.match(/^Fixed rate:\s*1 USD\s*=\s*(.+)$/i);
       if(match)return 'سعر ثابت: 1 USD = '+match[1];
@@ -817,11 +855,19 @@
     const raw=String(value);
     if(targetLanguage==='en'&&/[\u0600-\u06FF]/.test(raw)){
       let output=raw;
+      output=output.replace(/^(\s*)فتح(?=\s)/,'$1Open');
+      output=output.replace(/^(\s*)اختر(?=\s)/,'$1Choose');
+      output=output.replace(/^(\s*)ابحث داخل(?=\s)/,'$1Search inside');
+      output=output.replace(/^(\s*)الكمية(?=\s*[·:])/,'$1Quantity');
       for(const [phrase,english] of fragmentEntries)if(output.includes(phrase))output=output.split(phrase).join(english);
       return output;
     }
     if(targetLanguage==='ar'&&/[A-Za-z]/.test(raw)){
       let output=raw;
+      output=output.replace(/^(\s*)Open(?=\s)/i,'$1فتح');
+      output=output.replace(/^(\s*)Choose(?=\s)/i,'$1اختر');
+      output=output.replace(/^(\s*)Search inside(?=\s)/i,'$1ابحث داخل');
+      output=output.replace(/^(\s*)Quantity(?=\s*[·:])/i,'$1الكمية');
       for(const [english,arabic] of reverseFragmentEntries){
         const escaped=english.replace(/[|\\{}()[\]^$+*?.-]/g,'\\$&').replace(/\s+/g,'\\s+');
         const pattern=new RegExp('(^|[^A-Za-z0-9])('+escaped+')(?=$|[^A-Za-z0-9])','gi');

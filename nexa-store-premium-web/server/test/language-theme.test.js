@@ -32,6 +32,9 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(translate('إنشاء فاتورة شحن ١٢'),'Create top-up invoice 12');
  assert.equal(translate('لا توجد طلبات حتى الآن.'),'No orders yet.');
  assert.equal(translate('3 مجلدات'),'3 folders');
+ assert.equal(translate('اختر المنطقة أو النسخة أو الخطة المناسبة.'),'Choose the suitable region, version or plan.');
+ assert.equal(translate('إغلاق القائمة الجانبية'),'Close sidebar');
+ assert.equal(translate('3 مجلدات ·'),'3 folders ·');
  assert.equal(sandbox.document.documentElement.direction,'ltr');
  sandbox.window.NexaLocale.setLanguage('ar');
  assert.equal(translate('Order 27'),'طلب ٢٧');
@@ -42,6 +45,9 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(translate('3 folders'),'٣ مجلدات');
 
  assert.equal(translate('Search by product name...'),'ابحث باسم المنتج...');
+ assert.equal(translate('Close sidebar'),'إغلاق القائمة الجانبية');
+ assert.equal(translate('Open Main category'),'فتح Main category');
+ assert.equal(translate('3 folders ·'),'٣ مجلدات ·');
  assert.equal(translate('Page 2 of 5'),'صفحة ٢ من ٥');
  assert.equal(sandbox.document.documentElement.direction,'rtl');
  assert.ok(source.includes("const excludedSelector = 'script,style,code,pre,[data-no-translate]'"),
@@ -183,4 +189,29 @@ test('dark mode converts remaining legacy white panels and controls to dark them
   '.catalog-steps','.catalog-count','.category-mark','.product-badge'
  ])assert.ok(final.includes(selector),'Missing dark theme coverage for '+selector);
  assert.ok(final.includes('background:var(--surface-2)!important'),'Legacy light surfaces use active dark tokens');
+});
+
+
+test('package selection and order dialog have complete dark-mode surfaces',async()=>{
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
+ const dark=css.slice(css.lastIndexOf('NEXA PACKAGE SELECTION + ORDER DIALOG DARK CONTRACT v5'));
+ for(const token of [
+  '#orderModal .modal-product','#orderModal .modal-close','#orderModal .field label',
+  '#orderModal .field small','#orderModal select option','#catalogContent .pack-card',
+  '#catalogContent .pack-label','#catalogContent .step-summary','#catalogContent .catalog-note'
+ ])assert.ok(dark.includes(token),'Missing dark-mode coverage for '+token);
+ assert.ok(dark.includes('background:var(--surface-2)!important'),'Package fields use the dark surface token');
+ assert.ok(dark.includes('color-scheme:dark!important'),'Native order controls use the dark color scheme');
+});
+
+test('package flow dynamic UI strings and sidebar open/close labels are translated both ways',async()=>{
+ const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ for(const phrase of [
+  '"إغلاق القائمة الجانبية": "Close sidebar"',
+  '"فتح القائمة الجانبية": "Open sidebar"',
+  '"اختر المنطقة أو النسخة أو الخطة المناسبة.": "Choose the suitable region, version or plan."',
+  '"الكمية": "Quantity"'
+ ])assert.ok(source.includes(phrase),'Missing package-flow translation '+phrase);
+ assert.ok(store.includes('nexa-store-language.js?v=20261107-package-flow-v6'),'Package flow locale cache version is fresh');
 });

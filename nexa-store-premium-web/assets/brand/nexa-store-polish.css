@@ -414,3 +414,68 @@ html.drawer-direction-switching .app-shell .sidebar-backdrop{transition:none!imp
 :root[data-theme="dark"] .app-shell :where(.assistant-message,.assistant-head,.assistant-disclaimer,.intro-mark,.wallet-placeholder) *{
   border-color:var(--line)!important;
 }
+
+
+/* NEXA PACKAGE SELECTION + ORDER DIALOG DARK CONTRACT v5.
+   The order dialog sits outside .app-shell, so it needs an explicit theme scope. */
+:root[data-theme="dark"] #orderModal .modal,
+:root[data-theme="dark"] #orderModal .modal-head,
+:root[data-theme="dark"] #orderModal .modal-body,
+:root[data-theme="dark"] #orderModal .modal-actions{
+  background:var(--surface)!important;background-image:none!important;
+  color:var(--ink)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] #orderModal .modal-product{
+  background:var(--surface-2)!important;background-image:none!important;
+  color:var(--ink)!important;border:1px solid var(--line)!important;box-shadow:none!important;
+}
+:root[data-theme="dark"] #orderModal .modal-product :where(strong,b),
+:root[data-theme="dark"] #orderModal .modal-head h2,
+:root[data-theme="dark"] #orderModal .field label,
+:root[data-theme="dark"] #orderModal .field legend{color:var(--ink)!important}
+:root[data-theme="dark"] #orderModal .modal-product small,
+:root[data-theme="dark"] #orderModal .field small,
+:root[data-theme="dark"] #orderModal .modal-body form>p{color:var(--muted)!important}
+:root[data-theme="dark"] #orderModal .modal-close{
+  background:var(--surface-3)!important;color:var(--ink)!important;border-color:var(--line-2)!important;
+}
+:root[data-theme="dark"] #orderModal .modal-close:hover{
+  background:var(--surface-2)!important;border-color:var(--line-2)!important;
+}
+:root[data-theme="dark"] #orderModal :where(input:not([type="checkbox"]):not([type="radio"]),select,textarea){
+  background:var(--surface-2)!important;background-color:var(--surface-2)!important;
+  color:var(--ink)!important;border-color:var(--line-2)!important;caret-color:var(--ink)!important;
+  color-scheme:dark!important;box-shadow:none!important;
+}
+:root[data-theme="dark"] #orderModal :where(input,select,textarea)::placeholder{color:var(--muted)!important;opacity:1!important}
+:root[data-theme="dark"] #orderModal select option{background:var(--surface-2)!important;color:var(--ink)!important}
+:root[data-theme="dark"] #orderModal #currencyPreview{color:var(--ink)!important}
+:root[data-theme="dark"] #orderModal :where(#currencyRateHint,#paymentMethodHint){color:var(--muted)!important}
+:root[data-theme="dark"] #orderModal .modal-product b{color:#ff7b89!important}
+:root[data-theme="dark"] #catalogContent :where(
+  .catalog-shell,.catalog-steps,.step-summary,.catalog-count,.option-card,.pack-card,.pack-body,
+  .catalog-note,.empty-state,.back-button,.option-flag
+){
+  background:var(--surface-2)!important;background-image:none!important;
+  color:var(--ink)!important;border-color:var(--line)!important;box-shadow:none!important;
+}
+:root[data-theme="dark"] #catalogContent :where(
+  .catalog-header h2,.step-summary strong,.option-card strong,.pack-body h3,.empty-state strong,.catalog-note strong
+){color:var(--ink)!important}
+:root[data-theme="dark"] #catalogContent :where(
+  .catalog-header p,.option-card small,.pack-body p,.pack-price small,.empty-state p,.catalog-note
+){color:var(--muted)!important}
+:root[data-theme="dark"] #catalogContent .pack-label{
+  background:rgba(24,25,30,.94)!important;color:#ffb6bf!important;border:1px solid var(--line)!important;
+}
+:root[data-theme="dark"] #catalogContent .pack-price{color:#ff7b89!important}
+:root[data-theme="dark"] #catalogContent .back-button:hover,
+:root[data-theme="dark"] #catalogContent .option-card:hover,
+:root[data-theme="dark"] #catalogContent .pack-card:hover{
+  background:var(--surface-3)!important;border-color:var(--line-2)!important;
+}
+:root[data-theme="dark"] #catalogContent .crumb,
+:root[data-theme="dark"] #catalogContent .catalog-tile{
+  background:var(--surface-2)!important;background-image:none!important;
+  color:var(--ink)!important;border-color:var(--line)!important;
+}
