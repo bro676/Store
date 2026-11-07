@@ -848,7 +848,7 @@ function defaultStoreSettings() {
     storeName:'Nexa Store', storeLogo:'assets/brand/logo.svg', announcement:'وجهتك للألعاب والبطاقات والاشتراكات الرقمية',
     themePrimary:'#397fda', themeSecondary:'#65b8d7', themeAccent:'#8076d6', themeDark:'#193957',
     storefrontExperience:defaultStorefrontExperience(),
-    fxMode:'manual', fxRate:145, fxApiUrl:'', fxJsonPath:'', fxUnit:'new',
+    fxMode:'manual', fxRate:145, tryPerUsd:0, fxApiUrl:'', fxJsonPath:'', fxUnit:'new',
     fxAuthHeader:'Authorization', fxAuthPrefix:'Bearer', fxUpdatedAt:null, fxLastError:'',
     catalogDepartments:[], catalogApiMode:'manual', catalogApiUrl:'', catalogApiJsonPath:'catalog',
     catalogApiAuthHeader:'Authorization', catalogApiAuthPrefix:'Bearer', catalogApiSyncMode:'merge',
@@ -1017,6 +1017,10 @@ function fxRateReady() {
   const age = Date.now() - new Date(storeSettings.fxUpdatedAt || 0).getTime();
   return Number.isFinite(age) && age >= -90_000 && age <= 30 * 60_000;
 }
+function tryFxRateReady() {
+  const rate=Number(storeSettings?.tryPerUsd);
+  return Number.isFinite(rate) && rate > 0 && rate <= 100000;
+}
 function publicSettings() {
   return {
     storeName:String(storeSettings?.storeName || 'Nexa Store'),
@@ -1028,6 +1032,8 @@ function publicSettings() {
     themeDark:String(storeSettings?.themeDark || '#193957'),
     storefrontExperience:validateStorefrontExperience(storeSettings?.storefrontExperience||{},defaultStorefrontExperience()),
     fxRate:Number(storeSettings?.fxRate || 145),
+    tryPerUsd:Number(storeSettings?.tryPerUsd || 0),
+    tryFxReady:tryFxRateReady(),
     fxMode:storeSettings?.fxMode || 'manual',
     fxReady:fxRateReady(),
     fxUpdatedAt:storeSettings?.fxUpdatedAt || null,
@@ -1082,7 +1088,7 @@ function safeSettingsForAdmin() {
 }
 function validateAndApplySettings(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('INVALID_SETTINGS');
-  if((wamdaBulkPublishInProgress||supplierCompareSyncInProgress)&&['wamdaPricingPolicy','wamdaProfitMarginPercent','wamdaCategoryPricingPolicies','bestStoreApiToken','clearBestStoreApiToken','bestStorePricingPolicy','bestStoreCurrency','bestStoreCurrencyConfirmed','bestStoreProductPricingPolicies','bestStoreAutoRefreshEnabled','bestStoreRefreshIntervalMinutes','bestStoreCategoryPricingPolicies','fxRate'].some(key=>input[key]!==undefined))throw Object.assign(new Error('لا يمكن تغيير سياسة الأسعار أو سعر الصرف أثناء النشر الجماعي.'),{status:409});
+  if((wamdaBulkPublishInProgress||supplierCompareSyncInProgress)&&['wamdaPricingPolicy','wamdaProfitMarginPercent','wamdaCategoryPricingPolicies','bestStoreApiToken','clearBestStoreApiToken','bestStorePricingPolicy','bestStoreCurrency','bestStoreCurrencyConfirmed','bestStoreProductPricingPolicies','bestStoreAutoRefreshEnabled','bestStoreRefreshIntervalMinutes','bestStoreCategoryPricingPolicies','fxRate','tryPerUsd'].some(key=>input[key]!==undefined))throw Object.assign(new Error('لا يمكن تغيير سياسة الأسعار أو سعر الصرف أثناء النشر الجماعي.'),{status:409});
   const next = { ...storeSettings };
   const setText = (key, max, fallback = '') => {
     if (input[key] === undefined) return;
@@ -1165,6 +1171,11 @@ function validateAndApplySettings(input) {
     const n = Number(input.fxRate);
     if (!Number.isFinite(n) || n <= 0 || n > 1_000_000) throw new Error('INVALID_FX_RATE');
     next.fxRate = Math.round(n * 1_000_000) / 1_000_000;
+  }
+  if (input.tryPerUsd !== undefined) {
+    const n = Number(input.tryPerUsd);
+    if (!Number.isFinite(n) || n < 0 || n > 100_000) throw Object.assign(new Error('INVALID_TRY_PER_USD'),{status:400,code:'INVALID_TRY_PER_USD'});
+    next.tryPerUsd = n === 0 ? 0 : Math.round(n * 1_000_000) / 1_000_000;
   }
   const numeric = [
     ['orderTtlMinutes',5,1440],['maxAgeMinutes',1,1440],['futureSkewSeconds',0,900],['timezoneOffsetMinutes',-840,840],
