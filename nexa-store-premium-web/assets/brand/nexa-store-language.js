@@ -929,7 +929,7 @@
   });
   // Supplier product/option names may combine Latin brands with Arabic variants and terms.
   const productNameTermTranslations = Object.freeze({
-    "الشحن المباشر":"Direct top-up","شحن مباشر":"Direct top-up","شحن":"Top-up","رصيد":"Balance","ذهبية":"Gold","الذهبية":"Gold","فضية":"Silver","الفضية":"Silver","أساسي":"Basic","أساسية":"Basic","الأساسي":"Basic","الأساسية":"Basic",
+    "الباقة الذهبية":"Gold Package","الباقة الفضية":"Silver Package","لحساب اللاعب":"for the player account","الشحن المباشر":"Direct top-up","شحن مباشر":"Direct top-up","شحن":"Top-up","رصيد":"Balance","ذهبية":"Gold","الذهبية":"Gold","فضية":"Silver","الفضية":"Silver","أساسي":"Basic","أساسية":"Basic","الأساسي":"Basic","الأساسية":"Basic",
     "نقاط":"Points","جواهر":"Diamonds","جوهرة":"Diamond","كريستال":"Crystals","كوينز":"Coins","كوين":"Coin",
     "بطاقة":"Card","بطاقات":"Cards","اشتراك":"Subscription","اشتراكات":"Subscriptions",
     "باقة":"Package","الباقة":"Package","قسيمة":"Voucher","كوبون":"Coupon","كود":"Code","رمز":"Code",
