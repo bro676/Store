@@ -48,11 +48,13 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(translate('Close sidebar'),'إغلاق القائمة الجانبية');
  assert.equal(translate('Open Main category'),'فتح Main category');
  assert.equal(translate('3 folders ·'),'٣ مجلدات ·');
+ sandbox.window.NexaLocale.setLanguage('en');
  assert.equal(translate('5 أقسام داخلية · 7 منتجات'),'5 subcategories · 7 products');
  assert.equal(translate('4 مجلدات رئيسية'),'4 main folders');
  assert.equal(translate('2 أقسام رئيسية'),'2 main categories');
  assert.equal(translate('تبديل عملة العرض إلى الدولار الأمريكي'),'Switch display currency to US dollar');
  assert.equal(translate('تم تأكيد الدفع. سيصل طلبك قريباً'),'Payment confirmed. Your order will arrive soon');
+ sandbox.window.NexaLocale.setLanguage('ar');
  assert.equal(translate('5 subcategories · 7 products'),'٥ أقسام داخلية · ٧ منتجات');
  assert.equal(translate('Page 2 of 5'),'صفحة ٢ من ٥');
  assert.equal(sandbox.document.documentElement.direction,'rtl');
@@ -233,5 +235,5 @@ test('package flow dynamic UI strings and sidebar open/close labels are translat
   '"اختر المنطقة أو النسخة أو الخطة المناسبة.": "Choose the suitable region, version or plan."',
   '"الكمية": "Quantity"'
  ])assert.ok(source.includes(phrase),'Missing package-flow translation '+phrase);
- assert.ok(store.includes('nexa-store-language.js?v=20261107-package-flow-v6'),'Package flow locale cache version is fresh');
+ assert.ok(store.includes('nexa-store-language.js?v=20261107-complete-ui-i18n-v7'),'Package flow locale cache version is fresh');
 });

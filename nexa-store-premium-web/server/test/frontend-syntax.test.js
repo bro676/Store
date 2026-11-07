@@ -86,8 +86,8 @@ test('Store and admin assets are revalidated instead of serving a stale theme', 
   const admin = await fs.readFile(path.join(webRoot, 'admin.html'), 'utf8');
   const server = await fs.readFile(path.join(webRoot, 'server/src/server.js'), 'utf8');
   assert.ok(!store.includes('nexa-luxury.css') && !admin.includes('nexa-luxury.css'), 'The old luxury theme is no longer loaded by either live interface');
-  assert.ok(store.includes('nexa-wamda-blue.css?v=20261106-admin-catalog-performance-v1'), 'Storefront loads the new full-shell theme');
-  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261106-admin-catalog-performance-v1'), 'Admin loads the same new full-shell theme');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261107-i18n-rtl-theme-v1'), 'Storefront loads the new full-shell theme');
+  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261107-i18n-rtl-theme-v1'), 'Admin loads the same new full-shell theme');
   assert.ok(server.includes("const cacheControl = extension === '.html' ? 'no-store'"), 'HTML responses are not cached');
   assert.ok(server.includes("'Cache-Control':cacheControl"), 'Static files send explicit cache policy');
 });
@@ -413,7 +413,7 @@ test('Wamda brand redesign preserves store flows and adds reference account page
   assert.ok(admin.includes('admin-rail-summary'), 'The existing admin workspace summary remains in place');
   assert.ok(admin.includes('adminThemeToggle'), 'The admin keeps its independent theme control');
 
-  const themeRef = 'nexa-wamda-blue.css?v=20261106-admin-catalog-performance-v1';
+  const themeRef = 'nexa-wamda-blue.css?v=20261107-i18n-rtl-theme-v1';
   assert.ok(store.includes(themeRef), 'Storefront uses the rebuilt structural theme revision');
   assert.ok(admin.includes(themeRef), 'Admin uses the same rebuilt structural theme revision');
   assert.ok(theme.includes('.app-shell .sidebar{') && theme.includes('position:fixed!important;'), 'The customer account rail is fixed on desktop');
@@ -572,9 +572,9 @@ test('Wamda palette, theme boundaries, oval geometry and bilingual direction are
   assert.ok(css.includes('.app-shell .header-back-button{display:none!important}'), 'The topbar contains only the logo/name at left and action group at right');
   assert.ok(css.includes('direction:rtl!important;flex-direction:row!important;'), 'Header actions are ordered from the physical right');
   assert.ok(css.includes('margin-left:auto!important;margin-right:0!important;'), 'Header actions are anchored to the right');
-  const directionSource='/assets/brand/nexa-text-direction.js?v=20261106-incremental-direction-v2';
+  const directionSource='/assets/brand/nexa-text-direction.js?v=20261107-locale-layout-v3';
   assert.ok(locale.includes('document.documentElement.dataset.locale=language') && direction.includes("element.setAttribute('dir', 'auto')") && store.includes(directionSource) && admin.includes(directionSource), 'Store and dashboard use the shared browser-managed bilingual direction helper');
-  assert.ok(store.includes('nexa-wamda-blue.css?v=20261106-admin-catalog-performance-v1') && admin.includes('nexa-wamda-blue.css?v=20261106-admin-catalog-performance-v1'), 'Both pages load the refreshed stylesheet');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261107-i18n-rtl-theme-v1') && admin.includes('nexa-wamda-blue.css?v=20261107-i18n-rtl-theme-v1'), 'Both pages load the refreshed stylesheet');
   assert.ok(!logo.includes('#73d7fa') && !logo.includes('#168ec5'), 'Nexa logo no longer uses the retired blue gradient');
   assert.ok(!hero.includes('#65D5F7') && !hero.includes('#2A9FD5'), 'Hero artwork no longer uses the retired sky-blue palette');
 });
@@ -611,8 +611,8 @@ test('final Wamda finishing pass overrides legacy blue chrome in both themes', a
   ]) assert.ok(css.includes(selector), 'Missing final Wamda visual override: ' + selector);
   assert.ok(css.includes('--drawer-bg:#3f4a75;') && css.includes('--drawer-bg:#f8f5f1;'), 'Dark and light drawer surfaces remain separate');
   assert.ok(css.includes('--brand-teal:#0095a4;'), 'The official Wamda teal remains the primary accent');
-  assert.ok(store.includes('nexa-wamda-blue.css?v=20261106-admin-catalog-performance-v1'), 'Storefront uses the final stylesheet');
-  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261106-admin-catalog-performance-v1'), 'Admin uses the final stylesheet');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261107-i18n-rtl-theme-v1'), 'Storefront uses the final stylesheet');
+  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261107-i18n-rtl-theme-v1'), 'Admin uses the final stylesheet');
   assert.ok(store.includes("isDark?'#101010':'#ffffff'"), 'Store browser chrome matches the selected neutral theme');
   assert.ok(admin.includes("selected==='dark'?'#3f4a75':'#f4efea'"), 'Admin browser chrome matches its independent theme');
 });
@@ -640,8 +640,8 @@ test('Wamda precision pass removes remaining blue-only accents and refreshes adm
     assert.ok(!admin.includes(retired), 'Admin palette still displays retired color ' + retired);
   }
   assert.ok(admin.includes('هوية ومضة المعتمدة — ألوان ثابتة'), 'Admin palette heading uses Wamda identity');
-  assert.ok(store.includes('nexa-wamda-blue.css?v=20261106-admin-catalog-performance-v1'), 'Storefront loads the precision pass');
-  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261106-admin-catalog-performance-v1'), 'Admin loads the precision pass');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261107-i18n-rtl-theme-v1'), 'Storefront loads the precision pass');
+  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261107-i18n-rtl-theme-v1'), 'Admin loads the precision pass');
 });
 
 
@@ -662,8 +662,8 @@ test('Wamda final detail pass covers catalog, account states and admin light nav
     ':root[data-theme="light"] #app.shell .admin-rail-summary{',
     ':root[data-theme="light"] #app.shell .top-actions .avatar{'
   ]) assert.ok(css.includes(selector), 'Missing inner-page Wamda style: ' + selector);
-  assert.ok(store.includes('nexa-wamda-blue.css?v=20261106-admin-catalog-performance-v1'), 'Storefront loads Wamda detail pass');
-  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261106-admin-catalog-performance-v1'), 'Admin loads Wamda detail pass');
+  assert.ok(store.includes('nexa-wamda-blue.css?v=20261107-i18n-rtl-theme-v1'), 'Storefront loads Wamda detail pass');
+  assert.ok(admin.includes('nexa-wamda-blue.css?v=20261107-i18n-rtl-theme-v1'), 'Admin loads Wamda detail pass');
   assert.ok(css.includes('End Wamda precision pass.'), 'The prior precision stylesheet layer remains');
 });
 
@@ -701,7 +701,7 @@ test('storefront drawer language and display currency controls work without alte
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
   const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
 
-  assert.ok(store.includes('nexa-store-language.js?v=20261107-package-flow-v6'), 'The Arabic/English dictionary is loaded before storefront initialization');
+  assert.ok(store.includes('nexa-store-language.js?v=20261107-complete-ui-i18n-v7'), 'The Arabic/English dictionary is loaded before storefront initialization');
   assert.ok(store.includes('id="sidebarLanguageToggle"'), 'The fourth account shortcut is now the language control');
   assert.ok(store.includes('id="sidebarCurrencyToggle"'), 'The currency capsule has a real interactive control');
   const first=store.indexOf('class="sidebar-quick-actions"');
@@ -768,7 +768,7 @@ test('language switching is frame-batched and does not rerender the full storefr
   const preferenceBlock=store.slice(store.indexOf('function initializeStorePreferences'),store.indexOf('function renderSupportState'));
   assert.ok(!preferenceBlock.includes('refreshDisplayCurrency()'), 'Changing language no longer rerenders prices, catalog and account panels');
   assert.ok(!store.includes('new MutationObserver(()=>markDirection())'), 'The document-wide direction rescan observer is removed');
-  assert.ok(direction.includes("const CONTROL_SELECTOR = 'input,textarea,select'") && direction.includes("element.setAttribute('dir', 'auto')"), 'Form controls and dynamic text retain browser-managed natural direction');
+  assert.ok(direction.includes("const CONTROL_SELECTOR = 'input,textarea'") && direction.includes("element.setAttribute('dir', 'auto')"), 'Editable text controls receive auto direction; visible text inherits document direction');
 });
 
 
@@ -826,7 +826,7 @@ test('English drawer updates its balance locale and all supported currencies use
   assert.ok(store.includes("return new Intl.NumberFormat(locale,{maximumFractionDigits:2}).format(value)+' '+storeCurrencyLabel('SYP');"),'SYP order amounts use the active language currency label');
   assert.ok(store.includes("new Intl.NumberFormat(storeLocale()==='en'?'en-US':'ar-SY',{style:'currency',currency:'USD'})"),'USD amounts follow the selected storefront language');
   assert.ok(store.includes('nexa-store-drawer.css?v=20261106-drawer-ltr-v2'),'The updated drawer stylesheet has a fresh cache key');
-  assert.ok(store.includes('nexa-store-language.js?v=20261107-package-flow-v6'),'The updated English dictionary has a fresh cache key');
+  assert.ok(store.includes('nexa-store-language.js?v=20261107-complete-ui-i18n-v7'),'The updated English dictionary has a fresh cache key');
 });
 
 

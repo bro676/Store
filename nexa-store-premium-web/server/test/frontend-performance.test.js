@@ -12,7 +12,7 @@ test('store and admin share a batched, incremental auto-direction helper',async(
  const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
  const admin=await fs.readFile(path.join(webRoot,'admin.html'),'utf8');
  const helper=await fs.readFile(path.join(webRoot,'assets/brand/nexa-text-direction.js'),'utf8');
- const source='/assets/brand/nexa-text-direction.js?v=20261106-incremental-direction-v2';
+ const source='/assets/brand/nexa-text-direction.js?v=20261107-locale-layout-v3';
  assert.ok(store.includes(source),'Storefront loads the shared direction helper');
  assert.ok(admin.includes(source),'Dashboard loads the shared direction helper');
  assert.doesNotThrow(()=>new vm.Script(helper,{filename:'nexa-text-direction.js'}));
