@@ -341,17 +341,18 @@ test('mobile route navigation unlocks the drawer before scrolling to the new pag
  assert.ok(closeAt>=0&&scrollAt>closeAt,'The drawer restores its saved page scroll before route navigation moves to the top');
 });
 
-test('storefront renders the catalog without waiting for slower storefront settings',async()=>{
+test('storefront route renders immediately while catalog and storefront settings load independently',async()=>{
  const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
- const initStart=store.indexOf('async function init(){');
+ const initStart=store.indexOf('function init(){');
  const initEnd=store.indexOf('\n}',initStart);
  const init=store.slice(initStart,initEnd<0?store.length:initEnd);
  const configStart=init.indexOf('const configPromise=loadStorefrontConfig();');
- const catalogStart=init.indexOf("const response=await fetch('/api/catalog',{cache:'no-store'})");
  const navigateAt=init.indexOf("navigate(resolveStoreLocation(),{historyMode:'replace'})");
+ const catalogStart=init.indexOf("fetch('/api/catalog',{cache:'no-store'})");
  const configApplyAt=init.indexOf('configPromise.then(');
- assert.ok(configStart>=0&&catalogStart>configStart,'Storefront settings begin loading while the catalog request starts');
- assert.ok(navigateAt>catalogStart&&configApplyAt>navigateAt,'The initial route is rendered before slower settings finish');
+ assert.ok(configStart>=0&&navigateAt>configStart,'The saved storefront settings request starts before the initial route is shown');
+ assert.ok(catalogStart>navigateAt&&configApplyAt>catalogStart,'The initial route is shown before the catalog or storefront settings finish');
+ assert.ok(!init.includes('await fetch'),'Neither catalog nor storefront settings are awaited by the initializer');
  assert.ok(!init.includes('Promise.all(['),'The initial UI is not blocked by the slowest startup request');
  assert.ok(!init.includes('renderOrders();')&&!init.includes('renderPaymentHistory();')&&!init.includes('renderProfilePage();'),'Inactive pages are not rendered during startup');
  assert.ok(init.includes('refreshCustomerAccount().catch(()=>{});'),'Account refresh runs in the background without blocking first paint');
