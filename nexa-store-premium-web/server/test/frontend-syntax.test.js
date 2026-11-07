@@ -946,3 +946,17 @@ test('admin image uploads accept browser-decodable image types and compress larg
   assert.equal(bitmapClosed, true, 'decoded image memory is released');
 });
 
+
+test('package picker and Add Funds content use the current language for dynamic labels', async () => {
+  const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
+  assert.ok(store.includes("const storeText=value=>window.NexaLocale?.translate?window.NexaLocale.translate(value):String(value??'');"), 'Storefront has a synchronous active-locale translator for dynamically inserted text');
+  for (const token of [
+    "storeText(packCount+' باقات')",
+    "storeText(unavailable?'غير متوفر حالياً':'متاح للطلب')",
+    "storeText('السعر المعتمد')",
+    "storeText('إنشاء فاتورة شحن')",
+    "storeText('حوّل قيمة الفاتورة إلى محفظة Nexa، ثم أدخل رقم العملية في نموذج التحقق.')",
+    'localizeWalletTopupForm();'
+  ]) assert.ok(store.includes(token), 'Missing synchronous locale application: '+token);
+  assert.ok(store.includes("button.dataset.busy='true'"), 'Switching language during invoice creation does not overwrite the loading state');
+});

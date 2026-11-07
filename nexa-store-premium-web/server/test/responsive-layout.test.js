@@ -7,7 +7,7 @@ const storefrontHtml = readFileSync(new URL('../../index.html', import.meta.url)
 const adminHtml = readFileSync(new URL('../../admin.html', import.meta.url), 'utf8');
 
 test('responsive layout stylesheet is loaded after legacy styles on both pages', () => {
-  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-catalog-checkout-theme-v9');
+  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-package-wallet-theme-v10');
   const storePreviousLayer = storefrontHtml.indexOf('nexa-store-polish.css');
   const adminLink = adminHtml.indexOf('nexa-responsive.css?v=20261107-layout-final-v5');
   const adminTheme = adminHtml.indexOf('nexa-wamda-blue.css');
@@ -180,4 +180,25 @@ test('invoice status, receiver address and payment summary inherit both store th
   ]) assert.ok(responsiveCss.includes(selector), 'Missing invoice detail style: '+selector);
   assert.ok(responsiveCss.includes(':root[data-theme="dark"] .app-shell :is(.wallet-api-main'), 'Invoice surfaces have explicit dark-mode colors');
   assert.ok(responsiveCss.includes(':root[data-theme="light"] .app-shell :is(.wallet-api-main'), 'Invoice surfaces have explicit light-mode colors');
+});
+
+test('package availability badge, package details and Add Funds form fully inherit light and dark themes', () => {
+  assert.ok(responsiveCss.includes('NEXA PACKAGE PICKER + WALLET TOP-UP THEME COMPLETION v10'), 'The final package and Add Funds theme layer is present');
+  for (const selector of [
+    '.pack-card .pack-label',
+    '.pack-card .pack-image',
+    '.pack-card .pack-body',
+    '.pack-card .pack-price',
+    '.wallet-topup-form',
+    '.wallet-topup-controls input',
+    '.wallet-ledger-panel',
+    '.wallet-ledger-row',
+    '#orderModal .supplier-dependent-field'
+  ]) assert.ok(responsiveCss.includes(selector), 'Missing package / wallet theme rule: '+selector);
+  assert.ok(responsiveCss.includes(':root[data-theme="dark"] body .app-shell #catalogContent .pack-card .pack-label'), 'Availability badge has an explicit dark background');
+  assert.ok(responsiveCss.includes(':root[data-theme="light"] body .app-shell #catalogContent .pack-card .pack-label'), 'Availability badge has an explicit light background');
+  assert.ok(responsiveCss.includes(':root[data-theme="dark"] body .app-shell .wallet-topup-controls input'), 'Add Funds field has dark-mode colors');
+  assert.ok(responsiveCss.includes(':root[data-theme="light"] body .app-shell .wallet-topup-controls input'), 'Add Funds field has light-mode colors');
+  assert.ok(responsiveCss.includes(':root[data-theme="dark"] #orderModal .supplier-dependent-field'), 'Supplier-dependent package fields have dark-mode colors');
+  assert.ok(responsiveCss.includes(':root[data-theme="light"] #orderModal .supplier-dependent-field'), 'Supplier-dependent package fields have light-mode colors');
 });

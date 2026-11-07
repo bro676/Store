@@ -315,3 +315,42 @@ test('invoice receiver and payment-status content has complete English labels',a
   "'تحقق من عملية التحويل':'Verify the transfer'"
  ])assert.ok(source.includes(phrase),'Missing invoice / payment translation '+phrase);
 });
+
+test('package picker and wallet top-up terms translate in both directions', async()=>{
+ const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
+ const sandbox={
+  window:{addEventListener(){},dispatchEvent(){},requestAnimationFrame(){return 1}},
+  document:{
+   documentElement:{dataset:{},set lang(value){this.language=value},set dir(value){this.direction=value}},
+   body:{nodeType:1,matches(){return false},querySelectorAll(){return []}},
+   querySelector(){return null},createTreeWalker(){return {nextNode(){return null}}}
+  },
+  localStorage:{getItem(){return null},setItem(){}},
+  MutationObserver:class{observe(){}},
+  NodeFilter:{SHOW_TEXT:4,SHOW_ELEMENT:1},
+  CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail}}
+ };
+ vm.runInNewContext(source,sandbox,{filename:'nexa-store-language.js'});
+ sandbox.window.NexaLocale.initialize();
+ const translate=sandbox.window.NexaLocale.translate;
+ sandbox.window.NexaLocale.setLanguage('en');
+ for(const [arabic,english] of [
+  ['متاح للطلب','Available to order'],
+  ['غير متوفر حالياً','Currently unavailable'],
+  ['اختيار الباقة ←','Choose package ←'],
+  ['السعر المعتمد','Approved price'],
+  ['شحن رصيد الحساب','Top Up Account Balance'],
+  ['اشحن عبر شام كاش؛ سيضاف المبلغ بعد التحقق من الفاتورة ورقم العملية.','Top up with Sham Cash. Funds are added after the invoice and transaction reference are verified.'],
+  ['إنشاء فاتورة شحن','Create Top-up Invoice'],
+  ['الحد الأدنى 1,000 والحد الأعلى 5,000,000 ليرة سورية جديدة.','Minimum 1,000 and maximum 5,000,000 new Syrian pounds.'],
+  ['الفاتورة صالحة حتى','Invoice valid until'],
+  ['حوّل قيمة الفاتورة إلى محفظة Nexa، ثم أدخل رقم العملية في نموذج التحقق.','Transfer the invoice amount to your Nexa wallet, then enter the transaction reference in the verification form.']
+ ])assert.equal(translate(arabic),english,'Missing English locale for '+arabic);
+ sandbox.window.NexaLocale.setLanguage('ar');
+ for(const [arabic,english] of [
+  ['متاح للطلب','Available to order'],
+  ['اختيار الباقة ←','Choose package ←'],
+  ['إنشاء فاتورة شحن','Create Top-up Invoice'],
+  ['الفاتورة صالحة حتى','Invoice valid until']
+ ])assert.equal(translate(english),arabic,'Missing Arabic locale for '+english);
+});

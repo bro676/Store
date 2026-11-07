@@ -628,7 +628,7 @@ body{
 </style>
 
 <link rel="stylesheet" href="/assets/brand/nexa-store-polish.css?v=20261107-package-modal-dark-v5">
-<link rel="stylesheet" href="/assets/brand/nexa-responsive.css?v=20261107-catalog-checkout-theme-v9">
+<link rel="stylesheet" href="/assets/brand/nexa-responsive.css?v=20261107-package-wallet-theme-v10">
 </head>
 <body>
 <div class="app-shell">
@@ -1080,6 +1080,19 @@ let storefrontDisplayCurrency='USD',storefrontFxRate=145,storefrontFxReady=false
 try{const savedCurrency=localStorage.getItem('nexa-store-display-currency');if(savedCurrency==='SYP'||savedCurrency==='USD')storefrontDisplayCurrency=savedCurrency;}catch{}
 const $=id=>document.getElementById(id);
 const storeLocale=()=>window.NexaLocale?.getLanguage?.()||storefrontLanguage||'ar';
+const storeText=value=>window.NexaLocale?.translate?window.NexaLocale.translate(value):String(value??'');
+function localizeWalletTopupForm(){
+ const form=$('walletTopupForm');if(!form)return;
+ const intro=form.children?.[0],controls=form.querySelector('.wallet-topup-controls'),hint=form.children?.[2];
+ const title=intro?.querySelector('strong'),description=intro?.querySelector('small');
+ if(title)title.textContent=storeText('شحن رصيد الحساب');
+ if(description)description.textContent=storeText('اشحن عبر شام كاش؛ سيضاف المبلغ بعد التحقق من الفاتورة ورقم العملية.');
+ if(hint)hint.textContent=storeText('الحد الأدنى 1,000 والحد الأعلى 5,000,000 ليرة سورية جديدة.');
+ const amount=$('walletTopupAmount');
+ if(amount)amount.setAttribute('aria-label',storeText('مبلغ الشحن بالليرة السورية الجديدة'));
+ const button=controls?.querySelector('button[type="submit"]');
+ if(button&&button.dataset.busy!=='true')button.textContent=storeText('إنشاء فاتورة شحن');
+}
 const storeCurrencyLabel=currency=>currency==='USD'?'USD':(storeLocale()==='en'?'SYP':'ل.س جديدة');
 function formatDisplaySyp(amount){
  const value=Number(amount);if(!Number.isFinite(value)||value<0)return '—';
@@ -1406,11 +1419,14 @@ function renderCatalog(){
  }else{
   const productOptions=NexaCatalog.getProductOptions(it),backToProducts=productOptions.length===1;
   const packCount=(opt.packs||[]).filter(NexaCatalog.isValidPack).length;
-  html='<div class="back-row"><button type="button" class="back-button" data-bc="'+(backToProducts?'category':'item')+'">'+(backToProducts?'← العودة إلى المنتجات':'← العودة إلى الخيارات')+'</button><span class="catalog-count">'+packCount+' باقات</span></div>'+
-   '<div class="step-summary"><img src="'+esc(NexaCatalog.productImage(it,cat,categories))+'" alt=""><span><strong>'+esc(it.name)+' · '+esc(opt.name)+'</strong><p>'+esc(opt.desc)+'</p></span></div>'+
-   '<div class="pack-grid">'+(opt.packs||[]).map((p,n)=>NexaCatalog.isValidPack(p)?'<article class="pack-card"><div class="pack-image"><img src="'+esc(NexaCatalog.optionImage(opt,it,cat,categories))+'" alt="" loading="lazy"><span class="pack-label">'+((it.wamda||it.bestStore)?.available===false?'غير متوفر حالياً':'متاح للطلب')+'</span></div><div class="pack-body"><h3>'+esc(p[0])+'</h3><p>'+((it.wamda||it.bestStore)?'سعر البيع المعتمد من المتجر، ويظهر المبلغ النهائي في الفاتورة.':'السعر المعروض هو سعر البيع المحدد لهذا الخيار.')+'</p><div class="pack-price">'+money(p[1])+'<small>السعر المعتمد</small></div><button type="button" class="btn btn-primary" data-select-pack="'+n+'" '+((it.wamda||it.bestStore)?.available===false?'disabled aria-disabled="true"':'')+'>'+((it.wamda||it.bestStore)?.available===false?'غير متوفر حالياً':'اختيار الباقة ←')+'</button></div></article>':'').join('')+'</div>';
+  const unavailable=(it.wamda||it.bestStore)?.available===false;
+  const packStatus=storeText(unavailable?'غير متوفر حالياً':'متاح للطلب');
+  const packPriceDescription=storeText((it.wamda||it.bestStore)?'سعر البيع المعتمد من المتجر، ويظهر المبلغ النهائي في الفاتورة.':'السعر المعروض هو سعر البيع المحدد لهذا الخيار.');
+  html='<div class="back-row"><button type="button" class="back-button" data-bc="'+(backToProducts?'category':'item')+'">'+esc(storeText(backToProducts?'← العودة إلى المنتجات':'← العودة إلى الخيارات'))+'</button><span class="catalog-count">'+esc(storeText(packCount+' باقات'))+'</span></div>'+
+   '<div class="step-summary"><img src="'+esc(NexaCatalog.productImage(it,cat,categories))+'" alt=""><span><strong>'+esc(storeText(it.name))+' · '+esc(storeText(opt.name))+'</strong><p>'+esc(storeText(opt.desc))+'</p></span></div>'+
+   '<div class="pack-grid">'+(opt.packs||[]).map((p,n)=>NexaCatalog.isValidPack(p)?'<article class="pack-card"><div class="pack-image"><img src="'+esc(NexaCatalog.optionImage(opt,it,cat,categories))+'" alt="" loading="lazy"><span class="pack-label">'+esc(packStatus)+'</span></div><div class="pack-body"><h3>'+esc(storeText(p[0]))+'</h3><p>'+esc(packPriceDescription)+'</p><div class="pack-price">'+money(p[1])+'<small>'+esc(storeText('السعر المعتمد'))+'</small></div><button type="button" class="btn btn-primary" data-select-pack="'+n+'" '+(unavailable?'disabled aria-disabled="true"':'')+'>'+esc(storeText(unavailable?'غير متوفر حالياً':'اختيار الباقة ←'))+'</button></div></article>':'').join('')+'</div>';
  }
- if((it?.wamda||it?.bestStore)?.available===false)html+='<div class="catalog-note"><strong>تنبيه التوفر:</strong> هذا المنتج ظاهر للتفاصيل فقط؛ لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد.</div>';
+ if((it?.wamda||it?.bestStore)?.available===false)html+='<div class="catalog-note"><strong>'+esc(storeText('تنبيه التوفر:'))+'</strong> '+esc(storeText('هذا المنتج ظاهر للتفاصيل فقط؛ لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد.'))+'</div>';
  target.innerHTML=html;
 }
 function renderSearchResults(){
@@ -1446,7 +1462,7 @@ function openOrder(packIndex){
  if(supplier?.available===false){showToast('هذا المنتج غير متوفر حالياً لدى المورد.');return;}
  state.selectedPack={category:state.category,item:state.item,option:state.option,index:packIndex,name:`${it.name} — ${op.name} — ${p[0]}`,price:p[1],image:NexaCatalog.productImage(it,getCategory(state.category),categories),supplier:!!supplier};
  const image=NexaCatalog.productImage(it,getCategory(state.category),categories);
- $('modalProduct').textContent=it.name+' — '+p[0];$('modalOption').textContent=op.name+' · باقة مختارة';$('modalImage').src=image;$('modalPrice').textContent=money(p[1]);
+ $('modalProduct').textContent=storeText(it.name)+' — '+storeText(p[0]);$('modalOption').textContent=storeText(op.name)+' · '+storeText('باقة مختارة');$('modalImage').src=image;$('modalPrice').textContent=money(p[1]);
  $('orderCurrency').value='SYP';$('orderCurrency').disabled=false;
  $('paymentMethod').value='shamcash';
  if(customerAccount){$('customerName').value=customerAccount.full_name||'';$('customerPhone').value=customerAccount.phone||'';}
@@ -1455,27 +1471,27 @@ function openOrder(packIndex){
  const allowedQuantities=Array.isArray(supplier?.allowedQuantities)?[...new Set(supplier.allowedQuantities.map(Number).filter(value=>Number.isSafeInteger(value)&&value>=min&&value<=max))].sort((a,b)=>a-b):[];
  $('orderQuantity').min=String(min);$('orderQuantity').max=String(max);$('orderQuantity').step='1';$('orderQuantity').value=String(allowedQuantities[0]||min);
  $('seagmQuantityContainer').classList.toggle('hidden',!supplier||(max<=1&&allowedQuantities.length===0));
- $('seagmQuantityHint').textContent=!supplier?'':(allowedQuantities.length?'الكميات المسموحة: '+allowedQuantities.join('، '):'السعر المعروض لكل وحدة؛ يتم ضربه بالكمية قبل إنشاء فاتورة الدفع.');
+ $('seagmQuantityHint').textContent=storeText(!supplier?'':(allowedQuantities.length?'الكميات المسموحة: '+allowedQuantities.join('، '):'السعر المعروض لكل وحدة؛ يتم ضربه بالكمية قبل إنشاء فاتورة الدفع.'));
  const fieldBox=$('seagmFieldsContainer');
  const definitions=Array.isArray(supplier?.fields)?supplier.fields:[];
  const makeSupplierControl=(field,key,rawOptions,parentField=false)=>{
   const required=field.required!==false;
   const choices=Array.isArray(rawOptions)?rawOptions.filter(option=>String(option.value||'').length):[];
   if(choices.length){
-   return '<select data-seagm-field="'+esc(key)+'" '+(parentField?'data-seagm-parent-field="true" ':'')+(required?'required':'')+'><option value="">اختر '+esc(field.label||key)+'</option>'+choices.map(option=>'<option value="'+esc(option.value)+'">'+esc(option.label||option.value)+'</option>').join('')+'</select>';
+   return '<select data-seagm-field="'+esc(key)+'" '+(parentField?'data-seagm-parent-field="true" ':'')+(required?'required':'')+'><option value="">'+esc(storeText('اختر'))+' '+esc(storeText(field.label||key))+'</option>'+choices.map(option=>'<option value="'+esc(option.value)+'">'+esc(storeText(option.label||option.value))+'</option>').join('')+'</select>';
   }
-  if(field.multiline)return '<textarea data-seagm-field="'+esc(key)+'" maxlength="500" placeholder="'+esc(field.placeholder||field.prefix||'')+'" '+(required?'required':'')+'></textarea>';
+  if(field.multiline)return '<textarea data-seagm-field="'+esc(key)+'" maxlength="500" placeholder="'+esc(storeText(field.placeholder||field.prefix||''))+'" '+(required?'required':'')+'></textarea>';
   const inputType=['number','email','url'].includes(String(field.type||'').toLowerCase())?String(field.type).toLowerCase():'text';
   const minAttr=inputType==='number'&&Number.isFinite(Number(field.min))?' min="'+esc(field.min)+'"':'';
   const maxAttr=inputType==='number'&&Number.isFinite(Number(field.max))?' max="'+esc(field.max)+'"':'';
-  return '<input type="'+inputType+'" data-seagm-field="'+esc(key)+'" maxlength="500"'+minAttr+maxAttr+' placeholder="'+esc(field.placeholder||field.prefix||'')+'" '+(required?'required':'')+'>';
+  return '<input type="'+inputType+'" data-seagm-field="'+esc(key)+'" maxlength="500"'+minAttr+maxAttr+' placeholder="'+esc(storeText(field.placeholder||field.prefix||''))+'" '+(required?'required':'')+'>';
  };
  fieldBox.innerHTML=definitions.map(field=>{
   const key=String(field.submitField||field.name||'');
-  const label=String(field.label||field.name||'بيانات المنتج');
+  const label=storeText(String(field.label||field.name||'بيانات المنتج'));
   const required=field.required!==false;
   const control=makeSupplierControl(field,key,field.options,true);
-  return '<div class="field"><label>'+esc(label)+(required?' *':'')+'</label>'+control+(field.tips?'<small>'+esc(field.tips)+'</small>':'')+'<div data-seagm-children-for="'+esc(key)+'"></div></div>';
+  return '<div class="field"><label>'+esc(label)+(required?' *':'')+'</label>'+control+(field.tips?'<small>'+esc(storeText(field.tips))+'</small>':'')+'<div data-seagm-children-for="'+esc(key)+'"></div></div>';
  }).join('');
  fieldBox.querySelectorAll('select[data-seagm-parent-field]').forEach(parent=>{
   const key=parent.dataset.seagmField;
@@ -1486,9 +1502,9 @@ function openOrder(packIndex){
    const selected=(definition.options||[]).find(option=>String(option.value||'')===parent.value);
    childBox.innerHTML=(selected?.child||[]).map(child=>{
     const childKey=String(child.name||'');
-    const childLabel=String(child.label||childKey||'بيانات إضافية');
+    const childLabel=storeText(String(child.label||childKey||'بيانات إضافية'));
     const childControl=makeSupplierControl(child,childKey,child.options||[],false);
-    return '<div class="field supplier-dependent-field"><label>'+esc(childLabel)+' *</label>'+childControl+(child.prefix?'<small>'+esc(child.prefix)+'</small>':'')+'</div>';
+    return '<div class="field supplier-dependent-field"><label>'+esc(childLabel)+' *</label>'+childControl+(child.prefix?'<small>'+esc(storeText(child.prefix))+'</small>':'')+'</div>';
    }).join('');
   };
   parent.addEventListener('change',renderChildren);
@@ -1611,12 +1627,16 @@ async function doOrder(e){
 }
 function renderShamCashReceiver(info={}){
  const box=$('shamCashReceiverInfo');if(!box)return;
- const label=String(info.receiverLabel||'Sham Cash — Nexa Store');
+ const label=storeText(String(info.receiverLabel||'Sham Cash — Nexa Store'));
  const address=String(info.receiverAddress||info.invoiceIdentifier||'').trim();
+ const addressLabel=esc(storeText('عنوان محفظة الاستلام'));
+ const copyAddress=esc(storeText('نسخ العنوان'));
+ const copyAria=esc(storeText('نسخ عنوان محفظة شام كاش'));
  const addressMarkup=address
-  ? `<div class="wallet-receiver-address"><span>عنوان محفظة الاستلام</span><div class="wallet-receiver-address-row"><code dir="ltr">${esc(address)}</code><button class="wallet-copy-address" type="button" data-copy-value="${esc(address)}" aria-label="نسخ عنوان محفظة شام كاش">نسخ العنوان</button></div></div>`
-  : `<div class="wallet-receiver-address"><span>عنوان محفظة الاستلام</span><small>${esc(info.message||'لم يُرجع مزوّد شام كاش عنوان المحفظة بعد. سيظهر هنا بمجرد نجاح الاتصال.')}</small></div>`;
- box.innerHTML=`<span>محفظة الاستلام</span><strong>${esc(label)}</strong>${addressMarkup}<small>${info.enabled?'حوّل حصراً إلى هذا العنوان، وتأكد من مطابقة مبلغ الفاتورة.':esc(info.message||'بيانات المحفظة محفوظة هنا للرجوع إليها عند تفعيل الدفع.')}</small>`;
+  ? `<div class="wallet-receiver-address"><span>${addressLabel}</span><div class="wallet-receiver-address-row"><code dir="ltr">${esc(address)}</code><button class="wallet-copy-address" type="button" data-copy-value="${esc(address)}" aria-label="${copyAria}">${copyAddress}</button></div></div>`
+  : `<div class="wallet-receiver-address"><span>${addressLabel}</span><small>${esc(storeText(info.message||'لم يُرجع مزوّد شام كاش عنوان المحفظة بعد. سيظهر هنا بمجرد نجاح الاتصال.'))}</small></div>`;
+ const status=info.enabled?'حوّل حصراً إلى هذا العنوان، وتأكد من مطابقة مبلغ الفاتورة.':(info.message||'بيانات المحفظة محفوظة هنا للرجوع إليها عند تفعيل الدفع.');
+ box.innerHTML=`<span>${esc(storeText('محفظة الاستلام'))}</span><strong>${esc(label)}</strong>${addressMarkup}<small>${esc(storeText(status))}</small>`;
 }
 function renderInvoiceDetails(order={}){
  const box=$('paymentInvoiceMeta');if(!box)return;
@@ -1624,11 +1644,13 @@ function renderInvoiceDetails(order={}){
  const receiverAddress=String(order.receiverAddress||order.invoiceIdentifier||'').trim();
  const receiverLabel=String(order.receiverLabel||'Sham Cash — Nexa Store');
  const expiresAt=order.expiresAt?new Date(order.expiresAt).toLocaleString(storeLocale()==='en'?'en-US':'ar-SY'):'—';
- renderShamCashReceiver({receiverLabel,receiverAddress,enabled:paymentConfigEnabled,message:'عنوان الاستلام مرتبط بهذه الفاتورة ويجب استخدامه لهذا الطلب فقط.'});
+ renderShamCashReceiver({receiverLabel,receiverAddress,enabled:paymentConfigEnabled,message:storeText('عنوان الاستلام مرتبط بهذه الفاتورة ويجب استخدامه لهذا الطلب فقط.')});
+ const addressLabel=esc(storeText('عنوان محفظة الاستلام'));
+ const copyAddress=esc(storeText('نسخ العنوان'));
  const addressMarkup=receiverAddress
-  ? `<div class="invoice-address-row"><span>عنوان محفظة الاستلام</span><code class="ltr">${esc(receiverAddress)}</code><button class="wallet-copy-address" type="button" data-copy-value="${esc(receiverAddress)}">نسخ العنوان</button></div>`
-  : `<div class="invoice-address-row"><span>عنوان محفظة الاستلام</span><strong>لم يرد عنوان المحفظة مع الفاتورة.</strong></div>`;
- box.innerHTML=`<div class="invoice-empty-mark">ش</div><div class="invoice-detail-copy"><strong>فاتورة شام كاش الرسمية</strong><small>رقم الفاتورة: <bdi dir="ltr">${esc(invoiceNumber)}</bdi> · تنتهي: ${esc(expiresAt)}</small></div><div class="invoice-detail-address">${addressMarkup}</div>`;
+  ? `<div class="invoice-address-row"><span>${addressLabel}</span><code class="ltr">${esc(receiverAddress)}</code><button class="wallet-copy-address" type="button" data-copy-value="${esc(receiverAddress)}">${copyAddress}</button></div>`
+  : `<div class="invoice-address-row"><span>${addressLabel}</span><strong>${esc(storeText('لم يرد عنوان المحفظة مع الفاتورة.'))}</strong></div>`;
+ box.innerHTML=`<div class="invoice-empty-mark">ش</div><div class="invoice-detail-copy"><strong>${esc(storeText('فاتورة شام كاش الرسمية'))}</strong><small>${esc(storeText('رقم الفاتورة:'))} <bdi dir="ltr">${esc(invoiceNumber)}</bdi> · ${esc(storeText('تنتهي:'))} ${esc(expiresAt)}</small></div><div class="invoice-detail-address">${addressMarkup}</div>`;
  box.classList.add('invoice-ready');
 }
 async function loadPaymentConfig(){
@@ -1641,13 +1663,13 @@ async function loadPaymentConfig(){
   if(usdOption)usdOption.disabled=!d.fxReady;
   if(!d.fxReady&&$('orderCurrency')?.value==='USD')$('orderCurrency').value='SYP';
   renderCurrencyPreview();
-  badge.textContent=d.enabled?'بوابة API جاهزة':'بانتظار إعداد الخادم';
-  status.textContent=d.message||'حالة بوابة الدفع غير معروفة.';
+  badge.textContent=storeText(d.enabled?'بوابة API جاهزة':'بانتظار إعداد الخادم');
+  status.textContent=storeText(d.message||'حالة بوابة الدفع غير معروفة.');
   status.classList.toggle('ready',!!d.enabled);status.classList.toggle('error',!d.enabled);
   renderShamCashReceiver(d);
  }catch(e){
-  $('shamCashStatusBadge').textContent='الخادم غير متصل';
-  $('shamCashServiceStatus').textContent='تعذر الوصول إلى خادم الدفع. شغّل الموقع عبر خادم Nexa وليس بفتح ملف HTML مباشرة.';
+  $('shamCashStatusBadge').textContent=storeText('الخادم غير متصل');
+  $('shamCashServiceStatus').textContent=storeText('تعذر الوصول إلى خادم الدفع. شغّل الموقع عبر خادم Nexa وليس بفتح ملف HTML مباشرة.');
   $('shamCashServiceStatus').classList.add('error');
   renderShamCashReceiver({receiverLabel:'Sham Cash — Nexa Store',message:'تعذر تحميل عنوان المحفظة. تحقق من اتصال الخادم ثم أعد تحميل الصفحة.'});
  }
@@ -1840,7 +1862,7 @@ function renderWalletLedger(){
   const credit=['topup','refund','adjustment'].includes(item.kind);
   const label=labels[item.kind]||labels.adjustment;
   const date=item.createdAt?new Date(item.createdAt).toLocaleString(english?'en-US':'ar-SY'):'';
-  return '<li class="wallet-ledger-row"><span class="wallet-ledger-icon">'+(credit?'＋':'−')+'</span><span class="wallet-ledger-copy"><strong>'+esc(label)+'</strong><small>'+esc(item.note||item.referenceOrderId||'')+' · '+esc(date)+'</small></span><b class="'+(credit?'credit':'debit')+'">'+(credit?'+':'−')+formatDisplayMinor(item.amountMinor,'SYP')+'</b></li>';
+  return '<li class="wallet-ledger-row"><span class="wallet-ledger-icon">'+(credit?'＋':'−')+'</span><span class="wallet-ledger-copy"><strong>'+esc(label)+'</strong><small>'+esc(storeText(item.note||item.referenceOrderId||''))+' · '+esc(date)+'</small></span><b class="'+(credit?'credit':'debit')+'">'+(credit?'+':'−')+formatDisplayMinor(item.amountMinor,'SYP')+'</b></li>';
  }).join('')+'</ul>':'<p class="wallet-ledger-empty">'+labels.empty+'</p>';
 }
 function refreshDisplayCurrency(){
@@ -1881,6 +1903,8 @@ function initializeStorePreferences(){
  window.addEventListener('nexa:languagechange',event=>{
   storefrontLanguage=event.detail?.language||storeLocale();
   syncSidebarCurrency();renderSidebarAccount();
+  localizeWalletTopupForm();
+  if(state.view==='wallet')renderWalletLedger();
   setStoreColorMode(document.documentElement.dataset.theme||'dark',{persist:false});
   if(storeDrawerMedia.matches){
    if(document.body.classList.contains('sidebar-open')){
@@ -2190,21 +2214,21 @@ async function submitAccountForm(form,endpoint,payload){
 }
 async function createWalletTopup(event){
  event.preventDefault();
- if(!customerAccount){showToast('سجّل الدخول أولاً.');return;}
+ if(!customerAccount){showToast(storeText('سجّل الدخول أولاً.'));return;}
  const button=$('walletTopupForm').querySelector('button[type="submit"]');
- button.disabled=true;button.textContent='جارٍ إنشاء الفاتورة…';
+ button.dataset.busy='true';button.disabled=true;button.textContent=storeText('جارٍ إنشاء الفاتورة…');
  try{
   const response=await fetch('/api/wallet/topups',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:$('walletTopupAmount').value})});
   const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'تعذر إنشاء فاتورة الشحن.');
   state.pendingOrder=data.orderId;$('paymentOrderId').value=data.orderId;
-  $('paymentOrderSummary').innerHTML='<span>شحن رصيد الحساب · SYP</span><strong>'+formatMinor(data.amountMinor,'SYP')+'</strong><small>الفاتورة صالحة حتى '+esc(new Date(data.expiresAt).toLocaleString(storeLocale()==='en'?'en-US':'ar-SY'))+'</small>';
+  $('paymentOrderSummary').innerHTML='<span>'+esc(storeText('شحن رصيد الحساب · SYP'))+'</span><strong>'+formatMinor(data.amountMinor,'SYP')+'</strong><small>'+esc(storeText('الفاتورة صالحة حتى'))+' '+esc(new Date(data.expiresAt).toLocaleString(storeLocale()==='en'?'en-US':'ar-SY'))+'</small>';
   renderInvoiceDetails(data);$('shamCashTransactionId').value='';$('shamCashPaymentResult').textContent='';
   $('paymentReceipt').classList.add('hidden');$('paymentReceipt').innerHTML='';
-  showToast('حوّل قيمة الفاتورة إلى محفظة Nexa، ثم أدخل رقم العملية في نموذج التحقق.');
+  showToast(storeText('حوّل قيمة الفاتورة إلى محفظة Nexa، ثم أدخل رقم العملية في نموذج التحقق.'));
   $('paymentOrderId').scrollIntoView({behavior:'smooth',block:'center'});
   $('shamCashTransactionId').focus();
- }catch(error){showToast(error.message);}
- finally{button.disabled=false;button.textContent='إنشاء فاتورة شحن';}
+ }catch(error){showToast(storeText(error?.message||'تعذر إنشاء فاتورة الشحن.'));}
+ finally{button.dataset.busy='false';button.disabled=false;button.textContent=storeText('إنشاء فاتورة شحن');}
 }
 $('loginPageForm').addEventListener('submit',async event=>{
  event.preventDefault();
@@ -2243,6 +2267,7 @@ $('paymentMethod').addEventListener('change',renderCurrencyPreview);
 
 initializeStoreColorMode();
 initializeStorePreferences();
+localizeWalletTopupForm();
 init();
 </script>
 <script src="/assets/brand/nexa-text-direction.js?v=20261107-locale-layout-v3"></script>
