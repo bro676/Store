@@ -1,0 +1,263 @@
+/* Nexa interface completion layer — neutral surfaces, consistent modes and accessible controls. */
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --paper:#101418;
+  --surface:#181e23;
+  --surface-2:#20282f;
+  --surface-3:#28323a;
+  --ink:#f3f6f8;
+  --ink-2:#d8e0e5;
+  --muted:#9ba7af;
+  --muted-2:#7e8b94;
+  --line:#303b43;
+  --line-2:#3e4a53;
+  --nexa-ui-accent:#63c8ef;
+  --nexa-ui-accent-strong:#32acd9;
+  --nexa-ui-accent-ink:#082d3c;
+  --nexa-ui-shadow:0 16px 42px rgba(0,0,0,.28);
+  --nexa-ui-soft:rgba(99,200,239,.12);
+}
+:root[data-theme="light"]{
+  color-scheme:light;
+  --paper:#f4f6f7;
+  --surface:#fff;
+  --surface-2:#f7f9fa;
+  --surface-3:#edf2f4;
+  --ink:#20282e;
+  --ink-2:#39464e;
+  --muted:#71808a;
+  --muted-2:#87949c;
+  --line:#e1e7ea;
+  --line-2:#d2dce1;
+  --nexa-ui-accent:#27a6d2;
+  --nexa-ui-accent-strong:#138bb8;
+  --nexa-ui-accent-ink:#fff;
+  --nexa-ui-shadow:0 12px 32px rgba(26,42,52,.07);
+  --nexa-ui-soft:rgba(39,166,210,.09);
+}
+html,body{min-height:100%;background:var(--paper)!important;color:var(--ink)!important}
+body{font-family:"IBM Plex Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif!important}
+button,input,select,textarea{font-family:inherit}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{
+  outline:3px solid color-mix(in srgb,var(--nexa-ui-accent) 72%,transparent)!important;
+  outline-offset:2px!important;
+}
+::selection{background:var(--nexa-ui-soft);color:var(--ink)}
+.sidebar-language-code{display:inline-flex;align-items:center;justify-content:center;min-width:22px;font-size:9px;font-weight:900;letter-spacing:.04em;line-height:1}
+.sidebar-language-toggle{gap:4px!important}
+html[dir="ltr"] .sidebar-language-toggle{direction:ltr}
+.app-shell{min-height:100vh;background:var(--paper)!important;color:var(--ink)!important}
+.app-shell .sidebar{
+  background:var(--surface)!important;
+  color:var(--ink)!important;
+  border-color:var(--line)!important;
+  box-shadow:var(--nexa-ui-shadow)!important;
+}
+:root[data-theme="dark"] .app-shell .sidebar{background:#151b20!important;color:#eef3f5!important;border-color:#2d373e!important}
+:root[data-theme="light"] .app-shell .sidebar{background:#fff!important;color:#26333a!important;border-color:#e3e9ec!important;box-shadow:8px 0 32px rgba(20,38,48,.06)!important}
+.app-shell .sidebar :is(.sidebar-drawer-head,.sidebar-profile-area,.sidebar-account-balance,.sidebar-currency,.sidebar-theme-row,.sidebar-theme-control,.sidebar-menu-group,.sidebar-footer){border-color:var(--line)!important}
+.app-shell .sidebar :is(.sidebar-link,.sidebar-menu-item,.sidebar-quick-actions button,.sidebar-currency,.sidebar-theme-button){
+  border-radius:13px!important;
+}
+.app-shell .sidebar :is(.sidebar-link,.sidebar-menu-item,.sidebar-quick-actions button){color:inherit!important}
+.app-shell .sidebar :is(.sidebar-link:hover,.sidebar-menu-item:hover,.sidebar-quick-actions button:hover){background:var(--surface-2)!important}
+.app-shell .sidebar :is(.sidebar-link.active,.sidebar-menu-item.active,[aria-current="page"]){
+  background:var(--nexa-ui-soft)!important;
+  color:var(--ink)!important;
+  border-color:color-mix(in srgb,var(--nexa-ui-accent) 28%,var(--line))!important;
+}
+.app-shell .sidebar :is(.sidebar-brand,.sidebar-profile-area strong,.sidebar-account-balance strong){color:var(--ink)!important}
+.app-shell .sidebar :is(.sidebar-brand small,.sidebar-profile-area small,.sidebar-muted,.sidebar-link small){color:var(--muted)!important}
+.app-shell .sidebar .sidebar-language-toggle{background:var(--surface-2)!important;border:1px solid var(--line)!important;color:var(--ink-2)!important}
+.app-shell .sidebar .sidebar-language-code{color:var(--nexa-ui-accent-strong)!important}
+.app-shell .sidebar .sidebar-theme-switch{border-color:var(--line)!important}
+.app-shell .sidebar .sidebar-currency{
+  background:var(--surface-2)!important;color:var(--ink)!important;border:1px solid var(--line)!important;
+}
+.app-shell .sidebar .sidebar-currency:hover{border-color:var(--nexa-ui-accent)!important}
+.app-shell .header{
+  background:color-mix(in srgb,var(--surface) 94%,transparent)!important;
+  color:var(--ink)!important;border-color:var(--line)!important;
+  box-shadow:0 4px 18px rgba(15,25,32,.035)!important;
+}
+:root[data-theme="dark"] .app-shell .header{
+  background:rgba(24,30,35,.96)!important;color:#f3f6f8!important;border-color:#303b43!important;
+}
+:root[data-theme="light"] .app-shell .header{
+  background:rgba(255,255,255,.96)!important;color:#20282e!important;border-color:#e1e7ea!important;
+}
+.app-shell .header-main{color:var(--ink)!important}
+.app-shell .header :is(.brand,.header-brand-copy,.header-brand-copy strong,.header-wallet,.header-wallet-balance,.icon-button){color:var(--ink)!important}
+.app-shell .header :is(.header-brand-copy small,.header-subtitle,.muted){color:var(--muted)!important}
+.app-shell .header :is(.header-wallet,.wallet-chip,.header-balance,.header-vip-badge,.icon-button){
+  background:var(--surface-2)!important;border-color:var(--line)!important;
+}
+.app-shell :is(.main,.main-content,.page-content,.content-area){min-width:0;color:var(--ink)!important}
+.app-shell :is(.panel,.stat-card,.surface-card,.category-card,.department-card,.product-card,.order-card,.wallet-card,.payment-card,.account-card,.profile-card,.notification-card,.support-card,.faq-card,.empty-state,.modal-card,.modal-product,.catalog-note,.wallet-payment-form,.wallet-payment-result,.wallet-invoice-meta,.wallet-api-note,.support-ticket-result,.reference-warning-panel,.pack-card){
+  color:var(--ink)!important;
+  border-color:var(--line)!important;
+}
+:root[data-theme="dark"] .app-shell :is(.panel,.stat-card,.surface-card,.category-card,.department-card,.product-card,.order-card,.wallet-card,.payment-card,.account-card,.profile-card,.notification-card,.support-card,.faq-card,.empty-state,.modal-card,.modal-product,.catalog-note,.wallet-payment-form,.wallet-payment-result,.wallet-invoice-meta,.wallet-api-note,.support-ticket-result,.reference-warning-panel,.pack-card){
+  background:var(--surface)!important;box-shadow:0 10px 26px rgba(0,0,0,.16)!important;
+}
+:root[data-theme="light"] .app-shell :is(.panel,.stat-card,.surface-card,.category-card,.department-card,.product-card,.order-card,.wallet-card,.payment-card,.account-card,.profile-card,.notification-card,.support-card,.faq-card,.empty-state,.modal-card,.modal-product,.catalog-note,.wallet-payment-form,.wallet-payment-result,.wallet-invoice-meta,.wallet-api-note,.support-ticket-result,.reference-warning-panel,.pack-card){
+  background:var(--surface)!important;box-shadow:0 8px 24px rgba(25,44,54,.045)!important;
+}
+.app-shell :is(.product-card,.category-card,.department-card,.order-card,.wallet-card,.payment-card,.profile-card,.notification-card,.support-card,.faq-card,.pack-card){border-radius:18px!important;overflow:hidden}
+.app-shell :is(h1,h2,h3,h4,strong,b,label,.section-title,.page-title){color:var(--ink)!important}
+.app-shell :is(p,small,.muted,.description,.helper-text,.section-description){color:var(--muted)!important}
+.app-shell :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){
+  min-width:0;background:var(--surface-2)!important;color:var(--ink)!important;
+  border:1px solid var(--line-2)!important;border-radius:12px!important;
+}
+.app-shell :is(input,select,textarea)::placeholder{color:var(--muted-2)!important;opacity:1}
+.app-shell select option{background:var(--surface)!important;color:var(--ink)!important}
+.app-shell :is(.btn,.button,.mini-choose,.back-button,.icon-button){border-radius:12px!important;min-height:40px}
+.app-shell :is(.btn-primary,.button-primary,.primary-action,.mini-choose){
+  background:var(--nexa-ui-accent)!important;color:var(--nexa-ui-accent-ink)!important;border-color:transparent!important;
+}
+.app-shell :is(.btn-secondary,.btn-soft,.button-secondary,.back-button){
+  background:var(--surface-2)!important;color:var(--ink-2)!important;border-color:var(--line)!important;
+}
+.app-shell :is(.btn-secondary:hover,.btn-soft:hover,.button-secondary:hover,.back-button:hover){border-color:var(--nexa-ui-accent)!important}
+.app-shell :is(.divider,.section-divider,.card-divider){border-color:var(--line)!important}
+.app-shell :is(.badge,.chip,.status-pill,.product-badge){border-color:var(--line)!important}
+.app-shell :is(.notice,.alert,.wallet-placeholder,.reference-warning-panel){background:var(--surface-2)!important;color:var(--ink-2)!important;border-color:var(--line)!important}
+.app-shell table{color:var(--ink)!important}
+.app-shell :is(th,td){border-color:var(--line)!important}
+.app-shell .product-image{background:var(--surface-2)!important}
+.app-shell :is(.modal,.modal-backdrop){backdrop-filter:blur(8px)}
+:root[data-theme="dark"] .app-shell :is(.modal-content,.modal-card,.order-modal-content){background:var(--surface)!important;color:var(--ink)!important}
+:root[data-theme="light"] .app-shell :is(.modal-content,.modal-card,.order-modal-content){background:#fff!important;color:var(--ink)!important}
+.app-shell :is(.toast,.assistant-message){border-color:var(--line)!important}
+
+/* Admin workspace: same component language, with its own independent theme key. */
+#app.shell{min-height:100vh;background:var(--paper)!important;color:var(--ink)!important}
+#app.shell .side{
+  background:var(--surface)!important;color:var(--ink)!important;
+  border-color:var(--line)!important;box-shadow:var(--nexa-ui-shadow)!important;
+}
+:root[data-theme="dark"] #app.shell .side{background:#151b20!important;color:#edf2f4!important;border-color:#2d373e!important}
+:root[data-theme="light"] #app.shell .side{background:#fff!important;color:#27353d!important;border-color:#e3e9ec!important;box-shadow:8px 0 30px rgba(20,38,48,.055)!important}
+#app.shell .side :is(.brand,.brand strong,.nav button,.side-label,.side-foot,.admin-rail-summary){color:inherit!important}
+#app.shell .side :is(.side-label,.side-foot small,.admin-rail-summary small){color:var(--muted)!important}
+#app.shell .side .nav button{
+  min-height:42px!important;border:1px solid transparent!important;border-radius:12px!important;
+  color:var(--ink-2)!important;background:transparent!important;text-align:start!important;
+}
+#app.shell .side .nav button:hover{background:var(--surface-2)!important;border-color:var(--line)!important}
+#app.shell .side .nav button.active,#app.shell .side .nav button[aria-current="page"]{
+  background:var(--nexa-ui-soft)!important;color:var(--ink)!important;
+  border-color:color-mix(in srgb,var(--nexa-ui-accent) 32%,var(--line))!important;
+}
+#app.shell .main{background:var(--paper)!important;color:var(--ink)!important;min-width:0!important}
+#app.shell .topbar{
+  background:var(--surface)!important;color:var(--ink)!important;
+  border-color:var(--line)!important;box-shadow:0 4px 18px rgba(20,36,46,.035)!important;
+}
+:root[data-theme="dark"] #app.shell .topbar{background:#171d22!important;color:#f3f6f8!important}
+:root[data-theme="light"] #app.shell .topbar{background:#fff!important;color:#24313a!important}
+#app.shell .topbar :is(h1,p,.avatar,.status-pill){color:inherit!important}
+#app.shell .topbar p{color:var(--muted)!important}
+#app.shell .top-actions{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important}
+#app.shell .top-actions .btn.soft,#app.shell .admin-language-toggle{
+  min-height:38px!important;border-radius:11px!important;background:var(--surface-2)!important;
+  border:1px solid var(--line)!important;color:var(--ink-2)!important;
+}
+#app.shell .admin-language-toggle{min-width:44px!important;font-weight:900!important;letter-spacing:.04em}
+#app.shell .container{background:transparent!important;color:var(--ink)!important}
+#app.shell .page-head h2,#app.shell .panel h3,#app.shell .panel h4{color:var(--ink)!important}
+#app.shell .page-head p,#app.shell .panel p,#app.shell .muted,#app.shell .hint{color:var(--muted)!important}
+#app.shell .panel,#app.shell .stat,#app.shell .appearance-panel,#app.shell .customer-admin-card,
+#app.shell .folder-tree-toolbar,#app.shell .folder-tree-node,#app.shell .fx-preview,
+#app.shell .notice,#app.shell .login-card,#app.shell .login-panel{
+  background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
+  border-radius:16px!important;box-shadow:var(--nexa-ui-shadow)!important;
+}
+#app.shell .stat{box-shadow:none!important;background:var(--surface)!important}
+#app.shell .field label{color:var(--ink-2)!important}
+#app.shell .field input:not([type="checkbox"]):not([type="radio"]),
+#app.shell .field select,#app.shell .field textarea,
+#app.shell input:not([type="checkbox"]):not([type="radio"]),
+#app.shell select,#app.shell textarea{
+  min-width:0!important;background:var(--surface-2)!important;color:var(--ink)!important;
+  border:1px solid var(--line-2)!important;border-radius:11px!important;
+}
+#app.shell :is(input,textarea,select)::placeholder{color:var(--muted-2)!important;opacity:1}
+#app.shell select option{background:var(--surface)!important;color:var(--ink)!important}
+#app.shell .btn.primary{
+  background:var(--nexa-ui-accent)!important;color:var(--nexa-ui-accent-ink)!important;
+  border:1px solid transparent!important;box-shadow:none!important;border-radius:12px!important;
+}
+#app.shell .btn.soft,#app.shell .btn:not(.primary):not(.danger){
+  background:var(--surface-2)!important;color:var(--ink-2)!important;border:1px solid var(--line)!important;
+}
+#app.shell .btn.danger{background:rgba(210,65,84,.09)!important;color:#d65a69!important;border-color:rgba(210,65,84,.25)!important}
+#app.shell :is(.quick-actions button,.appearance-feature-card,.appearance-color-card,.palette-field){background:var(--surface-2)!important;color:var(--ink-2)!important;border-color:var(--line)!important}
+#app.shell .quick-actions button:hover{border-color:var(--nexa-ui-accent)!important}
+#app.shell .folder-tree-toolbar{background:var(--surface-2)!important}
+#app.shell .folder-tree-toolbar strong,#app.shell .folder-tree-node strong{color:var(--ink)!important}
+#app.shell .folder-tree-toolbar small,#app.shell .folder-tree-node small{color:var(--muted)!important}
+#app.shell :is(.table-wrap,.table-scroll,.catalog-table-wrap){max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain}
+#app.shell table{color:var(--ink)!important}
+#app.shell :is(th,td){border-color:var(--line)!important}
+#app.shell .status-pill{background:var(--surface-2)!important;border-color:var(--line)!important;color:var(--ink-2)!important}
+#app.shell .avatar{background:var(--surface-2)!important;border:1px solid var(--line)!important}
+#app.shell :is(.field small,.form-help,.notice small){color:var(--muted)!important}
+#app.shell .fx-preview strong{color:var(--ink)!important}
+#app.shell .login-screen{background:var(--paper)!important}
+
+/* Logical direction for every admin language; keep the same drawer behaviour. */
+:root[dir="ltr"] #app.shell .side{right:auto!important;left:0!important;border-right:1px solid var(--line)!important;border-left:0!important}
+:root[dir="rtl"] #app.shell .side{left:auto!important;right:0!important;border-left:1px solid var(--line)!important;border-right:0!important}
+:root[dir="ltr"] #app.shell .main{margin:0 0 0 var(--admin-rail-width,254px)!important}
+:root[dir="rtl"] #app.shell .main{margin:0 var(--admin-rail-width,254px) 0 0!important}
+:root[dir="ltr"] #app.shell .side .nav button{direction:ltr;text-align:left!important;justify-content:flex-start}
+:root[dir="rtl"] #app.shell .side .nav button{direction:rtl;text-align:right!important;justify-content:flex-start}
+:root[dir="ltr"] #app.shell .side :is(.brand,.admin-sidebar-head){direction:ltr}
+:root[dir="rtl"] #app.shell .side :is(.brand,.admin-sidebar-head){direction:rtl}
+
+@media(max-width:1100px){
+  .app-shell :is(.wrap,.header-main){max-width:100%}
+  #app.shell .container{padding:22px clamp(14px,2.2vw,28px) 44px!important}
+}
+@media(max-width:900px){
+  #app.shell .topbar{height:auto!important;min-height:62px!important;padding:10px 14px!important;align-items:center!important}
+  #app.shell .top-actions{gap:6px!important}
+  #app.shell .top-actions .btn{padding:8px 10px!important}
+  #app.shell .page-head{align-items:flex-start!important;flex-wrap:wrap!important}
+}
+@media(max-width:760px){
+  :root[dir="ltr"] #app.shell .main,:root[dir="rtl"] #app.shell .main{margin:0!important}
+  .app-shell .header-main{gap:12px!important;padding-inline:14px!important}
+  .app-shell .wrap{width:calc(100% - 28px)!important}
+  .app-shell :is(.home-grid,.catalog-grid,.product-grid,.category-grid,.department-grid,.feature-grid){min-width:0}
+  .app-shell :is(.product-card,.category-card,.department-card,.order-card,.wallet-card,.payment-card){min-width:0}
+  .app-shell :is(input,select,textarea){max-width:100%;font-size:16px!important}
+  #app.shell .main{margin:0!important}
+  #app.shell .container{padding:14px 12px 32px!important}
+  #app.shell .topbar{gap:8px!important;padding:9px 12px!important}
+  #app.shell .topbar>div:first-child{min-width:0}
+  #app.shell .topbar h1{font-size:16px!important}
+  #app.shell .topbar p{font-size:10px!important}
+  #app.shell .top-actions{width:auto;max-width:100%;justify-content:flex-end}
+  #app.shell .top-actions .btn{min-height:36px!important;font-size:10px!important}
+  #app.shell .stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  #app.shell .grid-2,#app.shell .form-grid,#app.shell .settings-grid{grid-template-columns:minmax(0,1fr)!important}
+  #app.shell .panel{padding:14px!important}
+  #app.shell :is(.page,.panel,.stat,.form-grid>*,.settings-grid>*){min-width:0!important}
+  #app.shell :is(.save-row,.appearance-save-row){flex-wrap:wrap!important}
+}
+@media(max-width:480px){
+  .app-shell .header-main{gap:8px!important}
+  .app-shell .sidebar-language-code{font-size:8px}
+  #app.shell .topbar{align-items:flex-start!important}
+  #app.shell .top-actions{gap:5px!important}
+  #app.shell .top-actions .btn{padding:7px 8px!important}
+  #app.shell .top-actions .avatar{display:none}
+  #app.shell .stats{grid-template-columns:minmax(0,1fr)!important}
+  #app.shell .page-head h2{font-size:19px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}

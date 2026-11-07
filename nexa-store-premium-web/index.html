@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c0c0c">
 <meta name="description" content="Nexa Store — متجر رقمي للألعاب والبطاقات والاشتراكات والخدمات الرقمية.">
+<script>(function(){try{const theme=localStorage.getItem('nexa-store-color-mode');document.documentElement.dataset.theme=theme==='light'?'light':'dark';const locale=localStorage.getItem('nexa-store-language');if(['ar','en','tr'].includes(locale)){document.documentElement.lang=locale;document.documentElement.dir=locale==='ar'?'rtl':'ltr';document.documentElement.dataset.locale=locale;} }catch{document.documentElement.dataset.theme='dark';}})();</script>
 <title>Nexa Store | متجرك الرقمي</title>
 <style>
 :root{--bg:#f6f7f9;--surface:#fff;--surface-2:#f0f2f5;--ink:#171923;--ink-2:#343847;--muted:#747b8a;--muted-2:#9aa1ad;--line:#e6e8ee;--line-2:#d9dde6;--red:#de172c;--red-2:#f13b4e;--red-dark:#a90f22;--red-soft:#fff0f2;--green:#179565;--blue:#427be4;--purple:#7758d6;--amber:#c8892d;--shadow:0 10px 30px rgba(25,29,43,.055);--shadow-lg:0 22px 60px rgba(17,20,32,.14);--r:18px;--focus:0 0 0 4px rgba(222,23,44,.12)}
@@ -629,6 +630,7 @@ body{
 
 <link rel="stylesheet" href="/assets/brand/nexa-store-polish.css?v=20261107-package-modal-dark-v5">
 <link rel="stylesheet" href="/assets/brand/nexa-responsive.css?v=20261107-package-order-wallet-final-v11">
+<link rel="stylesheet" href="/assets/brand/nexa-interface-finish.css?v=20261108-tr-try-theme-v1">
 </head>
 <body>
 <div class="app-shell">
@@ -668,7 +670,7 @@ body{
 
     <div class="sidebar-quick-actions" aria-label="اختصارات الحساب">
       <button type="button" id="sidebarLanguageToggle" class="sidebar-language-toggle" title="تغيير اللغة" aria-label="تغيير اللغة">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v18M5 4h14l-3.5 4L19 12H5"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v18M5 4h14l-3.5 4L19 12H5"/></svg><span class="sidebar-language-code" id="sidebarLanguageCode">AR</span>
       </button>
       <button type="button" data-page="favorites" title="المفضلة" aria-label="المفضلة">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 8.8c0 5.2-8.5 10-8.5 10s-8.5-4.8-8.5-10A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8.5 2.8Z"/></svg>
@@ -1073,13 +1075,14 @@ body{
 </section>
 <div class="toast" id="toast"></div>
 <script src="/assets/brand/nexa-catalog.js?v=20261106-dashboard-order-v3"></script>
-<script src="/assets/brand/nexa-store-language.js?v=20261107-supplier-fields-and-wallet-i18n-v12"></script>
+<script src="/assets/brand/nexa-store-language.js?v=20261108-turkish-i18n-v1"></script>
 <script>
 let categories=[];
-let storefrontDisplayCurrency='USD',storefrontFxRate=145,storefrontFxReady=false,storefrontLanguage='ar',walletTransactions=[];
-try{const savedCurrency=localStorage.getItem('nexa-store-display-currency');if(savedCurrency==='SYP'||savedCurrency==='USD')storefrontDisplayCurrency=savedCurrency;}catch{}
+let storefrontDisplayCurrency='USD',storefrontFxRate=145,storefrontFxReady=false,storefrontTryPerUsd=0,storefrontTryReady=false,storefrontLanguage='ar',walletTransactions=[];
+try{const savedCurrency=localStorage.getItem('nexa-store-display-currency');if(savedCurrency==='USD'||savedCurrency==='TRY')storefrontDisplayCurrency=savedCurrency;else if(savedCurrency==='SYP')storefrontDisplayCurrency='USD';}catch{}
 const $=id=>document.getElementById(id);
 const storeLocale=()=>window.NexaLocale?.getLanguage?.()||storefrontLanguage||'ar';
+const storeIntlLocale=()=>storeLocale()==='ar'?'ar-SY':storeLocale()==='tr'?'tr-TR':'en-US';
 const storeText=value=>window.NexaLocale?.translate?window.NexaLocale.translate(value):String(value??'');
 function setWalletAccountStatus(value){
  const source=String(value||'غير مسجل الدخول');
@@ -1114,26 +1117,39 @@ function localizeWalletTopupForm(){
  const button=controls?.querySelector('button[type="submit"]');
  if(button&&button.dataset.busy!=='true')button.textContent=storeText('إنشاء فاتورة شحن');
 }
-const storeCurrencyLabel=currency=>currency==='USD'?'USD':(storeLocale()==='en'?'SYP':'ل.س جديدة');
+const storeCurrencyLabel=currency=>currency==='USD'?'USD':currency==='TRY'?'TRY':'SYP';
+function unavailableCurrencyRate(){
+ if(storefrontDisplayCurrency==='TRY')return storeLocale()==='tr'?'TRY kuru henüz ayarlanmadı':storeLocale()==='en'?'TRY rate is not configured yet':'لم يتم ضبط سعر الليرة التركية بعد';
+ return storeLocale()==='ar'?'سعر الدولار غير متاح':'USD rate unavailable';
+}
 function formatDisplaySyp(amount){
  const value=Number(amount);if(!Number.isFinite(value)||value<0)return '—';
- if(storefrontDisplayCurrency==='USD'){
-  if(!storefrontFxReady||!(storefrontFxRate>0))return storeLocale()==='en'?'USD rate unavailable':'سعر الدولار غير متاح';
-  return new Intl.NumberFormat(storeLocale()==='en'?'en-US':'ar-SY',{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(value/storefrontFxRate);
+ if(storefrontDisplayCurrency==='TRY'){
+  if(!storefrontFxReady||!(storefrontFxRate>0)||!storefrontTryReady||!(storefrontTryPerUsd>0))return unavailableCurrencyRate();
+  return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'TRY',minimumFractionDigits:2,maximumFractionDigits:2}).format((value/storefrontFxRate)*storefrontTryPerUsd);
  }
- return new Intl.NumberFormat(storeLocale()==='en'?'en-US':'ar-SY',{maximumFractionDigits:2}).format(value)+' '+storeCurrencyLabel('SYP');
+ if(!storefrontFxReady||!(storefrontFxRate>0))return storeLocale()==='ar'?'سعر الدولار غير متاح':'USD rate unavailable';
+ return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(value/storefrontFxRate);
 }
-const money=v=>Number(v)>0?formatDisplaySyp(v):(storeLocale()==='en'?'Set by the store':'يحدد لاحقاً');
+function formatUsdDisplay(value){
+ if(storefrontDisplayCurrency==='TRY'){
+  if(!storefrontTryReady||!(storefrontTryPerUsd>0))return unavailableCurrencyRate();
+  return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'TRY',minimumFractionDigits:2,maximumFractionDigits:2}).format(value*storefrontTryPerUsd);
+ }
+ return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(value);
+}
+const money=v=>Number(v)>0?formatDisplaySyp(v):(storeLocale()==='ar'?'يحدد لاحقاً':storeLocale()==='tr'?'Mağaza tarafından belirlenir':'Set by the store');
 const formatDisplayMinor=(minor,currency='SYP')=>{
  const value=Number(BigInt(minor||0))/100;
- if(currency==='USD')return new Intl.NumberFormat(storeLocale()==='en'?'en-US':'ar-SY',{style:'currency',currency:'USD'}).format(value);
+ if(currency==='USD')return formatUsdDisplay(value);
+ if(currency==='TRY')return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'TRY'}).format(value);
  return formatDisplaySyp(value);
 };
 const formatMinor=(minor,currency='SYP')=>{
  const value=Number(BigInt(minor||0))/100;
- if(currency==='USD')return new Intl.NumberFormat(storeLocale()==='en'?'en-US':'ar-SY',{style:'currency',currency:'USD'}).format(value);
- const locale=storeLocale()==='en'?'en-US':'ar-SY';
- return new Intl.NumberFormat(locale,{maximumFractionDigits:2}).format(value)+' '+storeCurrencyLabel('SYP');
+ if(currency==='USD')return formatUsdDisplay(value);
+ if(currency==='TRY')return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'TRY'}).format(value);
+ return formatDisplaySyp(value);
 };
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let state={view:'home',department:null,category:null,item:null,option:null,selectedPack:null,pendingOrder:null,catalogPage:1,catalogQuery:'',categoryPage:1,categoryQuery:'',productPage:1,productQuery:'',searchResults:[],searchPage:1};let toastTimer;let memoryData={guestOrders:[],favs:[],supportTickets:[]},memoryDataKey='';const deliveryWatchers=new Set();
@@ -1307,13 +1323,13 @@ function renderDepartmentCard(group){
  return '<button type="button" class="department-card" data-department="'+esc(group.id)+'" aria-label="فتح '+esc(group.name)+'">'+
   '<span class="department-card-art"><img src="'+esc(group.cover)+'" alt="" loading="lazy"><i class="'+(group.iconImage?'has-icon-image':'')+'">'+(group.iconImage?'<img src="'+esc(group.iconImage)+'" alt="" loading="lazy">':esc(group.icon))+'</i></span>'+
   '<span class="department-card-copy"><strong>'+esc(group.name)+'</strong><small>'+esc(group.description)+'</small>'+
-  '<span class="department-card-meta">'+group.categoryCount.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+' أقسام داخلية · '+group.productCount.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+' منتج</span></span>'+
+  '<span class="department-card-meta">'+group.categoryCount.toLocaleString(storeIntlLocale())+' أقسام داخلية · '+group.productCount.toLocaleString(storeIntlLocale())+' منتج</span></span>'+
   '<span class="department-card-arrow">←</span></button>';
 }
 function renderHomeCategories(){
  const groups=NexaCatalog.getDepartmentSummaries(categories);
  $('homeCategoryGrid').innerHTML=groups.length?groups.map(renderDepartmentCard).join(''):'<div class="empty-state"><strong>لا توجد أقسام منشورة حالياً</strong><p>تواصل مع فريق الدعم للمساعدة.</p></div>';
- const count=$('homeCategoryCount');if(count)count.textContent=groups.length.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY');
+ const count=$('homeCategoryCount');if(count)count.textContent=groups.length.toLocaleString(storeIntlLocale());
 }
 function renderFeatured(){
  const list=[],seen=new Set();
@@ -1364,7 +1380,7 @@ function tile(title,desc,image,tag,action,foot='عرض الخيارات',disable
 }
 function storeCatalogPager(page,pageCount,attribute){
  if(pageCount<=1)return '';
- return '<div class="store-catalog-pager"><button type="button" class="btn btn-soft" data-'+attribute+'="'+(page-1)+'" '+(page<=1?'disabled':'')+'>السابق</button><span>صفحة '+page.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+' من '+pageCount.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+'</span><button type="button" class="btn btn-soft" data-'+attribute+'="'+(page+1)+'" '+(page>=pageCount?'disabled':'')+'>التالي</button></div>';
+ return '<div class="store-catalog-pager"><button type="button" class="btn btn-soft" data-'+attribute+'="'+(page-1)+'" '+(page<=1?'disabled':'')+'>السابق</button><span>صفحة '+page.toLocaleString(storeIntlLocale())+' من '+pageCount.toLocaleString(storeIntlLocale())+'</span><button type="button" class="btn btn-soft" data-'+attribute+'="'+(page+1)+'" '+(page>=pageCount?'disabled':'')+'>التالي</button></div>';
 }
 function renderCatalog(){
  const target=$('catalogContent');if(!target)return;
@@ -1389,8 +1405,8 @@ function renderCatalog(){
   const query=String(state.catalogQuery||'').trim().toLocaleLowerCase('ar');
   const summaries=NexaCatalog.getDepartmentSummaries(categories);
   const all=summaries.filter(group=>!query||[group.name,group.description,...group.categories.map(c=>c.name)].some(value=>String(value||'').toLocaleLowerCase('ar').includes(query)));
-  $('catalogCount').textContent=all.length.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+' أقسام رئيسية';
-  html='<div class="store-catalog-toolbar"><input id="storeCatalogSearch" type="search" value="'+esc(state.catalogQuery)+'" placeholder="ابحث باسم القسم الرئيسي أو الخدمة..." aria-label="بحث في الأقسام الرئيسية"><span>'+all.length.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+' أقسام رئيسية</span></div>'+
+  $('catalogCount').textContent=all.length.toLocaleString(storeIntlLocale())+' أقسام رئيسية';
+  html='<div class="store-catalog-toolbar"><input id="storeCatalogSearch" type="search" value="'+esc(state.catalogQuery)+'" placeholder="ابحث باسم القسم الرئيسي أو الخدمة..." aria-label="بحث في الأقسام الرئيسية"><span>'+all.length.toLocaleString(storeIntlLocale())+' أقسام رئيسية</span></div>'+
    (all.length?'<div class="department-grid catalog-department-grid">'+all.map(renderDepartmentCard).join('')+'</div>':'<div class="empty-state"><strong>لا توجد أقسام مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>');
  }else if(!cat){
   const query=String(state.categoryQuery||'').trim().toLocaleLowerCase('ar');
@@ -1399,9 +1415,9 @@ function renderCatalog(){
   const pageSize=36,pageCount=Math.max(1,Math.ceil(filtered.length/pageSize));
   state.categoryPage=Math.min(Math.max(1,Number(state.categoryPage)||1),pageCount);
   const pageRows=filtered.slice((state.categoryPage-1)*pageSize,state.categoryPage*pageSize);
-  $('catalogCount').textContent=filtered.length.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+' مجلدات رئيسية';
+  $('catalogCount').textContent=filtered.length.toLocaleString(storeIntlLocale())+' مجلدات رئيسية';
   html='<div class="back-row"><button class="back-button" data-bc="root">← الأقسام الرئيسية</button><span class="catalog-count">'+filtered.length+' مجلدات</span></div>'+
-   '<div class="store-catalog-toolbar"><input id="storeCategorySearch" type="search" value="'+esc(state.categoryQuery)+'" placeholder="ابحث داخل '+esc(department.name)+'..." aria-label="بحث في المجلدات"><span>'+filtered.length.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+' نتيجة</span></div>'+
+   '<div class="store-catalog-toolbar"><input id="storeCategorySearch" type="search" value="'+esc(state.categoryQuery)+'" placeholder="ابحث داخل '+esc(department.name)+'..." aria-label="بحث في المجلدات"><span>'+filtered.length.toLocaleString(storeIntlLocale())+' نتيجة</span></div>'+
    (pageRows.length?'<div class="catalog-grid">'+pageRows.map(folder=>tile(folder.name,folder.desc,NexaCatalog.categoryImage(folder,categories),'مجلد','data-browse-category="'+esc(folder.id)+'"',NexaCatalog.getFolderProductCount(folder,categories)+' منتجات')).join('')+'</div>':'<div class="empty-state"><strong>لا توجد مجلدات مطابقة</strong><p>يمكن أن تظهر المجلدات الجديدة تلقائياً بعد مزامنة الموردين.</p></div>')+
    storeCatalogPager(state.categoryPage,pageCount,'category-page');
  }else if(!it){
@@ -1420,15 +1436,15 @@ function renderCatalog(){
   const parentButton=cat.parentId
    ?'<button class="back-button" data-browse-category="'+esc(cat.parentId)+'">← المجلد الأعلى</button>'
    :'<button class="back-button" data-bc="department">← '+esc(department.name)+'</button>';
-  $('catalogCount').textContent=childFolders.length.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+' مجلدات · '+allProducts.length.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+' منتجات';
-  html='<div class="back-row">'+parentButton+'<span class="catalog-count">'+NexaCatalog.getFolderProductCount(cat,categories).toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+' منتجات في هذا المسار</span></div>';
+  $('catalogCount').textContent=childFolders.length.toLocaleString(storeIntlLocale())+' مجلدات · '+allProducts.length.toLocaleString(storeIntlLocale())+' منتجات';
+  html='<div class="back-row">'+parentButton+'<span class="catalog-count">'+NexaCatalog.getFolderProductCount(cat,categories).toLocaleString(storeIntlLocale())+' منتجات في هذا المسار</span></div>';
   if(childFolders.length){
-   html+='<div class="store-catalog-toolbar"><strong>المجلدات الفرعية</strong><input id="storeCategorySearch" type="search" value="'+esc(state.categoryQuery)+'" placeholder="ابحث داخل المجلدات..." aria-label="بحث في المجلدات الفرعية"><span>'+filteredFolders.length.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+' مجلدات</span></div>';
+   html+='<div class="store-catalog-toolbar"><strong>المجلدات الفرعية</strong><input id="storeCategorySearch" type="search" value="'+esc(state.categoryQuery)+'" placeholder="ابحث داخل المجلدات..." aria-label="بحث في المجلدات الفرعية"><span>'+filteredFolders.length.toLocaleString(storeIntlLocale())+' مجلدات</span></div>';
    html+=folderRows.length?'<div class="catalog-grid">'+folderRows.map(folder=>tile(folder.name,folder.desc,NexaCatalog.categoryImage(folder,categories),'مجلد','data-browse-category="'+esc(folder.id)+'"',NexaCatalog.getFolderProductCount(folder,categories)+' منتجات')).join('')+'</div>':'<div class="empty-state"><strong>لا توجد مجلدات مطابقة</strong><p>جرّب كلمة بحث أخرى.</p></div>';
    html+=storeCatalogPager(state.categoryPage,folderPageCount,'category-page');
   }
   if(allProducts.length||!childFolders.length){
-   html+='<div class="store-catalog-toolbar"><strong>المنتجات داخل '+esc(cat.name)+'</strong><input id="storeProductSearch" type="search" value="'+esc(state.productQuery)+'" placeholder="ابحث باسم المنتج..." aria-label="بحث في المنتجات"><span>'+filteredProducts.length.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+' من '+allProducts.length.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+'</span></div>';
+   html+='<div class="store-catalog-toolbar"><strong>المنتجات داخل '+esc(cat.name)+'</strong><input id="storeProductSearch" type="search" value="'+esc(state.productQuery)+'" placeholder="ابحث باسم المنتج..." aria-label="بحث في المنتجات"><span>'+filteredProducts.length.toLocaleString(storeIntlLocale())+' من '+allProducts.length.toLocaleString(storeIntlLocale())+'</span></div>';
    html+=productRows.length?'<div class="catalog-grid">'+productRows.map(product=>tile(product.name,product.desc,NexaCatalog.productImage(product,cat,categories),'منتج رقمي','data-open-item="'+esc(product.id)+'" data-open-category="'+esc(cat.id)+'"',(product.wamda||product.bestStore)?.available===false?'غير متوفر حالياً':(NexaCatalog.getProductOptions(product).length===1?'عرض الباقات':'عرض المنتج'),false)).join('')+'</div>':'<div class="empty-state"><strong>لا توجد منتجات مطابقة</strong><p>يمكنك استخدام المجلدات الفرعية أو البحث باسم آخر.</p></div>';
    html+=storeCatalogPager(state.productPage,productPageCount,'product-page');
   }
@@ -1455,7 +1471,7 @@ function renderSearchResults(){
  state.searchPage=Math.min(Math.max(1,Number(state.searchPage)||1),pageCount);
  const rows=matches.slice((state.searchPage-1)*pageSize,state.searchPage*pageSize);
  $('catalogTitle').textContent='نتائج البحث';$('catalogDescription').textContent='نتائج مطابقة لعبارة: '+state.searchQuery;
- $('catalogCount').textContent=matches.length.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')+' نتيجة';
+ $('catalogCount').textContent=matches.length.toLocaleString(storeIntlLocale())+' نتيجة';
  $('catalogSteps').innerHTML=renderSteps(1);$('breadcrumbs').innerHTML='<span class="crumb current">نتائج البحث</span>';
  $('catalogContent').innerHTML=rows.length?'<div class="catalog-grid">'+rows.map(({c,i})=>tile(i.name,i.desc,NexaCatalog.productImage(i,c,categories),c.name,'data-open-item="'+esc(i.id)+'" data-open-category="'+esc(c.id)+'"',(i.wamda||i.bestStore)?.available===false?'غير متوفر حالياً':(NexaCatalog.getProductOptions(i).length===1?'عرض الباقات':'عرض الخيارات'),false)).join('')+'</div>'+storeCatalogPager(state.searchPage,pageCount,'search-page'):'<div class="empty-state"><strong>لم نجد نتيجة مطابقة</strong><p>جرّب اسم لعبة أو تطبيق أو قسم آخر.</p><button class="btn btn-soft" data-reset-catalog>عرض جميع الأقسام</button></div>';
 }
@@ -1603,8 +1619,8 @@ function renderCurrencyPreview(){
  if(choice==='USD'){
   if(!(sypPerUsd>0)){preview.textContent='سعر الدولار غير متاح حالياً';hint.textContent='لن يتم إنشاء فاتورة بالدولار قبل ضبط سعر التحويل على الخادم.';return;}
   const usd=Math.round((totalSyp/sypPerUsd)*100)/100;
-  preview.textContent=new Intl.NumberFormat(storeLocale()==='en'?'en-US':'ar-SY',{style:'currency',currency:'USD'}).format(usd);
-  hint.textContent='سعر ثابت: 1 USD = '+new Intl.NumberFormat(storeLocale()==='en'?'en-US':'ar-SY',{maximumFractionDigits:2}).format(sypPerUsd)+' ل.س جديدة'+(p.supplier?' · الكمية '+quantity:'')+' · لا يتغير تلقائياً.';
+  preview.textContent=new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'USD'}).format(usd);
+  hint.textContent='سعر ثابت: 1 USD = '+new Intl.NumberFormat(storeIntlLocale(),{maximumFractionDigits:2}).format(sypPerUsd)+' ل.س جديدة'+(p.supplier?' · الكمية '+quantity:'')+' · لا يتغير تلقائياً.';
  }else{
   preview.textContent=money(totalSyp);
   hint.textContent='السعر الأساسي بالليرة السورية'+(p.supplier?' · الكمية '+quantity:'')+'؛ يعتمد الخادم السعر النهائي عند إنشاء الفاتورة.';
@@ -1634,11 +1650,11 @@ async function doOrder(e){
   })});
   const data=await response.json();
   if(!response.ok||!data.ok)throw new Error(data.message||'تعذر إنشاء الطلب.');
-  const order={id:data.orderId,name:data.product||pack.name,price:pack.price,amountMinor:data.amountMinor,currency:data.currency,date:new Intl.DateTimeFormat(storeLocale()==='en'?'en-US':'ar-SY',{dateStyle:'medium'}).format(new Date()),status:data.status||'pending_payment',paymentMethod:data.paymentMethod||'shamcash',expiresAt:data.expiresAt||null,invoiceNumber:data.invoiceNumber||null,deliveryProvider:data.deliveryProvider||null};
+  const order={id:data.orderId,name:data.product||pack.name,price:pack.price,amountMinor:data.amountMinor,currency:data.currency,date:new Intl.DateTimeFormat(storeIntlLocale(),{dateStyle:'medium'}).format(new Date()),status:data.status||'pending_payment',paymentMethod:data.paymentMethod||'shamcash',expiresAt:data.expiresAt||null,invoiceNumber:data.invoiceNumber||null,deliveryProvider:data.deliveryProvider||null};
   if(customerAccount)await refreshCustomerAccount();else{const d=storageRead();d.guestOrders=d.guestOrders||[];d.guestOrders.unshift(order);storageSave(d);renderOrders();}
   if(data.paymentMethod==='wallet'){closeModal();renderOrders();if(data.receipt){$('paymentReceipt').classList.remove('hidden');renderPaymentReceipt(data.receipt);}navigate('wallet');showToast('تم الدفع من رصيد حسابك بنجاح.');return;}
   state.pendingOrder=data.orderId;$('paymentOrderId').value=data.orderId;
-  $('paymentOrderSummary').innerHTML=`<span>المبلغ المطلوب · ${esc(data.currency)}</span><strong>${formatMinor(data.amountMinor,data.currency)}</strong><small>الفاتورة صالحة حتى ${esc(new Date(data.expiresAt).toLocaleString(storeLocale()==='en'?'en-US':'ar-SY'))}</small>`;
+  $('paymentOrderSummary').innerHTML=`<span>المبلغ المطلوب · ${esc(data.currency)}</span><strong>${formatMinor(data.amountMinor,data.currency)}</strong><small>الفاتورة صالحة حتى ${esc(new Date(data.expiresAt).toLocaleString(storeIntlLocale()))}</small>`;
   renderInvoiceDetails(data);$('shamCashTransactionId').value='';$('shamCashPaymentResult').textContent='';
   $('paymentReceipt').classList.add('hidden');$('paymentReceipt').innerHTML='';
   form.reset();closeModal();renderOrders();navigate('wallet');
@@ -1664,7 +1680,7 @@ function renderInvoiceDetails(order={}){
  const invoiceNumber=String(order.invoiceNumber||'—');
  const receiverAddress=String(order.receiverAddress||order.invoiceIdentifier||'').trim();
  const receiverLabel=String(order.receiverLabel||'Sham Cash — Nexa Store');
- const expiresAt=order.expiresAt?new Date(order.expiresAt).toLocaleString(storeLocale()==='en'?'en-US':'ar-SY'):'—';
+ const expiresAt=order.expiresAt?new Date(order.expiresAt).toLocaleString(storeIntlLocale()):'—';
  renderShamCashReceiver({receiverLabel,receiverAddress,enabled:paymentConfigEnabled,message:storeText('عنوان الاستلام مرتبط بهذه الفاتورة ويجب استخدامه لهذا الطلب فقط.')});
  const addressLabel=esc(storeText('عنوان محفظة الاستلام'));
  const copyAddress=esc(storeText('نسخ العنوان'));
@@ -1702,7 +1718,7 @@ async function loadShamCashOrderSummary(){
   const r=await fetch('/api/orders/'+encodeURIComponent(orderId),{cache:'no-store'});
   const d=await r.json();
   if(!r.ok||!d.ok)throw new Error(d.message||'لم يتم العثور على الطلب.');
-  const summaryNote=d.status==='paid'?'تم تأكيد الدفع لهذا الطلب.':(d.status==='expired'?'انتهت صلاحية الفاتورة.':(d.status==='cancelled'?'تم إلغاء الطلب.':'تنتهي الفاتورة في '+new Date(d.expiresAt).toLocaleString(storeLocale()==='en'?'en-US':'ar-SY')));
+  const summaryNote=d.status==='paid'?'تم تأكيد الدفع لهذا الطلب.':(d.status==='expired'?'انتهت صلاحية الفاتورة.':(d.status==='cancelled'?'تم إلغاء الطلب.':'تنتهي الفاتورة في '+new Date(d.expiresAt).toLocaleString(storeIntlLocale())));
   summary.innerHTML=`<span>المبلغ المطلوب · ${esc(d.status==='paid'?'مدفوع':d.status==='expired'?'منتهي':d.status==='cancelled'?'ملغي':'بانتظار الدفع')} · ${esc(d.currency)}</span><strong>${formatMinor(d.amountMinor,d.currency)}</strong><small>${esc(summaryNote)}</small>`;
   renderInvoiceDetails(d);
   if(d.receipt){renderPaymentReceipt(d.receipt);if(d.receipt.delivery?.mode==='automatic'&&!['completed','manual_review'].includes(d.receipt.delivery.status))watchSeagmDelivery(orderId)}
@@ -1733,7 +1749,7 @@ async function verifyShamCashPayment(e){
 }
 function renderPaymentReceipt(receipt){
  const box=$('paymentReceipt');if(!box||!receipt)return;
- const amount=formatMinor(receipt.amountMinor,receipt.currency),date=receipt.paidAt?new Date(receipt.paidAt).toLocaleString(storeLocale()==='en'?'en-US':'ar-SY'):'—';
+ const amount=formatMinor(receipt.amountMinor,receipt.currency),date=receipt.paidAt?new Date(receipt.paidAt).toLocaleString(storeIntlLocale()):'—';
  const delivery=receipt.delivery||null;
  let deliveryHtml='';
  if(delivery){
@@ -1751,7 +1767,7 @@ function renderPaymentReceipt(receipt){
    if(!returnedText&&delivery.deliveredAmount!==undefined)returnedText='الكمية التي تم شحنها: '+String(delivery.deliveredAmount);
   }
   const due=delivery.dueAt?new Date(delivery.dueAt):null;
-  const dueText=due&&!Number.isNaN(due.getTime())?'الموعد المتوقع للتسليم: '+due.toLocaleString(storeLocale()==='en'?'en-US':'ar-SY'):'';
+  const dueText=due&&!Number.isNaN(due.getTime())?'الموعد المتوقع للتسليم: '+due.toLocaleString(storeIntlLocale()):'';
   deliveryHtml='<section class="receipt-delivery"><h4>حالة التسليم · '+esc(provider)+'</h4><strong>'+esc(deliveryStatus)+'</strong><p>'+esc(delivery.message||'')+'</p>'+
    (delivery.mode==='manual'&&delivery.manualDeliveryHours?'<p>مدة التجهيز المتفق عليها: '+esc(delivery.manualDeliveryHours)+' ساعة</p>':'')+
    (dueText?'<p>'+esc(dueText)+'</p>':'')+
@@ -1825,7 +1841,7 @@ function renderPaymentHistory(){
   const paymentState=paymentStateForOrder(order);
   const statusLabel=paymentState==='paid'?'مدفوع ومتحقق':paymentState==='pending'?'بانتظار التحقق':'منتهي أو ملغي';
   const method=order.paymentMethod==='wallet'?'محفظة Nexa':String(order.paymentMethod||'').includes('shamcash')?'شام كاش':'—';
-  const date=order.paidAt?new Date(order.paidAt).toLocaleString(storeLocale()==='en'?'en-US':'ar-SY'):String(order.date||'—');
+  const date=order.paidAt?new Date(order.paidAt).toLocaleString(storeIntlLocale()):String(order.date||'—');
   return '<tr><td class="ltr">'+esc(order.id)+'</td><td>'+esc(order.name||'—')+'</td><td>'+esc(method)+'</td><td>'+esc(date)+'</td><td>'+formatMinor(order.amountMinor||'0',order.currency||'SYP')+'</td><td><span class="status '+paymentState+'">'+statusLabel+'</span></td></tr>';
  }).join(''):'<tr><td colspan="6" class="table-empty">'+(rows.length?'لا توجد عمليات تطابق البحث أو التصفية.':'سجّل الدخول لعرض سجل مدفوعاتك من الخادم.')+'</td></tr>';
 }
@@ -1862,17 +1878,21 @@ function renderSidebarAccount(){
 
 function syncSidebarCurrency(){
  const code=$('sidebarCurrencyCode'),label=$('sidebarCurrencyLabel'),button=$('sidebarCurrencyToggle');
- const languageButton=$('sidebarLanguageToggle');
- const english=storeLocale()==='en',next=storefrontDisplayCurrency==='USD'?'SYP':'USD';
+ const languageButton=$('sidebarLanguageToggle'),languageCode=$('sidebarLanguageCode');
+ const locale=storeLocale(),nextCurrency=storefrontDisplayCurrency==='USD'?'TRY':'USD';
+ const nextLanguage=({ar:'en',en:'tr',tr:'ar'})[locale]||'en';
+ const currencyNames={ar:{USD:'الدولار الأمريكي',TRY:'الليرة التركية'},en:{USD:'US dollar',TRY:'Turkish lira'},tr:{USD:'ABD doları',TRY:'Türk lirası'}};
+ const languageNames={ar:{ar:'العربية',en:'الإنجليزية',tr:'التركية'},en:{ar:'Arabic',en:'English',tr:'Turkish'},tr:{ar:'Arapça',en:'İngilizce',tr:'Türkçe'}};
  if(code)code.textContent=storefrontDisplayCurrency;
- if(label)label.textContent=english?'Display currency':'العملة الثانوية';
+ if(languageCode)languageCode.textContent=locale.toUpperCase();
+ if(label)label.textContent=locale==='ar'?'عملة العرض':locale==='tr'?'Görüntüleme para birimi':'Display currency';
  if(button){
-  const caption=english?'Switch display currency to '+next:'تبديل عملة العرض إلى '+(next==='USD'?'الدولار الأمريكي':'الليرة السورية');
+  const caption=locale==='ar'?'تبديل عملة العرض إلى '+currencyNames.ar[nextCurrency]:locale==='tr'?'Görüntüleme para birimini '+currencyNames.tr[nextCurrency]+' olarak değiştir':'Switch display currency to '+currencyNames.en[nextCurrency];
   button.title=caption;button.setAttribute('aria-label',caption);
  }
  if(languageButton){
-  const languageCaption=english?'Switch language to Arabic':'تغيير اللغة إلى الإنجليزية';
-  languageButton.title=languageCaption;languageButton.setAttribute('aria-label',languageCaption);
+  const caption=locale==='ar'?'تغيير اللغة إلى '+languageNames.ar[nextLanguage]:locale==='tr'?'Dili '+languageNames.tr[nextLanguage]+' olarak değiştir':'Change language to '+languageNames.en[nextLanguage];
+  languageButton.title=caption;languageButton.setAttribute('aria-label',caption);
  }
 }
 function renderWalletLedger(){
@@ -1882,7 +1902,7 @@ function renderWalletLedger(){
  target.innerHTML=rows.length?'<ul class="wallet-ledger-list">'+rows.map(item=>{
   const credit=['topup','refund','adjustment'].includes(item.kind);
   const label=labels[item.kind]||labels.adjustment;
-  const date=item.createdAt?new Date(item.createdAt).toLocaleString(english?'en-US':'ar-SY'):'';
+  const date=item.createdAt?new Date(item.createdAt).toLocaleString(storeIntlLocale()):'';
   return '<li class="wallet-ledger-row"><span class="wallet-ledger-icon">'+(credit?'＋':'−')+'</span><span class="wallet-ledger-copy"><strong>'+esc(label)+'</strong><small>'+esc(storeText(item.note||item.referenceOrderId||''))+' · '+esc(date)+'</small></span><b class="'+(credit?'credit':'debit')+'">'+(credit?'+':'−')+formatDisplayMinor(item.amountMinor,'SYP')+'</b></li>';
  }).join('')+'</ul>':'<p class="wallet-ledger-empty">'+labels.empty+'</p>';
 }
@@ -1897,26 +1917,26 @@ function refreshDisplayCurrency(){
  if(state.selectedPack&&$('orderModal')?.classList.contains('open'))$('modalPrice').textContent=money(state.selectedPack.price);
 }
 function setStoreDisplayCurrency(currency,{persist=true,notify=false}={}){
- storefrontDisplayCurrency=currency==='SYP'?'SYP':'USD';
+ storefrontDisplayCurrency=currency==='TRY'?'TRY':'USD';
  if(persist){try{localStorage.setItem('nexa-store-display-currency',storefrontDisplayCurrency)}catch{}}
  refreshDisplayCurrency();
- if(notify)showToast(storeLocale()==='en'?'Display currency: '+storefrontDisplayCurrency:'عملة العرض: '+storefrontDisplayCurrency);
+ if(notify)showToast(storeLocale()==='ar'?'عملة العرض: '+storefrontDisplayCurrency:storeLocale()==='tr'?'Görüntüleme para birimi: '+storefrontDisplayCurrency:'Display currency: '+storefrontDisplayCurrency);
 }
 function initializeStorePreferences(){
  if(window.NexaLocale){storefrontLanguage=window.NexaLocale.initialize();}
- try{const saved=localStorage.getItem('nexa-store-display-currency');if(saved==='SYP'||saved==='USD')storefrontDisplayCurrency=saved;}catch{}
+ try{const saved=localStorage.getItem('nexa-store-display-currency');if(saved==='USD'||saved==='TRY')storefrontDisplayCurrency=saved;else if(saved==='SYP')storefrontDisplayCurrency='USD';}catch{}
  syncSidebarCurrency();
  $('sidebarLanguageToggle')?.addEventListener('click',()=>{
-  const next=storeLocale()==='ar'?'en':'ar';
+  const order=['ar','en','tr'],next=order[(order.indexOf(storeLocale())+1)%order.length];
   storefrontLanguage=next;window.NexaLocale?.setLanguage(next);
   if(customerAccount)saveCustomerPreferences({locale:next});
-  showToast(next==='en'?'Language changed to English':'تم تغيير اللغة إلى العربية');
+  showToast(next==='ar'?'تم تغيير اللغة إلى العربية':next==='tr'?'Dil Türkçe olarak değiştirildi':'Language changed to English');
  });
  $('sidebarLogoutButton')?.addEventListener('click',()=>{
   if(!customerAccount){navigate('profile');showToast('سجّل الدخول أولاً.');return;}
   $('accountLogoutButton')?.click();
  });
- $('sidebarCurrencyToggle')?.addEventListener('click',()=>{const next=storefrontDisplayCurrency==='USD'?'SYP':'USD';setStoreDisplayCurrency(next,{notify:true});if(customerAccount)saveCustomerPreferences({displayCurrency:next});});
+ $('sidebarCurrencyToggle')?.addEventListener('click',()=>{const next=storefrontDisplayCurrency==='USD'?'TRY':'USD';setStoreDisplayCurrency(next,{notify:true});if(customerAccount)saveCustomerPreferences({displayCurrency:next});});
  window.addEventListener('nexa:languagechange:before',()=>{
   if(storeDrawerMedia.matches&&document.body.classList.contains('sidebar-open'))
    document.documentElement.classList.add('drawer-direction-switching');
@@ -1937,13 +1957,13 @@ function initializeStorePreferences(){
   }else setStoreMenuState(isStoreMenuOpen(),false);
  });
  window.addEventListener('storage',event=>{
-  if(event.key==='nexa-store-display-currency'&&(event.newValue==='USD'||event.newValue==='SYP'))setStoreDisplayCurrency(event.newValue,{persist:false});
-  if(event.key==='nexa-store-language'&&(event.newValue==='ar'||event.newValue==='en'))window.NexaLocale?.setLanguage(event.newValue,{persist:false});
+  if(event.key==='nexa-store-display-currency'&&(event.newValue==='USD'||event.newValue==='TRY'))setStoreDisplayCurrency(event.newValue,{persist:false});
+  if(event.key==='nexa-store-language'&&['ar','en','tr'].includes(event.newValue))window.NexaLocale?.setLanguage(event.newValue,{persist:false});
  });
 }
 
 function renderSupportState(){const d=storageRead();const tickets=d.supportTickets||[];const result=$('supportTicketResult');if(result&&tickets.length){const t=tickets[0];$('supportTicketText').textContent=`رقم المسودة ${t.id} · ${t.issue}`;result.classList.remove('hidden');const message=`مرحباً، أود التواصل مع الدعم الفني في Nexa Store.\nرقم البلاغ: ${t.id}\nالاسم: ${t.name}\nالتواصل: ${t.contact}\nنوع الطلب: ${t.issue}\nرقم الطلب: ${t.orderId||'غير محدد'}\nالتفاصيل: ${t.message}`;$('supportTicketWA').href=`https://wa.me/963936382101?text=${encodeURIComponent(message)}`;$('supportTicketEmail').href=`mailto:support.nsde@gmail.com?subject=${encodeURIComponent('بلاغ دعم '+t.id)}&body=${encodeURIComponent(message)}`}}
-function submitSupportTicket(e){e.preventDefault();const d=storageRead();d.supportTickets=d.supportTickets||[];const t={id:'NX-S-'+Date.now().toString().slice(-7),name:$('supportName').value.trim(),contact:$('supportContact').value.trim(),issue:$('supportIssue').value,orderId:$('supportOrderId').value.trim(),message:$('supportMessage').value.trim(),date:new Intl.DateTimeFormat(storeLocale()==='en'?'en-US':'ar-SY',{dateStyle:'medium'}).format(new Date())};if(!t.name||!t.contact||!t.issue||!t.message)return;d.supportTickets.unshift(t);storageSave(d);renderSupportState();$('supportForm').reset();$('supportTicketResult').scrollIntoView({behavior:'smooth',block:'nearest'});showToast('تم حفظ مسودة البلاغ على هذا الجهاز');}
+function submitSupportTicket(e){e.preventDefault();const d=storageRead();d.supportTickets=d.supportTickets||[];const t={id:'NX-S-'+Date.now().toString().slice(-7),name:$('supportName').value.trim(),contact:$('supportContact').value.trim(),issue:$('supportIssue').value,orderId:$('supportOrderId').value.trim(),message:$('supportMessage').value.trim(),date:new Intl.DateTimeFormat(storeIntlLocale(),{dateStyle:'medium'}).format(new Date())};if(!t.name||!t.contact||!t.issue||!t.message)return;d.supportTickets.unshift(t);storageSave(d);renderSupportState();$('supportForm').reset();$('supportTicketResult').scrollIntoView({behavior:'smooth',block:'nearest'});showToast('تم حفظ مسودة البلاغ على هذا الجهاز');}
 function lookupSupportOrder(e){
  e.preventDefault();const id=$('supportLookupInput').value.trim().toUpperCase();const found=visibleOrders().find(o=>String(o.id).toUpperCase()===id);
  const box=$('supportLookupResult');box.classList.remove('found','not-found');const p=document.createElement('p');
@@ -1985,10 +2005,11 @@ function setStoreColorMode(mode,{persist=true}={}){
  const selected=mode==='light'?'light':'dark';
  document.documentElement.dataset.theme=selected;
  if(persist){try{localStorage.setItem(NEXA_THEME_KEY,selected)}catch{}}
- const english=storeLocale()==='en',isDark=selected==='dark';
+ const locale=storeLocale(),isDark=selected==='dark';
  const button=$('storeThemeToggle'),label=$('sidebarThemeLabel');
- const currentLabel=english?(isDark?'Dark mode':'Light mode'):(isDark?'الوضع الداكن':'الوضع الفاتح');
- const nextLabel=english?(isDark?'Switch to light mode':'Switch to dark mode'):(isDark?'التبديل إلى الوضع الفاتح':'التبديل إلى الوضع الداكن');
+ const labels={ar:{dark:'الوضع الداكن',light:'الوضع الفاتح',toLight:'التبديل إلى الوضع الفاتح',toDark:'التبديل إلى الوضع الداكن'},en:{dark:'Dark mode',light:'Light mode',toLight:'Switch to light mode',toDark:'Switch to dark mode'},tr:{dark:'Koyu tema',light:'Açık tema',toLight:'Açık temaya geç',toDark:'Koyu temaya geç'}};
+ const currentLabel=labels[locale]?.[isDark?'dark':'light']||labels.ar[isDark?'dark':'light'];
+ const nextLabel=labels[locale]?.[isDark?'toLight':'toDark']||labels.ar[isDark?'toLight':'toDark'];
  if(label)label.textContent=currentLabel;
  if(button){
   button.title=nextLabel;
@@ -2072,11 +2093,12 @@ async function loadStorefrontConfig(){
   const rate=Number(d.fxRate);
   if(Number.isFinite(rate)&&rate>0)storefrontFxRate=rate;
   storefrontFxReady=d.fxReady===true;
+  storefrontTryPerUsd=Number(d.tryPerUsd)||0;storefrontTryReady=d.tryFxReady===true;
   if(d.storeLogo)storefrontLogoImage=d.storeLogo;
   applyStorefrontExperience(d.storefrontExperience||{});
   syncSidebarCurrency();
   if(d.storeName){
-   document.title=storeLocale()==='en'?'Nexa Store | Your digital store':d.storeName+' | متجرك الرقمي';
+   document.title=storeLocale()==='en'?'Nexa Store | Your digital store':storeLocale()==='tr'?'Nexa Store | Dijital mağazanız':d.storeName+' | متجرك الرقمي';
    const brand=document.querySelector('.sidebar-brand strong'),headerBrand=document.querySelector('.header-brand-copy strong'),footerName=document.querySelector('.footer-brand strong');
    if(brand)brand.textContent=d.storeName;if(headerBrand)headerBrand.textContent=d.storeName;if(footerName)footerName.textContent=d.storeName;
   }
@@ -2213,11 +2235,11 @@ async function refreshCustomerAccount(){
   ]);
   if(generation!==accountRefreshGeneration||String(customerAccount?.id||'')!==customerId)return;
   walletTransactions=Array.isArray(txData.transactions)?txData.transactions:[];
-  accountOrders=(orderData.orders||[]).map(item=>({id:item.id,name:item.product_label,date:item.createdAt?new Date(item.createdAt).toLocaleDateString(storeLocale()==='en'?'en-US':'ar-SY'):'',amountMinor:item.amountMinor,currency:item.currency,status:item.status,paymentMethod:item.paymentMethod,paidAt:item.paidAt||null,supplierStatus:item.supplierStatus||null}));
+  accountOrders=(orderData.orders||[]).map(item=>({id:item.id,name:item.product_label,date:item.createdAt?new Date(item.createdAt).toLocaleDateString(storeIntlLocale()):'',amountMinor:item.amountMinor,currency:item.currency,status:item.status,paymentMethod:item.paymentMethod,paidAt:item.paidAt||null,supplierStatus:item.supplierStatus||null}));
   const preferences=preferencesData.preferences||{};accountFavorites=Array.isArray(preferences.favorites)?preferences.favorites:[];
-  if(['ar','en'].includes(preferences.locale)&&preferences.locale!==storeLocale())window.NexaLocale?.setLanguage(preferences.locale);
+  if(['ar','en','tr'].includes(preferences.locale)&&preferences.locale!==storeLocale())window.NexaLocale?.setLanguage(preferences.locale);
   if(['dark','light'].includes(preferences.theme))setStoreColorMode(preferences.theme,{persist:false});
-  if(['SYP','USD'].includes(preferences.displayCurrency))setStoreDisplayCurrency(preferences.displayCurrency,{persist:false});
+  if(['USD','TRY'].includes(preferences.displayCurrency))setStoreDisplayCurrency(preferences.displayCurrency,{persist:false});else if(preferences.displayCurrency==='SYP')setStoreDisplayCurrency('USD',{persist:false});
   renderWalletLedger();renderOrders();renderPaymentHistory();syncFavorites();if(state.view==='favorites')renderFavorites();if(state.selectedPack)renderCurrencyPreview();
  }catch{if(generation!==accountRefreshGeneration)return;if(!customerAccount)resetCustomerAccountView('تعذر تحميل الحساب');else{setWalletAccountStatus('تعذر تحميل الحساب');renderSidebarAccount();}}
 }
@@ -2242,7 +2264,7 @@ async function createWalletTopup(event){
   const response=await fetch('/api/wallet/topups',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:$('walletTopupAmount').value})});
   const data=await response.json();if(!response.ok||!data.ok)throw new Error(data.message||'تعذر إنشاء فاتورة الشحن.');
   state.pendingOrder=data.orderId;$('paymentOrderId').value=data.orderId;
-  $('paymentOrderSummary').innerHTML='<span>'+esc(storeText('شحن رصيد الحساب · SYP'))+'</span><strong>'+formatMinor(data.amountMinor,'SYP')+'</strong><small>'+esc(storeText('الفاتورة صالحة حتى'))+' '+esc(new Date(data.expiresAt).toLocaleString(storeLocale()==='en'?'en-US':'ar-SY'))+'</small>';
+  $('paymentOrderSummary').innerHTML='<span>'+esc(storeText('شحن رصيد الحساب · SYP'))+'</span><strong>'+formatMinor(data.amountMinor,'SYP')+'</strong><small>'+esc(storeText('الفاتورة صالحة حتى'))+' '+esc(new Date(data.expiresAt).toLocaleString(storeIntlLocale()))+'</small>';
   renderInvoiceDetails(data);$('shamCashTransactionId').value='';$('shamCashPaymentResult').textContent='';
   $('paymentReceipt').classList.add('hidden');$('paymentReceipt').innerHTML='';
   showToast(storeText('حوّل قيمة الفاتورة إلى محفظة Nexa، ثم أدخل رقم العملية في نموذج التحقق.'));

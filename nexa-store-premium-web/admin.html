@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>(function(){try{const theme=localStorage.getItem("nexa-admin-color-mode");document.documentElement.dataset.theme=theme==="light"?"light":"dark";const locale=localStorage.getItem("nexa-store-language");if(["ar","en","tr"].includes(locale)){document.documentElement.lang=locale;document.documentElement.dir=locale==="ar"?"rtl":"ltr";document.documentElement.dataset.locale=locale;}}catch{document.documentElement.dataset.theme="dark";}})();</script>
 <meta name="theme-color" content="#3f4a75">
 <title>Nexa Control | لوحة الإدارة</title>
 <style>
@@ -463,6 +464,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
 :root[dir="ltr"] .folder-tree-row:before{right:auto;left:-12px}
 @media(max-width:800px){.folder-tree-count{display:none}.folder-tree-toolbar{align-items:flex-start}.folder-tree-copy small{font-size:7px}}
 </style><link rel="stylesheet" href="/assets/brand/nexa-responsive.css?v=20261107-layout-final-v5">
+<link rel="stylesheet" href="/assets/brand/nexa-interface-finish.css?v=20261108-tr-try-theme-v1">
 </head>
 <body>
 <section id="loginScreen" class="login-screen">
@@ -500,7 +502,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
     <header class="topbar">
       <button class="admin-menu-toggle" id="adminMenuToggle" type="button" aria-label="فتح القائمة الجانبية" aria-expanded="false" aria-controls="adminSidebar"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg></button>
       <div><h1 id="pageTitle">نظرة عامة</h1><p>إدارة وتشغيل Nexa Store</p></div>
-      <div class="top-actions"><span class="status-pill" id="topStatus">متصل</span><button class="btn soft" id="adminThemeToggle" type="button" aria-label="تبديل الوضع اللوني">🌙 الوضع الداكن</button><div class="avatar">NX</div><button class="btn soft" id="logoutBtn">خروج</button></div>
+      <div class="top-actions"><span class="status-pill" id="topStatus">متصل</span><button class="btn soft admin-language-toggle" id="adminLanguageToggle" type="button" aria-label="تغيير اللغة" title="تغيير اللغة">AR</button><button class="btn soft" id="adminThemeToggle" type="button" aria-label="تبديل الوضع اللوني">🌙 الوضع الداكن</button><div class="avatar">NX</div><button class="btn soft" id="logoutBtn">خروج</button></div>
     </header>
     <div class="container">
       <section class="page" id="page-overview">
@@ -898,6 +900,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
           <section class="panel"><div class="panel-head"><div><div class="section-caption">RATE MODE</div><h3>مصدر سعر الدولار</h3></div></div>
             <div class="field"><label>طريقة التحديث</label><select id="fxMode"><option value="manual">يدوي — سعر ثابت</option><option value="api">تلقائي — SP Today API V2</option></select></div>
             <div class="field" id="manualRateField"><label>سعر الدولار بالليرة السورية الجديدة</label><input id="fxRate" type="number" min="0.000001" step="0.000001"></div>
+            <div class="field"><label for="fxTryRate">سعر الليرة التركية لكل 1 USD (TRY لكل دولار)</label><input id="fxTryRate" type="number" min="0" max="100000" step="0.000001" inputmode="decimal" placeholder="أدخل سعر USD/TRY"><small>للعرض فقط. اتركه 0 أو فارغاً لإيقاف عرض الأسعار بالليرة التركية؛ لا يغيّر مبلغ الفاتورة أو عملة التسوية.</small><small id="fxTryStatus">لم يتم ضبط سعر TRY بعد.</small></div>
             <div class="fx-preview"><small>السعر الحالي المعتمد</small><strong id="fxPreview">145</strong><small id="fxUpdated">يدوي — لا يتغير حتى تعدّله.</small></div>
           </section>
           <section class="panel" id="apiFxPanel"><div class="panel-head"><div><div class="section-caption">AUTOMATIC API</div><h3>إعدادات SP Today</h3></div></div>
@@ -919,6 +922,7 @@ input[type=checkbox],input[type=radio],.inline-check input{accent-color:var(--ne
 </div>
 <div id="toast" class="toast"></div>
 <script src="/assets/brand/nexa-catalog.js?v=20261106-dashboard-order-v3"></script>
+<script src="/assets/brand/nexa-store-language.js?v=20261108-turkish-i18n-v1"></script>
 <script>
 const $=id=>document.getElementById(id);
 const ADMIN_THEME_KEY='nexa-admin-color-mode';
@@ -926,15 +930,32 @@ function setAdminColorMode(mode,{persist=true}={}){
  const selected=mode==='light'?'light':'dark';
  document.documentElement.dataset.theme=selected;
  if(persist){try{localStorage.setItem(ADMIN_THEME_KEY,selected)}catch{}}
- const button=$('adminThemeToggle');
- if(button){button.textContent=selected==='dark'?'☀️ الوضع الفاتح':'🌙 الوضع الداكن';button.setAttribute('aria-label',selected==='dark'?'التبديل إلى الوضع الفاتح':'التبديل إلى الوضع الداكن');button.setAttribute('aria-pressed',String(selected==='dark'));}
- const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=selected==='dark'?'#3f4a75':'#f4efea';
+ const button=$('adminThemeToggle'),locale=window.NexaLocale?.getLanguage?.()||'ar';
+ const labels={ar:{light:'☀️ الوضع الفاتح',dark:'🌙 الوضع الداكن',toLight:'التبديل إلى الوضع الفاتح',toDark:'التبديل إلى الوضع الداكن'},en:{light:'☀️ Light mode',dark:'🌙 Dark mode',toLight:'Switch to light mode',toDark:'Switch to dark mode'},tr:{light:'☀️ Açık tema',dark:'🌙 Koyu tema',toLight:'Açık temaya geç',toDark:'Koyu temaya geç'}};
+ if(button){button.textContent=labels[locale]?.[selected]||labels.ar[selected];button.setAttribute('aria-label',labels[locale]?.[selected==='dark'?'toLight':'toDark']||labels.ar[selected==='dark'?'toLight':'toDark']);button.setAttribute('aria-pressed',String(selected==='dark'));}
+ const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=selected==='dark'?'#171d22':'#ffffff';
+}
+function initializeAdminLocale(){
+ window.NexaLocale?.initialize();
+ const button=$('adminLanguageToggle');
+ const update=()=>{
+  const locale=window.NexaLocale?.getLanguage?.()||'ar';
+  if(button){button.textContent=locale.toUpperCase();const caption=locale==='ar'?'تغيير اللغة':locale==='en'?'Change language':'Dili değiştir';button.title=caption;button.setAttribute('aria-label',caption);button.dataset.language=locale;}
+ };
+ button?.addEventListener('click',()=>{
+  const locale=window.NexaLocale?.getLanguage?.()||'ar';
+  const next=({ar:'en',en:'tr',tr:'ar'})[locale]||'en';
+  window.NexaLocale?.setLanguage(next);
+ });
+ window.addEventListener('nexa:languagechange',update);
+ update();
 }
 function initializeAdminColorMode(){
  let saved='dark';try{saved=localStorage.getItem(ADMIN_THEME_KEY)||'dark'}catch{}
  setAdminColorMode(saved,{persist:false});
  $('adminThemeToggle')?.addEventListener('click',()=>setAdminColorMode(document.documentElement.dataset.theme==='dark'?'light':'dark'));
  window.addEventListener('storage',event=>{if(event.key===ADMIN_THEME_KEY&&event.newValue)setAdminColorMode(event.newValue,{persist:false});});
+ window.addEventListener('nexa:languagechange',()=>setAdminColorMode(document.documentElement.dataset.theme||'dark',{persist:false}));
 }
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const state={catalog:[],catalogBaseline:[],departments:[],departmentsBaseline:[],settings:{},orders:[],seagmCatalog:[],seagmMeta:{},wamdaCatalog:[],wamdaMeta:{},bestStoreCatalog:[],bestStoreMeta:{},bestStoreCatalogQuery:'',bestStoreCatalogFilter:'all',wamdaCatalogPage:1,wamdaCatalogQuery:'',wamdaCatalogFilter:'all',catalogProductPage:1,catalogProductQuery:'',catalogProductCategoryId:'',catalogProductRows:[],categoryIndex:0,selectedDepartmentId:'games',collapsedFolderIds:new Set(),page:'overview',busy:false};
@@ -1696,7 +1717,7 @@ $('testNexaAiBtn').addEventListener('click',async()=>{
  }finally{button.disabled=false;}
 });
 function renderSettings(d={}){const s=state.settings;$('storeName').value=s.storeName||'Nexa Store';$('announcement').value=s.announcement||'';$('storeLogo').value=s.storeLogo||'assets/brand/logo.svg';$('storeLogoPreview').src=s.storeLogo||'assets/brand/logo.svg';$('paymentEnabled').checked=!!s.paymentEnabled;$('shamApiBase').value=s.shamApiBase||'https://apis-shamcash.com/api';$('shamApiToken').value='';$('clearShamApiToken').checked=false;$('shamTokenState').textContent=s.shamApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لم يتم ضبط مفتاح بعد.';$('receiverLabel').value=s.receiverLabel||'';$('walletId').value=s.walletId||'';$('orderTtlMinutes').value=s.orderTtlMinutes??15;$('maxAgeMinutes').value=s.maxAgeMinutes??15;$('futureSkewSeconds').value=s.futureSkewSeconds??90;$('timezoneOffsetMinutes').value=s.timezoneOffsetMinutes??180;$('paymentStatus').textContent=d.paymentsReady?'الدفع مفعّل وجاهز':'الدفع غير جاهز';
- $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;renderCatalogApiKeys();$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';$('seagmEnvironment').value=s.seagmEnvironment||'sandbox';$('seagmUid').value=s.seagmUid||'';$('seagmSecret').value='';$('clearSeagmSecret').checked=false;$('seagmSecretState').textContent=s.seagmSecretConfigured?'يوجد Secret Key محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لا يوجد Secret Key محفوظ.';$('wamdaApiToken').value='';$('clearWamdaApiToken').checked=false;$('wamdaTokenState').textContent=s.wamdaApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';$('wamdaWebhookUrl').value=s.wamdaWebhookUrl||'';$('copyWamdaWebhookBtn').disabled=!s.wamdaWebhookUrl;const globalWamdaPolicy=s.wamdaPricingPolicy||{mode:'percent',value:s.wamdaProfitMarginPercent??0};$('wamdaGlobalPricingMode').value=['percent','fixed_profit','fixed_price'].includes(globalWamdaPolicy.mode)?globalWamdaPolicy.mode:'percent';$('wamdaGlobalPricingValue').value=globalWamdaPolicy.value??0;$('wamdaAutoRefreshEnabled').checked=s.wamdaAutoRefreshEnabled!==false;$('wamdaRefreshIntervalMinutes').value=s.wamdaRefreshIntervalMinutes??15;$('wamdaFxRateDisplay').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س لكل 1 USD';
+ $('fxMode').value=s.fxMode||'manual';$('fxRate').value=s.fxRate||145;$('fxTryRate').value=s.tryPerUsd||'';$('fxTryStatus').textContent=Number(s.tryPerUsd)>0?'1 USD = '+Number(s.tryPerUsd).toLocaleString('en-US')+' TRY · سعر يدوي للعرض':'لم يتم ضبط سعر TRY بعد.';renderCatalogApiKeys();$('fxApiUrl').value=s.fxApiUrl||'';$('fxJsonPath').value=s.fxJsonPath||'';$('fxUnit').value=s.fxUnit||'new';$('fxAuthHeader').value=s.fxAuthHeader||'Authorization';$('fxAuthPrefix').value=s.fxAuthPrefix||'Bearer';$('fxApiToken').value='';$('clearFxApiToken').checked=false;$('fxTokenState').textContent=s.fxApiTokenConfigured?'يوجد مفتاح محفوظ ومشفّر.':'لا يوجد مفتاح API محفوظ.';$('fxPreview').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س';$('fxUpdated').textContent=s.fxUpdatedAt?'آخر تحديث: '+new Date(s.fxUpdatedAt).toLocaleString('ar-SY'):(s.fxMode==='api'?'لم يتم تحديث السعر من API بعد':'وضع يدوي — سعر ثابت');$('fxStatus').textContent=Number(s.fxRate||145)+' ل.س / USD';$('manualRateField').classList.toggle('hidden',$('fxMode').value!=='manual');$('apiFxPanel').classList.toggle('hidden',$('fxMode').value!=='api');if(s.fxLastError){$('fxUpdated').textContent='آخر خطأ: '+s.fxLastError;$('fxUpdated').style.color='#bd3d55'}else $('fxUpdated').style.color='';$('seagmEnvironment').value=s.seagmEnvironment||'sandbox';$('seagmUid').value=s.seagmUid||'';$('seagmSecret').value='';$('clearSeagmSecret').checked=false;$('seagmSecretState').textContent=s.seagmSecretConfigured?'يوجد Secret Key محفوظ ومشفّر. أدخل قيمة جديدة لاستبداله.':'لا يوجد Secret Key محفوظ.';$('wamdaApiToken').value='';$('clearWamdaApiToken').checked=false;$('wamdaTokenState').textContent=s.wamdaApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';$('wamdaWebhookUrl').value=s.wamdaWebhookUrl||'';$('copyWamdaWebhookBtn').disabled=!s.wamdaWebhookUrl;const globalWamdaPolicy=s.wamdaPricingPolicy||{mode:'percent',value:s.wamdaProfitMarginPercent??0};$('wamdaGlobalPricingMode').value=['percent','fixed_profit','fixed_price'].includes(globalWamdaPolicy.mode)?globalWamdaPolicy.mode:'percent';$('wamdaGlobalPricingValue').value=globalWamdaPolicy.value??0;$('wamdaAutoRefreshEnabled').checked=s.wamdaAutoRefreshEnabled!==false;$('wamdaRefreshIntervalMinutes').value=s.wamdaRefreshIntervalMinutes??15;$('wamdaFxRateDisplay').textContent=Number(s.fxRate||145).toLocaleString('en-US')+' ل.س لكل 1 USD';
   $('bestStoreApiToken').value='';$('clearBestStoreApiToken').checked=false;
   $('bestStoreTokenState').textContent=s.bestStoreApiTokenConfigured?'يوجد API Token محفوظ ومشفّر. اترك الحقل فارغاً للاحتفاظ به.':'لم يتم حفظ API Token بعد.';
   $('bestStoreWebhookUrl').value=s.bestStoreWebhookUrl||'';
@@ -1755,7 +1776,7 @@ function paymentPayload(){return{paymentEnabled:$('paymentEnabled').checked,sham
 $('savePaymentsBtn').addEventListener('click',async()=>{const b=$('savePaymentsBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(paymentPayload())});state.settings=d.settings;renderSettings(d);toast('تم حفظ إعدادات شام كاش والمحفظة.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 $('loadWalletsBtn').addEventListener('click',async()=>{const b=$('loadWalletsBtn');b.disabled=true;try{const d=await api('/api/admin/shamcash/wallets');$('walletSelect').innerHTML='<option value="">اختر محفظة نشطة</option>'+(d.data||[]).map(w=>`<option value="${esc(w.id)}" ${String(w.id)===$('walletId').value?'selected':''}>${esc(w.label||w.providerDisplayName||'محفظة')} · ${esc(w.status)} · ${esc(w.walletAddress||w.id)}</option>`).join('');toast('تم تحميل قائمة المحافظ.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 $('walletSelect').addEventListener('change',()=>{if($('walletSelect').value)$('walletId').value=$('walletSelect').value});
-function fxPayload(){return{fxMode:$('fxMode').value,fxRate:Number($('fxRate').value),fxApiUrl:$('fxApiUrl').value.trim(),fxJsonPath:$('fxJsonPath').value.trim(),fxUnit:$('fxUnit').value,fxAuthHeader:$('fxAuthHeader').value,fxAuthPrefix:$('fxAuthPrefix').value.trim(),fxApiToken:$('fxApiToken').value,clearFxApiToken:$('clearFxApiToken').checked}}
+function fxPayload(){return{fxMode:$('fxMode').value,fxRate:Number($('fxRate').value),tryPerUsd:Number($('fxTryRate').value||0),fxApiUrl:$('fxApiUrl').value.trim(),fxJsonPath:$('fxJsonPath').value.trim(),fxUnit:$('fxUnit').value,fxAuthHeader:$('fxAuthHeader').value,fxAuthPrefix:$('fxAuthPrefix').value.trim(),fxApiToken:$('fxApiToken').value,clearFxApiToken:$('clearFxApiToken').checked}}
 $('saveFxBtn').addEventListener('click',async()=>{const b=$('saveFxBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(fxPayload())});state.settings=d.settings;renderSettings(d);toast('تم حفظ إعدادات سعر الصرف.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 $('refreshFxBtn').addEventListener('click',async()=>{const b=$('refreshFxBtn');b.disabled=true;try{await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify(fxPayload())});const d=await api('/api/admin/fx/refresh',{method:'POST',body:'{}'});await loadSettings();toast(d.message||'تم تحديث سعر الصرف.')}catch(e){toast(e.message)}finally{b.disabled=false}});
 $('saveBrandBtn').addEventListener('click',async()=>{const b=$('saveBrandBtn');b.disabled=true;try{const d=await api('/api/admin/settings',{method:'PATCH',body:JSON.stringify({storeName:$('storeName').value.trim(),announcement:$('announcement').value.trim(),storeLogo:$('storeLogo').value.trim()})});state.settings=d.settings;renderSettings(d);toast('تم حفظ اسم المتجر والشعار والإعلان.')}catch(e){toast(e.message)}finally{b.disabled=false}});
@@ -2395,6 +2416,8 @@ $('ordersBody').addEventListener('click',async e=>{
  }
 });
 $('fxRate').addEventListener('input',()=>{$('fxPreview').textContent=(Number($('fxRate').value)||0).toLocaleString('en-US')+' ل.س'});
+$('fxTryRate').addEventListener('input',()=>{$('fxTryStatus').textContent=Number($('fxTryRate').value)>0?'1 USD = '+Number($('fxTryRate').value).toLocaleString('en-US')+' TRY':'لم يتم ضبط سعر TRY بعد.';});
+initializeAdminLocale();
 initializeAdminColorMode();
 async function boot(){try{await api('/api/admin/session');showApp();await loadAll()}catch{showLogin()}}
 boot();
