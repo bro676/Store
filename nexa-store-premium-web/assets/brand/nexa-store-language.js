@@ -390,6 +390,31 @@
 
 
   const additionalTranslations = Object.freeze({
+    "يمكنك التسجيل برقم الهاتف وكلمة مرور دون رمز OTP. يجب أن يكون الرقم لك؛ لا يمكن تسجيل رقم مرتبط بحساب حالي.": "You can register with a phone number and password without an OTP. Use a number you own; a number already linked to an account cannot be registered again.",
+    "إنشاء حساب جديد": "Create a new account",
+    "أنشئ حساب Nexa برقم هاتفك وكلمة مرور خاصة بك.": "Create a Nexa account with your phone number and a password of your own.",
+    "أنشئ حساب Nexa": "Create a Nexa account",
+    "أدخل بياناتك لإنشاء حساب مرتبط برقم هاتفك ورصيدك وطلباتك.": "Enter your details to create an account linked to your phone number, balance and orders.",
+    "الاسم الكامل": "Full name",
+    "أدخل الاسم الكامل": "Enter your full name",
+    "تأكيد كلمة المرور": "Confirm password",
+    "أنشئ كلمة مرور من 8 أحرف على الأقل": "Create a password with at least 8 characters",
+    "أعد كتابة كلمة المرور": "Re-enter your password",
+    "يجب أن تطابق كلمة المرور.": "The passwords must match.",
+    "يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.": "The password must contain at least 8 characters.",
+    "إنشاء الحساب": "Create account",
+    "لدي حساب بالفعل": "I already have an account",
+    "التسجيل دون OTP أو SMS.": "Registration without OTP or SMS.",
+    "لن نرسل رمز تحقق. استخدم رقماً تملكه وتستطيع الوصول إليه؛ الرقم لن يكون موثق الملكية. لا يمكن استخدام رقم مسجل في حساب آخر.": "No verification code will be sent. Use a number you own and can access; phone ownership will not be verified. A number already registered to another account cannot be used.",
+    "التسجيل متاح برقم الهاتف وكلمة مرور.": "Registration is available with a phone number and password.",
+    "لا نطلب رمز OTP أو كلمة مرور محفظة الدفع.": "We do not request an OTP or your payment-wallet password.",
+    "جارٍ إنشاء الحساب…": "Creating account…",
+    "رقم الهاتف مسجل مسبقاً. سجّل الدخول إلى الحساب الحالي.": "This phone number is already registered. Sign in to the existing account.",
+    "أدخل اسماً بين حرفين و70 حرفاً.": "Enter a name between 2 and 70 characters.",
+    "أدخل رقم هاتف صحيحاً من 8 إلى 18 رقماً.": "Enter a valid phone number with 8 to 18 digits.",
+    "يجب أن تتكون كلمة المرور من 8 إلى 128 حرفاً.": "The password must contain 8 to 128 characters.",
+    "تم إنشاء الحساب وتسجيل الدخول بنجاح.": "Your account was created and you are now signed in.",
+    "تعذر إنشاء الحساب.": "Unable to create your account.",
     "عند تسجيل الدخول، يعرض هذا القسم طلبات حسابك المرتبطة برقم هاتفك. وتظهر طلبات الزوار المحفوظة على هذا الجهاز عند عدم تسجيل الدخول.": "When you sign in, this section shows orders linked to your phone number. Guest orders saved on this device appear when you are signed out.",
     "تحفظ المفضلة في حسابك وتبقى متاحة عند تسجيل الدخول من أجهزتك، أما مفضلة الزوار فتحفظ على هذا الجهاز.": "Your favourites are saved to your account and available when you sign in on your devices. Guest favourites are saved on this device.",
     "اختر طريقة التواصل المناسبة، أو ابحث ضمن الطلبات المرتبطة بحسابك أو طلبات الزوار المحفوظة على هذا الجهاز، أو أرسل تفاصيل المشكلة لفريق الدعم.": "Choose a contact method, search orders linked to your account or guest orders saved on this device, or send the support team details about the issue.",
@@ -575,7 +600,7 @@
     const latinKey=String(en).replace(/[٠-٩]/g,d=>'0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]).replace(/[۰-۹]/g,d=>'0123456789'['۰۱۲۳۴۵۶۷۸۹'.indexOf(d)]).trim().replace(/\s+/g,' ');
     if(!reverse.has(latinKey))reverse.set(latinKey,ar);
   }
-  const fragmentEntries=Object.entries(additionalTranslations).filter(([phrase])=>phrase.length>=8);
+  const fragmentEntries=Object.entries(translationLookup).filter(([phrase])=>phrase.length>=8).sort((a,b)=>b[0].length-a[0].length);
 
   const normalize = value => String(value || '').replace(/\s+/g,' ').trim();
   const arabicDigits='٠١٢٣٤٥٦٧٨٩';
@@ -588,10 +613,12 @@
     });
   }
   const originalText = new WeakMap();
+  const lastTranslatedText = new WeakMap();
   const originalAttributes = new WeakMap();
+  const lastTranslatedAttributes = new WeakMap();
   const ownTextMutationCounts = new WeakMap();
   const ownAttributeMutationCounts = new WeakMap();
-  const attributeSelector = '[placeholder],[title],[aria-label],[alt]';
+  const attributeSelector = '[placeholder],[title],[aria-label],[aria-description],[aria-placeholder],[alt],[data-tooltip],input[type="button"][value],input[type="submit"][value],input[type="reset"][value]';
   const excludedSelector = 'script,style,code,pre,[data-no-translate]';
   const TRANSLATION_BATCH_SIZE = 180;
 
@@ -663,48 +690,37 @@
     if (!parent || parent.closest(excludedSelector)) return;
     const current=node.nodeValue||'';
     let original=originalText.get(node);
-    if(original===undefined){
-      original=current;
-      originalText.set(node,original);
-    }else if(language==='en'){
-      const currentKey=normalize(current),originalKey=normalize(original),expected=translationLookup[originalKey];
-      if(expected&&currentKey!==normalize(localizeDigits(expected,'en'))&&!reverse.has(currentKey)){
-        original=current;
-        originalText.set(node,original);
-      }
-    }else{
-      const currentKey=normalize(current),recovered=reverse.get(currentKey);
-      if(recovered&&currentKey!==normalize(original)){
-        original=recovered;
-        originalText.set(node,original);
-      }
+    const lastTranslated=lastTranslatedText.get(node);
+    if(original===undefined){original=current;originalText.set(node,original);}
+    else if(lastTranslated!==undefined&&current!==lastTranslated){
+      // The application replaced this node after our last pass; preserve its new source value.
+      original=current;originalText.set(node,original);
     }
     const next=localizeDigits(language==='en'?translated(original):original,language);
     if(current!==next){
       incrementTextMutation(node);
-      node.nodeValue=preserveWhitespace(original,next);
-    }
+      const replacement=preserveWhitespace(original,next);
+      lastTranslatedText.set(node,replacement);node.nodeValue=replacement;
+    }else lastTranslatedText.set(node,current);
   }
 
   function translateAttributes(element) {
     if (!element || element.nodeType !== 1 || element.closest(excludedSelector)) return;
-    const names=['placeholder','title','aria-label','alt'];
+    const names=['placeholder','title','aria-label','aria-description','aria-placeholder','alt','data-tooltip'];
+    if(element.matches('input[type="button"],input[type="submit"],input[type="reset"]'))names.push('value');
     let stored=originalAttributes.get(element);
     if(!stored){stored={};originalAttributes.set(element,stored);}
+    let last=lastTranslatedAttributes.get(element);
+    if(!last){last={};lastTranslatedAttributes.set(element,last);}
     for(const name of names){
       if(!element.hasAttribute(name))continue;
       const current=element.getAttribute(name)||'';
       if(stored[name]===undefined)stored[name]=current;
-      else if(normalize(current)!==normalize(localizeDigits(language==='en'?translated(stored[name]):stored[name],language))){
-        const recovered=reverse.get(normalize(current));
-        if(recovered)stored[name]=recovered;
-        else stored[name]=current;
-      }
+      else if(last[name]!==undefined&&current!==last[name])stored[name]=current;
       const next=localizeDigits(language==='en'?translated(stored[name]):stored[name],language);
       if(current!==next){
-        incrementAttributeMutation(element,name);
-        element.setAttribute(name,next);
-      }
+        incrementAttributeMutation(element,name);last[name]=next;element.setAttribute(name,next);
+      }else last[name]=current;
     }
   }
 
@@ -805,7 +821,7 @@
     });
     observer.observe(document.body,{
       childList:true,subtree:true,characterData:true,
-      attributes:true,attributeFilter:['placeholder','title','aria-label','alt']
+      attributes:true,attributeFilter:['placeholder','title','aria-label','aria-description','aria-placeholder','alt','data-tooltip','value']
     });
   }
 

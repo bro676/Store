@@ -20,7 +20,7 @@ for (const page of pages) {
     }
   });
 }
-const backendFiles = ['../src/server.js','../src/admin-core.js','../src/exchange-rate.js','../src/order-expiry.js','../src/best-store-api.js','../src/best-store-webhook.js','../src/best-store-fulfillment.js','../src/supplier-comparison.js'];
+const backendFiles = ['../src/server.js','../src/admin-core.js','../src/exchange-rate.js','../src/order-expiry.js','../src/best-store-api.js','../src/best-store-webhook.js','../src/best-store-fulfillment.js','../src/supplier-comparison.js','../src/customer-auth.js'];
 for (const relativePath of backendFiles) {
   test(relativePath + ' backend JavaScript parses without syntax errors', () => {
     const absolutePath = path.resolve(here, relativePath);
@@ -400,11 +400,11 @@ test('Wamda brand redesign preserves store flows and adds reference account page
   assert.ok(store.includes("'/api/account/login'"), 'The original customer login route remains intact');
   assert.ok(!store.includes('accountRegisterForm') && !store.includes('accountAuthSwitch'), 'No public registration form or switch is present in the customer interface');
   assert.ok(store.includes('id="accountLoginForm"') && store.includes('id="loginPageForm"'), 'Existing customers can still log in using phone and password');
-  assert.ok(!store.includes('/api/account/register') && !store.includes('data-page="register"'), 'No public customer registration action is exposed in the storefront');
-  assert.ok(store.includes('data-view="register"') && store.includes('التسجيل غير متاح حالياً'), 'The direct registration route clearly states that registration remains disabled');
+  assert.ok(store.includes('/api/account/register') && store.includes('data-page="register"'), 'The phone registration page and backend route are available');
+  assert.ok(store.includes('id="registerPageForm"') && store.includes('id="registerPagePhone"') && store.includes('id="registerPagePassword"') && store.includes('id="registerPagePasswordConfirm"'), 'Registration form collects a phone number and confirmed password');
   assert.ok(store.includes('data-view="forgot"') && store.includes('استعادة كلمة المرور غير مفعّلة حالياً'), 'Password recovery stays unavailable until a verified SMS/OTP provider exists');
   assert.ok(store.includes('data-page="forgot"'), 'The login form provides a route to the password-recovery explanation');
-  assert.ok(server.includes("if(req.method==='POST'&&url.pathname==='/api/account/register')return send(res,403,{ok:false,error:'REGISTRATION_DISABLED'"), 'The backend unconditionally rejects public registration');
+  assert.ok(server.includes("if(req.method==='POST'&&url.pathname==='/api/account/register'){") && server.includes('PHONE_ALREADY_REGISTERED') && server.includes('pg_advisory_xact_lock'), 'The backend only creates an account for an unused phone number');
   assert.ok(!server.includes('CUSTOMER_REGISTRATION_ENABLED') && !server.includes('customerRegistrationEnabled'), 'Registration cannot be turned on by an environment variable');
 
   for (const id of ['overview','catalog','catalog-api','orders','payments','exchange']) {
@@ -701,7 +701,7 @@ test('storefront drawer language and display currency controls work without alte
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
   const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
 
-  assert.ok(store.includes('nexa-store-language.js?v=20261106-incremental-attributes-v2'), 'The Arabic/English dictionary is loaded before storefront initialization');
+  assert.ok(store.includes('nexa-store-language.js?v=20261107-lossless-toggle-v3'), 'The Arabic/English dictionary is loaded before storefront initialization');
   assert.ok(store.includes('id="sidebarLanguageToggle"'), 'The fourth account shortcut is now the language control');
   assert.ok(store.includes('id="sidebarCurrencyToggle"'), 'The currency capsule has a real interactive control');
   const first=store.indexOf('class="sidebar-quick-actions"');
@@ -825,7 +825,7 @@ test('English drawer updates its balance locale and all supported currencies use
   assert.ok(store.includes("return new Intl.NumberFormat(locale,{maximumFractionDigits:2}).format(value)+' '+storeCurrencyLabel('SYP');"),'SYP order amounts use the active language currency label');
   assert.ok(store.includes("new Intl.NumberFormat(storeLocale()==='en'?'en-US':'ar-SY',{style:'currency',currency:'USD'})"),'USD amounts follow the selected storefront language');
   assert.ok(store.includes('nexa-store-drawer.css?v=20261106-drawer-ltr-v2'),'The updated drawer stylesheet has a fresh cache key');
-  assert.ok(store.includes('nexa-store-language.js?v=20261106-incremental-attributes-v2'),'The updated English dictionary has a fresh cache key');
+  assert.ok(store.includes('nexa-store-language.js?v=20261107-lossless-toggle-v3'),'The updated English dictionary has a fresh cache key');
 });
 
 
@@ -873,4 +873,23 @@ test('admin can safely manage individual customer profile images', async () => {
   assert.ok(admin.includes("'/api/admin/customers/'+encodeURIComponent(customerId)+'/avatar'"), 'Dashboard saves profile images using the customer-specific API');
   assert.ok(admin.includes('data-customer-avatar='), 'Each customer card has its own image upload control');
   assert.ok(store.includes("customerAccount.avatar_image||storefrontExperience?.avatarImage||storefrontLogoImage"), "The logged-in customer image takes precedence over the storefront fallback");
+});
+
+test('registration is phone/password-only, rate-limited and cannot overwrite existing customers',async()=>{
+ const server=await fs.readFile(path.join(webRoot,'server/src/server.js'),'utf8');
+ const helper=await fs.readFile(path.join(webRoot,'server/src/customer-auth.js'),'utf8');
+ assert.ok(server.includes("rateLimit(req,res,'account-register:'+ip,5,60*60_000)"),'Registration is rate-limited by IP');
+ assert.ok(server.includes("rateLimit(req,res,'account-register-phone:'+phone,3,60*60_000)"),'Registration is rate-limited by phone');
+ assert.ok(server.includes("regexp_replace(phone,'[^0-9]','','g')=$1 LIMIT 1"),'Phone comparisons use normalized digits');
+ assert.ok(server.includes('passwordHash=customerPasswordHash(password,salt)'),'Passwords are salted and hashed');
+ assert.ok(server.includes('customerCookie(req,token)'),'A normal secure session is created after sign-up');
+ assert.ok(helper.includes('export function normalizeCustomerPhone')&&helper.includes('export function validateCustomerRegistration'),'Registration validation is unit-testable');
+});
+
+test('major account, checkout, notice and modal panels have both light and dark theme surfaces',async()=>{
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
+ const selectors=['.customer-wallet-card','.account-auth-form','.wallet-payment-form','.wallet-ledger-panel','.payment-receipt','.reference-panel','.reference-login-panel','.modal','.notification-panel'];
+ for(const mode of ['dark','light']){const start=css.indexOf(':root[data-theme="'+mode+'"] .app-shell :where(');assert.ok(start>=0,'Missing '+mode+' mode contract');const end=css.indexOf('){',start);assert.ok(end>start,'Malformed '+mode+' contract');const block=css.slice(start,end);for(const selector of selectors)assert.ok(block.includes(selector),'Missing '+mode+' theme for '+selector);}
+ assert.ok(css.includes('select option')&&css.includes('input:-webkit-autofill'),'Select options and autofill follow the active theme');
+ assert.ok(css.includes('.drawer-direction-switching .app-shell .sidebar'),'Drawer direction switch does not animate across the screen');
 });

@@ -24,6 +24,7 @@ import { seagmOrderMetadata, evaluateSeagmOrder, classifySeagmFulfillmentError }
 import { expirePendingOrders } from './order-expiry.js';
 import { waitForDatabase, isRetryableDatabaseError, nextDatabaseRetry } from './db-startup.js';
 import { normalizeCustomerPreferences, mergeCustomerPreferences } from './customer-preferences.js';
+import { normalizeCustomerPhone, validateCustomerRegistration } from './customer-auth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..', '..');
@@ -2644,13 +2645,48 @@ const server = http.createServer(async (req,res) => {
       walletVerifiedAt:cachedShamWalletAt?new Date(cachedShamWalletAt).toISOString():null,
     });
 
-    if(req.method==='POST'&&url.pathname==='/api/account/register')return send(res,403,{ok:false,error:'REGISTRATION_DISABLED',message:'إنشاء الحسابات الجديدة متوقف حالياً. تسجيل الدخول للحسابات الحالية برقم الهاتف وكلمة المرور فقط.'});
+    if(req.method==='POST'&&url.pathname==='/api/account/register'){
+      if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED',message:'خدمة الحسابات غير جاهزة حالياً.'});
+      if(rateLimit(req,res,'account-register:'+ip,5,60*60_000))return;
+      const input=await bodyJson(req,4096),registration=validateCustomerRegistration(input);
+      if(!registration.ok){
+        const messages={INVALID_NAME:'أدخل اسماً بين حرفين و70 حرفاً.',INVALID_PHONE:'أدخل رقم هاتف صحيحاً من 8 إلى 18 رقماً.',INVALID_PASSWORD:'يجب أن تتكون كلمة المرور من 8 إلى 128 حرفاً.'};
+        return send(res,400,{ok:false,error:registration.error,message:messages[registration.error]||'تحقق من بيانات التسجيل.'});
+      }
+      const {fullName,phone,password}=registration;
+      if(rateLimit(req,res,'account-register-phone:'+phone,3,60*60_000))return;
+      const client=await pool.connect();
+      try{
+        await client.query('BEGIN');
+        await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',['nexa-customer-phone:'+phone]);
+        const existing=await client.query("SELECT id FROM nexa_customers WHERE regexp_replace(phone,'[^0-9]','','g')=$1 LIMIT 1",[phone]);
+        if(existing.rowCount){
+          await client.query('ROLLBACK');
+          return send(res,409,{ok:false,error:'PHONE_ALREADY_REGISTERED',message:'رقم الهاتف مسجل مسبقاً. سجّل الدخول إلى الحساب الحالي.'});
+        }
+        const customerId='NX-C-'+crypto.randomBytes(10).toString('hex').toUpperCase();
+        const salt=crypto.randomBytes(16).toString('hex'),passwordHash=customerPasswordHash(password,salt);
+        const created=await client.query(`INSERT INTO nexa_customers(id,full_name,phone,password_salt,password_hash)
+          VALUES($1,$2,$3,$4,$5) RETURNING id,full_name,phone,balance_minor::text,created_at`,
+          [customerId,fullName,phone,salt,passwordHash]);
+        const token=crypto.randomBytes(32).toString('base64url');
+        await client.query(`INSERT INTO nexa_customer_sessions(session_hash,customer_id,expires_at)
+          VALUES($1,$2,NOW()+INTERVAL '30 days')`,[customerSessionHash(token),customerId]);
+        await client.query('COMMIT');
+        res.setHeader('Set-Cookie',customerCookie(req,token));
+        return send(res,201,{ok:true,customer:created.rows[0]});
+      }catch(error){
+        await client.query('ROLLBACK').catch(()=>{});
+        if(error?.code==='23505')return send(res,409,{ok:false,error:'PHONE_ALREADY_REGISTERED',message:'رقم الهاتف مسجل مسبقاً. سجّل الدخول إلى الحساب الحالي.'});
+        throw error;
+      }finally{client.release();}
+    }
     if(req.method==='POST'&&url.pathname==='/api/account/login'){
       if(!pool)return send(res,503,{ok:false,error:'DATABASE_NOT_CONFIGURED',message:'خدمة الحسابات غير جاهزة حالياً.'});
       if(rateLimit(req,res,'account-login:'+ip,8,10*60_000))return;
-      const input=await bodyJson(req,4096),phone=String(input.phone||'').replace(/[\s()-]/g,'').trim(),password=String(input.password||'');
-      if(!/^\+?[0-9]{8,18}$/.test(phone)||!password||password.length>128)return send(res,400,{ok:false,error:'INVALID_LOGIN',message:'تحقق من رقم الهاتف وكلمة المرور.'});
-      const found=await pool.query('SELECT id,password_salt,password_hash FROM nexa_customers WHERE phone=$1 LIMIT 1',[phone]);
+      const input=await bodyJson(req,4096),phone=normalizeCustomerPhone(input.phone),password=String(input.password||'');
+      if(!phone||!password||password.length>128)return send(res,400,{ok:false,error:'INVALID_LOGIN',message:'تحقق من رقم الهاتف وكلمة المرور.'});
+      const found=await pool.query("SELECT id,password_salt,password_hash FROM nexa_customers WHERE regexp_replace(phone,'[^0-9]','','g')=$1 LIMIT 1",[phone]);
       if(!found.rowCount)return send(res,401,{ok:false,error:'INVALID_CREDENTIALS',message:'رقم الهاتف أو كلمة المرور غير صحيحة.'});
       const expected=Buffer.from(found.rows[0].password_hash,'hex'),supplied=Buffer.from(customerPasswordHash(password,found.rows[0].password_salt),'hex');
       if(expected.length!==supplied.length||!crypto.timingSafeEqual(expected,supplied))return send(res,401,{ok:false,error:'INVALID_CREDENTIALS',message:'رقم الهاتف أو كلمة المرور غير صحيحة.'});

@@ -627,7 +627,7 @@ body{
 .category-choice.department-choice>span:first-child img{width:25px;height:25px;display:block;object-fit:cover;border-radius:8px}
 </style>
 
-<link rel="stylesheet" href="/assets/brand/nexa-store-polish.css?v=20261106-drawer-responsive-v2">
+<link rel="stylesheet" href="/assets/brand/nexa-store-polish.css?v=20261107-theme-sweep-v3">
 </head>
 <body>
 <div class="app-shell">
@@ -829,7 +829,8 @@ body{
       </form>
     </div>
     <p class="account-auth-message" id="accountAuthMessage" role="status"></p>
-    <p class="account-auth-note">الدخول متاح للحسابات الحالية برقم الهاتف وكلمة المرور فقط. التسجيل الجديد متوقف حالياً، ولا نطلب كلمة مرور شام كاش أو رمز OTP.</p>
+    <p class="account-auth-note">يمكنك التسجيل برقم الهاتف وكلمة مرور دون رمز OTP. يجب أن يكون الرقم لك؛ لا يمكن تسجيل رقم مرتبط بحساب حالي.</p>
+    <button class="btn btn-soft" type="button" data-page="register">إنشاء حساب جديد</button>
   </div>
   <div id="customerSignedPanel" class="hidden">
     <div class="wallet-account-summary">
@@ -948,7 +949,8 @@ body{
           <button class="btn btn-primary reference-submit" type="submit">تسجيل الدخول <span>←</span></button>
           <button class="btn btn-soft" type="button" data-page="forgot">نسيت كلمة المرور؟</button>
         </form>
-        <div class="reference-quiet-note"><strong>التسجيل الجديد متوقف مؤقتاً.</strong><span>لا يوجد إنشاء حسابات جديدة في الوقت الحالي.</span></div>
+        <div class="reference-quiet-note"><strong>التسجيل متاح برقم الهاتف وكلمة مرور.</strong><span>لا نطلب رمز OTP أو كلمة مرور محفظة الدفع.</span></div>
+        <button class="btn btn-soft" type="button" data-page="register">إنشاء حساب جديد</button>
       </section>
       <section class="reference-panel reference-login-panel hidden" id="loginPageSignedPanel">
         <div class="reference-panel-icon">✓</div>
@@ -963,8 +965,22 @@ body{
 
 <section class="view hidden" data-view="register" id="registerView">
   <div class="reference-page-wrap">
-    <div class="reference-page-heading"><div><span class="reference-kicker">CUSTOMER REGISTRATION</span><h1>إنشاء حساب جديد</h1><p>التسجيل الجديد متوقف حالياً، ويمكنك العودة لاحقاً بعد الإعلان عن فتحه.</p></div></div>
-    <section class="reference-empty-panel"><div class="reference-empty-icon">♙</div><h2>التسجيل غير متاح حالياً</h2><p>تم إيقاف إنشاء الحسابات الجديدة على واجهة المتجر والخادم معاً. إذا كان لديك حساب سابق، يمكنك الدخول باستخدام رقم الهاتف وكلمة المرور فقط.</p><div class="reference-action-row"><button class="btn btn-primary" type="button" data-page="login">تسجيل الدخول</button><button class="btn btn-soft" type="button" data-page="home">العودة إلى المتجر</button></div></section>
+    <div class="reference-page-heading"><div><span class="reference-kicker">CUSTOMER REGISTRATION</span><h1>إنشاء حساب جديد</h1><p>أنشئ حساب Nexa برقم هاتفك وكلمة مرور خاصة بك.</p></div></div>
+    <section class="reference-panel reference-login-panel">
+      <div class="reference-panel-icon">♙</div>
+      <h2>أنشئ حساب Nexa</h2>
+      <p>أدخل بياناتك لإنشاء حساب مرتبط برقم هاتفك ورصيدك وطلباتك.</p>
+      <form id="registerPageForm" class="reference-form">
+        <div class="field"><label for="registerPageName">الاسم الكامل</label><input id="registerPageName" type="text" autocomplete="name" minlength="2" maxlength="70" placeholder="أدخل الاسم الكامل" required></div>
+        <div class="field"><label for="registerPagePhone">رقم الهاتف</label><input id="registerPagePhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+963..." maxlength="22" required></div>
+        <div class="field"><label for="registerPagePassword">كلمة المرور</label><input id="registerPagePassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="أنشئ كلمة مرور من 8 أحرف على الأقل" required></div>
+        <div class="field"><label for="registerPagePasswordConfirm">تأكيد كلمة المرور</label><input id="registerPagePasswordConfirm" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="أعد كتابة كلمة المرور" required></div>
+        <p class="reference-form-message" id="registerPageMessage" role="status"></p>
+        <button class="btn btn-primary reference-submit" type="submit">إنشاء الحساب</button>
+        <button class="btn btn-soft" type="button" data-page="login">لدي حساب بالفعل</button>
+      </form>
+      <div class="reference-quiet-note"><strong>التسجيل دون OTP أو SMS.</strong><span>لن نرسل رمز تحقق. استخدم رقماً تملكه وتستطيع الوصول إليه؛ الرقم لن يكون موثق الملكية. لا يمكن استخدام رقم مسجل في حساب آخر.</span></div>
+    </section>
   </div>
 </section>
 
@@ -1056,7 +1072,7 @@ body{
 </section>
 <div class="toast" id="toast"></div>
 <script src="/assets/brand/nexa-catalog.js?v=20261106-dashboard-order-v3"></script>
-<script src="/assets/brand/nexa-store-language.js?v=20261106-incremental-attributes-v2"></script>
+<script src="/assets/brand/nexa-store-language.js?v=20261107-lossless-toggle-v3"></script>
 <script>
 let categories=[];
 let storefrontDisplayCurrency='USD',storefrontFxRate=145,storefrontFxReady=false,storefrontLanguage='ar',walletTransactions=[];
@@ -1846,7 +1862,7 @@ function initializeStorePreferences(){
  syncSidebarCurrency();
  $('sidebarLanguageToggle')?.addEventListener('click',()=>{
   const next=storeLocale()==='ar'?'en':'ar';
-  if(storeDrawerMedia.matches)closeMenu(true);storefrontLanguage=next;window.NexaLocale?.setLanguage(next);
+  storefrontLanguage=next;window.NexaLocale?.setLanguage(next);
   if(customerAccount)saveCustomerPreferences({locale:next});
   showToast(next==='en'?'Language changed to English':'تم تغيير اللغة إلى العربية');
  });
@@ -1857,11 +1873,16 @@ function initializeStorePreferences(){
  $('sidebarCurrencyToggle')?.addEventListener('click',()=>{const next=storefrontDisplayCurrency==='USD'?'SYP':'USD';setStoreDisplayCurrency(next,{notify:true});if(customerAccount)saveCustomerPreferences({displayCurrency:next});});
  window.addEventListener('nexa:languagechange',event=>{
   storefrontLanguage=event.detail?.language||storeLocale();
-  syncSidebarCurrency();
-  renderSidebarAccount();
+  syncSidebarCurrency();renderSidebarAccount();
   setStoreColorMode(document.documentElement.dataset.theme||'dark',{persist:false});
-  if(window.matchMedia('(max-width: 1024px)').matches)closeMenu(true);
-  else setStoreMenuState(isStoreMenuOpen(),false);
+  if(storeDrawerMedia.matches){
+   if(document.body.classList.contains('sidebar-open')){
+    document.documentElement.classList.add('drawer-direction-switching');
+    closeMenu(true);
+    const raf=window.requestAnimationFrame||((callback)=>window.setTimeout(callback,16));
+    raf(()=>raf(()=>document.documentElement.classList.remove('drawer-direction-switching')));
+   }else setStoreMenuState(false,false);
+  }else setStoreMenuState(isStoreMenuOpen(),false);
  });
  window.addEventListener('storage',event=>{
   if(event.key==='nexa-store-display-currency'&&(event.newValue==='USD'||event.newValue==='SYP'))setStoreDisplayCurrency(event.newValue,{persist:false});
@@ -2184,6 +2205,25 @@ $('loginPageForm').addEventListener('submit',async event=>{
  finally{button.disabled=false;button.textContent=original;}
 });
 $('accountLoginForm').addEventListener('submit',event=>{event.preventDefault();submitAccountForm(event.currentTarget,'/api/account/login',{phone:$('accountLoginPhone').value.trim(),password:$('accountLoginPassword').value});});
+$('registerPageForm').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const form=event.currentTarget,button=form.querySelector('button[type="submit"]'),message=$('registerPageMessage');
+ const original=button.textContent,name=$('registerPageName').value.trim(),phone=$('registerPagePhone').value.trim();
+ const password=$('registerPagePassword').value,confirmation=$('registerPagePasswordConfirm').value;
+ message.textContent='';
+ if(password!==confirmation){message.textContent='يجب أن تطابق كلمة المرور.';$('registerPagePasswordConfirm').focus();return;}
+ if(password.length<8){message.textContent='يجب أن تتكون كلمة المرور من 8 أحرف على الأقل.';$('registerPagePassword').focus();return;}
+ button.disabled=true;button.textContent='جارٍ إنشاء الحساب…';
+ try{
+  const response=await fetch('/api/account/register',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({fullName:name,phone,password})});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||!data.ok)throw new Error(data.message||'تعذر إنشاء الحساب.');
+  form.reset();await refreshCustomerAccount();renderLoginPage();navigate('profile');
+  showToast('تم إنشاء الحساب وتسجيل الدخول بنجاح.');
+ }catch(error){message.textContent=error?.message||'تعذر إنشاء الحساب.';}
+ finally{button.disabled=false;button.textContent=original;}
+});
+
 $('accountLogoutButton').addEventListener('click',logoutCustomerAccount);
 $('walletTopupForm').addEventListener('submit',createWalletTopup);
 $('paymentMethod').addEventListener('change',renderCurrencyPreview);

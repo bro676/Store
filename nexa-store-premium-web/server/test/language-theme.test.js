@@ -57,15 +57,22 @@ test('all Arabic static storefront text nodes have exact English dictionary entr
  assert.deepEqual(missing,[],'Every static Arabic interface text node must have a direct English translation');
 });
 
-test('language direction moves the drawer rail and closes the mobile drawer before changing language',async()=>{
+test('language direction updates first, then closes the drawer on the new RTL/LTR side',async()=>{
  const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
  const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
- assert.ok(store.includes("if(window.matchMedia('(max-width: 1024px)').matches)closeMenu(true);"),
-  'Language switching closes the mobile drawer before changing direction');
+ const clickStart=store.indexOf("$('sidebarLanguageToggle')?.addEventListener('click'");
+ const clickEnd=store.indexOf("$('sidebarLogoutButton')",clickStart);
+ const clickHandler=store.slice(clickStart,clickEnd);
+ const langStart=store.indexOf("window.addEventListener('nexa:languagechange'");
+ const langEnd=store.indexOf("window.addEventListener('storage'",langStart);
+ const langHandler=store.slice(langStart,langEnd);
+ assert.ok(!clickHandler.includes('closeMenu(true)'),'The click handler must not close the drawer before changing dir');
+ assert.ok(clickHandler.indexOf('NexaLocale?.setLanguage(next)')>=0,'Document direction changes before the close event');
+ assert.ok(langHandler.includes('drawer-direction-switching')&&langHandler.includes('closeMenu(true)'),'The drawer closes once after direction changes');
  assert.ok(css.includes(':root[dir="ltr"] .app-shell .sidebar{'),'English uses a left-side drawer');
  assert.ok(css.includes('transform:translate3d(-110%,0,0)!important'),'The left-side drawer moves off-canvas in English');
  assert.ok(css.includes(':root[dir="rtl"] .app-shell .sidebar{'),'Arabic retains a right-side drawer');
- assert.ok(css.includes('text-align:start!important'),'Text alignment follows active direction');
+ assert.ok(css.includes('drawer-direction-switching .app-shell .sidebar'),'The direction swap avoids cross-screen animation');
 });
 
 test('theme switch is a moving sun/moon control and storefront panels use theme variables',async()=>{
@@ -120,4 +127,12 @@ test('dark checkout and notice surfaces use dark theme tokens',async()=>{
  const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
  for(const selector of ['.wallet-payment-form','.wallet-payment-result','.wallet-invoice-meta','.catalog-note','.wallet-api-note','.support-ticket-result','.reference-warning-panel'])assert.ok(css.includes(selector),'missing dark styling for '+selector);
  assert.ok(css.includes('select option')&&css.includes('background-color:var(--surface-2)!important'),'native select options use dark surfaces');
+});
+
+test('repeated language toggles preserve source text and dynamic attributes',async()=>{
+ const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
+ assert.ok(source.includes('const lastTranslatedText = new WeakMap();'),'The source text node is preserved after translation');
+ assert.ok(source.includes('const lastTranslatedAttributes = new WeakMap();'),'Original placeholder and label attributes remain recoverable');
+ assert.ok(source.includes('else if(lastTranslated!==undefined&&current!==lastTranslated)'),'App-rendered text changes are distinguished from translations');
+ assert.ok(source.includes('aria-description')&&source.includes('data-tooltip'),'Dynamic accessibility labels and tooltips are translated');
 });
