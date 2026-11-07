@@ -146,8 +146,8 @@ test('drawer content gap is tiny and the storefront top bar mirrors with documen
   assert.ok(responsiveCss.includes('--nexa-drawer-content-gap:5px'), 'The desktop drawer/content separation is only five pixels');
   assert.ok(responsiveCss.includes('margin:0 calc(var(--rail-width) + var(--nexa-drawer-content-gap)) 0 0!important'), 'RTL content keeps a five-pixel gap after the right-side drawer');
   assert.ok(responsiveCss.includes('margin:0 0 0 calc(var(--rail-width) + var(--nexa-drawer-content-gap))!important'), 'LTR content keeps a five-pixel gap after the left-side drawer');
-  assert.ok(responsiveCss.includes(':root[dir="rtl"] .app-shell .header-main{direction:rtl!important}'), 'Arabic top bar follows RTL');
-  assert.ok(responsiveCss.includes(':root[dir="ltr"] .app-shell .header-main{direction:ltr!important}'), 'English top bar follows LTR');
+  assert.ok(responsiveCss.includes(':root[dir="rtl"] .app-shell .header-main{direction:rtl!important;}'), 'Arabic top bar follows RTL');
+  assert.ok(responsiveCss.includes(':root[dir="ltr"] .app-shell .header-main{direction:ltr!important;}'), 'English top bar follows LTR');
   assert.ok(responsiveCss.includes('.app-shell .header-actions{\n  order:0!important;'), 'Menu, wallet and VIP stay at the drawer-side edge');
   assert.ok(responsiveCss.includes('.app-shell .header-brand{\n  order:1!important;'), 'The brand moves to the opposite edge');
   assert.ok(responsiveCss.includes('padding-inline:8px!important'), 'The excessive top bar edge padding is reduced');
