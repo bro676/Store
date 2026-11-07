@@ -55,6 +55,12 @@ test('final responsive layer sizes the desktop rail and content by available wid
   assert.ok(!responsiveCss.includes('calc(100% - 2 * var(--nexa-layout-gutter))'));
 });
 
+test('light mode retains the Nexa sky-blue storefront header', () => {
+  assert.ok(responsiveCss.includes(':root[data-theme="light"] body .app-shell .header'));
+  assert.ok(responsiveCss.includes('background:#62c8f2!important'));
+  assert.ok(responsiveCss.includes('color:#06334b!important'));
+});
+
 test('dark and light modes define complete storefront and admin surface contracts', () => {
   for (const token of [
     ':root[data-theme="dark"]',
