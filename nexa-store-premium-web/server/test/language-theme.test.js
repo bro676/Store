@@ -28,6 +28,7 @@ test('storefront language engine translates static and dynamic text, attributes 
  sandbox.window.NexaLocale.initialize();
  sandbox.window.NexaLocale.setLanguage('en');
  const translate=sandbox.window.NexaLocale.translate;
+ const editorialUiLabels=[["BROWSE BY CATEGORY","تصفّح حسب القسم"],["POPULAR PICKS","اختيارات شائعة"],["HOW IT WORKS","كيف يعمل المتجر"],["HELP CENTER","مركز المساعدة"],["NEXA CATALOG","كتالوج Nexa"],["NEXA DIGITAL STORE","المتجر الرقمي من Nexa"],["YOUR ACTIVITY","نشاطك"],["SAVED ITEMS","العناصر المحفوظة"],["SECURE CHECKOUT · SHAM CASH","الدفع الآمن · شام كاش"],["NEXA WALLET","محفظة Nexa"],["LIVE TRANSACTION CHECK","التحقق المباشر من التحويل"],["NEXA CARE CENTER","مركز خدمة Nexa"],["SEND A REQUEST","إرسال طلب"],["LOCAL ORDER LOOKUP","البحث المحلي عن طلب"],["HELP & ANSWERS","المساعدة والإجابات"],["PAYMENT HISTORY","سجل المدفوعات"],["YOUR NEXA ACCOUNT","حسابك في Nexa"],["ABOUT NEXA","عن Nexa"],["YOUR DIGITAL SPACE","مساحتك الرقمية"],["NEED HELP?","هل تحتاج إلى مساعدة؟"],["CUSTOMER ACCOUNT","حساب العميل"],["ACCOUNT ACCESS","الوصول إلى الحساب"],["CUSTOMER REGISTRATION","إنشاء حساب العميل"],["ACCOUNT RECOVERY","استعادة الحساب"],["NOTIFICATION CENTER","مركز الإشعارات"],["VIP MEMBERSHIP","عضوية VIP"],["TELEGRAM CONNECTION","ربط تيليجرام"],["PARTNERS & REFERRALS","الشركاء والإحالات"],["ACCOUNT SECURITY","أمان الحساب"],["IDENTITY VERIFICATION","توثيق الهوية"],["CUSTOMER API ACCESS","وصول العميل إلى API"],["NEXA APP","تطبيق Nexa"],["NEXA MEMBER","عضو Nexa"],["DIGITAL STORE","المتجر الرقمي"],["Nexa Store","متجر Nexa"]];
  assert.equal(translate('صفحة ٢ من ٥'),'Page 2 of 5');
  assert.equal(translate('إنشاء فاتورة شحن ١٢'),'Create top-up invoice 12');
  assert.equal(translate('لا توجد طلبات حتى الآن.'),'No orders yet.');
@@ -38,6 +39,7 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(sandbox.document.documentElement.direction,'ltr');
  sandbox.window.NexaLocale.setLanguage('ar');
  assert.equal(translate('Order 27'),'طلب ٢٧');
+ for(const [english,arabic] of editorialUiLabels)assert.equal(translate(english),arabic,'Arabic locale must fully localize '+english);
  assert.equal(translate('No orders yet.'),'لا توجد طلبات حتى الآن.');
  assert.equal(translate('Full name'),'الاسم الكامل');
  assert.equal(translate('Card number'),'رقم البطاقة');
@@ -50,6 +52,7 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(translate('3 folders ·'),'٣ مجلدات ·');
  sandbox.window.NexaLocale.setLanguage('en');
  assert.equal(translate('فتح الفئة الرئيسية'),'Open Main category');
+ for(const [english,arabic] of editorialUiLabels)assert.equal(translate(arabic),english,'English locale must restore '+english);
  assert.equal(translate('5 أقسام داخلية · 7 منتجات'),'5 subcategories · 7 products');
  assert.equal(translate('4 مجلدات رئيسية'),'4 main folders');
  assert.equal(translate('2 أقسام رئيسية'),'2 main categories');
