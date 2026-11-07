@@ -614,7 +614,7 @@ test('final Wamda finishing pass overrides legacy blue chrome in both themes', a
   assert.ok(store.includes('nexa-wamda-blue.css?v=20261107-i18n-rtl-theme-v1'), 'Storefront uses the final stylesheet');
   assert.ok(admin.includes('nexa-wamda-blue.css?v=20261107-i18n-rtl-theme-v1'), 'Admin uses the final stylesheet');
   assert.ok(store.includes("isDark?'#101010':'#ffffff'"), 'Store browser chrome matches the selected neutral theme');
-  assert.ok(admin.includes("selected==='dark'?'#3f4a75':'#f4efea'"), 'Admin browser chrome matches its independent theme');
+  assert.ok(admin.includes("selected==='dark'?'#171d22':'#ffffff'"), 'Admin browser chrome matches its independent theme');
 });
 
 
@@ -829,7 +829,7 @@ test('English drawer updates its balance locale and all supported currencies use
   assert.ok(store.includes('return formatDisplaySyp(value);'),'Base SYP amounts use the active USD/TRY display conversion');
   assert.ok(store.includes("function formatUsdDisplay(value)")&&store.includes("currency:'USD'"),'USD amounts use the locale-aware display converter');
   assert.ok(store.includes('nexa-store-drawer.css?v=20261106-drawer-ltr-v2'),'The updated drawer stylesheet has a fresh cache key');
-  assert.ok(store.includes('nexa-store-language.js?v=20261107-supplier-fields-and-wallet-i18n-v12'),'The updated English dictionary has a fresh cache key');
+  assert.ok(store.includes('nexa-store-language.js?v=20261108-turkish-i18n-v1'),'The updated English dictionary has a fresh cache key');
 });
 
 
