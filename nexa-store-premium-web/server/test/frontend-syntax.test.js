@@ -729,7 +729,7 @@ test('storefront drawer language and display currency controls work without alte
   assert.ok(locale.includes("document.documentElement.dir=language==='ar'?'rtl':'ltr'"), 'Language switching changes page direction');
   assert.ok(locale.includes("new MutationObserver"), 'Dynamically rendered storefront text is translated as well');
   assert.ok(locale.includes("'الرئيسية':'Home'") && locale.includes("'طلباتي':'My Orders'"), 'Core drawer navigation has Arabic and English labels');
-  assert.ok(locale.includes('Ana sayfa')&&locale.includes('tr-TR'), 'Turkish translations and locale formatting are available');
+  assert.ok(locale.includes('Ana sayfa')&&store.includes("'tr-TR'"), 'Turkish translations and locale formatting are available');
   assert.ok(drawer.includes('font-size:14px!important;font-weight:900!important'), 'Drawer menu typography is scaled to normal viewing size');
   assert.ok(drawer.includes(':root[data-locale="en"] .app-shell .sidebar-nav .side-link'), 'English drawer alignment is handled independently');
 });
