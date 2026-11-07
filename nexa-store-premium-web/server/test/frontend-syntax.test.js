@@ -890,7 +890,8 @@ test('registration is phone/password-only, rate-limited and cannot overwrite exi
 test('major account, checkout, notice and modal panels have both light and dark theme surfaces',async()=>{
  const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
  const selectors=['.customer-wallet-card','.account-auth-form','.wallet-payment-form','.wallet-ledger-panel','.payment-receipt','.reference-panel','.reference-login-panel','.modal','.notification-panel'];
- for(const mode of ['dark','light']){const marker=':root[data-theme="'+mode+'"] .app-shell :where(';const start=css.lastIndexOf(marker);assert.ok(start>=0,'Missing final '+mode+' mode contract');const end=css.indexOf('){',start);assert.ok(end>start,'Malformed final '+mode+' contract');const block=css.slice(start,end);for(const selector of selectors)assert.ok(block.includes(selector),'Missing '+mode+' theme for '+selector);}
+ const contractStart=css.lastIndexOf('/* FINAL THEME CONTRACT v3');assert.ok(contractStart>=0,'Final theme contract is present');
+ for(const mode of ['dark','light']){const marker=':root[data-theme="'+mode+'"] .app-shell :where(';const start=css.indexOf(marker,contractStart);assert.ok(start>=0,'Missing final '+mode+' mode contract');const end=css.indexOf('){',start);assert.ok(end>start,'Malformed final '+mode+' contract');const block=css.slice(start,end);for(const selector of selectors)assert.ok(block.includes(selector),'Missing '+mode+' theme for '+selector);}
  assert.ok(css.includes('select option')&&css.includes('input:-webkit-autofill'),'Select options and autofill follow the active theme');
  assert.ok(css.includes('.drawer-direction-switching .app-shell .sidebar'),'Drawer direction switch does not animate across the screen');
 });
