@@ -571,13 +571,10 @@ button,input,select,textarea{min-width:0;max-width:100%;font:inherit}
 :root[dir="ltr"] .app-shell .app-main{margin:0 0 0 var(--rail-width)!important}
 body.sidebar-closed .app-shell #appMain,
 body.sidebar-closed .app-shell .app-main{margin:0!important;width:100%!important}
-.app-shell>.header{
-  width:calc(100% - var(--rail-width))!important;
-  margin:0 var(--rail-width) 0 0!important;
-  transition:width .24s ease,margin .24s ease!important;
+/* The header is nested inside .app-main; let the parent own rail sizing. */
+.app-shell .app-main > .header{
+  width:100%!important;max-width:100%!important;margin:0!important;
 }
-:root[dir="ltr"] .app-shell>.header{margin:0 0 0 var(--rail-width)!important}
-body.sidebar-closed .app-shell>.header{width:100%!important;margin:0!important}
 
 /* Preserve the exact page scroll position while the mobile drawer is open. */
 html.store-drawer-scroll-locked body{
@@ -595,7 +592,7 @@ html.store-drawer-scroll-locked body{
     width:100%!important;max-width:100%!important;min-width:0!important;
     margin:0!important;min-height:100dvh!important;
   }
-  .app-shell>.header{width:100%!important;margin:0!important}
+  .app-shell .app-main > .header{width:100%!important;max-width:100%!important;margin:0!important}
   .app-shell .view{
     width:100%!important;max-width:100%!important;min-width:0!important;
     padding-inline:clamp(12px,3vw,20px)!important;overflow-x:clip!important;
