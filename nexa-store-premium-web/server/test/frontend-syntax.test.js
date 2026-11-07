@@ -881,7 +881,29 @@ test('registration is phone/password-only, rate-limited and cannot overwrite exi
  const helper=await fs.readFile(path.join(webRoot,'server/src/customer-auth.js'),'utf8');
  assert.ok(server.includes("rateLimit(req,res,'account-register:'+ip,5,60*60_000)"),'Registration is rate-limited by IP');
  assert.ok(server.includes("rateLimit(req,res,'account-register-phone:'+phone,3,60*60_000)"),'Registration is rate-limited by phone');
- assert.ok(server.includes("regexp_replace(phone,'[^0-9]','','g')=$1 LIMIT 1"),'Phone comparisons use normalized digits');
+ assert.ok(server.includes("regexp_replace(phone,'[^0-9]','','g')=$1 OR ($1 ~ '^9639[0-9]{8}
+ assert.ok(server.includes('passwordHash=customerPasswordHash(password,salt)'),'Passwords are salted and hashed');
+ assert.ok(server.includes('customerCookie(req,token)'),'A normal secure session is created after sign-up');
+ assert.ok(helper.includes('export function normalizeCustomerPhone')&&helper.includes('export function validateCustomerRegistration'),'Registration validation is unit-testable');
+});
+
+test('major account, checkout, notice and modal panels have both light and dark theme surfaces',async()=>{
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
+ const selectors=['.customer-wallet-card','.account-auth-form','.wallet-payment-form','.wallet-ledger-panel','.payment-receipt','.reference-panel','.reference-login-panel','.modal','.notification-panel'];
+ const contractStart=css.lastIndexOf('/* FINAL THEME CONTRACT v3');assert.ok(contractStart>=0,'Final theme contract is present');
+ for(const mode of ['dark','light']){const marker=':root[data-theme="'+mode+'"] .app-shell :where(';const start=css.indexOf(marker,contractStart);assert.ok(start>=0,'Missing final '+mode+' mode contract');const end=css.indexOf('){',start);assert.ok(end>start,'Malformed final '+mode+' contract');const block=css.slice(start,end);for(const selector of selectors)assert.ok(block.includes(selector),'Missing '+mode+' theme for '+selector);}
+ assert.ok(css.includes('select option')&&css.includes('input:-webkit-autofill'),'Select options and autofill follow the active theme');
+ assert.ok(css.includes('.drawer-direction-switching .app-shell .sidebar'),'Drawer direction switch does not animate across the screen');
+});
+
+test('customer registration and login compare Syrian local and international phone variants',async()=>{
+ const server=await fs.readFile(path.join(webRoot,'server/src/server.js'),'utf8');
+ const registrationQuery="const existing=await client.query(\"SELECT id FROM nexa_customers WHERE regexp_replace(phone,'[^0-9]','','g')=$1 OR ($1 ~ '^9639[0-9]{8}$' AND regexp_replace(phone,'[^0-9]','','g')='0'||substr($1,4)) OR regexp_replace(phone,'[^0-9]','','g')='00'||$1 LIMIT 1\",[phone]);";
+ const loginQuery="const found=await pool.query(\"SELECT id,password_salt,password_hash FROM nexa_customers WHERE regexp_replace(phone,'[^0-9]','','g')=$1 OR ($1 ~ '^9639[0-9]{8}$' AND regexp_replace(phone,'[^0-9]','','g')='0'||substr($1,4)) OR regexp_replace(phone,'[^0-9]','','g')='00'||$1 LIMIT 1\",[phone]);";
+ assert.ok(server.includes(registrationQuery),'New registrations cannot duplicate a Syrian phone using local or international notation');
+ assert.equal(server.split(loginQuery).length-1,2,'Both customer login paths accept the same canonical phone variants');
+});
+")&&server.includes("regexp_replace(phone,'[^0-9]','','g')='00'||$1 LIMIT 1"),'Phone comparisons cover local 09, international +963 and 00-prefixed variants');
  assert.ok(server.includes('passwordHash=customerPasswordHash(password,salt)'),'Passwords are salted and hashed');
  assert.ok(server.includes('customerCookie(req,token)'),'A normal secure session is created after sign-up');
  assert.ok(helper.includes('export function normalizeCustomerPhone')&&helper.includes('export function validateCustomerRegistration'),'Registration validation is unit-testable');
