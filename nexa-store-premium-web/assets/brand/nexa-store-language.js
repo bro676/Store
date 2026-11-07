@@ -592,7 +592,122 @@
   "حفظ": "Save",
   "إلغاء": "Cancel"
 });
-  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations);
+  const finalUiTranslations = Object.freeze({
+    "ملغي": "Cancelled",
+    "صورة": "Image",
+    "اختر": "Choose",
+    "منتهي": "Expired",
+    "مدفوع": "Paid",
+    "المورد": "Supplier",
+    "التسليم": "Delivery",
+    "شام كاش": "Sham Cash",
+    "استرداد": "Refund",
+    "مجلدات": "Folders",
+    "الكمية": "Quantity",
+    "شحن رصيد": "Top up balance",
+    "بلاغ دعم": "Support ticket",
+    "ل.س جديدة": "New SYP",
+    "ابحث داخل": "Search in",
+    "منتج رقمي": "Digital product",
+    "حساب Nexa": "Nexa account",
+    "عميل Nexa": "Nexa customer",
+    "شراء منتج": "Buy product",
+    "عرض المنتج": "View product",
+    "محفظة Nexa": "Nexa Wallet",
+    "تعديل رصيد": "Adjust balance",
+    "تعذر التحقق": "Could not verify",
+    "البطاقة": "Card",
+    "دخول الحساب": "Account sign-in",
+    "عملة العرض": "Display currency",
+    "تسليم المتجر": "Store delivery",
+    "إضافة للمفضلة": "Add to favorites",
+    "الباقة والسعر": "Package and price",
+    "مجلدات رئيسية": "Main folders",
+    "العودة إلى": "Back to",
+    "باقة مختارة": "Selected package",
+    "بيانات المنتج": "Product details",
+    "بيانات إضافية": "Additional details",
+    "منتهي أو ملغي": "Expired or cancelled",
+    "لم يتم تفعيله": "Not activated",
+    "أقسام داخلية": "Subcategories",
+    "بانتظار التحقق": "Pending verification",
+    "الليرة السورية": "Syrian pound",
+    "الدولار الأمريكي": "US dollar",
+    "بحث في المجلدات": "Search folders",
+    "بحث في المنتجات": "Search products",
+    "اختيار الباقة": "Select package",
+    "بوابة API جاهزة": "API gateway ready",
+    "الخادم غير متصل": "Server is offline",
+    "تم إلغاء الطلب.": "Order cancelled.",
+    "تم تأكيد الدفع.": "Payment confirmed.",
+    "الخيار / المنطقة": "Option / region",
+    "إزالة من المفضلة": "Remove from favorites",
+    "تم التسليم بنجاح": "Delivered successfully",
+    "جارٍ تنفيذ الطلب": "Processing order",
+    "طلب مرتبط بحسابك": "Order linked to your account",
+    "الكميات المسموحة": "Allowed quantities",
+    "تعذر إنشاء الطلب.": "Could not create the order.",
+    "تنتهي الفاتورة في": "Invoice expires at",
+    "خيارات": "Options",
+    "نتائج البحث": "Search results",
+    "بانتظار إرسال الطلب": "Awaiting order submission",
+    "لا يتغير تلقائياً.": "Does not change automatically.",
+    "بانتظار إعداد الخادم": "Awaiting server configuration",
+    "لم يتم قبول العملية.": "Operation was not accepted.",
+    "تبديل عملة العرض إلى": "Switch display currency to",
+    "تعذر فحص بوابة الدفع.": "Could not check the payment gateway.",
+    "الكمية التي تم شحنها": "Quantity credited",
+    "تمت الإزالة من المفضلة": "Removed from favorites",
+    "انتهت صلاحية الفاتورة.": "Invoice expired.",
+    "رقم طلب Nexa غير صالح.": "Invalid Nexa order number.",
+    "قيد التنفيذ لدى المورد": "Processing with supplier",
+    "الطلب قيد مراجعة الدعم": "Order under support review",
+    "تمت الإضافة إلى المفضلة": "Added to favorites",
+    "نسخ عنوان محفظة شام كاش": "Copy Sham Cash wallet address",
+    "الموعد المتوقع للتسليم:": "Expected delivery time:",
+    "لم يتم العثور على الطلب.": "Order not found.",
+    "جارٍ التحقق عبر شام كاش…": "Checking through Sham Cash…",
+    "هذا القسم غير متاح حالياً.": "This section is currently unavailable.",
+    "جارٍ إنشاء فاتورة شام كاش…": "Creating Sham Cash invoice…",
+    "تم تأكيد الدفع لهذا الطلب.": "Payment confirmed for this order.",
+    "تغيير اللغة إلى الإنجليزية": "Switch language to English",
+    "تعذر الاتصال بالمساعد الآن.": "The assistant is unavailable right now.",
+    "حالة بوابة الدفع غير معروفة.": "Payment gateway status is unknown.",
+    "مدة التجهيز المتفق عليها:": "Agreed processing time:",
+    "لا توجد حركات رصيد حتى الآن.": "No wallet activity yet.",
+    "لا توجد منتجات منشورة حالياً.": "No products are published yet.",
+    "السعر الأساسي بالليرة السورية": "Base price in Syrian pounds",
+    "تم الدفع من رصيد حسابك بنجاح.": "Payment was successfully deducted from your balance.",
+    "طلب زائر محفوظ على هذا الجهاز": "Guest order saved on this device",
+    "تعذر الوصول إلى المساعد حالياً.": "The assistant is currently unavailable.",
+    "سيتم الدفع مباشرة من رصيد حسابك.": "Payment will be deducted directly from your account balance.",
+    "تعذر التحقق. لم يتم تأكيد الدفع.": "Verification failed. Payment was not confirmed.",
+    "منتجات في هذا المسار": "Products in this path",
+    "الطلبات والدفع غير متاحين حالياً.": "Orders and payments are currently unavailable.",
+    "الفاتورة صالحة حتى": "Invoice valid until",
+    "متابعة / استلام": "Continue / receive",
+    "تم تأكيد الدفع بنجاح. نرسل طلبك إلى": "Payment confirmed. Sending your order to",
+    "تم اعتماد الدفع وإصدار وصل إلكتروني.": "Payment approved and electronic receipt issued.",
+    "الكمية المختارة خارج الحدود المسموحة.": "The selected quantity is outside the allowed limits.",
+    "إدارة المحفظة": "Manage wallet",
+    "اختر إحدى الكميات المتاحة لهذا المنتج.": "Choose one of the available quantities for this product.",
+    "لا توجد عمليات تطابق البحث أو التصفية.": "No transactions match the search or filter.",
+    "سجّل الدخول لعرض سجل مدفوعاتك من الخادم.": "Sign in to view your payment history from the server.",
+    "لم يصل رد واضح من المساعد. حاول مرة أخرى.": "No clear response from the assistant. Please try again.",
+    "سيتم تجهيز طلبك يدوياً حسب المهلة المحددة.": "Your order will be processed manually within the stated timeframe.",
+    "تعذر الاتصال بالخادم. لم يتم إنشاء الفاتورة.": "Could not connect to the server. No invoice was created.",
+    "سجّل الدخول أو أنشئ حساباً قبل الدفع من الرصيد.": "Sign in or create an account before paying with your balance.",
+    "الدفع المباشر ينشئ فاتورة شام كاش مستقلة لهذا الطلب.": "Direct payment creates a separate Sham Cash invoice for this order.",
+    "بيانات المحفظة محفوظة هنا للرجوع إليها عند تفعيل الدفع.": "Wallet details are saved here for reference when payments are enabled.",
+    "هذا المنتج غير متوفر حالياً لدى المورد.": "This product is currently unavailable from the supplier.",
+    "السعر المعروض لكل وحدة؛ يتم ضربه بالكمية قبل إنشاء فاتورة الدفع.": "The displayed price is per unit and is multiplied by the quantity before the invoice is created.",
+    "عنوان الاستلام مرتبط بهذه الفاتورة ويجب استخدامه لهذا الطلب فقط.": "The receiving address is tied to this invoice and must only be used for this order.",
+    "اكتمل تسليم طلبك. تفاصيل الحساب أو البطاقة متاحة في الوصل.": "Your order has been delivered. Account or card details are available in the receipt.",
+    "اختر الباقة المناسبة وراجع السعر والعملة قبل إنشاء الفاتورة.": "Choose the appropriate package and review the price and currency before creating the invoice.",
+    "لن يتم إنشاء فاتورة بالدولار قبل ضبط سعر التحويل على الخادم.": "A USD invoice cannot be created until the exchange rate is configured on the server.",
+    "طلب": "Order",
+  });
+  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations);
   const reverse = new Map();
   for (const [ar,en] of Object.entries(translationLookup)) {
     const englishKey=String(en).trim().replace(/\s+/g,' ');
@@ -601,6 +716,7 @@
     if(!reverse.has(latinKey))reverse.set(latinKey,ar);
   }
   const fragmentEntries=Object.entries(translationLookup).filter(([phrase])=>phrase.length>=8).sort((a,b)=>b[0].length-a[0].length);
+  const reverseFragmentEntries=[...reverse.entries()].filter(([phrase])=>phrase.length>=4&&/[A-Za-z]/.test(phrase)).sort((a,b)=>b[0].length-a[0].length);
 
   const normalize = value => String(value || '').replace(/\s+/g,' ').trim();
   const arabicDigits='٠١٢٣٤٥٦٧٨٩';
@@ -618,7 +734,7 @@
   const lastTranslatedAttributes = new WeakMap();
   const ownTextMutationCounts = new WeakMap();
   const ownAttributeMutationCounts = new WeakMap();
-  const attributeSelector = '[placeholder],[title],[aria-label],[aria-description],[aria-placeholder],[alt],[data-tooltip],input[type="button"][value],input[type="submit"][value],input[type="reset"][value]';
+  const attributeSelector = '[placeholder],[title],[aria-label],[aria-description],[aria-placeholder],[alt],[data-tooltip],[data-label],[data-title],[data-placeholder],[data-empty-label],[data-confirm],[data-message],[aria-valuetext],[aria-roledescription],input[type="button"][value],input[type="submit"][value],input[type="reset"][value]';
   const excludedSelector = 'script,style,code,pre,[data-no-translate]';
   const TRANSLATION_BATCH_SIZE = 180;
 
@@ -629,22 +745,46 @@
   let translationJobs = [];
   let queuedRoots = new WeakSet();
 
-  function translated(value) {
+  function translated(value,targetLanguage=language) {
     const key=normalize(value);
     if(!key)return value;
-    if(translationLookup[key])return translationLookup[key];
-    let match=key.match(/^صفحة\s+([0-9٠-٩۰-۹,٬]+)\s+من\s+([0-9٠-٩۰-۹,٬]+)$/);
-    if(match)return 'Page '+match[1]+' of '+match[2];
-    match=key.match(/^نتائج مطابقة لعبارة:\s*(.+)$/);
-    if(match)return 'Results matching: '+match[1];
-    match=key.match(/^([0-9٠-٩۰-۹,٬]+)\s+أقسام$/);
-    if(match)return match[1]+' departments';
-    match=key.match(/^سعر ثابت:\s*1 USD\s*=\s*(.+)$/);
-    if(match)return 'Fixed rate: 1 USD = '+match[1];
+    if(targetLanguage==='en'&&translationLookup[key])return translationLookup[key];
+    if(targetLanguage==='ar'&&reverse.has(key))return reverse.get(key);
+
+    let match;
+    if(targetLanguage==='en'){
+      match=key.match(/^صفحة\s+([0-9٠-٩۰-۹,٬]+)\s+من\s+([0-9٠-٩۰-۹,٬]+)$/);
+      if(match)return 'Page '+match[1]+' of '+match[2];
+      match=key.match(/^نتائج مطابقة لعبارة:\s*(.+)$/);
+      if(match)return 'Results matching: '+match[1];
+      match=key.match(/^([0-9٠-٩۰-۹,٬]+)\s+أقسام$/);
+      if(match)return match[1]+' departments';
+      match=key.match(/^سعر ثابت:\s*1 USD\s*=\s*(.+)$/);
+      if(match)return 'Fixed rate: 1 USD = '+match[1];
+    }else{
+      match=key.match(/^Page\s+([0-9٠-٩۰-۹,٬]+)\s+of\s+([0-9٠-٩۰-۹,٬]+)$/i);
+      if(match)return 'صفحة '+match[1]+' من '+match[2];
+      match=key.match(/^Results matching:\s*(.+)$/i);
+      if(match)return 'نتائج مطابقة لعبارة: '+match[1];
+      match=key.match(/^([0-9٠-٩۰-۹,٬]+)\s+departments?$/i);
+      if(match)return match[1]+' أقسام';
+      match=key.match(/^Fixed rate:\s*1 USD\s*=\s*(.+)$/i);
+      if(match)return 'سعر ثابت: 1 USD = '+match[1];
+    }
+
     const raw=String(value);
-    if(/[\u0600-\u06FF]/.test(raw)){
+    if(targetLanguage==='en'&&/[\u0600-\u06FF]/.test(raw)){
       let output=raw;
       for(const [phrase,english] of fragmentEntries)if(output.includes(phrase))output=output.split(phrase).join(english);
+      return output;
+    }
+    if(targetLanguage==='ar'&&/[A-Za-z]/.test(raw)){
+      let output=raw;
+      for(const [english,arabic] of reverseFragmentEntries){
+        const escaped=english.replace(/[|\\{}()[\]^$+*?.-]/g,'\\$&').replace(/\s+/g,'\\s+');
+        const pattern=new RegExp('(^|[^A-Za-z0-9])('+escaped+')(?=$|[^A-Za-z0-9])','gi');
+        output=output.replace(pattern,(whole,prefix)=>prefix+arabic);
+      }
       return output;
     }
     return value;
@@ -696,7 +836,7 @@
       // The application replaced this node after our last pass; preserve its new source value.
       original=current;originalText.set(node,original);
     }
-    const next=localizeDigits(language==='en'?translated(original):original,language);
+    const next=localizeDigits(translated(original,language),language);
     if(current!==next){
       incrementTextMutation(node);
       const replacement=preserveWhitespace(original,next);
@@ -706,7 +846,7 @@
 
   function translateAttributes(element) {
     if (!element || element.nodeType !== 1 || element.closest(excludedSelector)) return;
-    const names=['placeholder','title','aria-label','aria-description','aria-placeholder','alt','data-tooltip'];
+    const names=['placeholder','title','aria-label','aria-description','aria-placeholder','alt','data-tooltip','data-label','data-title','data-placeholder','data-empty-label','data-confirm','data-message','aria-valuetext','aria-roledescription'];
     if(element.matches('input[type="button"],input[type="submit"],input[type="reset"]'))names.push('value');
     let stored=originalAttributes.get(element);
     if(!stored){stored={};originalAttributes.set(element,stored);}
@@ -717,7 +857,7 @@
       const current=element.getAttribute(name)||'';
       if(stored[name]===undefined)stored[name]=current;
       else if(last[name]!==undefined&&current!==last[name])stored[name]=current;
-      const next=localizeDigits(language==='en'?translated(stored[name]):stored[name],language);
+      const next=localizeDigits(translated(stored[name],language),language);
       if(current!==next){
         incrementAttributeMutation(element,name);last[name]=next;element.setAttribute(name,next);
       }else last[name]=current;
@@ -821,7 +961,7 @@
     });
     observer.observe(document.body,{
       childList:true,subtree:true,characterData:true,
-      attributes:true,attributeFilter:['placeholder','title','aria-label','aria-description','aria-placeholder','alt','data-tooltip','value']
+      attributes:true,attributeFilter:['placeholder','title','aria-label','aria-description','aria-placeholder','alt','data-tooltip','data-label','data-title','data-placeholder','data-empty-label','data-confirm','data-message','aria-valuetext','aria-roledescription','value']
     });
   }
 
@@ -836,6 +976,8 @@
   function setLanguage(next,{persist=true}={}) {
     const selected=next==='en'?'en':'ar';
     if(selected===language)return language;
+    const previousLanguage=language;
+    window.dispatchEvent(new CustomEvent('nexa:languagechange:before',{detail:{language:selected,previousLanguage}}));
     language=selected;
     updateDocumentLanguage();
     if(persist){try{localStorage.setItem('nexa-store-language',language)}catch{}}

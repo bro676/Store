@@ -33,7 +33,10 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(translate('لا توجد طلبات حتى الآن.'),'No orders yet.');
  assert.equal(sandbox.document.documentElement.direction,'ltr');
  sandbox.window.NexaLocale.setLanguage('ar');
- assert.equal(translate('Order 27'),'Order ٢٧');
+ assert.equal(translate('Order 27'),'طلب ٢٧');
+ assert.equal(translate('No orders yet.'),'لا توجد طلبات حتى الآن.');
+ assert.equal(translate('Full name'),'الاسم الكامل');
+ assert.equal(translate('Page 2 of 5'),'صفحة ٢ من ٥');
  assert.equal(sandbox.document.documentElement.direction,'rtl');
  assert.ok(source.includes("const excludedSelector = 'script,style,code,pre,[data-no-translate]'"),
   'Input and textarea placeholders must remain eligible for attribute translation');
@@ -135,4 +138,43 @@ test('repeated language toggles preserve source text and dynamic attributes',asy
  assert.ok(source.includes('const lastTranslatedAttributes = new WeakMap();'),'Original placeholder and label attributes remain recoverable');
  assert.ok(source.includes('else if(lastTranslated!==undefined&&current!==lastTranslated)'),'App-rendered text changes are distinguished from translations');
  assert.ok(source.includes('aria-description')&&source.includes('data-tooltip'),'Dynamic accessibility labels and tooltips are translated');
+});
+
+
+test('locale transition disables drawer motion before changing document direction',async()=>{
+ const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ const setStart=source.indexOf('function setLanguage(next');
+ const before=source.indexOf('nexa:languagechange:before',setStart);
+ const direction=source.indexOf('updateDocumentLanguage();',setStart);
+ assert.ok(before>setStart&&direction>before,'The pre-change event fires before html direction is updated');
+ const guard=store.indexOf("window.addEventListener('nexa:languagechange:before'");
+ const changed=store.indexOf("window.addEventListener('nexa:languagechange'",guard);
+ assert.ok(guard>=0&&changed>guard,'The drawer motion guard is registered before the post-change handler');
+ assert.ok(store.slice(guard,changed).includes("classList.add('drawer-direction-switching')"),
+  'Drawer transitions are disabled while the old physical side is still active');
+});
+
+test('final drawer state rules preserve RTL and LTR open/closed states on desktop and mobile',async()=>{
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
+ const final=css.slice(css.lastIndexOf('NEXA DRAWER STATE CONTRACT v4'));
+ for(const token of [
+  ':root[dir="rtl"] body.sidebar-closed .app-shell .sidebar',
+  'transform:translate3d(110%,0,0)!important',
+  ':root[dir="ltr"] body.sidebar-closed .app-shell .sidebar',
+  'transform:translate3d(-110%,0,0)!important',
+  'body.sidebar-open .app-shell .sidebar',
+  'pointer-events:none!important'
+ ])assert.ok(final.includes(token),'Missing final drawer state rule: '+token);
+});
+
+test('dark mode converts remaining legacy white panels and controls to dark theme surfaces',async()=>{
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
+ const final=css.slice(css.lastIndexOf('NEXA DARK SURFACE COMPLETION v4'));
+ for(const selector of [
+  '.header-search:focus-within','.icon-button','.wallet-chip','.btn-soft','.assistant-launcher',
+  '.assistant-head','.assistant-message','.wallet-placeholder','.back-button','.modal-product',
+  '.catalog-steps','.catalog-count','.category-mark','.product-badge'
+ ])assert.ok(final.includes(selector),'Missing dark theme coverage for '+selector);
+ assert.ok(final.includes('background:var(--surface-2)!important'),'Legacy light surfaces use active dark tokens');
 });

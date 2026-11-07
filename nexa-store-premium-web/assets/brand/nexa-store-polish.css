@@ -344,3 +344,73 @@ html.store-drawer-scroll-locked body{
 :root[data-theme="dark"] .app-shell .sidebar .sidebar-theme-toggle,:root[data-theme="light"] .app-shell .sidebar .sidebar-theme-toggle{background:var(--drawer-surface)!important;color:var(--drawer-text)!important;border-color:var(--drawer-line)!important}
 :root[data-theme="dark"] .app-shell .sidebar-drawer-head strong,:root[data-theme="light"] .app-shell .sidebar-drawer-head strong{color:var(--drawer-text)!important}
 .drawer-direction-switching .app-shell .sidebar,.drawer-direction-switching .app-shell .sidebar-backdrop{transition:none!important}
+
+
+/* NEXA DRAWER STATE CONTRACT v4 — one authoritative open/closed rule after all legacy layers. */
+@media (min-width:1025px){
+  :root[dir="rtl"] .app-shell .sidebar{right:0!important;left:auto!important;transform:translate3d(0,0,0)!important}
+  :root[dir="ltr"] .app-shell .sidebar{left:0!important;right:auto!important;transform:translate3d(0,0,0)!important}
+  :root[dir="rtl"] body.sidebar-closed .app-shell .sidebar{transform:translate3d(110%,0,0)!important;pointer-events:none!important}
+  :root[dir="ltr"] body.sidebar-closed .app-shell .sidebar{transform:translate3d(-110%,0,0)!important;pointer-events:none!important}
+  :root[dir="rtl"] body:not(.sidebar-closed) .app-shell .sidebar,
+  :root[dir="ltr"] body:not(.sidebar-closed) .app-shell .sidebar{transform:translate3d(0,0,0)!important;pointer-events:auto!important}
+  :root[dir="rtl"] body.sidebar-closed .app-shell .app-main,
+  :root[dir="ltr"] body.sidebar-closed .app-shell .app-main{margin:0!important;width:100%!important}
+  :root[dir="rtl"] body:not(.sidebar-closed) .app-shell .app-main{margin:0 var(--rail-width) 0 0!important;width:auto!important}
+  :root[dir="ltr"] body:not(.sidebar-closed) .app-shell .app-main{margin:0 0 0 var(--rail-width)!important;width:auto!important}
+}
+@media (max-width:1024px){
+  :root[dir="rtl"] .app-shell .sidebar{right:0!important;left:auto!important;transform:translate3d(100%,0,0)!important}
+  :root[dir="ltr"] .app-shell .sidebar{left:0!important;right:auto!important;transform:translate3d(-100%,0,0)!important}
+  :root[dir="rtl"] body.sidebar-open .app-shell .sidebar,
+  :root[dir="ltr"] body.sidebar-open .app-shell .sidebar{transform:translate3d(0,0,0)!important;pointer-events:auto!important}
+  :root[dir="rtl"] body:not(.sidebar-open) .app-shell .sidebar{transform:translate3d(100%,0,0)!important;pointer-events:none!important}
+  :root[dir="ltr"] body:not(.sidebar-open) .app-shell .sidebar{transform:translate3d(-100%,0,0)!important;pointer-events:none!important}
+  .app-shell .app-main{margin:0!important;width:100%!important}
+}
+html.drawer-direction-switching .app-shell .sidebar,
+html.drawer-direction-switching .app-shell .sidebar-backdrop{transition:none!important}
+
+/* NEXA DARK SURFACE COMPLETION v4 — close the remaining legacy light-surface gaps. */
+:root[data-theme="dark"] .app-shell :where(
+  .header-search:focus-within,.icon-button,.wallet-chip,.btn-soft,.mini-choose,
+  .intro-mark,.intro-side-label,.assistant-launcher,.assistant-head,.assistant-message,
+  .assistant-disclaimer,.wallet-placeholder,.back-button,.modal-product,.main-nav.mobile-open,
+  .catalog-steps,.catalog-count,.step-summary,.crumb,.product-badge,.catalog-tile-tag,
+  .pack-label,.category-mark,.process-num,.product-category,.option-flag,.notification-panel,
+  .notification-item,.history-search,.history-card,.reference-quiet-note
+){
+  background:var(--surface-2)!important;
+  background-image:none!important;
+  color:var(--ink)!important;
+  border-color:var(--line)!important;
+  box-shadow:none!important;
+}
+:root[data-theme="dark"] .app-shell :where(.demo-pill,.crumb.current,.mini-choose,.favorite.active){
+  background:rgba(222,23,44,.16)!important;
+  background-image:none!important;
+  color:#ff9aa5!important;
+  border-color:rgba(222,23,44,.34)!important;
+  box-shadow:none!important;
+}
+:root[data-theme="dark"] .app-shell :where(.step,.catalog-count,.product-category,.intro-side-label,.assistant-disclaimer,.wallet-placeholder,.catalog-tile-tag,.pack-label,.product-badge,.option-flag){
+  color:var(--muted)!important;
+}
+:root[data-theme="dark"] .app-shell :where(
+  .page-heading h1,.section-title,.catalog-header h2,.product-info h3,.catalog-tile-body strong,
+  .pack-body h3,.faq-item summary,.process-card h3,.trust-item strong,.step-summary strong,
+  .intro-mark strong,.assistant-head strong,.wallet-placeholder strong
+){color:var(--ink)!important}
+:root[data-theme="dark"] .app-shell .header-search:focus-within{
+  background:var(--surface-2)!important;border-color:var(--line-2)!important;box-shadow:0 0 0 3px rgba(255,255,255,.06)!important;
+}
+:root[data-theme="dark"] .app-shell .icon-button:hover,
+:root[data-theme="dark"] .app-shell .btn-soft:hover{
+  background:var(--surface-3)!important;color:var(--ink)!important;border-color:var(--line-2)!important;
+}
+:root[data-theme="dark"] .app-shell .mini-choose:hover{
+  background:#b9162b!important;color:#fff!important;border-color:#b9162b!important;
+}
+:root[data-theme="dark"] .app-shell :where(.assistant-message,.assistant-head,.assistant-disclaimer,.intro-mark,.wallet-placeholder) *{
+  border-color:var(--line)!important;
+}

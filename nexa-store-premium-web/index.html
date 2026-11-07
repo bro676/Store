@@ -627,7 +627,7 @@ body{
 .category-choice.department-choice>span:first-child img{width:25px;height:25px;display:block;object-fit:cover;border-radius:8px}
 </style>
 
-<link rel="stylesheet" href="/assets/brand/nexa-store-polish.css?v=20261107-theme-sweep-v3">
+<link rel="stylesheet" href="/assets/brand/nexa-store-polish.css?v=20261107-theme-drawer-v4">
 </head>
 <body>
 <div class="app-shell">
@@ -1072,7 +1072,7 @@ body{
 </section>
 <div class="toast" id="toast"></div>
 <script src="/assets/brand/nexa-catalog.js?v=20261106-dashboard-order-v3"></script>
-<script src="/assets/brand/nexa-store-language.js?v=20261107-lossless-toggle-v3"></script>
+<script src="/assets/brand/nexa-store-language.js?v=20261107-bidirectional-locale-v4"></script>
 <script>
 let categories=[];
 let storefrontDisplayCurrency='USD',storefrontFxRate=145,storefrontFxReady=false,storefrontLanguage='ar',walletTransactions=[];
@@ -1871,6 +1871,10 @@ function initializeStorePreferences(){
   $('accountLogoutButton')?.click();
  });
  $('sidebarCurrencyToggle')?.addEventListener('click',()=>{const next=storefrontDisplayCurrency==='USD'?'SYP':'USD';setStoreDisplayCurrency(next,{notify:true});if(customerAccount)saveCustomerPreferences({displayCurrency:next});});
+ window.addEventListener('nexa:languagechange:before',()=>{
+  if(storeDrawerMedia.matches&&document.body.classList.contains('sidebar-open'))
+   document.documentElement.classList.add('drawer-direction-switching');
+ });
  window.addEventListener('nexa:languagechange',event=>{
   storefrontLanguage=event.detail?.language||storeLocale();
   syncSidebarCurrency();renderSidebarAccount();
