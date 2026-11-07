@@ -1037,6 +1037,7 @@
     'منتج مرتبط بمصدر Best Store':'Product linked to Best Store source',
     'منتج رقمي مرتبط بمصدر Best Store.':'Digital product linked to Best Store source.',
     'المنتج يعمل بشكل تلقائي 24 ساعة ☑':'This product runs automatically 24/7 ☑',
+    'المنتج يعمل بشكل تلقائي ٢٤ ساعة ☑':'This product runs automatically 24/7 ☑',
     'يتم التسليم بشكل تلقائي':'Delivery is automatic',
     'يتم التسليم بشكل تلقائي ⚡':'Delivery is automatic ⚡',
     'يتم تسليم بشكل تلقائي':'Delivery is automatic',

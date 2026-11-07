@@ -301,7 +301,7 @@ test('catalog folder/product and order/invoice terms are translated in both dire
   ["'فاتورة شام كاش الرسمية':'Official Sham Cash invoice'","'بيانات المنتج':'Product details'"]
  ]){assert.ok(source.includes(arabic)&&source.includes(english),'Missing exact bilingual flow terms '+arabic+' / '+english);}
  assert.ok(store.includes('nexa-store-language.js?v=20261107-supplier-fields-and-wallet-i18n-v12'),'the expanded locale dictionary cache is refreshed');
- assert.ok(store.includes('nexa-responsive.css?v=20261107-package-wallet-theme-v10'),'the new catalog and modal styles are cache-busted');
+ assert.ok(store.includes('nexa-responsive.css?v=20261107-package-order-wallet-final-v11'),'the new catalog and modal styles are cache-busted');
  const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-responsive.css'),'utf8');
  for(const selector of [':root[data-theme="dark"] #orderModal',':root[data-theme="light"] #orderModal','#orderModal .modal-body','#orderModal .modal-actions'])assert.ok(css.includes(selector),'Missing theme coverage for '+selector);
 });
