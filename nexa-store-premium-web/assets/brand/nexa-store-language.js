@@ -923,7 +923,11 @@
     "المتجر الرقمي": "DIGITAL STORE",
     "متجر Nexa": "Nexa Store"
   });
-  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations,completionTranslations,editorialUiTranslations);
+  const paymentBrandTranslations = Object.freeze({
+    "بوابة دفع آمنة عبر API": "SECURE API PAYMENT GATEWAY",
+    "مسار الدفع": "PAYMENT FLOW"
+  });
+  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations,completionTranslations,editorialUiTranslations,paymentBrandTranslations);
   const reverse = new Map();
   for (const [ar,en] of Object.entries(translationLookup)) {
     const englishKey=String(en).trim().replace(/\s+/g,' ');
