@@ -36,6 +36,8 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(translate('EAFC Mobile Singapore - ٩٩٩٩ فضي'),'EAFC Mobile Singapore - 9999 Silver');
  assert.equal(translate('الباقة الذهبية - شهرية - ٥٠٠ جواهر'),'Gold Package - Monthly - 500 Diamonds');
  assert.equal(translate('شحن مباشر لحساب اللاعب.'),'Direct top-up for the player account.');
+ assert.equal(translate('الخيار الأساسي'),'Basic option');
+ assert.equal(translate('الخيار المميز'),'Premium option');
  sandbox.window.NexaLocale.setLanguage('ar');
  assert.equal(translate('EAFC Mobile Singapore - 9999 Silver'),'EAFC Mobile سنغافورة - ٩٩٩٩ فضي');
  assert.equal(translate('The Gold Package - Monthly - 500 Diamonds'),'الباقة الذهبية - شهرية - ٥٠٠ جواهر');
