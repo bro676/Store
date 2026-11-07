@@ -881,8 +881,8 @@ test('registration is phone/password-only, rate-limited and cannot overwrite exi
  const helper=await fs.readFile(path.join(webRoot,'server/src/customer-auth.js'),'utf8');
  assert.ok(server.includes("rateLimit(req,res,'account-register:'+ip,5,60*60_000)"),'Registration is rate-limited by IP');
  assert.ok(server.includes("rateLimit(req,res,'account-register-phone:'+phone,3,60*60_000)"),'Registration is rate-limited by phone');
- const phoneLookup="regexp_replace(phone,'[^0-9]','','g')=$1 OR ($1 ~ '^9639[0-9]{8}$' AND regexp_replace(phone,'[^0-9]','','g')='0'||substr($1,4)) OR regexp_replace(phone,'[^0-9]','','g')='00'||$1 LIMIT 1";
- assert.equal(server.split(phoneLookup).length-1,2,'Registration and login check Syrian local, international and 00-prefixed phone forms');
+ const phoneSql=`regexp_replace(phone,'[^0-9]','','g')=$1 OR ($1 ~ '^9639[0-9]{8}$' AND regexp_replace(phone,'[^0-9]','','g')='0'||substr($1,4)) OR regexp_replace(phone,'[^0-9]','','g')='00'||$1 LIMIT 1`;
+ assert.equal(server.split(phoneSql).length-1,2,'Registration and login compare Syrian local, international and 00-prefixed phone formats');
  assert.ok(server.includes('passwordHash=customerPasswordHash(password,salt)'),'Passwords are salted and hashed');
  assert.ok(server.includes('customerCookie(req,token)'),'A normal secure session is created after sign-up');
  assert.ok(helper.includes('export function normalizeCustomerPhone')&&helper.includes('export function validateCustomerRegistration'),'Registration validation is unit-testable');
