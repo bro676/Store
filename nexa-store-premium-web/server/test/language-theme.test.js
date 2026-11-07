@@ -33,6 +33,16 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(translate('إنشاء فاتورة شحن ١٢'),'Create top-up invoice 12');
  assert.equal(translate('لا توجد طلبات حتى الآن.'),'No orders yet.');
  assert.equal(translate('3 مجلدات'),'3 folders');
+ assert.equal(translate('EAFC Mobile Singapore - ٩٩٩٩ فضي'),'EAFC Mobile Singapore - 9999 Silver');
+ assert.equal(translate('الباقة الذهبية - شهرية - ٥٠٠ جواهر'),'Gold Package - Monthly - 500 Diamonds');
+ assert.equal(translate('شحن مباشر لحساب اللاعب.'),'Direct top-up for the player account.');
+ assert.equal(translate('الخيار الأساسي'),'Basic option');
+ assert.equal(translate('الخيار المميز'),'Premium option');
+ sandbox.window.NexaLocale.setLanguage('ar');
+ assert.equal(translate('EAFC Mobile Singapore - 9999 Silver'),'EAFC Mobile سنغافورة - ٩٩٩٩ فضي');
+ assert.equal(translate('The Gold Package - Monthly - 500 Diamonds'),'الباقة الذهبية - شهرية - ٥٠٠ جواهر');
+ assert.equal(translate('Direct top-up for the player account.'),'شحن مباشر لحساب اللاعب.');
+ sandbox.window.NexaLocale.setLanguage('en');
  assert.equal(translate('اختر المنطقة أو النسخة أو الخطة المناسبة.'),'Choose the suitable region, version or plan.');
  assert.equal(translate('إغلاق القائمة الجانبية'),'Close sidebar');
  assert.equal(translate('3 مجلدات ·'),'3 folders ·');
@@ -259,5 +269,5 @@ test('package flow dynamic UI strings and sidebar open/close labels are translat
   '"اختر المنطقة أو النسخة أو الخطة المناسبة.": "Choose the suitable region, version or plan."',
   '"الكمية": "Quantity"'
  ])assert.ok(source.includes(phrase),'Missing package-flow translation '+phrase);
- assert.ok(store.includes('nexa-store-language.js?v=20261107-complete-ui-i18n-v7'),'Package flow locale cache version is fresh');
+ assert.ok(store.includes('nexa-store-language.js?v=20261107-product-terms-v8'),'Package flow locale cache version is fresh');
 });

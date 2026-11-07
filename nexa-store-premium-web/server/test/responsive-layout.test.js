@@ -7,9 +7,9 @@ const storefrontHtml = readFileSync(new URL('../../index.html', import.meta.url)
 const adminHtml = readFileSync(new URL('../../admin.html', import.meta.url), 'utf8');
 
 test('responsive layout stylesheet is loaded after legacy styles on both pages', () => {
-  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-responsive-v1');
+  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-responsive-v3');
   const storePreviousLayer = storefrontHtml.indexOf('nexa-store-polish.css');
-  const adminLink = adminHtml.indexOf('nexa-responsive.css?v=20261107-responsive-v2');
+  const adminLink = adminHtml.indexOf('nexa-responsive.css?v=20261107-responsive-v3');
   const adminTheme = adminHtml.indexOf('nexa-wamda-blue.css');
   assert.ok(storePreviousLayer >= 0 && storeLink > storePreviousLayer);
   assert.ok(adminTheme >= 0 && adminLink > adminTheme);
@@ -45,6 +45,33 @@ test('order dialog and assistant are constrained to the visible viewport', () =>
   assert.ok(responsiveCss.includes('#orderModal .modal{width:min(640px,calc(100vw - 24px))'));
   assert.ok(responsiveCss.includes('#orderModal .modal-body{min-width:0;overflow-y:auto'));
   assert.ok(responsiveCss.includes('.app-shell .assistant-panel{max-width:calc(100vw - 24px);max-height:calc(100dvh - 110px)'));
+});
+
+test('final responsive layer sizes the desktop rail and content by available width', () => {
+  assert.ok(responsiveCss.includes('--rail-width:clamp(250px,20vw,320px)'));
+  assert.ok(responsiveCss.includes('container-name:nexa-stage'));
+  assert.ok(responsiveCss.includes('@container nexa-stage (max-width:820px)'));
+  assert.ok(responsiveCss.includes('width:100%!important;max-width:var(--nexa-content-max)'));
+  assert.ok(!responsiveCss.includes('calc(100% - 2 * var(--nexa-layout-gutter))'));
+});
+
+test('light mode retains the Nexa sky-blue storefront header', () => {
+  assert.ok(responsiveCss.includes(':root[data-theme="light"] body .app-shell .header'));
+  assert.ok(responsiveCss.includes('background:#62c8f2!important'));
+  assert.ok(responsiveCss.includes('color:#06334b!important'));
+});
+
+test('dark and light modes define complete storefront and admin surface contracts', () => {
+  for (const token of [
+    ':root[data-theme="dark"]',
+    ':root[data-theme="light"]',
+    '--surface:#121b23',
+    '--surface:#fff',
+    '--drawer-bg:#101a22',
+    '.app-shell .sidebar',
+    '#app.shell .side',
+    '#orderModal .modal'
+  ]) assert.ok(responsiveCss.includes(token), 'missing theme token or selector: ' + token);
 });
 
 test('stylesheet braces are balanced and narrow viewports remove the old fixed body minimum', () => {
