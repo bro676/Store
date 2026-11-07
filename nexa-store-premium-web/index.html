@@ -2237,9 +2237,9 @@ async function refreshCustomerAccount(){
   walletTransactions=Array.isArray(txData.transactions)?txData.transactions:[];
   accountOrders=(orderData.orders||[]).map(item=>({id:item.id,name:item.product_label,date:item.createdAt?new Date(item.createdAt).toLocaleDateString(storeIntlLocale()):'',amountMinor:item.amountMinor,currency:item.currency,status:item.status,paymentMethod:item.paymentMethod,paidAt:item.paidAt||null,supplierStatus:item.supplierStatus||null}));
   const preferences=preferencesData.preferences||{};accountFavorites=Array.isArray(preferences.favorites)?preferences.favorites:[];
-  if(['ar','en'].includes(preferences.locale)&&preferences.locale!==storeLocale())window.NexaLocale?.setLanguage(preferences.locale);
+  if(['ar','en','tr'].includes(preferences.locale)&&preferences.locale!==storeLocale())window.NexaLocale?.setLanguage(preferences.locale);
   if(['dark','light'].includes(preferences.theme))setStoreColorMode(preferences.theme,{persist:false});
-  if(['SYP','USD'].includes(preferences.displayCurrency))setStoreDisplayCurrency(preferences.displayCurrency,{persist:false});
+  if(['USD','TRY'].includes(preferences.displayCurrency))setStoreDisplayCurrency(preferences.displayCurrency,{persist:false});else if(preferences.displayCurrency==='SYP')setStoreDisplayCurrency('USD',{persist:false});
   renderWalletLedger();renderOrders();renderPaymentHistory();syncFavorites();if(state.view==='favorites')renderFavorites();if(state.selectedPack)renderCurrencyPreview();
  }catch{if(generation!==accountRefreshGeneration)return;if(!customerAccount)resetCustomerAccountView('تعذر تحميل الحساب');else{setWalletAccountStatus('تعذر تحميل الحساب');renderSidebarAccount();}}
 }
