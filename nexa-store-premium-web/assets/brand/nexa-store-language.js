@@ -883,6 +883,7 @@
   "أدوات الذكاء الاصطناعي والاشتراكات الذكية.": "AI tools and smart subscriptions.",
   "خدمات المنصات الاجتماعية والتفاعل الرقمي.": "Social platform services and digital engagement.",
   "المواقع والبرمجة والتصميم والحلول التقنية.": "Websites, programming, design and technical solutions.",
+  "الفئة الرئيسية": "Main category",
   "أقسام إضافية لا تندرج تحت الأقسام الرئيسية.": "Additional services outside the main departments.",
 });
   const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations,completionTranslations);
