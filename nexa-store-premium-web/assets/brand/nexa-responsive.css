@@ -715,3 +715,64 @@ html.store-drawer-scroll-locked body{
     margin:0!important;width:100%!important;max-width:100%!important;
   }
 }
+
+
+/* DRAWER GAP + MIRRORED TOPBAR CONTRACT v7. */
+:root{--nexa-drawer-content-gap:5px;}
+:root[dir="rtl"] .app-shell > .app-main{
+  margin:0 calc(var(--rail-width) + var(--nexa-drawer-content-gap)) 0 0!important;
+}
+:root[dir="ltr"] .app-shell > .app-main{
+  margin:0 0 0 calc(var(--rail-width) + var(--nexa-drawer-content-gap))!important;
+}
+
+/* Keep the menu/wallet/VIP cluster beside the drawer, and mirror it with locale. */
+.app-shell .header-main{
+  direction:inherit!important;
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  flex-wrap:nowrap!important;
+  gap:10px!important;
+  padding-inline:8px!important;
+}
+:root[dir="rtl"] .app-shell .header-main{direction:rtl!important;}
+:root[dir="ltr"] .app-shell .header-main{direction:ltr!important;}
+
+.app-shell .header-actions{
+  order:0!important;
+  display:flex!important;
+  flex:0 0 auto!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  flex-direction:row!important;
+  direction:inherit!important;
+  gap:8px!important;
+  margin:0!important;
+  margin-inline:0!important;
+}
+.app-shell .header-brand{
+  order:1!important;
+  flex:0 1 auto!important;
+  min-width:0!important;
+  margin:0!important;
+  direction:ltr!important;
+}
+.app-shell .header-brand-copy,
+.app-shell .header-brand-copy strong{
+  direction:ltr!important;
+  text-align:left!important;
+}
+@media(max-width:1024px){
+  :root[dir="rtl"] .app-shell > .app-main,
+  :root[dir="ltr"] .app-shell > .app-main{
+    margin:0!important;width:100%!important;max-width:100%!important;
+  }
+  .app-shell .header-main{padding-inline:8px!important;gap:7px!important;}
+  .app-shell .header-actions{gap:6px!important;}
+}
+@media(max-width:600px){
+  .app-shell .header-main{padding-inline:7px!important;gap:5px!important;}
+  .app-shell .header-actions{gap:4px!important;}
+}

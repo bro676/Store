@@ -7,7 +7,7 @@ const storefrontHtml = readFileSync(new URL('../../index.html', import.meta.url)
 const adminHtml = readFileSync(new URL('../../admin.html', import.meta.url), 'utf8');
 
 test('responsive layout stylesheet is loaded after legacy styles on both pages', () => {
-  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-drawer-single-rail-v6');
+  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-drawer-gap-direction-v7');
   const storePreviousLayer = storefrontHtml.indexOf('nexa-store-polish.css');
   const adminLink = adminHtml.indexOf('nexa-responsive.css?v=20261107-layout-final-v5');
   const adminTheme = adminHtml.indexOf('nexa-wamda-blue.css');
@@ -138,4 +138,18 @@ test('mobile storefront header selector matches the actual DOM hierarchy', () =>
   assert.match(storefrontHtml, /<div class="app-main">[\s\S]*?<header class="header">[\s\S]*?<main id="appMain">/);
   assert.ok(responsiveCss.includes('.app-shell .app-main > .header{'), 'Responsive header rule targets the actual nested header');
   assert.ok(!responsiveCss.includes('.app-shell>.header{'), 'No ineffective direct-child header selector remains');
+});
+
+
+test('drawer content gap is tiny and the storefront top bar mirrors with document direction', () => {
+  assert.ok(responsiveCss.includes('/* DRAWER GAP + MIRRORED TOPBAR CONTRACT v7. */'), 'The final gap and direction contract is loaded last');
+  assert.ok(responsiveCss.includes('--nexa-drawer-content-gap:5px'), 'The desktop drawer/content separation is only five pixels');
+  assert.ok(responsiveCss.includes('margin:0 calc(var(--rail-width) + var(--nexa-drawer-content-gap)) 0 0!important'), 'RTL content keeps a five-pixel gap after the right-side drawer');
+  assert.ok(responsiveCss.includes('margin:0 0 0 calc(var(--rail-width) + var(--nexa-drawer-content-gap))!important'), 'LTR content keeps a five-pixel gap after the left-side drawer');
+  assert.ok(responsiveCss.includes(':root[dir="rtl"] .app-shell .header-main{direction:rtl!important}'), 'Arabic top bar follows RTL');
+  assert.ok(responsiveCss.includes(':root[dir="ltr"] .app-shell .header-main{direction:ltr!important}'), 'English top bar follows LTR');
+  assert.ok(responsiveCss.includes('.app-shell .header-actions{\n  order:0!important;'), 'Menu, wallet and VIP stay at the drawer-side edge');
+  assert.ok(responsiveCss.includes('.app-shell .header-brand{\n  order:1!important;'), 'The brand moves to the opposite edge');
+  assert.ok(responsiveCss.includes('padding-inline:8px!important'), 'The excessive top bar edge padding is reduced');
+  assert.ok(responsiveCss.includes('@media(max-width:1024px){\n  :root[dir="rtl"] .app-shell > .app-main,'), 'Overlay drawer mode removes the desktop rail gap on phones and tablets');
 });
