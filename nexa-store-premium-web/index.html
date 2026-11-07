@@ -628,7 +628,7 @@ body{
 </style>
 
 <link rel="stylesheet" href="/assets/brand/nexa-store-polish.css?v=20261107-package-modal-dark-v5">
-<link rel="stylesheet" href="/assets/brand/nexa-responsive.css?v=20261107-layout-final-v4">
+<link rel="stylesheet" href="/assets/brand/nexa-responsive.css?v=20261107-layout-final-v5">
 </head>
 <body>
 <div class="app-shell">
@@ -2045,17 +2045,23 @@ async function loadStorefrontConfig(){
 }
 window.addEventListener('storage',event=>{if(event.key==='nexa-storefront-experience-updated')loadStorefrontConfig();});
 
-async function init(){
+function init(){
  const configPromise=loadStorefrontConfig();
- const response=await fetch('/api/catalog',{cache:'no-store'}).catch(()=>null);
- const d=response?.ok?await response.json().catch(()=>({})):{};
- if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items));
- if(typeof NexaCatalog.setDepartments==='function')NexaCatalog.setDepartments(Array.isArray(d.departments)?d.departments:[]);
- renderHomeCategories();
- loadPaymentConfig();
  $('year').textContent=new Date().getFullYear();
  navigate(resolveStoreLocation(),{historyMode:'replace'});
  $('sideYear').textContent=new Date().getFullYear();
+ loadPaymentConfig();
+ // Show the requested page immediately; catalog data must never block first paint on mobile.
+ fetch('/api/catalog',{cache:'no-store'})
+  .then(response=>response?.ok?response.json():null)
+  .then(d=>{
+   if(!d)return;
+   if(Array.isArray(d.catalog))categories=d.catalog.filter(c=>Array.isArray(c.items));
+   if(typeof NexaCatalog.setDepartments==='function')NexaCatalog.setDepartments(Array.isArray(d.departments)?d.departments:[]);
+   if(state.view==='store')renderCatalog();
+   else if(state.view==='home'){renderHomeCategories();renderFeatured();}
+  })
+  .catch(()=>{});
  configPromise.then(()=>{
   if(state.view==='store')renderCatalog();
   else if(state.view==='home'){renderHomeCategories();renderFeatured();}
