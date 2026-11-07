@@ -36,6 +36,11 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(translate('Order 27'),'طلب ٢٧');
  assert.equal(translate('No orders yet.'),'لا توجد طلبات حتى الآن.');
  assert.equal(translate('Full name'),'الاسم الكامل');
+ assert.equal(translate('Card number'),'رقم البطاقة');
+ assert.equal(translate('Electronic payment receipt'),'وصل دفع إلكتروني');
+ assert.equal(translate('3 folders'),'٣ مجلدات');
+ assert.equal(translate('3 مجلدات'),'3 folders');
+ assert.equal(translate('Search by product name...'),'ابحث باسم المنتج...');
  assert.equal(translate('Page 2 of 5'),'صفحة ٢ من ٥');
  assert.equal(sandbox.document.documentElement.direction,'rtl');
  assert.ok(source.includes("const excludedSelector = 'script,style,code,pre,[data-no-translate]'"),

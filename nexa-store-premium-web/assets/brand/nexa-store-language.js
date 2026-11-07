@@ -707,7 +707,43 @@
     "لن يتم إنشاء فاتورة بالدولار قبل ضبط سعر التحويل على الخادم.": "A USD invoice cannot be created until the exchange rate is configured on the server.",
     "طلب": "Order",
   });
-  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations);
+  const supplementaryUiTranslations = Object.freeze({
+    "غير محدد": "Unspecified",
+    "قيد التجهيز اليدوي": "Manual processing",
+    "ابحث باسم المنتج...": "Search by product name...",
+    "تواصل مع فريق الدعم للمساعدة أو عد لاحقاً للاطلاع على المنتجات المنشورة.": "Contact support for assistance, or come back later to view published products.",
+    "يمكن أن تظهر المجلدات الجديدة تلقائياً بعد مزامنة الموردين.": "New folders may appear automatically after supplier synchronization.",
+    "لا تتوفر خيارات صالحة لهذا المنتج حالياً": "No valid options are currently available for this product.",
+    "لم نجد نتيجة مطابقة": "No matching results found",
+    "عرض جميع الأقسام": "View all categories",
+    "محفوظ": "Saved",
+    "السعر بعد اختيار المنطقة": "Price after selecting region",
+    "المبلغ المطلوب": "Amount due",
+    "نسخ العنوان": "Copy address",
+    "لم يرد عنوان المحفظة مع الفاتورة.": "The invoice did not return a wallet address.",
+    "فاتورة شام كاش الرسمية": "Official Sham Cash invoice",
+    "رقم الفاتورة:": "Invoice number:",
+    "تعذر تحميل تفاصيل الطلب": "Could not load order details",
+    "رقم البطاقة": "Card number",
+    "تاريخ الانتهاء": "Expiry date",
+    "بيانات التسليم": "Delivery details",
+    "أكد المورد اكتمال تنفيذ الطلب للحساب أو الهدف الذي أدخلته.": "The supplier confirmed that the order was completed for the account or target you entered.",
+    "وصل دفع إلكتروني": "Electronic payment receipt",
+    "المبلغ المدفوع": "Amount paid",
+    "رقم عملية شام كاش": "Sham Cash transaction number",
+    "اسم العميل": "Customer name",
+    "المنتج / الباقة": "Product / package",
+    "تاريخ تأكيد الدفع": "Payment confirmation date",
+    "عنوان الاستلام": "Receiving address",
+    "طباعة / حفظ PDF ↓": "Print / save PDF ↓",
+    "سجّل الدخول للوصول إلى ملفك": "Sign in to access your profile",
+    "معرّف الحساب": "Account ID",
+    "رصيد المحفظة": "Wallet balance",
+    "طريقة الدخول": "Sign-in method",
+    "تُعرض هذه البيانات من جلسة حسابك الحالية. تعديل معلومات الهوية غير متاح من هذه الصفحة.": "This data is shown from your current account session. Identity information cannot be edited from this page.",
+    "ونحدّثك بنتيجة التسليم.": "We'll update you with the delivery result.",
+  });
+  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations);
   const reverse = new Map();
   for (const [ar,en] of Object.entries(translationLookup)) {
     const englishKey=String(en).trim().replace(/\s+/g,' ');
@@ -757,8 +793,11 @@
       if(match)return 'Page '+match[1]+' of '+match[2];
       match=key.match(/^نتائج مطابقة لعبارة:\s*(.+)$/);
       if(match)return 'Results matching: '+match[1];
-      match=key.match(/^([0-9٠-٩۰-۹,٬]+)\s+أقسام$/);
-      if(match)return match[1]+' departments';
+      match=key.match(/^([0-9٠-٩۰-۹,٬]+)\s+(أقسام|مجلدات|منتجات|خيارات|باقات|نتائج)$/);
+      if(match){
+        const units={'أقسام':'departments','مجلدات':'folders','منتجات':'products','خيارات':'options','باقات':'packages','نتائج':'results'};
+        return match[1]+' '+units[match[2]];
+      }
       match=key.match(/^سعر ثابت:\s*1 USD\s*=\s*(.+)$/);
       if(match)return 'Fixed rate: 1 USD = '+match[1];
     }else{
@@ -766,8 +805,11 @@
       if(match)return 'صفحة '+match[1]+' من '+match[2];
       match=key.match(/^Results matching:\s*(.+)$/i);
       if(match)return 'نتائج مطابقة لعبارة: '+match[1];
-      match=key.match(/^([0-9٠-٩۰-۹,٬]+)\s+departments?$/i);
-      if(match)return match[1]+' أقسام';
+      match=key.match(/^([0-9٠-٩۰-۹,٬]+)\s+(departments?|folders?|products?|options?|packages?|results?)$/i);
+      if(match){
+        const units={departments:'أقسام',department:'أقسام',folders:'مجلدات',folder:'مجلدات',products:'منتجات',product:'منتجات',options:'خيارات',option:'خيارات',packages:'باقات',package:'باقات',results:'نتائج',result:'نتائج'};
+        return match[1]+' '+units[match[2].toLowerCase()];
+      }
       match=key.match(/^Fixed rate:\s*1 USD\s*=\s*(.+)$/i);
       if(match)return 'سعر ثابت: 1 USD = '+match[1];
     }
