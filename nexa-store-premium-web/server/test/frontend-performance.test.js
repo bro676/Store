@@ -175,7 +175,7 @@ test('responsive drawer has a bounded viewport width, safe-area padding and a co
  assert.ok(css.includes('html.store-drawer-scroll-locked body'),'Background document scroll is locked while the drawer is modal');
  assert.ok(css.includes(':root[dir="rtl"] .app-shell .sidebar')&&css.includes('transform:translate3d(100%,0,0)!important'),'Arabic drawer exits from the right');
  assert.ok(css.includes(':root[dir="ltr"] .app-shell .sidebar')&&css.includes('transform:translate3d(-100%,0,0)!important'),'English drawer exits from the left');
- assert.ok(store.includes('nexa-store-polish.css?v=20261107-theme-sweep-v3'),'Responsive drawer CSS receives a fresh cache version');
+ assert.ok(store.includes('nexa-store-polish.css?v=20261107-theme-drawer-v4'),'Responsive drawer CSS receives a fresh cache version');
 });
 
 
