@@ -13,7 +13,7 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.doesNotThrow(()=>new vm.Script(source,{filename:'nexa-store-language.js'}));
  const sandbox={
   window:{addEventListener(){},dispatchEvent(){},requestAnimationFrame(){return 1}},
-  document:{
+  document:{getElementById(){return null},
    documentElement:{dataset:{},set lang(value){this.language=value},set dir(value){this.direction=value}},
    body:{nodeType:1,matches(){return false},querySelectorAll(){return []}},
    querySelector(){return null},
@@ -329,7 +329,7 @@ test('package picker and wallet top-up terms translate in both directions', asyn
  const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
  const sandbox={
   window:{addEventListener(){},dispatchEvent(){},requestAnimationFrame(){return 1}},
-  document:{
+  document:{getElementById(){return null},
    documentElement:{dataset:{},set lang(value){this.language=value},set dir(value){this.direction=value}},
    body:{nodeType:1,matches(){return false},querySelectorAll(){return []}},
    querySelector(){return null},createTreeWalker(){return {nextNode(){return null}}}
@@ -366,7 +366,7 @@ test('package picker and wallet top-up terms translate in both directions', asyn
 
 test('supplier package names, supplier field labels and wallet account strings translate both ways', async()=>{
  const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
- const sandbox={window:{addEventListener(){},dispatchEvent(){},requestAnimationFrame(){return 1}},document:{documentElement:{dataset:{},set lang(value){this.language=value},set dir(value){this.direction=value}},body:{nodeType:1,matches(){return false},querySelectorAll(){return []}},querySelector(){return null},createTreeWalker(){return {nextNode(){return null}}}},localStorage:{getItem(){return null},setItem(){}},MutationObserver:class{observe(){}},NodeFilter:{SHOW_TEXT:4,SHOW_ELEMENT:1},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail}}};
+ const sandbox={window:{addEventListener(){},dispatchEvent(){},requestAnimationFrame(){return 1}},document:{getElementById(){return null},documentElement:{dataset:{},set lang(value){this.language=value},set dir(value){this.direction=value}},body:{nodeType:1,matches(){return false},querySelectorAll(){return []}},querySelector(){return null},createTreeWalker(){return {nextNode(){return null}}}},localStorage:{getItem(){return null},setItem(){}},MutationObserver:class{observe(){}},NodeFilter:{SHOW_TEXT:4,SHOW_ELEMENT:1},CustomEvent:class{constructor(type,options){this.type=type;this.detail=options?.detail}}};
  vm.runInNewContext(source,sandbox,{filename:'nexa-store-language.js'});sandbox.window.NexaLocale.initialize();const translate=sandbox.window.NexaLocale.translate;
  const pairs=[['سعر البيع','Sale price'],['منتج رقمي مرتبط بمصدر ومضة','Digital product linked to Wamda source'],['منتج مرتبط بمصدر Best Store','Product linked to Best Store source'],['منتج مرتبط بمصدر ومضة','Product linked to Wamda source'],['المنتج يعمل بشكل تلقائي ٢٤ ساعة ☑','This product runs automatically 24/7 ☑'],['شحن رصيد الحساب','Top up account balance'],['سجّل الدخول لعرض رصيدك ومتابعة عمليات الشحن والشراء.','Sign in to view your balance and track top-ups and purchases.'],['حساب نشط','Active account'],['رصيدك المتاح','Available balance'],['إنشاء فاتورة شحن','Create top-up invoice'],['اشحن عبر شام كاش؛ سيضاف المبلغ بعد التحقق من الفاتورة ورقم العملية.','Top up with Sham Cash. Funds are added after the invoice and transaction reference are verified.'],['كلمة المرور','Password'],['الرقم المصري','Egyptian phone number'],['ايميلك','Your email'],['ادخل عنوان بيب Bep20','Enter BEP20 wallet address'],['رقم واتساب للتواصل','WhatsApp contact number'],['معرف اللاعب','Player ID'],['حساب شام كاش للمستلم','Recipient Sham Cash account'],['اختر المدينة','Choose city'],['رقم الهاتف الخاص بك','Your phone number'],['يرجى التأكد من "أيدي" المستخدم قبل الإرسال','Please verify the user ID before submitting']];
  sandbox.window.NexaLocale.setLanguage('en');for(const [ar,en] of pairs)assert.equal(translate(ar),en,'Missing English translation for '+ar);
