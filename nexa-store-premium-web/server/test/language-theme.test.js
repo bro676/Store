@@ -301,7 +301,7 @@ test('catalog folder/product and order/invoice terms are translated in both dire
   ["'فاتورة شام كاش الرسمية':'Official Sham Cash invoice'","'بيانات المنتج':'Product details'"]
  ]){assert.ok(source.includes(arabic)&&source.includes(english),'Missing exact bilingual flow terms '+arabic+' / '+english);}
  assert.ok(store.includes('nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v11'),'the expanded locale dictionary cache is refreshed');
- assert.ok(store.includes('nexa-responsive.css?v=20261107-catalog-checkout-theme-v9'),'the new catalog and modal styles are cache-busted');
+ assert.ok(store.includes('nexa-responsive.css?v=20261107-package-wallet-theme-v10'),'the new catalog and modal styles are cache-busted');
  const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-responsive.css'),'utf8');
  for(const selector of [':root[data-theme="dark"] #orderModal',':root[data-theme="light"] #orderModal','#orderModal .modal-body','#orderModal .modal-actions'])assert.ok(css.includes(selector),'Missing theme coverage for '+selector);
 });
@@ -339,7 +339,7 @@ test('package picker and wallet top-up terms translate in both directions', asyn
   ['غير متوفر حالياً','Currently unavailable'],
   ['اختيار الباقة ←','Choose package ←'],
   ['السعر المعتمد','Approved price'],
-  ['شحن رصيد الحساب','Top Up Account Balance'],
+  ['شحن رصيد الحساب','Top up account balance'],
   ['اشحن عبر شام كاش؛ سيضاف المبلغ بعد التحقق من الفاتورة ورقم العملية.','Top up with Sham Cash. Funds are added after the invoice and transaction reference are verified.'],
   ['إنشاء فاتورة شحن','Create Top-up Invoice'],
   ['الحد الأدنى 1,000 والحد الأعلى 5,000,000 ليرة سورية جديدة.','Minimum 1,000 and maximum 5,000,000 new Syrian pounds.'],
