@@ -983,10 +983,10 @@
     return output;
   }
   const canonicalEnglishProductTerms = Object.freeze([
-    ["Gold Package","الباقة الذهبية"],["Silver Package","الباقة الفضية"],
+    ["The Gold Package","الباقة الذهبية"],["Gold Package","الباقة الذهبية"],["Silver Package","الباقة الفضية"],
     ["Direct top-up","شحن مباشر"],["for the player account","لحساب اللاعب"],
     ["Silver","فضي"],["Gold","ذهبي"],["Bronze","برونزي"],["Platinum","بلاتيني"],["Diamond","ماسي"],
-    ["Monthly","شهري"],["Weekly","أسبوعي"],["Daily","يومي"],["Yearly","سنوي"]
+    ["Monthly","شهرية"],["Weekly","أسبوعية"],["Daily","يومية"],["Yearly","سنوية"]
   ]);
   const canonicalEnglishProductTermSet = new Set(canonicalEnglishProductTerms.map(([english])=>english.toLowerCase()));
   function replaceEnglishProductTerms(value){
