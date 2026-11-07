@@ -850,6 +850,40 @@
   " ونحدّثك بنتيجة التسليم.": " and will update you on the delivery result.",
   "صورة ": "Image ",
   " | متجرك الرقمي": " | Your digital store"
+  "جارٍ تسجيل الدخول…": "Signing in…",
+  "مساعد Nexa يراجع معلومات المتجر…": "Nexa Assistant is reviewing store information…",
+  "تعذر تحميل تفاصيل الباقة. حدّث الكتالوج وحاول مجدداً.": "Could not load package details. Refresh the catalog and try again.",
+  "يمكنك التواصل مع الدعم عبر واتساب أو البريد من صفحة «مركز الدعم».": "You can contact support through WhatsApp or email on the Support Center page.",
+  "حوّل قيمة الفاتورة إلى محفظة Nexa، ثم أدخل رقم العملية في نموذج التحقق.": "Transfer the invoice amount to your Nexa wallet, then enter the transaction reference in the verification form.",
+  "تم إنشاء فاتورة شام كاش الرسمية. حوّل المبلغ الظاهر ثم أدخل رقم العملية.": "The official Sham Cash invoice has been created. Transfer the displayed amount, then enter the transaction reference.",
+  "سيتم خصم المبلغ بالليرة السورية الجديدة من رصيد حسابك بعد التحقق من كفايته.": "The amount will be deducted from your account balance in new Syrian pounds after confirming that sufficient funds are available.",
+  "الكمية التي تم شحنها:": "Quantity delivered:",
+  "أقسام داخلية ·": "Subcategories ·",
+  "· باقة مختارة": "· Selected package",
+  "· الكمية": "· Quantity",
+  ". الحالة:": ". Status:",
+  "قسم الألعاب": "Games",
+  "خدمات الرصيد": "Balance Services",
+  "قسم التطبيقات": "Apps",
+  "أرقام افتراضية": "Virtual Numbers",
+  "بطاقات إلكترونية": "Digital Cards",
+  "قسم VPN": "VPN",
+  "توثيق الحسابات": "Account Verification",
+  "الذكاء الاصطناعي": "Artificial Intelligence",
+  "التسويق والخدمات الاجتماعية": "Social Media and Marketing",
+  "المواقع والبرمجة": "Websites and Programming",
+  "خدمات رقمية متنوعة": "Other Digital Services",
+  "شحن الألعاب والعضويات والنقاط الرقمية.": "Game top-ups, memberships and digital points.",
+  "الأرصدة والشحن والباقات الرقمية.": "Balances, top-ups and digital packages.",
+  "الاشتراكات والتطبيقات والخدمات الرقمية.": "Subscriptions, apps and digital services.",
+  "الأرقام الافتراضية وخدمات التفعيل المتاحة.": "Virtual numbers and available activation services.",
+  "بطاقات الألعاب والمتاجر والمحافظ الرقمية.": "Game, store and digital wallet cards.",
+  "اشتراكات VPN وخدمات الخصوصية والاتصال.": "VPN subscriptions, privacy and connectivity services.",
+  "الحسابات الجاهزة وخدمات التوثيق والتفعيل.": "Ready-made accounts, verification and activation services.",
+  "أدوات الذكاء الاصطناعي والاشتراكات الذكية.": "AI tools and smart subscriptions.",
+  "خدمات المنصات الاجتماعية والتفاعل الرقمي.": "Social platform services and digital engagement.",
+  "المواقع والبرمجة والتصميم والحلول التقنية.": "Websites, programming, design and technical solutions.",
+  "أقسام إضافية لا تندرج تحت الأقسام الرئيسية.": "Additional services outside the main departments.",
 });
   const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations,completionTranslations);
   const reverse = new Map();
@@ -896,13 +930,13 @@
     if(targetLanguage==='ar'&&reverse.has(key))return reverse.get(key);
 
     if(targetLanguage==='en'){
-      const units={'أقسام داخلية':'subcategories','أقسام رئيسية':'main categories','مجلدات رئيسية':'main folders','مجلدات':'folders','منتجات':'products','منتج':'product','خيارات':'options','باقات':'packages','نتائج':'results','نتيجة':'result'};
-      const output=key.replace(/(^|[\s·|•])([0-9٠-٩۰-۹,٬]+)\s+(أقسام داخلية|أقسام رئيسية|مجلدات رئيسية|مجلدات|منتجات|منتج|خيارات|باقات|نتائج|نتيجة)(?=$|[\s·|•])/g,(all,prefix,count,unit)=>prefix+count+' '+units[unit]);
+      const units={'أقسام داخلية':'subcategories','أقسام رئيسية':'main categories','أقسام':'departments','مجلدات رئيسية':'main folders','مجلدات':'folders','منتجات':'products','منتج':'product','خيارات':'options','باقات':'packages','نتائج':'results','نتيجة':'result'};
+      const output=key.replace(/(^|[\s·|•])([0-9٠-٩۰-۹,٬]+)\s+(أقسام داخلية|أقسام رئيسية|أقسام|مجلدات رئيسية|مجلدات|منتجات|منتج|خيارات|باقات|نتائج|نتيجة)(?=$|[\s·|•])/g,(all,prefix,count,unit)=>prefix+count+' '+units[unit]);
       if(output!==key)return output;
     }
     if(targetLanguage==='ar'){
-      const units={'subcategories':'أقسام داخلية','main categories':'أقسام رئيسية','main folders':'مجلدات رئيسية','folders':'مجلدات','products':'منتجات','product':'منتج','options':'خيارات','packages':'باقات','results':'نتائج','result':'نتيجة'};
-      const output=key.replace(/(^|[\s·|•])([0-9,]+)\s+(main categories|main folders|subcategories|folders|products|product|options|packages|results|result)(?=$|[\s·|•])/gi,(all,prefix,count,unit)=>prefix+count+' '+units[unit.toLowerCase()]);
+      const units={'subcategories':'أقسام داخلية','main categories':'أقسام رئيسية','departments':'أقسام','department':'أقسام','main folders':'مجلدات رئيسية','folders':'مجلدات','products':'منتجات','product':'منتج','options':'خيارات','packages':'باقات','results':'نتائج','result':'نتيجة'};
+      const output=key.replace(/(^|[\s·|•])([0-9,]+)\s+(main categories|main folders|subcategories|departments|department|folders|products|product|options|packages|results|result)(?=$|[\s·|•])/gi,(all,prefix,count,unit)=>prefix+count+' '+units[unit.toLowerCase()]);
       if(output!==key)return output;
     }
     let match;

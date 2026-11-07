@@ -54,8 +54,28 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(translate('2 أقسام رئيسية'),'2 main categories');
  assert.equal(translate('تبديل عملة العرض إلى الدولار الأمريكي'),'Switch display currency to US dollar');
  assert.equal(translate('تم تأكيد الدفع. سيصل طلبك قريباً'),'Payment confirmed. Your order will arrive soon.');
+ assert.equal(translate('0 أقسام'),'0 departments');
+ assert.equal(translate('قسم الألعاب'),'Games');
+ assert.equal(translate('خدمات الرصيد'),'Balance Services');
+ assert.equal(translate('قسم التطبيقات'),'Apps');
+ assert.equal(translate('أرقام افتراضية'),'Virtual Numbers');
+ assert.equal(translate('بطاقات إلكترونية'),'Digital Cards');
+ assert.equal(translate('قسم VPN'),'VPN');
+ assert.equal(translate('توثيق الحسابات'),'Account Verification');
+ assert.equal(translate('الذكاء الاصطناعي'),'Artificial Intelligence');
+ assert.equal(translate('التسويق والخدمات الاجتماعية'),'Social Media and Marketing');
+ assert.equal(translate('المواقع والبرمجة'),'Websites and Programming');
+ assert.equal(translate('شحن الألعاب والعضويات والنقاط الرقمية.'),'Game top-ups, memberships and digital points.');
+ assert.equal(translate('تعذر تحميل تفاصيل الباقة. حدّث الكتالوج وحاول مجدداً.'),'Could not load package details. Refresh the catalog and try again.');
+ assert.equal(translate('مساعد Nexa يراجع معلومات المتجر…'),'Nexa Assistant is reviewing store information…');
+ assert.equal(translate('جارٍ تسجيل الدخول…'),'Signing in…');
+ assert.equal(translate('تم إنشاء فاتورة شام كاش الرسمية. حوّل المبلغ الظاهر ثم أدخل رقم العملية.'),'The official Sham Cash invoice has been created. Transfer the displayed amount, then enter the transaction reference.');
+ assert.equal(translate('سيتم خصم المبلغ بالليرة السورية الجديدة من رصيد حسابك بعد التحقق من كفايته.'),'The amount will be deducted from your account balance in new Syrian pounds after confirming that sufficient funds are available.');
+ assert.equal(translate('حوّل قيمة الفاتورة إلى محفظة Nexa، ثم أدخل رقم العملية في نموذج التحقق.'),'Transfer the invoice amount to your Nexa wallet, then enter the transaction reference in the verification form.');
+ assert.equal(translate('يمكنك التواصل مع الدعم عبر واتساب أو البريد من صفحة «مركز الدعم».'),'You can contact support through WhatsApp or email on the Support Center page.');
  sandbox.window.NexaLocale.setLanguage('ar');
  assert.equal(translate('5 subcategories · 7 products'),'٥ أقسام داخلية · ٧ منتجات');
+ assert.equal(translate('0 departments'),'٠ أقسام');
  assert.equal(translate('Page 2 of 5'),'صفحة ٢ من ٥');
  assert.equal(sandbox.document.documentElement.direction,'rtl');
  assert.ok(source.includes("const excludedSelector = 'script,style,code,pre,[data-no-translate]'"),
