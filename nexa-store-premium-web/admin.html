@@ -933,7 +933,7 @@ function setAdminColorMode(mode,{persist=true}={}){
  const button=$('adminThemeToggle'),locale=window.NexaLocale?.getLanguage?.()||'ar';
  const labels={ar:{light:'☀️ الوضع الفاتح',dark:'🌙 الوضع الداكن',toLight:'التبديل إلى الوضع الفاتح',toDark:'التبديل إلى الوضع الداكن'},en:{light:'☀️ Light mode',dark:'🌙 Dark mode',toLight:'Switch to light mode',toDark:'Switch to dark mode'},tr:{light:'☀️ Açık tema',dark:'🌙 Koyu tema',toLight:'Açık temaya geç',toDark:'Koyu temaya geç'}};
  if(button){button.textContent=labels[locale]?.[selected]||labels.ar[selected];button.setAttribute('aria-label',labels[locale]?.[selected==='dark'?'toLight':'toDark']||labels.ar[selected==='dark'?'toLight':'toDark']);button.setAttribute('aria-pressed',String(selected==='dark'));}
- const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=selected==='dark'?'#3f4a75':'#f4efea';
+ const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=selected==='dark'?'#171d22':'#ffffff';
 }
 function initializeAdminLocale(){
  window.NexaLocale?.initialize();
