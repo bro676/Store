@@ -895,3 +895,11 @@ test('major account, checkout, notice and modal panels have both light and dark 
  assert.ok(css.includes('select option')&&css.includes('input:-webkit-autofill'),'Select options and autofill follow the active theme');
  assert.ok(css.includes('.drawer-direction-switching .app-shell .sidebar'),'Drawer direction switch does not animate across the screen');
 });
+
+test('customer registration and login compare Syrian local and international phone variants',async()=>{
+ const server=await fs.readFile(path.join(webRoot,'server/src/server.js'),'utf8');
+ const registrationQuery="const existing=await client.query(\"SELECT id FROM nexa_customers WHERE regexp_replace(phone,'[^0-9]','','g')=$1 OR ($1 ~ '^9639[0-9]{8}$' AND regexp_replace(phone,'[^0-9]','','g')='0'||substr($1,4)) OR regexp_replace(phone,'[^0-9]','','g')='00'||$1 LIMIT 1\",[phone]);";
+ const loginQuery="const found=await pool.query(\"SELECT id,password_salt,password_hash FROM nexa_customers WHERE regexp_replace(phone,'[^0-9]','','g')=$1 OR ($1 ~ '^9639[0-9]{8}$' AND regexp_replace(phone,'[^0-9]','','g')='0'||substr($1,4)) OR regexp_replace(phone,'[^0-9]','','g')='00'||$1 LIMIT 1\",[phone]);";
+ assert.ok(server.includes(registrationQuery),'New registrations cannot duplicate a Syrian phone using local or international notation');
+ assert.equal(server.split(loginQuery).length-1,2,'Both customer login paths accept the same canonical phone variants');
+});

@@ -2659,7 +2659,7 @@ const server = http.createServer(async (req,res) => {
       try{
         await client.query('BEGIN');
         await client.query('SELECT pg_advisory_xact_lock(hashtext($1))',['nexa-customer-phone:'+phone]);
-        const existing=await client.query("SELECT id FROM nexa_customers WHERE regexp_replace(phone,'[^0-9]','','g')=$1 OR ($1 ~ '^9639[0-9]{8} LIMIT 1",[phone]);
+        const existing=await client.query("SELECT id FROM nexa_customers WHERE regexp_replace(phone,'[^0-9]','','g')=$1 OR ($1 ~ '^9639[0-9]{8}$' AND regexp_replace(phone,'[^0-9]','','g')='0'||substr($1,4)) OR regexp_replace(phone,'[^0-9]','','g')='00'||$1 LIMIT 1",[phone]);
         if(existing.rowCount){
           await client.query('ROLLBACK');
           return send(res,409,{ok:false,error:'PHONE_ALREADY_REGISTERED',message:'رقم الهاتف مسجل مسبقاً. سجّل الدخول إلى الحساب الحالي.'});
@@ -2686,7 +2686,7 @@ const server = http.createServer(async (req,res) => {
       if(rateLimit(req,res,'account-login:'+ip,8,10*60_000))return;
       const input=await bodyJson(req,4096),phone=normalizeCustomerPhone(input.phone),password=String(input.password||'');
       if(!phone||!password||password.length>128)return send(res,400,{ok:false,error:'INVALID_LOGIN',message:'تحقق من رقم الهاتف وكلمة المرور.'});
-      const found=await pool.query("SELECT id,password_salt,password_hash FROM nexa_customers WHERE regexp_replace(phone,'[^0-9]','','g')=$1 LIMIT 1",[phone]);
+      const found=await pool.query("SELECT id,password_salt,password_hash FROM nexa_customers WHERE regexp_replace(phone,'[^0-9]','','g')=$1 OR ($1 ~ '^9639[0-9]{8}$' AND regexp_replace(phone,'[^0-9]','','g')='0'||substr($1,4)) OR regexp_replace(phone,'[^0-9]','','g')='00'||$1 LIMIT 1",[phone]);
       if(!found.rowCount)return send(res,401,{ok:false,error:'INVALID_CREDENTIALS',message:'رقم الهاتف أو كلمة المرور غير صحيحة.'});
       const expected=Buffer.from(found.rows[0].password_hash,'hex'),supplied=Buffer.from(customerPasswordHash(password,found.rows[0].password_salt),'hex');
       if(expected.length!==supplied.length||!crypto.timingSafeEqual(expected,supplied))return send(res,401,{ok:false,error:'INVALID_CREDENTIALS',message:'رقم الهاتف أو كلمة المرور غير صحيحة.'});
@@ -3569,7 +3569,7 @@ server.listen(cfg.port,()=>{
       if(rateLimit(req,res,'account-login:'+ip,8,10*60_000))return;
       const input=await bodyJson(req,4096),phone=normalizeCustomerPhone(input.phone),password=String(input.password||'');
       if(!phone||!password||password.length>128)return send(res,400,{ok:false,error:'INVALID_LOGIN',message:'تحقق من رقم الهاتف وكلمة المرور.'});
-      const found=await pool.query("SELECT id,password_salt,password_hash FROM nexa_customers WHERE regexp_replace(phone,'[^0-9]','','g')=$1 OR ($1 ~ '^9639[0-9]{8} LIMIT 1",[phone]);
+      const found=await pool.query("SELECT id,password_salt,password_hash FROM nexa_customers WHERE regexp_replace(phone,'[^0-9]','','g')=$1 OR ($1 ~ '^9639[0-9]{8}$' AND regexp_replace(phone,'[^0-9]','','g')='0'||substr($1,4)) OR regexp_replace(phone,'[^0-9]','','g')='00'||$1 LIMIT 1",[phone]);
       if(!found.rowCount)return send(res,401,{ok:false,error:'INVALID_CREDENTIALS',message:'رقم الهاتف أو كلمة المرور غير صحيحة.'});
       const expected=Buffer.from(found.rows[0].password_hash,'hex'),supplied=Buffer.from(customerPasswordHash(password,found.rows[0].password_salt),'hex');
       if(expected.length!==supplied.length||!crypto.timingSafeEqual(expected,supplied))return send(res,401,{ok:false,error:'INVALID_CREDENTIALS',message:'رقم الهاتف أو كلمة المرور غير صحيحة.'});
