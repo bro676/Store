@@ -1492,10 +1492,15 @@
     document.documentElement.lang=language;
     document.documentElement.dir=language==='ar'?'rtl':'ltr';
     document.documentElement.dataset.locale=language;
+    const adminPage=Boolean(document.getElementById('adminLanguageToggle'));
     const title=document.querySelector('title');
-    if(title)title.textContent=language==='en'?'Nexa Store | Your digital store':language==='tr'?'Nexa Store | Dijital mağazanız':'Nexa Store | متجرك الرقمي';
+    if(title)title.textContent=adminPage
+      ?(language==='en'?'Nexa Control | Admin Dashboard':language==='tr'?'Nexa Control | Yönetim paneli':'Nexa Control | لوحة الإدارة')
+      :(language==='en'?'Nexa Store | Your digital store':language==='tr'?'Nexa Store | Dijital mağazanız':'Nexa Store | متجرك الرقمي');
     const description=document.querySelector('meta[name="description"]');
-    if(description)description.setAttribute('content',language==='en'?'Nexa Store — Digital store for games, cards, subscriptions and digital services.':language==='tr'?'Nexa Store — Oyunlar, dijital kartlar, abonelikler ve hizmetler.':'Nexa Store — متجر رقمي للألعاب والبطاقات والاشتراكات والخدمات الرقمية.');
+    if(description)description.setAttribute('content',adminPage
+      ?(language==='en'?'Nexa Control — Secure store administration.':language==='tr'?'Nexa Control — Güvenli mağaza yönetimi.':'Nexa Control — لوحة إدارة متجر آمنة.')
+      :(language==='en'?'Nexa Store — Digital store for games, cards, subscriptions and digital services.':language==='tr'?'Nexa Store — Oyunlar, dijital kartlar, abonelikler ve hizmetler.':'Nexa Store — متجر رقمي للألعاب والبطاقات والاشتراكات والخدمات الرقمية.'));
   }
 
   function setLanguage(next,{persist=true}={}) {
