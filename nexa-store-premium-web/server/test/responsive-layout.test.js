@@ -7,9 +7,9 @@ const storefrontHtml = readFileSync(new URL('../../index.html', import.meta.url)
 const adminHtml = readFileSync(new URL('../../admin.html', import.meta.url), 'utf8');
 
 test('responsive layout stylesheet is loaded after legacy styles on both pages', () => {
-  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-responsive-v3');
+  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-layout-final-v4');
   const storePreviousLayer = storefrontHtml.indexOf('nexa-store-polish.css');
-  const adminLink = adminHtml.indexOf('nexa-responsive.css?v=20261107-responsive-v3');
+  const adminLink = adminHtml.indexOf('nexa-responsive.css?v=20261107-layout-final-v4');
   const adminTheme = adminHtml.indexOf('nexa-wamda-blue.css');
   assert.ok(storePreviousLayer >= 0 && storeLink > storePreviousLayer);
   assert.ok(adminTheme >= 0 && adminLink > adminTheme);
@@ -83,4 +83,36 @@ test('stylesheet braces are balanced and narrow viewports remove the old fixed b
   }
   assert.equal(depth, 0);
   assert.ok(responsiveCss.includes('body{min-width:0!important}'));
+});
+
+
+test('storefront responsive shell targets the actual #appMain element', () => {
+  const mainMarkup = storefrontHtml.match(/<main\s+id="appMain"[^>]*>/)?.[0] || '';
+  assert.ok(mainMarkup, 'The storefront main element is #appMain');
+  assert.ok(responsiveCss.includes('.app-shell #appMain,'), 'The actual storefront main element receives responsive sizing');
+  assert.ok(responsiveCss.includes('container-name:nexa-stage'), 'The main content is the responsive container');
+  assert.ok(responsiveCss.includes('container-type:inline-size!important'), 'Container breakpoints have a real container');
+  assert.ok(responsiveCss.includes(':root[dir="ltr"] .app-shell #appMain'), 'LTR desktop content reserves the rail on the left');
+  assert.ok(responsiveCss.includes('body.sidebar-closed .app-shell #appMain'), 'Desktop content expands when the drawer closes');
+});
+
+test('mobile drawer lock and header layout stay stable during drawer transitions', () => {
+  assert.ok(responsiveCss.includes('html.store-drawer-scroll-locked body{'), 'Mobile scroll lock fixes the page at its previous scroll position');
+  assert.ok(responsiveCss.includes('top:var(--store-drawer-scroll-top,0px)!important'), 'Scroll position is restored without a header jump');
+  assert.ok(responsiveCss.includes('.app-shell>.header{'), 'The storefront top bar follows the desktop rail');
+  assert.ok(responsiveCss.includes('body.sidebar-closed .app-shell>.header'), 'The top bar expands with the closed desktop drawer');
+  assert.ok(responsiveCss.includes('.app-shell .header-actions{display:flex!important'), 'Header actions do not wrap into each other on phones');
+});
+
+test('narrow storefront cards use readable wrapping and mobile columns', () => {
+  assert.ok(responsiveCss.includes('overflow-wrap:break-word!important;word-break:normal!important'), 'UI labels do not break at arbitrary character boundaries');
+  assert.ok(responsiveCss.includes('@media(max-width:420px)'), 'Small phones use a dedicated layout breakpoint');
+  assert.ok(responsiveCss.includes('.app-shell .featured-grid,.app-shell .catalog-grid{grid-template-columns:minmax(0,1fr)!important'), 'Product cards use a readable single column on narrow phones');
+});
+
+test('package cards and order details receive explicit dark surfaces', () => {
+  assert.ok(responsiveCss.includes('#catalogContent :is('), 'Package catalog surfaces have an explicit theme scope');
+  assert.ok(responsiveCss.includes('.pack-card,.pack-body,.step-summary,.empty-state,.catalog-note'), 'All package detail panels are covered');
+  assert.ok(responsiveCss.includes(':root[data-theme="dark"] #orderModal :is('), 'The order detail dialog receives a dark theme outside the app shell');
+  assert.ok(responsiveCss.includes('background-color:var(--surface-2)!important'), 'Package cards use a dark theme surface');
 });

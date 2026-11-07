@@ -35,7 +35,7 @@
 :root{--sidebar-width:268px;--side-bg:#171923;--side-panel:#20232e;--side-text:#b7bdc9;--side-muted:#828999}
 body{background:#f4f5f8}
 .app-shell{min-height:100vh}
-.app-main{margin-right:var(--sidebar-width);min-width:0;min-height:100vh;display:flex;flex-direction:column}
+#appMain,.app-main{margin-right:var(--sidebar-width);min-width:0;min-height:100vh;display:flex;flex-direction:column;width:100%;max-width:100%;transition:margin .24s ease,width .24s ease}
 .sidebar{position:fixed;inset:0 0 0 auto;width:var(--sidebar-width);height:100dvh;z-index:120;display:flex;flex-direction:column;padding:24px 17px 16px;background:linear-gradient(180deg,#171923 0%,#1b1e29 100%);color:#fff;box-shadow:-12px 0 34px rgba(16,18,27,.08);overflow-y:auto;overscroll-behavior:contain}
 .sidebar-brand{display:flex;align-items:center;gap:12px;padding:4px 8px 19px;color:#fff}
 .sidebar-brand img{width:43px;height:43px;object-fit:contain;filter:drop-shadow(0 5px 12px rgba(237,41,66,.22))}
@@ -105,7 +105,7 @@ body{background:#f4f5f8}
 @media(max-width:1120px){:root{--sidebar-width:232px}.sidebar{padding-inline:13px}.side-link{min-height:46px}.home-intro{padding-inline:23px}.header-search{width:min(340px,34vw)}}
 @media(max-width:820px){
   :root{--sidebar-width:280px}
-  .app-main{margin-right:0}
+  #appMain,.app-main{margin-right:0}
   .sidebar{width:min(290px,86vw);transform:translateX(110%);transition:transform .28s cubic-bezier(.2,.75,.25,1);box-shadow:-20px 0 50px rgba(7,9,16,.25)}
   body.sidebar-open .sidebar{transform:translateX(0)}
   .sidebar-backdrop{position:fixed;inset:0;z-index:110;border:0;padding:0;background:rgba(12,15,24,.48);backdrop-filter:blur(2px)}
@@ -216,7 +216,7 @@ body{background:var(--bg);color:var(--ink)}
 /* Nexa premium refinement: clearer contrast, calmer surfaces and consistent accents. */
 :root{--bg:#f3f5fa;--surface:#fff;--surface-2:#f5f7fb;--ink:#182235;--ink-2:#344158;--muted:#707d91;--muted-2:#919bad;--line:#e4e9f2;--line-2:#d6deeb;--red:#e23b57;--red-2:#f45a70;--red-dark:#bd2440;--red-soft:#fff0f3;--green:#139779;--blue:#4b79e7;--purple:#7661d8;--amber:#c98b35;--shadow:0 12px 32px rgba(25,39,65,.065);--shadow-lg:0 26px 70px rgba(21,31,52,.17);--focus:0 0 0 4px rgba(226,59,87,.15)}
 body{background:radial-gradient(ellipse at 8% 0%,rgba(91,119,190,.055),transparent 32%),linear-gradient(180deg,#f7f8fc 0%,#f1f4f9 100%)}
-.app-main{background:transparent}
+#appMain,.app-main{background:transparent}
 .sidebar{background:linear-gradient(160deg,#121b30 0%,#19243b 58%,#211d37 100%);box-shadow:-18px 0 48px rgba(13,23,42,.16)}
 .sidebar-divider{background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent)}
 .sidebar-brand small{color:#ff9aaa}
@@ -628,7 +628,7 @@ body{
 </style>
 
 <link rel="stylesheet" href="/assets/brand/nexa-store-polish.css?v=20261107-package-modal-dark-v5">
-<link rel="stylesheet" href="/assets/brand/nexa-responsive.css?v=20261107-responsive-v3">
+<link rel="stylesheet" href="/assets/brand/nexa-responsive.css?v=20261107-layout-final-v4">
 </head>
 <body>
 <div class="app-shell">
@@ -1073,7 +1073,7 @@ body{
 </section>
 <div class="toast" id="toast"></div>
 <script src="/assets/brand/nexa-catalog.js?v=20261106-dashboard-order-v3"></script>
-<script src="/assets/brand/nexa-store-language.js?v=20261107-product-terms-v8"></script>
+<script src="/assets/brand/nexa-store-language.js?v=20261107-product-terms-v9"></script>
 <script>
 let categories=[];
 let storefrontDisplayCurrency='USD',storefrontFxRate=145,storefrontFxReady=false,storefrontLanguage='ar',walletTransactions=[];

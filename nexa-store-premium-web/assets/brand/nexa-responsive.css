@@ -238,7 +238,7 @@ button,input,select,textarea{min-width:0;max-width:100%}
 
 /* NEXA FINAL RESPONSIVE + THEME CONTRACT v2 */
 :root{--nexa-layout-gutter:clamp(14px,2vw,32px);--nexa-content-max:1480px;--rail-width:clamp(250px,20vw,320px);--admin-rail-width:var(--rail-width)}
-html,body{width:100%;max-width:100%;min-width:320px;overflow-x:clip}
+html,body{width:100%;max-width:100%;min-width:0!important;overflow-x:clip}
 *,*::before,*::after{box-sizing:border-box}
 img,video,canvas,svg{max-width:100%}
 button,input,select,textarea{min-width:0;max-width:100%;font:inherit}
@@ -553,3 +553,137 @@ button,input,select,textarea{min-width:0;max-width:100%;font:inherit}
 :root[data-theme="light"] body .app-shell .header :is(button,.icon-button,.header-back-button,.main-nav a){
   color:#06334b!important;
 }
+
+
+/* NEXA MOBILE + DRAWER + PACKAGE FINAL FIX v4.
+   The storefront main element is #appMain, not a node with .app-main. */
+.app-shell #appMain,
+.app-shell .app-main{
+  display:flex!important;flex-direction:column!important;
+  min-width:0!important;min-height:100vh!important;
+  width:auto!important;max-width:none!important;
+  margin:0 var(--rail-width) 0 0!important;
+  container-type:inline-size!important;container-name:nexa-stage;
+  transition:margin .24s ease,width .24s ease!important;
+  background:var(--paper)!important;color:var(--ink)!important;
+}
+:root[dir="ltr"] .app-shell #appMain,
+:root[dir="ltr"] .app-shell .app-main{margin:0 0 0 var(--rail-width)!important}
+body.sidebar-closed .app-shell #appMain,
+body.sidebar-closed .app-shell .app-main{margin:0!important;width:100%!important}
+.app-shell>.header{
+  width:calc(100% - var(--rail-width))!important;
+  margin:0 var(--rail-width) 0 0!important;
+  transition:width .24s ease,margin .24s ease!important;
+}
+:root[dir="ltr"] .app-shell>.header{margin:0 0 0 var(--rail-width)!important}
+body.sidebar-closed .app-shell>.header{width:100%!important;margin:0!important}
+
+/* Preserve the exact page scroll position while the mobile drawer is open. */
+html.store-drawer-scroll-locked body{
+  position:fixed!important;inset-inline:0!important;
+  top:var(--store-drawer-scroll-top,0px)!important;
+  width:100%!important;overflow:hidden!important;
+}
+.app-shell :is(.category-card,.product-card,.catalog-tile,.option-card,.pack-card,.process-card,.faq-item,.support-channel,.reference-panel,.reference-empty-panel,.panel,.stat)
+:is(h1,h2,h3,h4,p,strong,small,span,a,label,button){
+  overflow-wrap:break-word!important;word-break:normal!important;
+}
+@media(max-width:1024px){
+  .app-shell #appMain,.app-shell .app-main{
+    display:flex!important;flex-direction:column!important;
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    margin:0!important;min-height:100dvh!important;
+  }
+  .app-shell>.header{width:100%!important;margin:0!important}
+  .app-shell .view{
+    width:100%!important;max-width:100%!important;min-width:0!important;
+    padding-inline:clamp(12px,3vw,20px)!important;overflow-x:clip!important;
+  }
+  .app-shell :is(.wrap,.page-shell,.reference-page-wrap,.reference-search-inner,.promo-inner){
+    width:100%!important;max-width:100%!important;min-width:0!important;margin-inline:0!important;
+  }
+}
+@media(max-width:760px){
+  .app-shell .header-main{
+    display:flex!important;flex-wrap:nowrap!important;align-items:center!important;
+    justify-content:space-between!important;width:100%!important;min-width:0!important;
+    min-height:58px!important;height:auto!important;padding:6px 10px!important;gap:7px!important;
+  }
+  .app-shell .header-brand{flex:1 1 38%!important;max-width:42%!important;min-width:0!important}
+  .app-shell .header-actions{display:flex!important;flex:0 1 auto!important;max-width:60%!important;min-width:0!important;flex-wrap:nowrap!important;gap:4px!important}
+  .app-shell .header-actions>*{flex-shrink:0!important}
+  .app-shell :is(.category-grid,#homeCategoryGrid,.department-grid,.catalog-department-grid,.featured-grid,.catalog-grid){
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important;
+  }
+  .app-shell :is(.category-card,.product-card,.catalog-tile,.department-card,.option-card,.pack-card){
+    width:100%!important;min-width:0!important;max-width:100%!important;
+  }
+  .app-shell .catalog-shell{padding:clamp(12px,3vw,18px)!important}
+  .app-shell .pack-card{overflow:hidden!important}
+  .app-shell .pack-body{min-width:0!important}
+}
+@media(max-width:560px){
+  .app-shell .header-main{padding-inline:8px!important;gap:5px!important}
+  .app-shell .header-brand{flex:1 1 36%!important;max-width:38%!important}
+  .app-shell .header-brand-copy strong{font-size:clamp(11px,3.1vw,13px)!important}
+  .app-shell .header-actions{max-width:62%!important;gap:3px!important}
+  .app-shell .header-actions .wallet-chip{
+    display:flex!important;max-width:68px!important;min-width:0!important;
+    min-height:31px!important;padding:4px 6px!important;font-size:9px!important;
+  }
+  .app-shell .header-actions .wallet-chip span{display:none!important}
+  .app-shell .header-actions .wallet-chip strong{white-space:nowrap!important}
+  .app-shell .header-actions :is(.icon-button,.menu-toggle){width:32px!important;height:32px!important;flex:0 0 32px!important}
+  .app-shell .header-vip-chip{min-width:0!important;min-height:30px!important;padding:4px 6px!important;font-size:8px!important}
+  .app-shell .home-intro{padding:17px 13px!important}
+  .app-shell :is(.option-list,.pack-grid,.process-grid,.support-channel-grid,.faq-grid,.about-grid,.form-grid,.support-main-grid,.wallet-api-layout,.reference-auth-layout,.reference-security-grid){
+    grid-template-columns:minmax(0,1fr)!important;
+  }
+  .app-shell .form-grid>.field.full,.app-shell .form-grid>.full{grid-column:auto!important}
+  .app-shell .section-head,.app-shell .page-heading,.app-shell .reference-page-heading,.app-shell .catalog-header{
+    align-items:flex-start!important;flex-direction:column!important;
+  }
+  .app-shell .catalog-count{white-space:normal!important;max-width:100%!important}
+  .app-shell .product-foot{align-items:stretch!important}
+  .app-shell .product-foot .price{white-space:normal!important}
+}
+@media(max-width:420px){
+  .app-shell .view{padding-inline:12px!important}
+  .app-shell .wrap,.app-shell .page-shell,.app-shell .reference-page-wrap{padding-inline:0!important}
+  .app-shell .featured-grid,.app-shell .catalog-grid{grid-template-columns:minmax(0,1fr)!important;gap:11px!important}
+  .app-shell :is(.category-grid,#homeCategoryGrid,.department-grid,.catalog-department-grid){grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  .app-shell .product-image,.app-shell .catalog-tile-image{height:auto!important;aspect-ratio:16/9!important}
+  .app-shell .product-info{padding:12px!important}
+}
+@media(max-width:340px){
+  .app-shell .header-brand-copy{display:none!important}
+  .app-shell .header-actions .wallet-chip{max-width:56px!important}
+  .app-shell .header-vip-chip{display:none!important}
+  .app-shell :is(.category-grid,#homeCategoryGrid,.department-grid,.catalog-department-grid){grid-template-columns:minmax(0,1fr)!important}
+}
+
+/* Final dark-mode contract for package selection, product details and checkout dialog. */
+:root[data-theme="dark"] body .app-shell #catalogContent :is(
+  .catalog-shell,.catalog-steps,.step-summary,.catalog-count,.option-card,
+  .pack-card,.pack-body,.empty-state,.catalog-note,.back-button,.option-flag
+){
+  background-color:var(--surface-2)!important;background-image:none!important;
+  color:var(--ink)!important;border-color:var(--line)!important;box-shadow:none!important;
+}
+:root[data-theme="dark"] body .app-shell #catalogContent :is(
+  .pack-card,.pack-body,.step-summary,.empty-state,.catalog-note,.option-card
+) :is(h1,h2,h3,h4,strong,b,label,span){color:var(--ink)!important}
+:root[data-theme="dark"] body .app-shell #catalogContent :is(
+  .pack-card,.pack-body,.step-summary,.empty-state,.catalog-note,.option-card
+) :is(p,small){color:var(--muted)!important}
+:root[data-theme="dark"] body .app-shell #catalogContent .pack-card :is(button,.btn){color:#fff!important}
+:root[data-theme="dark"] #orderModal :is(.modal,.modal-head,.modal-body,.modal-actions){
+  background-color:var(--surface)!important;background-image:none!important;
+  color:var(--ink)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] #orderModal .modal-product{
+  background-color:var(--surface-2)!important;background-image:none!important;
+  color:var(--ink)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] #orderModal :is(.field,input,select,textarea){border-color:var(--line-2)!important}

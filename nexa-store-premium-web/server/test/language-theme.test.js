@@ -87,6 +87,23 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(translate('سيتم خصم المبلغ بالليرة السورية الجديدة من رصيد حسابك بعد التحقق من كفايته.'),'The amount will be deducted from your account balance in new Syrian pounds after confirming that sufficient funds are available.');
  assert.equal(translate('حوّل قيمة الفاتورة إلى محفظة Nexa، ثم أدخل رقم العملية في نموذج التحقق.'),'Transfer the invoice amount to your Nexa wallet, then enter the transaction reference in the verification form.');
  assert.equal(translate('يمكنك التواصل مع الدعم عبر واتساب أو البريد من صفحة «مركز الدعم».'),'You can contact support through WhatsApp or email on the Support Center page.');
+ const dynamicUiTranslations=[
+  ['عنوان محفظة الاستلام','Receiving wallet address'],
+  ['استكشف ←','Explore →'],
+  ['التواصل مع الدعم ↗','Contact Support ↗'],
+  ['← الأقسام الرئيسية','Main categories →'],
+  ['← المجلد الأعلى','Parent folder →'],
+  ['يمكنك استخدام المجلدات الفرعية أو البحث باسم آخر.','You can use subfolders or search for another term.'],
+  ['هذا المنتج ظاهر للتفاصيل فقط؛ لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد.','This product is displayed for details only. Orders cannot be placed until the supplier marks it available again.'],
+  ['تأكد من رقم الطلب أو أعد المحاولة.','Check the order number or try again.'],
+  ['✓ مدفوع ومتحقق','✓ Paid and verified'],
+  ['تم التحقق من الدفع لدى مزوّد شام كاش عبر API.','Payment was verified with the Sham Cash provider through the API.'],
+  ['رقم الفاتورة','Invoice number'],
+  ['هذا الوصل يثبت أن Nexa Store تحقّق من الدفع والمبلغ والمستلم. احتفظ برقم الطلب والفاتورة للرجوع إليهما. بيانات الحساب أو البطاقة لا تظهر إلا بعد تأكيد اكتمال التسليم.','This receipt confirms that Nexa Store verified the payment, amount and recipient. Keep the order and invoice numbers for reference. Account or card details are shown only after delivery is confirmed complete.'],
+  ['استخدم رقم الهاتف وكلمة المرور لعرض بيانات الحساب ورصيد المحفظة.','Use your phone number and password to view your account details and wallet balance.'],
+  ['شحن رصيد الحساب · SYP','Account balance top-up · SYP']
+ ];
+ for(const [arabic,english] of dynamicUiTranslations)assert.equal(translate(arabic),english,'Missing dynamic storefront translation: '+arabic);
  sandbox.window.NexaLocale.setLanguage('ar');
  assert.equal(translate('5 subcategories · 7 products'),'٥ أقسام داخلية · ٧ منتجات');
  assert.equal(translate('0 departments'),'٠ أقسام');
@@ -269,5 +286,5 @@ test('package flow dynamic UI strings and sidebar open/close labels are translat
   '"اختر المنطقة أو النسخة أو الخطة المناسبة.": "Choose the suitable region, version or plan."',
   '"الكمية": "Quantity"'
  ])assert.ok(source.includes(phrase),'Missing package-flow translation '+phrase);
- assert.ok(store.includes('nexa-store-language.js?v=20261107-product-terms-v8'),'Package flow locale cache version is fresh');
+ assert.ok(store.includes('nexa-store-language.js?v=20261107-product-terms-v9'),'Package flow locale cache version is fresh');
 });

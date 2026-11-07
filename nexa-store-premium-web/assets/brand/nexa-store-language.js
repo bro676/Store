@@ -927,6 +927,22 @@
     "بوابة دفع آمنة عبر API": "SECURE API PAYMENT GATEWAY",
     "مسار الدفع": "PAYMENT FLOW"
   });
+  const storefrontDynamicTranslations = Object.freeze({
+    "عنوان محفظة الاستلام": "Receiving wallet address",
+    "استكشف ←": "Explore →",
+    "التواصل مع الدعم ↗": "Contact Support ↗",
+    "← الأقسام الرئيسية": "Main categories →",
+    "← المجلد الأعلى": "Parent folder →",
+    "يمكنك استخدام المجلدات الفرعية أو البحث باسم آخر.": "You can use subfolders or search for another term.",
+    "هذا المنتج ظاهر للتفاصيل فقط؛ لا يمكن إنشاء طلب قبل عودته إلى التوفر لدى المورد.": "This product is displayed for details only. Orders cannot be placed until the supplier marks it available again.",
+    "تأكد من رقم الطلب أو أعد المحاولة.": "Check the order number or try again.",
+    "✓ مدفوع ومتحقق": "✓ Paid and verified",
+    "تم التحقق من الدفع لدى مزوّد شام كاش عبر API.": "Payment was verified with the Sham Cash provider through the API.",
+    "رقم الفاتورة": "Invoice number",
+    "هذا الوصل يثبت أن Nexa Store تحقّق من الدفع والمبلغ والمستلم. احتفظ برقم الطلب والفاتورة للرجوع إليهما. بيانات الحساب أو البطاقة لا تظهر إلا بعد تأكيد اكتمال التسليم.": "This receipt confirms that Nexa Store verified the payment, amount and recipient. Keep the order and invoice numbers for reference. Account or card details are shown only after delivery is confirmed complete.",
+    "استخدم رقم الهاتف وكلمة المرور لعرض بيانات الحساب ورصيد المحفظة.": "Use your phone number and password to view your account details and wallet balance.",
+    "شحن رصيد الحساب · SYP": "Account balance top-up · SYP"
+  });
   // Supplier product/option names may combine Latin brands with Arabic variants and terms.
   const productNameTermTranslations = Object.freeze({
     "الباقة الذهبية":"Gold Package","الباقة الفضية":"Silver Package","الخيار الأساسي":"Basic option","الخيار المميز":"Premium option","الخيار الافتراضي":"Default option","الخطة الأساسية":"Basic plan","الخطة المميزة":"Premium plan","الباقة الأساسية":"Basic Package","الباقة المميزة":"Premium Package","لحساب اللاعب":"for the player account","الشحن المباشر":"Direct top-up","شحن مباشر":"Direct top-up","شحن":"Top-up","رصيد":"Balance","ذهبية":"Gold","الذهبية":"Gold","فضية":"Silver","الفضية":"Silver","أساسي":"Basic","أساسية":"Basic","الأساسي":"Basic","الأساسية":"Basic",
@@ -952,7 +968,7 @@
     "فيسبوك":"Facebook","بلايستيشن":"PlayStation","بلاي ستيشن":"PlayStation","اكس بوكس":"Xbox",
     "إكس بوكس":"Xbox","ستيم":"Steam","آيفون":"iPhone","أيفون":"iPhone","أندرويد":"Android","اندرويد":"Android"
   });
-  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations,completionTranslations,editorialUiTranslations,paymentBrandTranslations,productNameTermTranslations);
+  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations,completionTranslations,editorialUiTranslations,paymentBrandTranslations,storefrontDynamicTranslations,productNameTermTranslations);
   const reverse = new Map();
   for (const [ar,en] of Object.entries(translationLookup)) {
     const englishKey=String(en).trim().replace(/\s+/g,' ');
