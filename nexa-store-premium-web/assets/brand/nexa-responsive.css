@@ -541,3 +541,15 @@ button,input,select,textarea{min-width:0;max-width:100%;font:inherit}
 :root[data-theme="light"] body #app.shell :is(.folder-choice,.folder-tree-toggle,.category-choice,.palette-field,.image-row,.option-head){
   background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
 }
+
+/* Preserve Nexa's sky-blue header in light mode while keeping all other surfaces light. */
+:root[data-theme="light"] body .app-shell .header{
+  background:#62c8f2!important;
+  background-color:#62c8f2!important;
+  background-image:none!important;
+  color:#06334b!important;
+  border-bottom-color:#52bce9!important;
+}
+:root[data-theme="light"] body .app-shell .header :is(button,.icon-button,.header-back-button,.main-nav a){
+  color:#06334b!important;
+}
