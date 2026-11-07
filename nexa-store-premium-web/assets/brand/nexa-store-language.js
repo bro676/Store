@@ -849,7 +849,7 @@
   "تم تأكيد الدفع بنجاح. نرسل طلبك إلى ": "Payment confirmed. We are sending your order to ",
   " ونحدّثك بنتيجة التسليم.": " and will update you on the delivery result.",
   "صورة ": "Image ",
-  " | متجرك الرقمي": " | Your digital store"
+  " | متجرك الرقمي": " | Your digital store",
   "جارٍ تسجيل الدخول…": "Signing in…",
   "مساعد Nexa يراجع معلومات المتجر…": "Nexa Assistant is reviewing store information…",
   "تعذر تحميل تفاصيل الباقة. حدّث الكتالوج وحاول مجدداً.": "Could not load package details. Refresh the catalog and try again.",
