@@ -7,9 +7,9 @@ const storefrontHtml = readFileSync(new URL('../../index.html', import.meta.url)
 const adminHtml = readFileSync(new URL('../../admin.html', import.meta.url), 'utf8');
 
 test('responsive layout stylesheet is loaded after legacy styles on both pages', () => {
-  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-layout-final-v4');
+  const storeLink = storefrontHtml.indexOf('nexa-responsive.css?v=20261107-layout-final-v5');
   const storePreviousLayer = storefrontHtml.indexOf('nexa-store-polish.css');
-  const adminLink = adminHtml.indexOf('nexa-responsive.css?v=20261107-layout-final-v4');
+  const adminLink = adminHtml.indexOf('nexa-responsive.css?v=20261107-layout-final-v5');
   const adminTheme = adminHtml.indexOf('nexa-wamda-blue.css');
   assert.ok(storePreviousLayer >= 0 && storeLink > storePreviousLayer);
   assert.ok(adminTheme >= 0 && adminLink > adminTheme);
@@ -99,8 +99,8 @@ test('storefront responsive shell targets the actual #appMain element', () => {
 test('mobile drawer lock and header layout stay stable during drawer transitions', () => {
   assert.ok(responsiveCss.includes('html.store-drawer-scroll-locked body{'), 'Mobile scroll lock fixes the page at its previous scroll position');
   assert.ok(responsiveCss.includes('top:var(--store-drawer-scroll-top,0px)!important'), 'Scroll position is restored without a header jump');
-  assert.ok(responsiveCss.includes('.app-shell>.header{'), 'The storefront top bar follows the desktop rail');
-  assert.ok(responsiveCss.includes('body.sidebar-closed .app-shell>.header'), 'The top bar expands with the closed desktop drawer');
+  assert.ok(responsiveCss.includes('.app-shell .app-main > .header{'), 'The storefront top bar follows its actual app-main parent');
+  assert.ok(responsiveCss.includes('.app-shell .app-main > .header{width:100%!important;max-width:100%!important;margin:0!important}'), 'The top bar inherits the full width of the rail-sized parent and expands when it closes');
   assert.ok(responsiveCss.includes('.app-shell .header-actions{display:flex!important'), 'Header actions do not wrap into each other on phones');
 });
 
@@ -115,4 +115,23 @@ test('package cards and order details receive explicit dark surfaces', () => {
   assert.ok(responsiveCss.includes('.pack-card,.pack-body,.step-summary,.empty-state,.catalog-note'), 'All package detail panels are covered');
   assert.ok(responsiveCss.includes(':root[data-theme="dark"] #orderModal :is('), 'The order detail dialog receives a dark theme outside the app shell');
   assert.ok(responsiveCss.includes('background-color:var(--surface-2)!important'), 'Package cards use a dark theme surface');
+});
+
+
+test('storefront route is shown before the catalog network request completes', () => {
+  const initStart = storefrontHtml.indexOf('function init(){');
+  const initEnd = storefrontHtml.indexOf('// delegated interactions', initStart);
+  assert.ok(initStart >= 0 && initEnd > initStart, 'The storefront initializer is present');
+  const init = storefrontHtml.slice(initStart, initEnd);
+  const navigation = init.indexOf("navigate(resolveStoreLocation(),{historyMode:'replace'})");
+  const catalogFetch = init.indexOf("fetch('/api/catalog',{cache:'no-store'})");
+  assert.ok(navigation >= 0 && catalogFetch > navigation, 'The requested route is made visible before catalog data is requested');
+  assert.ok(!init.includes('await fetch'), 'Catalog loading does not block first paint or route visibility');
+  assert.ok(init.includes(".catch(()=>{});"), 'A catalog network failure leaves the storefront shell usable');
+});
+
+test('mobile storefront header selector matches the actual DOM hierarchy', () => {
+  assert.match(storefrontHtml, /<div class="app-main">[\s\S]*?<header class="header">[\s\S]*?<main id="appMain">/);
+  assert.ok(responsiveCss.includes('.app-shell .app-main > .header{'), 'Responsive header rule targets the actual nested header');
+  assert.ok(!responsiveCss.includes('.app-shell>.header{'), 'No ineffective direct-child header selector remains');
 });
