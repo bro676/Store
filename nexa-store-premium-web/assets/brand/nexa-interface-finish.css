@@ -80,6 +80,12 @@ html[dir="ltr"] .sidebar-language-toggle{direction:ltr}
   color:var(--ink)!important;border-color:var(--line)!important;
   box-shadow:0 4px 18px rgba(15,25,32,.035)!important;
 }
+:root[data-theme="dark"] .app-shell .header{
+  background:rgba(24,30,35,.96)!important;color:#f3f6f8!important;border-color:#303b43!important;
+}
+:root[data-theme="light"] .app-shell .header{
+  background:rgba(255,255,255,.96)!important;color:#20282e!important;border-color:#e1e7ea!important;
+}
 .app-shell .header-main{color:var(--ink)!important}
 .app-shell .header :is(.brand,.header-brand-copy,.header-brand-copy strong,.header-wallet,.header-wallet-balance,.icon-button){color:var(--ink)!important}
 .app-shell .header :is(.header-brand-copy small,.header-subtitle,.muted){color:var(--muted)!important}
