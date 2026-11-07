@@ -46,7 +46,8 @@ test('storefront language engine translates static and dynamic text, attributes 
 
  assert.equal(translate('Search by product name...'),'ابحث باسم المنتج...');
  assert.equal(translate('Close sidebar'),'إغلاق القائمة الجانبية');
- assert.equal(translate('Open Main category'),'فتح Main category');
+ assert.equal(translate('Open Main category'),'فتح الفئة الرئيسية');
+ assert.equal(translate('فتح الفئة الرئيسية'),'Open Main category');
  assert.equal(translate('3 folders ·'),'٣ مجلدات ·');
  sandbox.window.NexaLocale.setLanguage('en');
  assert.equal(translate('5 أقسام داخلية · 7 منتجات'),'5 subcategories · 7 products');
