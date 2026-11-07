@@ -288,3 +288,20 @@ test('package flow dynamic UI strings and sidebar open/close labels are translat
  ])assert.ok(source.includes(phrase),'Missing package-flow translation '+phrase);
  assert.ok(store.includes('nexa-store-language.js?v=20261107-product-terms-v9'),'Package flow locale cache version is fresh');
 });
+
+
+test('catalog folder/product and order/invoice terms are translated in both directions',async()=>{
+ const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ assert.ok(source.includes('const catalogCheckoutTranslations = Object.freeze({'),'the dedicated dynamic catalog and checkout dictionary exists');
+ assert.ok(source.includes('productNameTermTranslations,catalogCheckoutTranslations);'),'the new terms participate in the bidirectional translation lookup');
+ for(const [arabic,english] of [
+  ["'مجلد':'Folder'","'منتج رقمي':'Digital product'"],["'اختيار الباقة':'Choose package'","'تأكيد الطلب':'Confirm order'"],
+  ["'اسم العميل':'Customer name'","'عملة الدفع':'Payment currency'"],["'إنشاء الطلب والمتابعة للدفع':'Create order and continue to payment'","'عنوان محفظة الاستلام':'Receiving wallet address'"],
+  ["'فاتورة شام كاش الرسمية':'Official Sham Cash invoice'","'بيانات المنتج':'Product details'"]
+ ]){assert.ok(source.includes(arabic)&&source.includes(english),'Missing exact bilingual flow terms '+arabic+' / '+english);}
+ assert.ok(store.includes('nexa-store-language.js?v=20261107-dynamic-catalog-checkout-i18n-v10'),'the expanded locale dictionary cache is refreshed');
+ assert.ok(store.includes('nexa-responsive.css?v=20261107-catalog-checkout-theme-v8'),'the new catalog and modal styles are cache-busted');
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-responsive.css'),'utf8');
+ for(const selector of [':root[data-theme="dark"] #orderModal',':root[data-theme="light"] #orderModal','#orderModal .modal-body','#orderModal .modal-actions'])assert.ok(css.includes(selector),'Missing theme coverage for '+selector);
+});

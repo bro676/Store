@@ -968,7 +968,49 @@
     "فيسبوك":"Facebook","بلايستيشن":"PlayStation","بلاي ستيشن":"PlayStation","اكس بوكس":"Xbox",
     "إكس بوكس":"Xbox","ستيم":"Steam","آيفون":"iPhone","أيفون":"iPhone","أندرويد":"Android","اندرويد":"Android"
   });
-  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations,completionTranslations,editorialUiTranslations,paymentBrandTranslations,storefrontDynamicTranslations,productNameTermTranslations);
+  // Catalog, supplier fields, order form and invoice UI: exact terms used by dynamically rendered views.
+  const catalogCheckoutTranslations = Object.freeze({
+    'مجلد':'Folder','مجلد فرعي':'Subfolder','مجلد رئيسي':'Main folder','مجلدات فرعية':'Subfolders',
+    'المجلدات الفرعية':'Subfolders','المجلد الأعلى':'Parent folder','الأقسام الرئيسية':'Main departments',
+    'كل الأقسام الرئيسية':'All main departments','أقسام رئيسية':'Main departments',
+    'المنتجات داخل':'Products in','منتج رقمي':'Digital product','عرض الخيارات':'View options',
+    'عرض المنتج':'View product','عرض الباقات':'View packages','عرض الباقة':'View package',
+    'اختيار الباقة':'Choose package','اختيار الباقة ←':'Choose package ←',
+    'السابق':'Previous','التالي':'Next','مجلدات رئيسية':'Main folders','مجلدات':'Folders',
+    'منتجات':'Products','خيارات':'Options','باقات':'Packages','متاح للطلب':'Available to order',
+    'غير متوفر حالياً':'Currently unavailable','السعر المعتمد':'Approved price',
+    'الكميات المسموحة:':'Allowed quantities:','معلومة مهمة:':'Important information:',
+    'تنبيه التوفر:':'Availability notice:','بيانات إضافية':'Additional details',
+    'ابحث داخل المجلدات...':'Search folders...','ابحث داخل المجلدات الفرعية...':'Search subfolders...',
+    'ابحث باسم المنتج...':'Search products...','ابحث باسم القسم الرئيسي أو الخدمة...':'Search main departments or services...',
+    'ابحث داخل':'Search in','العودة إلى المنتجات':'Back to products','العودة إلى الخيارات':'Back to options',
+    'العودة إلى':'Back to','فتح':'Open','اختر':'Choose','نتيجة':'Result','نتائج':'Results',
+    'تأكيد الطلب':'Confirm order','اسم العميل':'Customer name','اكتب اسمك':'Enter your name',
+    'رقم التواصل':'Contact number','عملة الدفع':'Payment currency',
+    'الليرة السورية الجديدة (SYP)':'New Syrian pound (SYP)','الدولار الأمريكي (USD)':'US dollar (USD)',
+    'طريقة الدفع':'Payment method','دفع مباشر عبر شام كاش':'Pay directly with Sham Cash',
+    'استخدام رصيد حسابي في Nexa':'Use my Nexa account balance',
+    'يمكنك الدفع مباشرة أو استخدام رصيدك بعد تسجيل الدخول.':'You can pay directly or use your balance after signing in.',
+    'معرّف اللاعب / الحساب':'Player / account ID','معرف اللاعب / الحساب':'Player / account ID',
+    'أدخل المعرّف عند الحاجة':'Enter the ID when required','لا تدخل كلمة المرور أو رمز التحقق.':'Do not enter your password or verification code.',
+    'ملاحظات إضافية':'Additional notes','أي تفاصيل تساعد على فهم طلبك...':'Any details that may help us understand your order...',
+    'إنشاء الطلب والمتابعة للدفع':'Create order and continue to payment','إلغاء':'Cancel',
+    'سيتم إنشاء طلب على الخادم بسعر الباقة المحدد، ثم تنتقل إلى شاشة التحقق من عملية شام كاش. لن يُقبل الدفع حتى يتأكد الخادم من جميع البيانات.':'The server will create an order using the selected package price, then take you to Sham Cash verification. Payment is not accepted until the server verifies all details.',
+    'الكمية':'Quantity','اختر الكمية المطلوبة.':'Choose the required quantity.',
+    'السعر المعروض لكل وحدة؛ يتم ضربه بالكمية قبل إنشاء فاتورة الدفع.':'The displayed price is per unit and will be multiplied by the quantity before the payment invoice is created.',
+    'الكميات المسموحة':'Allowed quantities','جارٍ إنشاء فاتورة شام كاش…':'Creating Sham Cash invoice…',
+    'المبلغ المطلوب':'Amount due','الفاتورة صالحة حتى':'Invoice valid until','عنوان محفظة الاستلام':'Receiving wallet address',
+    'نسخ العنوان':'Copy address','فاتورة شام كاش الرسمية':'Official Sham Cash invoice',
+    'رقم الفاتورة:':'Invoice number:','تنتهي:':'Expires:','محفظة الاستلام':'Receiving wallet',
+    'ملخص الطلب':'Order summary','يظهر بعد إنشاء الطلب':'Shown after the order is created',
+    'بانتظار إنشاء فاتورة':'Awaiting invoice creation','اختر المنتج والباقة ثم أنشئ طلبك من المتجر.':'Choose a product and package, then create your order in the store.',
+    'مراجعة الطلب':'Review order','بيانات المنتج':'Product details','رقم اللاعب':'Player ID','معرّف اللاعب':'Player ID',
+    'اسم المستخدم':'Username','رقم الهاتف':'Phone number','البريد الإلكتروني':'Email address',
+    'المنطقة':'Region','النسخة':'Version','الخطة':'Plan','الخادم':'Server','السيرفر':'Server',
+    'بلد الحساب':'Account country','منصة الحساب':'Account platform','اسم الحساب':'Account name',
+    'الحساب':'Account','اختر المنطقة':'Choose region','اختر النسخة':'Choose version','اختر الخطة':'Choose plan'
+  });
+  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations,completionTranslations,editorialUiTranslations,paymentBrandTranslations,storefrontDynamicTranslations,productNameTermTranslations,catalogCheckoutTranslations);
   const reverse = new Map();
   for (const [ar,en] of Object.entries(translationLookup)) {
     const englishKey=String(en).trim().replace(/\s+/g,' ');

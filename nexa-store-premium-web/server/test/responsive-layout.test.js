@@ -153,3 +153,17 @@ test('drawer content gap is tiny and the storefront top bar mirrors with documen
   assert.ok(responsiveCss.includes('padding-inline:8px!important'), 'The excessive top bar edge padding is reduced');
   assert.ok(responsiveCss.includes('@media(max-width:1024px){\n  :root[dir="rtl"] .app-shell > .app-main,'), 'Overlay drawer mode removes the desktop rail gap on phones and tablets');
 });
+
+
+test('catalog cards have distinct visual identities and drawer-open content has a small gutter', () => {
+  assert.ok(storefrontHtml.includes('data-catalog-card-kind="'+cardKind+'"') || storefrontHtml.includes('data-catalog-card-kind=\"'+cardKind+'\"'), 'The folder/product tile kind is emitted by the shared renderer');
+  assert.ok(storefrontHtml.includes("actionMarkup.includes('data-browse-category=')"), 'Nested folders are identified as folder cards');
+  assert.ok(storefrontHtml.includes("actionMarkup.includes('data-open-item=')"), 'Purchasable products are identified separately');
+  assert.ok(responsiveCss.includes('NEXA CATALOG CARD FAMILY + CHECKOUT SURFACE CONTRACT v8'), 'The complete catalog and checkout style contract is loaded last');
+  assert.ok(responsiveCss.includes('body:not(.sidebar-closed) .app-shell > .app-main > #appMain'), 'The content gutter applies only while the desktop drawer is open');
+  assert.ok(responsiveCss.includes('padding-inline:clamp(8px,1.1vw,16px)!important'), 'Open-drawer content gets a small responsive edge gutter');
+  for (const selector of ['.department-card-art','.catalog-tile[data-catalog-card-kind="folder"]','.catalog-tile[data-catalog-card-kind="product"]','.product-card .product-image','.pack-card .pack-body','#orderModal .modal']) {
+    assert.ok(responsiveCss.includes(selector), 'Missing card or checkout design rule: '+selector);
+  }
+  assert.ok(responsiveCss.includes('@media(max-width:600px)'), 'The checkout form has a dedicated mobile layout');
+});

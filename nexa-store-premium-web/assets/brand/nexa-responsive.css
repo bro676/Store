@@ -776,3 +776,390 @@ html.store-drawer-scroll-locked body{
   .app-shell .header-main{padding-inline:7px!important;gap:5px!important;}
   .app-shell .header-actions{gap:4px!important;}
 }
+
+
+/* NEXA CATALOG CARD FAMILY + CHECKOUT SURFACE CONTRACT v8. */
+/* Desktop: when the permanent drawer is open, keep a small breathing gutter around the store content. */
+@media(min-width:1025px){
+  body:not(.sidebar-closed) .app-shell > .app-main > #appMain{
+    padding-inline:clamp(8px,1.1vw,16px)!important;
+    box-sizing:border-box!important;
+    min-width:0!important;
+  }
+}
+
+/* Shared card geometry: consistent rhythm, rounded corners and restrained elevation. */
+.app-shell :is(.department-card,.catalog-tile,.product-card,.option-card,.pack-card){
+  min-width:0!important;
+  border:1px solid var(--line)!important;
+  border-radius:18px!important;
+  background:var(--surface)!important;
+  color:var(--ink)!important;
+  box-shadow:var(--shadow-soft)!important;
+  overflow:hidden!important;
+  isolation:isolate;
+}
+.app-shell :is(.department-card,.catalog-tile,.product-card,.option-card,.pack-card):focus-visible{
+  outline:3px solid color-mix(in srgb,var(--ink) 24%,transparent)!important;
+  outline-offset:3px!important;
+}
+.app-shell :is(.department-card,.catalog-tile,.product-card,.option-card,.pack-card):hover{
+  border-color:var(--line-2)!important;
+  box-shadow:var(--shadow)!important;
+}
+
+/* Main / large category cards. */
+.app-shell .department-card{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:stretch!important;
+  gap:0!important;
+  padding:0!important;
+  border-radius:20px!important;
+  background:var(--surface)!important;
+  color:var(--ink)!important;
+  text-align:start!important;
+  box-shadow:var(--shadow-soft)!important;
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease!important;
+}
+.app-shell .department-card:hover{
+  transform:translateY(-3px)!important;
+  background:var(--surface)!important;
+}
+.app-shell .department-card-art{
+  position:relative!important;
+  display:block!important;
+  width:100%!important;
+  aspect-ratio:1.48/1!important;
+  overflow:hidden!important;
+  border:0!important;
+  border-radius:0!important;
+  border-bottom:1px solid var(--line)!important;
+  background:var(--surface-2)!important;
+  box-shadow:none!important;
+}
+.app-shell .department-card-art:after{
+  content:""!important;
+  position:absolute!important;
+  inset:36% 0 0!important;
+  z-index:1!important;
+  pointer-events:none!important;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.42))!important;
+}
+.app-shell .department-card-art>img{
+  display:block!important;
+  width:100%!important;
+  height:100%!important;
+  object-fit:cover!important;
+  transition:transform .35s ease!important;
+}
+.app-shell .department-card:hover .department-card-art>img{transform:scale(1.045)!important}
+.app-shell .department-card-art i{
+  z-index:2!important;
+  inset-inline-start:12px!important;
+  inset-inline-end:auto!important;
+  bottom:12px!important;
+  width:38px!important;
+  height:38px!important;
+  display:grid!important;
+  place-items:center!important;
+  overflow:hidden!important;
+  border:1px solid rgba(255,255,255,.24)!important;
+  border-radius:13px!important;
+  background:rgba(12,18,24,.72)!important;
+  color:#fff!important;
+  font-style:normal!important;
+  box-shadow:0 5px 16px rgba(0,0,0,.2)!important;
+}
+.app-shell .department-card-art i img{width:100%!important;height:100%!important;object-fit:cover!important}
+.app-shell .department-card-copy{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  gap:5px!important;
+  min-width:0!important;
+  padding:13px 14px 14px!important;
+  text-align:start!important;
+  background:var(--surface)!important;
+}
+.app-shell .department-card-copy strong{
+  display:block!important;
+  color:var(--ink)!important;
+  font-size:clamp(12px,1vw,15px)!important;
+  font-weight:900!important;
+  line-height:1.55!important;
+  overflow-wrap:anywhere!important;
+}
+.app-shell .department-card-copy small{
+  color:var(--muted)!important;
+  font-size:10px!important;
+  line-height:1.75!important;
+  overflow-wrap:anywhere!important;
+}
+.app-shell .department-card-meta{
+  display:inline-flex!important;
+  align-items:center!important;
+  max-width:100%!important;
+  margin-top:3px!important;
+  padding:5px 9px!important;
+  border:1px solid var(--line)!important;
+  border-radius:999px!important;
+  background:var(--surface-2)!important;
+  color:var(--muted)!important;
+  font-size:9px!important;
+  line-height:1.5!important;
+  overflow-wrap:anywhere!important;
+}
+.app-shell .department-card-arrow{display:none!important}
+
+/* Nested folders: image-led folder cards, distinct from purchasable products. */
+.app-shell .catalog-tile[data-catalog-card-kind="folder"]{
+  display:flex!important;
+  flex-direction:column!important;
+  min-height:100%!important;
+  padding:0!important;
+  text-align:start!important;
+  background:var(--surface)!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="folder"] .catalog-tile-image{
+  position:relative!important;
+  display:block!important;
+  width:100%!important;
+  aspect-ratio:1.52/1!important;
+  height:auto!important;
+  overflow:hidden!important;
+  background:var(--surface-2)!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="folder"] .catalog-tile-image:after{
+  content:""!important;
+  position:absolute!important;
+  inset:45% 0 0!important;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.34))!important;
+  pointer-events:none!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="folder"] .catalog-tile-image img{
+  width:100%!important;height:100%!important;display:block!important;object-fit:cover!important;
+  transition:transform .35s ease!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="folder"]:hover .catalog-tile-image img{transform:scale(1.045)!important}
+.app-shell .catalog-tile[data-catalog-card-kind="folder"] .catalog-tile-tag{
+  z-index:2!important;
+  top:10px!important;
+  inset-inline-start:10px!important;
+  inset-inline-end:auto!important;
+  padding:5px 9px!important;
+  border:1px solid rgba(255,255,255,.22)!important;
+  border-radius:999px!important;
+  background:rgba(12,18,24,.72)!important;
+  color:#fff!important;
+  font-size:9px!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="folder"] .catalog-tile-body{
+  display:flex!important;
+  flex:1 1 auto!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  gap:5px!important;
+  min-width:0!important;
+  padding:12px 13px 13px!important;
+  background:var(--surface)!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="folder"] .catalog-tile-body strong{
+  color:var(--ink)!important;font-size:12px!important;font-weight:900!important;line-height:1.6!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="folder"] .catalog-tile-body p{
+  min-height:0!important;margin:0!important;color:var(--muted)!important;font-size:10px!important;line-height:1.75!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="folder"] .tile-foot{
+  width:100%!important;margin-top:auto!important;padding-top:9px!important;
+  border-top:1px solid var(--line)!important;color:var(--ink-2)!important;font-size:9px!important;
+}
+
+/* Product tiles: more compact image, clear title and a legible action footer. */
+.app-shell .catalog-tile[data-catalog-card-kind="product"]{
+  display:flex!important;
+  flex-direction:column!important;
+  min-height:100%!important;
+  padding:0!important;
+  text-align:start!important;
+  background:var(--surface)!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="product"] .catalog-tile-image{
+  display:block!important;position:relative!important;width:100%!important;height:auto!important;
+  aspect-ratio:1.28/1!important;overflow:hidden!important;background:var(--surface-2)!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="product"] .catalog-tile-image img{
+  display:block!important;width:100%!important;height:100%!important;object-fit:cover!important;
+  transition:transform .35s ease!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="product"]:hover .catalog-tile-image img{transform:scale(1.04)!important}
+.app-shell .catalog-tile[data-catalog-card-kind="product"] .catalog-tile-tag{
+  top:9px!important;inset-inline-start:9px!important;inset-inline-end:auto!important;
+  padding:5px 9px!important;border:1px solid var(--line)!important;border-radius:999px!important;
+  background:var(--surface)!important;color:var(--ink-2)!important;font-size:9px!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="product"] .catalog-tile-body{
+  display:flex!important;flex:1 1 auto!important;flex-direction:column!important;align-items:stretch!important;
+  gap:5px!important;min-width:0!important;padding:12px 13px 13px!important;background:var(--surface)!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="product"] .catalog-tile-body strong{
+  color:var(--ink)!important;font-size:12px!important;font-weight:900!important;line-height:1.6!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="product"] .catalog-tile-body p{
+  min-height:0!important;margin:0!important;color:var(--muted)!important;font-size:10px!important;line-height:1.75!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="product"] .tile-foot{
+  width:100%!important;margin-top:auto!important;padding-top:9px!important;
+  border-top:1px solid var(--line)!important;color:var(--ink-2)!important;font-size:9px!important;
+}
+.app-shell .catalog-tile[data-catalog-card-kind="generic"] .catalog-tile-body{
+  background:var(--surface)!important;color:var(--ink)!important;
+}
+
+/* Featured / favorite product cards and option / package selection cards. */
+.app-shell .product-card{
+  border-radius:18px!important;background:var(--surface)!important;color:var(--ink)!important;
+}
+.app-shell .product-card .product-image{
+  height:auto!important;aspect-ratio:1.22/1!important;overflow:hidden!important;background:var(--surface-2)!important;
+}
+.app-shell .product-card .product-info{
+  display:flex!important;flex-direction:column!important;gap:7px!important;
+  padding:13px!important;background:var(--surface)!important;color:var(--ink)!important;
+}
+.app-shell .product-card .product-info :is(h3,strong){color:var(--ink)!important;line-height:1.6!important}
+.app-shell .product-card .product-info :is(p,small,.product-meta){color:var(--muted)!important}
+.app-shell .option-card{
+  align-items:center!important;gap:12px!important;padding:13px!important;
+  background:var(--surface)!important;color:var(--ink)!important;
+}
+.app-shell .option-card img{flex:0 0 68px!important;width:68px!important;height:62px!important;object-fit:cover!important}
+.app-shell .option-card :is(strong,b){color:var(--ink)!important}
+.app-shell .option-card :is(small,p){color:var(--muted)!important}
+.app-shell .option-flag{background:var(--surface-2)!important;color:var(--ink-2)!important;border:1px solid var(--line)!important}
+.app-shell .pack-card{background:var(--surface)!important;color:var(--ink)!important}
+.app-shell .pack-card .pack-image{background:var(--surface-2)!important}
+.app-shell .pack-card .pack-label{background:var(--surface-3)!important;color:var(--ink-2)!important;border:1px solid var(--line)!important}
+.app-shell .pack-card .pack-body{background:var(--surface)!important;color:var(--ink)!important;padding:14px!important}
+.app-shell .pack-card .pack-body :is(h3,strong,b){color:var(--ink)!important}
+.app-shell .pack-card .pack-body :is(p,small){color:var(--muted)!important}
+.app-shell .pack-card .pack-price{color:var(--ink)!important}
+
+/* The catalogue flow itself uses the current theme tokens, not legacy white panels. */
+.app-shell #catalogContent{min-width:0!important;color:var(--ink)!important}
+.app-shell #catalogContent :is(.step-summary,.catalog-note,.empty-state,.catalog-steps,.back-button,.crumb,.store-catalog-toolbar){
+  background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+.app-shell #catalogContent :is(.step-summary p,.catalog-note small,.store-catalog-toolbar span){color:var(--muted)!important}
+:root[data-theme="dark"] .app-shell #catalogContent :is(.catalog-tile,.department-card,.product-card,.option-card,.pack-card,.step-summary,.catalog-note,.empty-state){
+  background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+:root[data-theme="light"] .app-shell #catalogContent :is(.catalog-tile,.department-card,.product-card,.option-card,.pack-card,.step-summary,.catalog-note,.empty-state){
+  background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+
+/* Order / invoice creation modal lives outside .app-shell, so theme it explicitly. */
+#orderModal{
+  color:var(--ink)!important;
+}
+#orderModal .modal{
+  display:flex!important;flex-direction:column!important;min-width:0!important;
+  width:min(660px,calc(100vw - 28px))!important;max-width:660px!important;
+  max-height:min(92dvh,900px)!important;margin:auto!important;overflow:hidden!important;
+  border:1px solid var(--line)!important;border-radius:22px!important;
+  background:var(--surface)!important;color:var(--ink)!important;box-shadow:var(--shadow)!important;
+}
+#orderModal .modal-head{
+  flex:0 0 auto!important;display:flex!important;align-items:center!important;justify-content:space-between!important;
+  gap:12px!important;padding:16px 19px!important;border-bottom:1px solid var(--line)!important;
+  background:var(--surface-2)!important;color:var(--ink)!important;
+}
+#orderModal .modal-head h2{margin:0!important;color:var(--ink)!important;font-size:17px!important;line-height:1.55!important;font-weight:900!important}
+#orderModal .modal-close{
+  flex:0 0 36px!important;width:36px!important;height:36px!important;display:grid!important;place-items:center!important;
+  border:1px solid var(--line)!important;border-radius:12px!important;background:var(--surface-3)!important;
+  color:var(--ink)!important;font-size:20px!important;
+}
+#orderModal .modal-body{
+  min-height:0!important;overflow:auto!important;overscroll-behavior:contain!important;
+  padding:17px 19px 19px!important;background:var(--surface)!important;color:var(--ink)!important;
+}
+#orderModal .modal-product{
+  display:grid!important;grid-template-columns:64px minmax(0,1fr) auto!important;align-items:center!important;
+  gap:12px!important;margin:0 0 17px!important;padding:12px!important;
+  border:1px solid var(--line)!important;border-radius:16px!important;
+  background:var(--surface-2)!important;color:var(--ink)!important;
+}
+#orderModal .modal-product img{
+  display:block!important;width:64px!important;height:64px!important;object-fit:cover!important;
+  border:1px solid var(--line)!important;border-radius:12px!important;background:var(--surface-3)!important;
+}
+#orderModal .modal-product :is(strong,b){display:block!important;color:var(--ink)!important;font-size:12px!important;line-height:1.55!important}
+#orderModal .modal-product small{display:block!important;color:var(--muted)!important;font-size:10px!important;line-height:1.65!important;margin-top:3px!important}
+#orderModal .modal-product> b{white-space:nowrap!important;color:var(--ink)!important;font-size:13px!important}
+#orderModal #orderForm{min-width:0!important}
+#orderModal .form-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:13px!important}
+#orderModal .field{display:flex!important;flex-direction:column!important;gap:6px!important;min-width:0!important}
+#orderModal .field.full{grid-column:1/-1!important}
+#orderModal .field label{color:var(--ink-2)!important;font-size:11px!important;font-weight:800!important;line-height:1.55!important}
+#orderModal .field small{color:var(--muted)!important;font-size:10px!important;line-height:1.75!important}
+#orderModal :is(input:not([type="checkbox"]):not([type="radio"]),select,textarea){
+  width:100%!important;min-width:0!important;min-height:43px!important;padding:10px 12px!important;
+  border:1px solid var(--line-2)!important;border-radius:12px!important;
+  background:var(--surface-2)!important;color:var(--ink)!important;
+  font:inherit!important;font-size:12px!important;line-height:1.5!important;
+  box-shadow:none!important;caret-color:var(--ink)!important;
+}
+#orderModal textarea{min-height:88px!important;resize:vertical!important}
+#orderModal :is(input,textarea)::placeholder{color:var(--muted)!important;opacity:1!important}
+#orderModal select option{background:var(--surface-2)!important;color:var(--ink)!important}
+#orderModal .currency-field{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;align-items:center!important;gap:8px 12px!important}
+#orderModal .currency-field label{grid-column:1/-1!important}
+#orderModal .currency-field select{grid-column:1!important}
+#orderModal .currency-field strong{color:var(--ink)!important;font-size:12px!important;white-space:nowrap!important}
+#orderModal .modal-actions{
+  display:flex!important;flex-wrap:wrap!important;gap:9px!important;margin-top:16px!important;
+  padding-top:14px!important;border-top:1px solid var(--line)!important;
+}
+#orderModal .modal-actions .btn{flex:1 1 180px!important;min-height:43px!important;border-radius:13px!important}
+#orderModal #orderForm>p{margin:12px 0 0!important;color:var(--muted)!important;font-size:10px!important;line-height:1.8!important}
+#orderModal .supplier-dependent-field{margin-top:9px!important;padding:10px!important;border:1px solid var(--line)!important;border-radius:13px!important;background:var(--surface-2)!important}
+:root[data-theme="dark"] #orderModal,
+:root[data-theme="dark"] #orderModal :is(.modal,.modal-head,.modal-body,.modal-product,.field,.supplier-dependent-field){
+  background-color:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] #orderModal .modal-head{background-color:var(--surface-2)!important}
+:root[data-theme="dark"] #orderModal .modal-product,
+:root[data-theme="dark"] #orderModal .supplier-dependent-field{background-color:var(--surface-2)!important}
+:root[data-theme="dark"] #orderModal :is(input,select,textarea){background-color:var(--surface-2)!important;color:var(--ink)!important;color-scheme:dark!important}
+:root[data-theme="dark"] #orderModal select option{background-color:var(--surface-2)!important;color:var(--ink)!important}
+:root[data-theme="dark"] #orderModal :is(.field label,.modal-product strong,.modal-product small){color:var(--ink-2)!important}
+:root[data-theme="dark"] #orderModal :is(.field small,#orderForm>p){color:var(--muted)!important}
+:root[data-theme="light"] #orderModal,
+:root[data-theme="light"] #orderModal :is(.modal,.modal-head,.modal-body,.modal-product,.field,.supplier-dependent-field){
+  background-color:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+:root[data-theme="light"] #orderModal .modal-head{background-color:var(--surface-2)!important}
+:root[data-theme="light"] #orderModal .modal-product,
+:root[data-theme="light"] #orderModal .supplier-dependent-field{background-color:var(--surface-2)!important}
+:root[data-theme="light"] #orderModal :is(input,select,textarea){background-color:var(--surface-2)!important;color:var(--ink)!important;color-scheme:light!important}
+:root[data-theme="light"] #orderModal :is(.field label,.modal-product strong){color:var(--ink-2)!important}
+:root[data-theme="light"] #orderModal :is(.field small,#orderForm>p,.modal-product small){color:var(--muted)!important}
+:root[data-theme="dark"] #orderModal :is(.modal-close,.modal-actions .btn-soft){
+  background:var(--surface-3)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+:root[data-theme="light"] #orderModal :is(.modal-close,.modal-actions .btn-soft){
+  background:var(--surface-3)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+@media(max-width:600px){
+  #orderModal .modal{width:calc(100vw - 18px)!important;max-height:94dvh!important;border-radius:18px!important}
+  #orderModal .modal-head{padding:12px 14px!important}
+  #orderModal .modal-body{padding:13px 14px 15px!important}
+  #orderModal .modal-product{grid-template-columns:52px minmax(0,1fr)!important;padding:10px!important;gap:9px!important}
+  #orderModal .modal-product img{width:52px!important;height:52px!important}
+  #orderModal .modal-product>b{grid-column:2!important;justify-self:start!important}
+  #orderModal .form-grid{grid-template-columns:minmax(0,1fr)!important;gap:11px!important}
+  #orderModal .field.full{grid-column:auto!important}
+  #orderModal .modal-actions{flex-direction:column!important}
+  #orderModal .modal-actions .btn{width:100%!important;flex-basis:auto!important}
+}
