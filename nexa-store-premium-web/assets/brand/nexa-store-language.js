@@ -781,7 +781,76 @@
     "نطابق العملية الواردة مع عنوان المحفظة والوقت والمبلغ والفاتورة، ثم نثبتها مرة واحدة فقط…": "We match the incoming transaction against the wallet address, time, amount and invoice, then confirm it only once…",
     "تم تأكيد الدفع لكن طلب المورد يحتاج مراجعة من الدعم. رقم طلبك محفوظ ولن تتم إعادة الشراء تلقائياً.": "Payment is confirmed, but the supplier order needs support review. Your order number is saved and the purchase will not be repeated automatically.",
   });
-  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations);
+
+  const completionTranslations = Object.freeze({
+  "متجر رقمي للألعاب والبطاقات والاشتراكات والخدمات الرقمية.": "Digital store for games, cards, subscriptions and digital services.",
+  "متجرك الرقمي": "Your digital store",
+  "فتح الإشعارات": "Open notifications",
+  "شعار الحساب": "Account avatar",
+  "رتبة الحساب": "Account rank",
+  "تغيير اللغة": "Change language",
+  "تغيير اللغة إلى الإنجليزية": "Switch language to English",
+  "حسابي": "My account",
+  "تبديل عملة العرض": "Toggle display currency",
+  "قائمة المتجر": "Store menu",
+  "منصات التواصل": "Social platforms",
+  "التنقل الرئيسي": "Main navigation",
+  "إجراءات الحساب": "Account actions",
+  "الرصيد الحالي، فتح المحفظة": "Current balance, open wallet",
+  "عرض مستوى VIP": "View VIP level",
+  "تجربة متجر رقمي محلية ومنظمة.": "A local, organized digital store experience.",
+  "اسأل مساعد Nexa": "Ask Nexa Assistant",
+  "معلومات المتجر": "Store information",
+  "ابحث عن لعبة، بطاقة، اشتراك أو خدمة...": "Search for a game, card, subscription or service...",
+  "البحث في متجر Nexa": "Search Nexa Store",
+  "ابحث عن لعبة، بطاقة أو خدمة...": "Search for a game, card or service...",
+  "مبلغ الشحن بالليرة السورية الجديدة": "Top-up amount in new Syrian pounds",
+  "اكتب رقم العملية من سجل شام كاش": "Enter the transaction reference from your Sham Cash history",
+  "مباشر · لا إيصالات يدوية · لا تأكيد من المتصفح": "Direct API · No manual receipts · No browser-side approval",
+  "الاسم الذي نتواصل معك به": "The name we can contact you by",
+  "رقم واتساب أو بريد إلكتروني": "WhatsApp number or email address",
+  "مثال: NX-12345678": "Example: NX-12345678",
+  "اشرح ما الذي حدث، وما الخدمة التي تستخدمها، وأي رسالة خطأ ظهرت لك...": "Describe what happened, which service you are using, and any error message you saw...",
+  "بحث عن الطلب": "Find an order",
+  "ابحث برقم الطلب أو اسم المنتج...": "Search by order number or product name...",
+  "البحث في المدفوعات": "Search payments",
+  "تصفية المدفوعات": "Filter payments",
+  "أدخل كلمة المرور": "Enter your password",
+  "اكتب اسمك": "Enter your name",
+  "كيف أطلب من المتجر؟": "How do I place an order?",
+  "أين أجد طلبي؟": "Where can I find my order?",
+  "ما طرق الدفع المتاحة؟": "Which payment methods are available?",
+  "إرسال السؤال": "Send question",
+  "تصفح المجلدات الفرعية والمنتجات الموجودة داخل هذا المجلد.": "Browse the subfolders and products inside this folder.",
+  "ابدأ بالقسم الرئيسي، ثم افتح المجلدات المتداخلة وصولاً إلى المنتج وخياراته وباقاته.": "Start with the main category, then open nested folders to reach the product, its options and packages.",
+  "← العودة إلى الخيارات": "← Back to options",
+  "اختيار الباقة ←": "Choose package →",
+  "تحقق واعتماد الدفع ←": "Verify and approve payment →",
+  "أدخل رقم العملية كما يظهر في التطبيق (حتى 64 حرفاً أو رقماً).": "Enter the transaction reference exactly as shown in the app (up to 64 letters or digits).",
+  "تم التحقق من الفاتورة ورقم العملية ومحفظة الاستلام. طلبك مدفوع ومؤكد.": "The invoice, transaction reference and receiving wallet have been verified. Your order is paid and confirmed.",
+  "الدفع مؤكد، والطلب قيد التنفيذ لدى المورد. يتم تحديث الحالة تلقائياً…": "Payment is confirmed and the supplier is processing your order. The status updates automatically…",
+  "تم تسجيل الخروج.": "You have been signed out.",
+  "تعذر تسجيل الدخول.": "Could not sign in.",
+  "تم تأكيد الدفع لهذا الطلب.": "Payment has been confirmed for this order.",
+  "انتهت صلاحية الفاتورة.": "The invoice has expired.",
+  "تم إلغاء الطلب.": "The order has been cancelled.",
+  "تم تسجيل الدخول بنجاح.": "You have signed in successfully.",
+  "السعر الأساسي بالليرة السورية": "Base price in Syrian pounds",
+  "الليرة السورية الجديدة": "New Syrian pound",
+  "الدولار الأمريكي": "US dollar",
+  "ل.س جديدة": "new SYP",
+  "تبديل عملة العرض إلى ": "Switch display currency to ",
+  "عملة العرض: ": "Display currency: ",
+  "سعر ثابت: 1 USD = ": "Fixed rate: 1 USD = ",
+  " · الكمية ": " · Quantity ",
+  "تنتهي الفاتورة في ": "Invoice expires at ",
+  "تم تأكيد الدفع. ": "Payment confirmed. ",
+  "تم تأكيد الدفع بنجاح. نرسل طلبك إلى ": "Payment confirmed. We are sending your order to ",
+  " ونحدّثك بنتيجة التسليم.": " and will update you on the delivery result.",
+  "صورة ": "Image ",
+  " | متجرك الرقمي": " | Your digital store"
+});
+  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations,completionTranslations);
   const reverse = new Map();
   for (const [ar,en] of Object.entries(translationLookup)) {
     const englishKey=String(en).trim().replace(/\s+/g,' ');
@@ -825,6 +894,16 @@
     if(targetLanguage==='en'&&translationLookup[key])return translationLookup[key];
     if(targetLanguage==='ar'&&reverse.has(key))return reverse.get(key);
 
+    if(targetLanguage==='en'){
+      const units={'أقسام داخلية':'subcategories','أقسام رئيسية':'main categories','مجلدات رئيسية':'main folders','مجلدات':'folders','منتجات':'products','منتج':'product','خيارات':'options','باقات':'packages','نتائج':'results','نتيجة':'result'};
+      const output=key.replace(/(^|[\\s·|•])([0-9٠-٩۰-۹,٬]+)\\s+(أقسام داخلية|أقسام رئيسية|مجلدات رئيسية|مجلدات|منتجات|منتج|خيارات|باقات|نتائج|نتيجة)(?=$|[\\s·|•])/g,(all,prefix,count,unit)=>prefix+count+' '+units[unit]);
+      if(output!==key)return output;
+    }
+    if(targetLanguage==='ar'){
+      const units={'subcategories':'أقسام داخلية','main categories':'أقسام رئيسية','main folders':'مجلدات رئيسية','folders':'مجلدات','products':'منتجات','product':'منتج','options':'خيارات','packages':'باقات','results':'نتائج','result':'نتيجة'};
+      const output=key.replace(/(^|[\\s·|•])([0-9,]+)\\s+(main categories|main folders|subcategories|folders|products|product|options|packages|results|result)(?=$|[\\s·|•])/gi,(all,prefix,count,unit)=>prefix+count+' '+units[unit.toLowerCase()]);
+      if(output!==key)return output;
+    }
     let match;
     if(targetLanguage==='en'){
       match=key.match(/^صفحة\s+([0-9٠-٩۰-۹,٬]+)\s+من\s+([0-9٠-٩۰-۹,٬]+)$/);
@@ -1059,6 +1138,8 @@
     document.documentElement.dataset.locale=language;
     const title=document.querySelector('title');
     if(title)title.textContent=language==='en'?'Nexa Store | Your digital store':'Nexa Store | متجرك الرقمي';
+    const description=document.querySelector('meta[name="description"]');
+    if(description)description.setAttribute('content',language==='en'?'Nexa Store — Digital store for games, cards, subscriptions and digital services.':'Nexa Store — متجر رقمي للألعاب والبطاقات والاشتراكات والخدمات الرقمية.');
   }
 
   function setLanguage(next,{persist=true}={}) {

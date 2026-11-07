@@ -16,7 +16,9 @@ test('store and admin share a batched, incremental auto-direction helper',async(
  assert.ok(store.includes(source),'Storefront loads the shared direction helper');
  assert.ok(admin.includes(source),'Dashboard loads the shared direction helper');
  assert.doesNotThrow(()=>new vm.Script(helper,{filename:'nexa-text-direction.js'}));
- assert.ok(helper.includes("element.setAttribute('dir', 'auto')"),'Text nodes inherit browser-managed natural direction');
+ assert.ok(helper.includes("element.setAttribute('dir', 'auto')"),'Editable controls inherit browser-managed natural direction');
+ assert.ok(helper.includes("const CONTROL_SELECTOR = 'input,textarea'"),'Only editable text controls receive automatic direction');
+ assert.ok(!helper.includes('TEXT_SELECTOR'),'Visible layout and text nodes inherit the document direction');
  assert.ok(helper.includes("observer.observe(document.body, { childList: true, subtree: true })"),'Only inserted subtrees are observed');
  assert.ok(!helper.includes('characterData: true'),'Text mutations do not trigger repeated DOM scans');
  assert.ok(!helper.includes('document.querySelectorAll('),'The helper never scans the full document');
@@ -68,9 +70,9 @@ test('auto direction works below an RTL document root and respects nested explic
  vm.runInNewContext(helper,{document,window,MutationObserver,NodeFilter:{SHOW_ELEMENT:1}});
  assert.equal(typeof scheduledFrame,'function','Initial direction work is scheduled');
  scheduledFrame();
- assert.equal(paragraph.getAttribute('dir'),'auto','A text block inherits auto direction even below the RTL html root');
+ assert.equal(paragraph.getAttribute('dir'),null,'Visible text inherits the active document direction without flipping individual flex children');
  assert.equal(nestedSpan.hasAttribute('dir'),false,'A nested explicitly-directed region is not overwritten');
- assert.equal(input.getAttribute('dir'),'auto','Form controls receive auto direction too');
+ assert.equal(input.getAttribute('dir'),'auto','Editable text controls receive auto direction');
 });
 
 test('storefront and dashboard drawers have matching tablet and compact-device breakpoints',async()=>{

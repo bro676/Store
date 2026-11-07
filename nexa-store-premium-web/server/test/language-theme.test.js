@@ -48,6 +48,12 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(translate('Close sidebar'),'إغلاق القائمة الجانبية');
  assert.equal(translate('Open Main category'),'فتح Main category');
  assert.equal(translate('3 folders ·'),'٣ مجلدات ·');
+ assert.equal(translate('5 أقسام داخلية · 7 منتجات'),'5 subcategories · 7 products');
+ assert.equal(translate('4 مجلدات رئيسية'),'4 main folders');
+ assert.equal(translate('2 أقسام رئيسية'),'2 main categories');
+ assert.equal(translate('تبديل عملة العرض إلى الدولار الأمريكي'),'Switch display currency to US dollar');
+ assert.equal(translate('تم تأكيد الدفع. سيصل طلبك قريباً'),'Payment confirmed. Your order will arrive soon');
+ assert.equal(translate('5 subcategories · 7 products'),'٥ أقسام داخلية · ٧ منتجات');
  assert.equal(translate('Page 2 of 5'),'صفحة ٢ من ٥');
  assert.equal(sandbox.document.documentElement.direction,'rtl');
  assert.ok(source.includes("const excludedSelector = 'script,style,code,pre,[data-no-translate]'"),
@@ -74,7 +80,7 @@ test('all Arabic static storefront text nodes have exact English dictionary entr
 
 test('language direction updates first, then closes the drawer on the new RTL/LTR side',async()=>{
  const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
- const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-wamda-blue.css'),'utf8');
  const clickStart=store.indexOf("$('sidebarLanguageToggle')?.addEventListener('click'");
  const clickEnd=store.indexOf("$('sidebarLogoutButton')",clickStart);
  const clickHandler=store.slice(clickStart,clickEnd);
@@ -92,7 +98,7 @@ test('language direction updates first, then closes the drawer on the new RTL/LT
 
 test('theme switch is a moving sun/moon control and storefront panels use theme variables',async()=>{
  const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
- const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-wamda-blue.css'),'utf8');
  const start=store.indexOf('id="storeThemeToggle"');
  const markup=store.slice(start,start+1400);
  assert.ok(markup.includes('sidebar-theme-switch'),'Theme switch track exists');
@@ -111,6 +117,20 @@ test('date and time output use the selected storefront locale instead of a fixed
  assert.ok(!/\.toLocaleString\('ar-SY'/.test(store),'Date/time values must follow the selected language');
  assert.ok(!/new Intl\.DateTimeFormat\('ar-SY'/.test(store),'Explicit date formatters must follow the selected language');
  assert.ok(store.includes("storeLocale()==='en'?'en-US':'ar-SY'"),'Both supported storefront locales are selected dynamically');
+});
+
+
+test('production stylesheet controls locale rail layout and all checkout surfaces',async()=>{
+ const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-wamda-blue.css'),'utf8');
+ assert.ok(store.includes('nexa-wamda-blue.css?v=20261107-i18n-rtl-theme-v1'));
+ for(const token of [':root[dir="ltr"] .app-shell .sidebar{',':root[dir="rtl"] .app-shell .sidebar{','body.sidebar-closed .app-shell .sidebar','body.sidebar-open .app-shell .sidebar',':root[data-theme="dark"] #orderModal','#orderModal select option','#catalogContent .pack-label']) assert.ok(css.includes(token),'Missing active production CSS rule: '+token);
+});
+
+test('dynamic checkout fragments, count labels and page description have English translations',async()=>{
+ const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
+ assert.ok(source.includes('meta[name="description"]'));
+ for(const token of ['أقسام داخلية','main categories','main folders','تم تأكيد الدفع. ','تبديل عملة العرض إلى ','تنتهي الفاتورة في ']) assert.ok(source.includes(token),'Missing translation token: '+token);
 });
 
 test('account orders and favourites stay isolated from guest storage',async()=>{
@@ -139,7 +159,7 @@ test('visible number formatting follows the storefront language',async()=>{
 });
 
 test('dark checkout and notice surfaces use dark theme tokens',async()=>{
- const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-wamda-blue.css'),'utf8');
  for(const selector of ['.wallet-payment-form','.wallet-payment-result','.wallet-invoice-meta','.catalog-note','.wallet-api-note','.support-ticket-result','.reference-warning-panel'])assert.ok(css.includes(selector),'missing dark styling for '+selector);
  assert.ok(css.includes('select option')&&css.includes('background-color:var(--surface-2)!important'),'native select options use dark surfaces');
 });
@@ -168,7 +188,7 @@ test('locale transition disables drawer motion before changing document directio
 });
 
 test('final drawer state rules preserve RTL and LTR open/closed states on desktop and mobile',async()=>{
- const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-wamda-blue.css'),'utf8');
  const final=css.slice(css.lastIndexOf('NEXA DRAWER STATE CONTRACT v4'));
  for(const token of [
   ':root[dir="rtl"] body.sidebar-closed .app-shell .sidebar',
@@ -181,7 +201,7 @@ test('final drawer state rules preserve RTL and LTR open/closed states on deskto
 });
 
 test('dark mode converts remaining legacy white panels and controls to dark theme surfaces',async()=>{
- const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-wamda-blue.css'),'utf8');
  const final=css.slice(css.lastIndexOf('NEXA DARK SURFACE COMPLETION v4'));
  for(const selector of [
   '.header-search:focus-within','.icon-button','.wallet-chip','.btn-soft','.assistant-launcher',
@@ -193,7 +213,7 @@ test('dark mode converts remaining legacy white panels and controls to dark them
 
 
 test('package selection and order dialog have complete dark-mode surfaces',async()=>{
- const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-polish.css'),'utf8');
+ const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-wamda-blue.css'),'utf8');
  const dark=css.slice(css.lastIndexOf('NEXA PACKAGE SELECTION + ORDER DIALOG DARK CONTRACT v5'));
  for(const token of [
   '#orderModal .modal-product','#orderModal .modal-close','#orderModal .field label',
