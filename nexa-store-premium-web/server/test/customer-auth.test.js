@@ -4,8 +4,10 @@ import { normalizeCustomerPhone, validateCustomerRegistration } from '../src/cus
 
 test('normalizes international, local and Arabic phone digits and rejects invalid text',()=>{
  assert.equal(normalizeCustomerPhone('+963 936 123 456'),'963936123456');
- assert.equal(normalizeCustomerPhone('09(36)-123-456'),'0936123456');
- assert.equal(normalizeCustomerPhone('٠٩٣٦١٢٣٤٥٦'),'0936123456');
+ assert.equal(normalizeCustomerPhone('09(36)-123-456'),'963936123456');
+ assert.equal(normalizeCustomerPhone('+963 936 123 456'),'963936123456');
+ assert.equal(normalizeCustomerPhone('00963 936 123 456'),'963936123456');
+ assert.equal(normalizeCustomerPhone('٠٩٣٦١٢٣٤٥٦'),'963936123456');
  assert.equal(normalizeCustomerPhone('abc0936123456'),null);assert.equal(normalizeCustomerPhone('1234'),null);
 });
 
