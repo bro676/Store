@@ -886,7 +886,44 @@
   "الفئة الرئيسية": "Main category",
   "أقسام إضافية لا تندرج تحت الأقسام الرئيسية.": "Additional services outside the main departments.",
 });
-  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations,completionTranslations);
+  const editorialUiTranslations = Object.freeze({
+    "تصفّح الفئات": "BROWSE BY CATEGORY",
+    "اختيارات شائعة": "POPULAR PICKS",
+    "كيف يعمل المتجر": "HOW IT WORKS",
+    "مركز المساعدة": "HELP CENTER",
+    "كتالوج Nexa": "NEXA CATALOG",
+    "المتجر الرقمي من Nexa": "NEXA DIGITAL STORE",
+    "نشاطك": "YOUR ACTIVITY",
+    "العناصر المحفوظة": "SAVED ITEMS",
+    "الدفع الآمن · شام كاش": "SECURE CHECKOUT · SHAM CASH",
+    "محفظة Nexa الرقمية": "NEXA WALLET",
+    "التحقق المباشر من التحويل": "LIVE TRANSACTION CHECK",
+    "مركز خدمة Nexa": "NEXA CARE CENTER",
+    "إرسال طلب": "SEND A REQUEST",
+    "البحث المحلي عن طلب": "LOCAL ORDER LOOKUP",
+    "المساعدة والإجابات": "HELP & ANSWERS",
+    "سجل المدفوعات": "PAYMENT HISTORY",
+    "ملف حساب Nexa": "YOUR NEXA ACCOUNT",
+    "عن Nexa": "ABOUT NEXA",
+    "مساحتك الرقمية": "YOUR DIGITAL SPACE",
+    "هل تحتاج إلى مساعدة؟": "NEED HELP?",
+    "حساب العميل": "CUSTOMER ACCOUNT",
+    "الوصول إلى الحساب": "ACCOUNT ACCESS",
+    "إنشاء حساب العميل": "CUSTOMER REGISTRATION",
+    "استعادة الحساب": "ACCOUNT RECOVERY",
+    "مركز الإشعارات": "NOTIFICATION CENTER",
+    "عضوية VIP": "VIP MEMBERSHIP",
+    "ربط تيليجرام": "TELEGRAM CONNECTION",
+    "الشركاء والإحالات": "PARTNERS & REFERRALS",
+    "أمان الحساب": "ACCOUNT SECURITY",
+    "التحقق من الهوية": "IDENTITY VERIFICATION",
+    "وصول العميل إلى API": "CUSTOMER API ACCESS",
+    "تطبيق Nexa": "NEXA APP",
+    "عضو Nexa": "NEXA MEMBER",
+    "المتجر الرقمي": "DIGITAL STORE",
+    "متجر Nexa": "Nexa Store"
+  });
+  const translationLookup = Object.assign(Object.create(null),translations,additionalTranslations,finalUiTranslations,supplementaryUiTranslations,packageFlowTranslations,completionTranslations,editorialUiTranslations);
   const reverse = new Map();
   for (const [ar,en] of Object.entries(translationLookup)) {
     const englishKey=String(en).trim().replace(/\s+/g,' ');
