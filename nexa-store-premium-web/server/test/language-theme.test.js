@@ -33,6 +33,14 @@ test('storefront language engine translates static and dynamic text, attributes 
  assert.equal(translate('إنشاء فاتورة شحن ١٢'),'Create top-up invoice 12');
  assert.equal(translate('لا توجد طلبات حتى الآن.'),'No orders yet.');
  assert.equal(translate('3 مجلدات'),'3 folders');
+ assert.equal(translate('EAFC Mobile Singapore - ٩٩٩٩ فضي'),'EAFC Mobile Singapore - 9999 Silver');
+ assert.equal(translate('الباقة الذهبية - شهرية - ٥٠٠ جواهر'),'The Gold Package - Monthly - 500 Diamonds');
+ assert.equal(translate('شحن مباشر لحساب اللاعب.'),'Direct top-up for the player account.');
+ sandbox.window.NexaLocale.setLanguage('ar');
+ assert.equal(translate('EAFC Mobile Singapore - 9999 Silver'),'EAFC Mobile Singapore - ٩٩٩٩ فضي');
+ assert.equal(translate('The Gold Package - Monthly - 500 Diamonds'),'الباقة الذهبية - شهرية - ٥٠٠ جواهر');
+ assert.equal(translate('Direct top-up for the player account.'),'شحن مباشر لحساب اللاعب.');
+ sandbox.window.NexaLocale.setLanguage('en');
  assert.equal(translate('اختر المنطقة أو النسخة أو الخطة المناسبة.'),'Choose the suitable region, version or plan.');
  assert.equal(translate('إغلاق القائمة الجانبية'),'Close sidebar');
  assert.equal(translate('3 مجلدات ·'),'3 folders ·');
