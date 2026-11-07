@@ -823,7 +823,7 @@ test('English drawer updates its balance locale and all supported currencies use
   assert.ok(languageHandler.includes('renderSidebarAccount();'),'Drawer balance is reformatted after a language switch');
   assert.ok(store.includes("const locale=storeLocale()==='en'?'en-US':'ar-SY';"),'SYP amounts use Western digits in English and Arabic digits in Arabic');
   assert.ok(store.includes("return new Intl.NumberFormat(locale,{maximumFractionDigits:2}).format(value)+' '+storeCurrencyLabel('SYP');"),'SYP order amounts use the active language currency label');
-  assert.ok(store.includes("new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'})"),'USD amounts always use English currency formatting');
+  assert.ok(store.includes("new Intl.NumberFormat(storeLocale()==='en'?'en-US':'ar-SY',{style:'currency',currency:'USD'})"),'USD amounts follow the selected storefront language');
   assert.ok(store.includes('nexa-store-drawer.css?v=20261106-drawer-ltr-v2'),'The updated drawer stylesheet has a fresh cache key');
   assert.ok(store.includes('nexa-store-language.js?v=20261106-incremental-attributes-v2'),'The updated English dictionary has a fresh cache key');
 });

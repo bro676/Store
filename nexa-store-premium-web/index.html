@@ -1860,7 +1860,7 @@ function initializeStorePreferences(){
   syncSidebarCurrency();
   renderSidebarAccount();
   setStoreColorMode(document.documentElement.dataset.theme||'dark',{persist:false});
-  if(storeDrawerMedia.matches&&document.body.classList.contains('sidebar-open'))closeMenu(true);
+  if(window.matchMedia('(max-width: 1024px)').matches)closeMenu(true);
   else setStoreMenuState(isStoreMenuOpen(),false);
  });
  window.addEventListener('storage',event=>{
