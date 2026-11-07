@@ -505,3 +505,39 @@ button,input,select,textarea{min-width:0;max-width:100%;font:inherit}
 :root[data-theme="dark"] #loginScreen .login-card,:root[data-theme="light"] #loginScreen .login-card{background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important}
 :root[data-theme="dark"] #app.shell .main,:root[data-theme="dark"] #app.shell .container,:root[data-theme="dark"] #app.shell .page,
 :root[data-theme="light"] #app.shell .main,:root[data-theme="light"] #app.shell .container,:root[data-theme="light"] #app.shell .page{background:var(--paper)!important;color:var(--ink)!important}
+
+/* Remaining theme surfaces used by banners, footer, admin dashboard and table interiors. */
+:root[data-theme="dark"] body .app-shell :is(.promo,.footer,.footer-main,.footer-bottom,.catalog-toolbar,
+.catalog-products-toolbar,.wamda-catalog-toolbar,.history-toolbar,.support-page,.notification-center,
+.reference-search-row,.support-faq-section,.support-safety-panel,.invoice-card,.invoice-details,.order-summary),
+:root[data-theme="dark"] body #app.shell :is(.topbar,.panel-head,.toolbar,.save-row,.add-row,.api-source-row,.api-endpoint-row,
+.api-sample-head,.api-key-value-row,.api-details-panel,.api-connect-panel,.seagm-products-panel,.seagm-sync-summary,
+.appearance-preview,.appearance-panel-head,.category-list,.folder-tree-toolbar){
+  background:var(--surface-2)!important;background-image:none!important;color:var(--ink-2)!important;border-color:var(--line)!important;
+}
+:root[data-theme="light"] body .app-shell :is(.promo,.footer,.footer-main,.footer-bottom,.catalog-toolbar,
+.catalog-products-toolbar,.wamda-catalog-toolbar,.history-toolbar,.support-page,.notification-center,
+.reference-search-row,.support-faq-section,.support-safety-panel,.invoice-card,.invoice-details,.order-summary),
+:root[data-theme="light"] body #app.shell :is(.topbar,.panel-head,.toolbar,.save-row,.add-row,.api-source-row,.api-endpoint-row,
+.api-sample-head,.api-key-value-row,.api-details-panel,.api-connect-panel,.seagm-products-panel,.seagm-sync-summary,
+.appearance-preview,.appearance-panel-head,.category-list,.folder-tree-toolbar){
+  background:var(--surface-2)!important;color:var(--ink-2)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] body #app.shell .topbar :is(h1,h2,h3,strong,span,small),
+:root[data-theme="dark"] body #app.shell .panel-head :is(h1,h2,h3,strong,span,small),
+:root[data-theme="dark"] body #app.shell .toolbar :is(label,strong,span),
+:root[data-theme="dark"] body .app-shell .footer :is(h1,h2,h3,strong,p,a,small,span){color:var(--ink-2)!important}
+:root[data-theme="light"] body #app.shell .topbar :is(h1,h2,h3,strong,span,small),
+:root[data-theme="light"] body #app.shell .panel-head :is(h1,h2,h3,strong,span,small),
+:root[data-theme="light"] body #app.shell .toolbar :is(label,strong,span),
+:root[data-theme="light"] body .app-shell .footer :is(h1,h2,h3,strong,p,a,small,span){color:var(--ink-2)!important}
+:root[data-theme="dark"] body #app.shell :is(table,.table-wrap,.table-wrap table,.data-table-wrap,.data-table-wrap table){background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-theme="light"] body #app.shell :is(table,.table-wrap,.table-wrap table,.data-table-wrap,.data-table-wrap table){background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-theme="dark"] body #app.shell :is(thead,th){background:var(--surface-3)!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-theme="light"] body #app.shell :is(thead,th){background:var(--surface-3)!important;color:var(--ink)!important;border-color:var(--line)!important}
+:root[data-theme="dark"] body #app.shell :is(td,tr){background:var(--surface)!important;color:var(--ink-2)!important;border-color:var(--line)!important}
+:root[data-theme="light"] body #app.shell :is(td,tr){background:var(--surface)!important;color:var(--ink-2)!important;border-color:var(--line)!important}
+:root[data-theme="dark"] body #app.shell :is(.folder-choice,.folder-tree-toggle,.category-choice,.palette-field,.image-row,.option-head),
+:root[data-theme="light"] body #app.shell :is(.folder-choice,.folder-tree-toggle,.category-choice,.palette-field,.image-row,.option-head){
+  background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
