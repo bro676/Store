@@ -1,4 +1,4 @@
-/* Nexa Store Arabic / English interface translations. Product names and merchant-supplied descriptions remain unchanged. */
+/* Nexa Store Arabic / English interface translations, including supplier product, option and package terms. */
 (() => {
   'use strict';
   const translations = Object.freeze({
