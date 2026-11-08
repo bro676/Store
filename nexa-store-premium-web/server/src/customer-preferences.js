@@ -18,7 +18,7 @@ export function normalizeCustomerPreferences(value){
  const preferences={favorites:cleanStoredFavorites(source.favorites)};
  if(source.locale==='ar'||source.locale==='en')preferences.locale=source.locale;
  if(source.theme==='dark'||source.theme==='light')preferences.theme=source.theme;
- preferences.displayCurrency='SYP'; // The storefront now uses Syrian pounds only.
+ preferences.displayCurrency=source.displayCurrency==='USD'?'USD':'SYP';
  return preferences;
 }
 function invalidPreferences(){return Object.assign(new Error('INVALID_CUSTOMER_PREFERENCES'),{status:400,code:'INVALID_CUSTOMER_PREFERENCES'})}
@@ -27,7 +27,7 @@ export function mergeCustomerPreferences(current,patch){
  const next=normalizeCustomerPreferences(current);
  if(hasOwn(patch,'locale')){if(!['ar','en'].includes(patch.locale))throw invalidPreferences();next.locale=patch.locale;}
  if(hasOwn(patch,'theme')){if(!['dark','light'].includes(patch.theme))throw invalidPreferences();next.theme=patch.theme;}
- if(hasOwn(patch,'displayCurrency')){if(patch.displayCurrency!=='SYP')throw invalidPreferences();next.displayCurrency='SYP';}
+ if(hasOwn(patch,'displayCurrency')){if(!['SYP','USD'].includes(patch.displayCurrency))throw invalidPreferences();next.displayCurrency=patch.displayCurrency;}
  if(hasOwn(patch,'favorites')){
   if(!Array.isArray(patch.favorites)||patch.favorites.length>MAX_FAVORITES)throw invalidPreferences();
   const favorites=[];

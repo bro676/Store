@@ -261,3 +261,41 @@ html[dir="ltr"] .sidebar-language-toggle{direction:ltr}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+/* USD/SYP display switch and final dark-mode coverage for storefront + control panel. */
+.app-shell .sidebar button.sidebar-currency{
+  appearance:none!important;-webkit-appearance:none!important;width:100%!important;
+  display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;
+  font:inherit!important;text-align:start!important;cursor:pointer!important;border-radius:999px!important;
+  transition:background .18s ease,border-color .18s ease,transform .18s ease!important;
+}
+.app-shell .sidebar button.sidebar-currency:hover{border-color:var(--nexa-ui-accent)!important;transform:translateY(-1px)}
+.app-shell .sidebar button.sidebar-currency:focus-visible{
+  outline:3px solid color-mix(in srgb,var(--nexa-ui-accent) 68%,transparent)!important;outline-offset:2px!important;
+}
+.app-shell .sidebar .sidebar-currency small{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  min-width:22px!important;height:22px!important;border-radius:50%!important;
+  background:var(--surface-3)!important;color:var(--muted)!important;font-size:13px!important;
+}
+:root[data-theme="dark"] #app.shell :is(.product-editor,.option-editor,.secret-box,.api-code,.empty,.loading,.theme-preset,.category-choice,.tabs button,.folder-tree-node,.folder-tree-toolbar){
+  background:var(--surface-2)!important;color:var(--ink)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] #app.shell :is(.product-editor summary,.product-editor[open] summary,.option-editor,.category-choice.active,.tabs button.active){
+  background:var(--surface-3)!important;color:var(--ink)!important;border-color:var(--line-2)!important;
+}
+:root[data-theme="dark"] #app.shell :is(.field label,.section-caption,.page-head p,.panel-head p,.product-editor small,.field small,.muted,.hint,.notice){
+  color:var(--muted)!important;
+}
+:root[data-theme="dark"] #app.shell :is(.table-wrap,th,td,.api-source-row,.api-endpoint-row,.theme-picker-wrap,.settings-grid .panel){border-color:var(--line)!important}
+:root[data-theme="dark"] #app.shell :is(.fx-preview,.notice.info){
+  background:var(--surface-2)!important;color:var(--ink-2)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] #app.shell .fx-preview strong{color:var(--ink)!important}
+:root[data-theme="dark"] #app.shell :is(.soft,.icon-btn,.add-row,.theme-preset){
+  background:var(--surface-2)!important;color:var(--ink-2)!important;border-color:var(--line)!important;
+}
+:root[data-theme="dark"] #app.shell :is(input,select,textarea)::placeholder{color:var(--muted-2)!important;opacity:1!important}
+:root[data-theme="light"] #app.shell :is(.product-editor,.option-editor,.secret-box,.api-code,.empty,.loading,.theme-preset,.category-choice,.tabs button,.folder-tree-node,.folder-tree-toolbar){
+  color:var(--ink)!important;border-color:var(--line)!important;
+}

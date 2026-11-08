@@ -630,7 +630,7 @@ body{
 
 <link rel="stylesheet" href="/assets/brand/nexa-store-polish.css?v=20261107-package-modal-dark-v5">
 <link rel="stylesheet" href="/assets/brand/nexa-responsive.css?v=20261107-package-order-wallet-final-v11">
-<link rel="stylesheet" href="/assets/brand/nexa-interface-finish.css?v=20261108-tr-try-theme-v1">
+<link rel="stylesheet" href="/assets/brand/nexa-interface-finish.css?v=20261108-usd-syp-lang-dark-v1">
 </head>
 <body>
 <div class="app-shell">
@@ -684,10 +684,13 @@ body{
     </div>
   </div>
 
-  <div class="sidebar-currency" aria-label="عملة العرض: الليرة السورية">
+  <button class="sidebar-currency" id="sidebarCurrencyToggle" type="button"
+    aria-label="تبديل عملة العرض إلى الدولار الأمريكي"
+    title="تبديل عملة العرض إلى الدولار الأمريكي">
     <strong id="sidebarCurrencyCode">SYP</strong>
     <span id="sidebarCurrencyLabel">الليرة السورية</span>
-  </div>
+    <small id="sidebarCurrencyHint" aria-hidden="true">↔</small>
+  </button>
 
   <nav class="sidebar-nav" aria-label="قائمة المتجر">
     <a class="side-link active" href="#home" data-page="home"><svg class="side-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z"/></svg><span>الرئيسية</span></a>
@@ -1074,7 +1077,7 @@ body{
 </section>
 <div class="toast" id="toast"></div>
 <script src="/assets/brand/nexa-catalog.js?v=20261106-dashboard-order-v3"></script>
-<script src="/assets/brand/nexa-store-language.js?v=20261108-ar-en-syp-v1"></script>
+<script src="/assets/brand/nexa-store-language.js?v=20261108-usd-syp-admin-i18n-v1"></script>
 <script>
 let categories=[];
 let storefrontFxRate=145,storefrontFxReady=false,storefrontLanguage='ar',walletTransactions=[];
@@ -1115,13 +1118,27 @@ function localizeWalletTopupForm(){
  const button=controls?.querySelector('button[type="submit"]');
  if(button&&button.dataset.busy!=='true')button.textContent=storeText('إنشاء فاتورة شحن');
 }
+const STORE_DISPLAY_CURRENCY_KEY='nexa-store-display-currency';
+function getStoreDisplayCurrency(){
+ try{return localStorage.getItem(STORE_DISPLAY_CURRENCY_KEY)==='USD'?'USD':'SYP'}catch{return 'SYP'}
+}
+function formatCurrencyAmount(amount,currency){
+ return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency,minimumFractionDigits:0,maximumFractionDigits:2}).format(amount);
+}
 function formatDisplaySyp(amount){
  const value=Number(amount);
  if(!Number.isFinite(value)||value<0)return '—';
- return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'SYP',minimumFractionDigits:0,maximumFractionDigits:2}).format(value);
+ if(getStoreDisplayCurrency()==='USD'){
+  if(!storefrontFxReady||!(storefrontFxRate>0))return storeLocale()==='ar'?'سعر الدولار غير متاح حالياً':'USD rate unavailable';
+  return formatCurrencyAmount(value/storefrontFxRate,'USD');
+ }
+ return formatCurrencyAmount(value,'SYP');
 }
 function formatUsdDisplay(value){
- if(!storefrontFxReady||!(storefrontFxRate>0))return storeLocale()==='ar'?'سعر الدولار غير متاح':'USD rate unavailable';
+ const amount=Number(value);
+ if(!Number.isFinite(amount)||amount<0)return '—';
+ if(getStoreDisplayCurrency()==='USD')return formatCurrencyAmount(amount,'USD');
+ if(!storefrontFxReady||!(storefrontFxRate>0))return storeLocale()==='ar'?'سعر تحويل الدولار غير متاح حالياً':'USD conversion rate unavailable';
  return formatDisplaySyp(value*storefrontFxRate);
 }
 const money=value=>Number(value)>0?formatDisplaySyp(value):(storeLocale()==='ar'?'يحدد لاحقاً':'Set by the store');
@@ -1129,7 +1146,11 @@ const formatDisplayMinor=(minor,currency='SYP')=>{
  const value=Number(BigInt(minor||0))/100;
  return currency==='USD'?formatUsdDisplay(value):formatDisplaySyp(value);
 };
-const formatMinor=formatDisplayMinor;
+// Invoice amounts remain in their actual currency, independent of the display preference.
+const formatMinor=(minor,currency='SYP')=>{
+ const value=Number(BigInt(minor||0))/100;
+ return formatCurrencyAmount(value,currency==='USD'?'USD':'SYP');
+};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let state={view:'home',department:null,category:null,item:null,option:null,selectedPack:null,pendingOrder:null,catalogPage:1,catalogQuery:'',categoryPage:1,categoryQuery:'',productPage:1,productQuery:'',searchResults:[],searchPage:1};let toastTimer;let memoryData={guestOrders:[],favs:[],supportTickets:[]},memoryDataKey='';const deliveryWatchers=new Set();
 function getCategory(id){return categories.find(x=>String(x.id)===String(id))||null}function getItem(id,categoryId=state.category){const scoped=categoryId==null?null:getCategory(categoryId);if(scoped){const match=(scoped.items||[]).find(x=>String(x.id)===String(id));if(match)return match;}for(const c of categories){const it=(c.items||[]).find(x=>String(x.id)===String(id));if(it)return it}return null}function getOption(id){const it=state.item&&getItem(state.item,state.category);return NexaCatalog.getProductOptions(it).find(x=>String(x.id)===String(id))||null}
@@ -1587,7 +1608,7 @@ function renderCurrencyPreview(){
  const quantity=p.supplier?Math.max(1,Number($('orderQuantity')?.value||1)):1;
  if(paymentMethod==='wallet'){
   $('orderCurrency').value='SYP';$('orderCurrency').disabled=true;
-  const walletTotal=p.supplier?Math.round((p.price*quantity+Number.EPSILON)*100)/100:p.price*quantity;preview.textContent=money(walletTotal);
+  const walletTotal=p.supplier?Math.round((p.price*quantity+Number.EPSILON)*100)/100:p.price*quantity;preview.textContent=formatCurrencyAmount(walletTotal,'SYP');
   hint.textContent='سيتم خصم المبلغ بالليرة السورية الجديدة من رصيد حسابك بعد التحقق من كفايته.';
   $('paymentMethodHint').textContent=customerAccount?'سيتم الدفع مباشرة من رصيد حسابك.':'سجّل الدخول إلى حسابك لاستخدام الرصيد.';
   return;
@@ -1601,7 +1622,7 @@ function renderCurrencyPreview(){
   preview.textContent=new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'USD'}).format(usd);
   hint.textContent='سعر ثابت: 1 USD = '+new Intl.NumberFormat(storeIntlLocale(),{maximumFractionDigits:2}).format(sypPerUsd)+' ل.س جديدة'+(p.supplier?' · الكمية '+quantity:'')+' · لا يتغير تلقائياً.';
  }else{
-  preview.textContent=money(totalSyp);
+  preview.textContent=formatCurrencyAmount(totalSyp,'SYP');
   hint.textContent='السعر الأساسي بالليرة السورية'+(p.supplier?' · الكمية '+quantity:'')+'؛ يعتمد الخادم السعر النهائي عند إنشاء الفاتورة.';
  }
 }
@@ -1856,16 +1877,30 @@ function renderSidebarAccount(){
 }
 
 function syncSidebarCurrency(){
- const code=$('sidebarCurrencyCode'),label=$('sidebarCurrencyLabel');
+ const code=$('sidebarCurrencyCode'),label=$('sidebarCurrencyLabel'),toggle=$('sidebarCurrencyToggle');
  const languageButton=$('sidebarLanguageToggle'),languageCode=$('sidebarLanguageCode');
- const locale=storeLocale();
- if(code)code.textContent='SYP';
- if(label)label.textContent=locale==='en'?'Syrian pound':'الليرة السورية';
+ const locale=storeLocale(),currency=getStoreDisplayCurrency();
+ const currencyLabel=currency==='USD'?(locale==='en'?'US dollar':'الدولار الأمريكي'):(locale==='en'?'Syrian pound':'الليرة السورية');
+ const nextLabel=currency==='USD'?(locale==='en'?'Syrian pound':'الليرة السورية'):(locale==='en'?'US dollar':'الدولار الأمريكي');
+ if(code)code.textContent=currency;
+ if(label)label.textContent=currencyLabel;
+ if(toggle){
+  const caption=locale==='en'?'Switch display currency to '+nextLabel:'تبديل عملة العرض إلى '+nextLabel;
+  toggle.title=caption;toggle.setAttribute('aria-label',caption);toggle.setAttribute('aria-pressed',String(currency==='USD'));
+ }
  if(languageCode)languageCode.textContent=locale.toUpperCase();
  if(languageButton){
-  const caption=locale==='ar'?'Change language to English':'تغيير اللغة إلى العربية';
+  const caption=locale==='ar'?'تغيير اللغة إلى الإنكليزية':'Change language to Arabic';
   languageButton.title=caption;languageButton.setAttribute('aria-label',caption);
  }
+}
+function setStoreDisplayCurrency(currency,{persist=true,saveAccount=true}={}){
+ const selected=currency==='USD'?'USD':'SYP';
+ if(persist){try{localStorage.setItem(STORE_DISPLAY_CURRENCY_KEY,selected)}catch{}}
+ syncSidebarCurrency();
+ refreshDisplayAmounts();
+ if(saveAccount&&customerAccount)saveCustomerPreferences({displayCurrency:selected});
+ return selected;
 }
 function renderWalletLedger(){
  const target=$('walletLedgerList');if(!target)return;
@@ -1890,8 +1925,16 @@ function refreshDisplayAmounts(){
 }
 function initializeStorePreferences(){
  if(window.NexaLocale){storefrontLanguage=window.NexaLocale.initialize();}
- try{localStorage.setItem('nexa-store-display-currency','SYP')}catch{}
+ try{
+  const savedCurrency=localStorage.getItem(STORE_DISPLAY_CURRENCY_KEY);
+  if(savedCurrency!=='USD'&&savedCurrency!=='SYP')localStorage.setItem(STORE_DISPLAY_CURRENCY_KEY,'SYP');
+ }catch{}
  syncSidebarCurrency();
+ $('sidebarCurrencyToggle')?.addEventListener('click',()=>{
+  const next=getStoreDisplayCurrency()==='SYP'?'USD':'SYP';
+  setStoreDisplayCurrency(next);
+  showToast(storeText(next==='USD'?'تم تغيير عملة العرض إلى الدولار الأمريكي':'تم تغيير عملة العرض إلى الليرة السورية'));
+ });
  $('sidebarLanguageToggle')?.addEventListener('click',()=>{
   const next=storeLocale()==='ar'?'en':'ar';
   storefrontLanguage=next;window.NexaLocale?.setLanguage(next);
@@ -1923,6 +1966,7 @@ function initializeStorePreferences(){
  });
  window.addEventListener('storage',event=>{
   if(event.key==='nexa-store-language'&&(event.newValue==='ar'||event.newValue==='en'))window.NexaLocale?.setLanguage(event.newValue,{persist:false});
+  if(event.key===STORE_DISPLAY_CURRENCY_KEY)setStoreDisplayCurrency(event.newValue,{persist:false,saveAccount:false});
  });
 }
 function renderSupportState(){const d=storageRead();const tickets=d.supportTickets||[];const result=$('supportTicketResult');if(result&&tickets.length){const t=tickets[0];$('supportTicketText').textContent=`رقم المسودة ${t.id} · ${t.issue}`;result.classList.remove('hidden');const message=`مرحباً، أود التواصل مع الدعم الفني في Nexa Store.\nرقم البلاغ: ${t.id}\nالاسم: ${t.name}\nالتواصل: ${t.contact}\nنوع الطلب: ${t.issue}\nرقم الطلب: ${t.orderId||'غير محدد'}\nالتفاصيل: ${t.message}`;$('supportTicketWA').href=`https://wa.me/963936382101?text=${encodeURIComponent(message)}`;$('supportTicketEmail').href=`mailto:support.nsde@gmail.com?subject=${encodeURIComponent('بلاغ دعم '+t.id)}&body=${encodeURIComponent(message)}`}}
@@ -1970,7 +2014,7 @@ function setStoreColorMode(mode,{persist=true}={}){
  if(persist){try{localStorage.setItem(NEXA_THEME_KEY,selected)}catch{}}
  const locale=storeLocale(),isDark=selected==='dark';
  const button=$('storeThemeToggle'),label=$('sidebarThemeLabel');
- const labels={ar:{dark:'الوضع الداكن',light:'الوضع الفاتح',toLight:'التبديل إلى الوضع الفاتح',toDark:'التبديل إلى الوضع الداكن'},en:{dark:'Dark mode',light:'Light mode',toLight:'Switch to light mode',toDark:'Switch to dark mode'},tr:{dark:'Koyu tema',light:'Açık tema',toLight:'Açık temaya geç',toDark:'Koyu temaya geç'}};
+ const labels={ar:{dark:'الوضع الداكن',light:'الوضع الفاتح',toLight:'التبديل إلى الوضع الفاتح',toDark:'التبديل إلى الوضع الداكن'},en:{dark:'Dark mode',light:'Light mode',toLight:'Switch to light mode',toDark:'Switch to dark mode'},};
  const currentLabel=labels[locale]?.[isDark?'dark':'light']||labels.ar[isDark?'dark':'light'];
  const nextLabel=labels[locale]?.[isDark?'toLight':'toDark']||labels.ar[isDark?'toLight':'toDark'];
  if(label)label.textContent=currentLabel;
@@ -2202,6 +2246,7 @@ async function refreshCustomerAccount(){
   const preferences=preferencesData.preferences||{};accountFavorites=Array.isArray(preferences.favorites)?preferences.favorites:[];
   if(['ar','en'].includes(preferences.locale)&&preferences.locale!==storeLocale())window.NexaLocale?.setLanguage(preferences.locale);
   if(['dark','light'].includes(preferences.theme))setStoreColorMode(preferences.theme,{persist:false});
+  if(['USD','SYP'].includes(preferences.displayCurrency))setStoreDisplayCurrency(preferences.displayCurrency,{persist:true,saveAccount:false});
   renderWalletLedger();renderOrders();renderPaymentHistory();syncFavorites();if(state.view==='favorites')renderFavorites();if(state.selectedPack)renderCurrencyPreview();
  }catch{if(generation!==accountRefreshGeneration)return;if(!customerAccount)resetCustomerAccountView('تعذر تحميل الحساب');else{setWalletAccountStatus('تعذر تحميل الحساب');renderSidebarAccount();}}
 }
