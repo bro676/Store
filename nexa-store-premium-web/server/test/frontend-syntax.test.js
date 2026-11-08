@@ -819,7 +819,7 @@ test('English drawer updates its balance locale while amounts stay in SYP',async
   assert.ok(languageHandler.includes('renderSidebarAccount();'),'Drawer balance is reformatted after a language switch');
   assert.ok(store.includes("const storeIntlLocale=()=>storeLocale()==='ar'?'ar-SY':'en-US';"),'Arabic uses Arabic digits while English uses Latin digits');
   assert.ok(store.includes('return formatDisplaySyp(value*storefrontFxRate)'),'USD order amounts convert to Syrian pounds for display');
-  assert.ok(store.includes("function formatUsdDisplay(value)")&&store.includes("currency:'USD'"),'USD amounts use the locale-aware display converter');
+  assert.ok(store.includes("function formatUsdDisplay(value)")&&store.includes("return formatDisplaySyp(value*storefrontFxRate)"),'USD amounts are shown using the SYP exchange rate');
   assert.ok(store.includes('nexa-store-drawer.css?v=20261106-drawer-ltr-v2'),'The updated drawer stylesheet has a fresh cache key');
   assert.ok(store.includes('nexa-store-language.js?v=20261108-ar-en-syp-v1'),'The updated Arabic/English dictionary has a fresh cache key');
 });
