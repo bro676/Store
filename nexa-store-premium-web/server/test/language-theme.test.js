@@ -116,15 +116,12 @@ test('storefront language engine translates static and dynamic text, attributes 
   'Placeholder/title/alt/aria-label attributes are traversed incrementally in animation-frame batches');
  assert.ok(!source.includes('root.querySelectorAll(attributeSelector)'),
   'Locale changes must not synchronously query every attribute in a large dashboard or catalogue subtree');
+  sandbox.window.NexaLocale.setLanguage('en');
   sandbox.window.NexaLocale.setLanguage('tr');
-  assert.equal(translate('الرئيسية'),'Ana sayfa');
-  assert.equal(translate('نظرة عامة'),'Genel bakış');
-  assert.equal(translate('مرحباً بك في مركز التحكم'),'Kontrol merkezine hoş geldiniz');
-  assert.equal(translate('صفحة ٢ من ٥'),'Sayfa 2 / 5');
-  assert.equal(sandbox.document.documentElement.language,'tr');
-  assert.equal(sandbox.document.documentElement.direction,'ltr');
-  sandbox.window.NexaLocale.setLanguage('ar');
-  assert.equal(translate('Ana sayfa'),'الرئيسية');
+  assert.equal(sandbox.window.NexaLocale.getLanguage(),'ar');
+  assert.equal(sandbox.document.documentElement.language,'ar');
+  assert.equal(sandbox.document.documentElement.direction,'rtl');
+  assert.equal(translate('الرئيسية'),'الرئيسية');
 });
 
 test('all Arabic static storefront text nodes have exact English dictionary entries',async()=>{
@@ -295,7 +292,7 @@ test('package flow dynamic UI strings and sidebar open/close labels are translat
   '"اختر المنطقة أو النسخة أو الخطة المناسبة.": "Choose the suitable region, version or plan."',
   '"الكمية": "Quantity"'
  ])assert.ok(source.includes(phrase),'Missing package-flow translation '+phrase);
- assert.ok(store.includes('nexa-store-language.js?v=20261108-turkish-i18n-v1'),'Package flow locale cache version is fresh');
+ assert.ok(store.includes('nexa-store-language.js?v=20261108-ar-en-syp-v1'),'Package flow locale cache version is fresh');
 });
 
 
@@ -309,7 +306,7 @@ test('catalog folder/product and order/invoice terms are translated in both dire
   ["'اسم العميل':'Customer name'","'عملة الدفع':'Payment currency'"],["'إنشاء الطلب والمتابعة للدفع':'Create order and continue to payment'","'عنوان محفظة الاستلام':'Receiving wallet address'"],
   ["'فاتورة شام كاش الرسمية':'Official Sham Cash invoice'","'بيانات المنتج':'Product details'"]
  ]){assert.ok(source.includes(arabic)&&source.includes(english),'Missing exact bilingual flow terms '+arabic+' / '+english);}
- assert.ok(store.includes('nexa-store-language.js?v=20261108-turkish-i18n-v1'),'the expanded locale dictionary cache is refreshed');
+ assert.ok(store.includes('nexa-store-language.js?v=20261108-ar-en-syp-v1'),'the expanded locale dictionary cache is refreshed');
  assert.ok(store.includes('nexa-responsive.css?v=20261107-package-order-wallet-final-v11'),'the new catalog and modal styles are cache-busted');
  const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-responsive.css'),'utf8');
  for(const selector of [':root[data-theme="dark"] #orderModal',':root[data-theme="light"] #orderModal','#orderModal .modal-body','#orderModal .modal-actions'])assert.ok(css.includes(selector),'Missing theme coverage for '+selector);
@@ -373,23 +370,29 @@ test('supplier package names, supplier field labels and wallet account strings t
  sandbox.window.NexaLocale.setLanguage('ar');for(const [ar,en] of pairs){const expected=ar.includes('Bep20')?'ادخل عنوان بيب Bep٢٠':(en==='Player ID'?'رقم اللاعب':(en==='Choose city'?'اختر  المدينة':ar));assert.equal(translate(en),expected,'Missing Arabic translation for '+en);}
 });
 
-test('Turkish storefront, admin locale, USD TRY display and independent themes are wired',async()=>{
+test('storefront, admin and account preferences expose Arabic English and SYP only',async()=>{
  const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
  const admin=await fs.readFile(path.join(webRoot,'admin.html'),'utf8');
  const server=await fs.readFile(path.join(webRoot,'server/src/server.js'),'utf8');
+ const preferences=await fs.readFile(path.join(webRoot,'server/src/customer-preferences.js'),'utf8');
  const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-interface-finish.css'),'utf8');
  const locale=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
- assert.ok(store.includes("const storeIntlLocale=()=>storeLocale()==='ar'?'ar-SY':storeLocale()==='tr'?'tr-TR':'en-US'"));
- assert.ok(store.includes("const next=storefrontDisplayCurrency==='USD'?'TRY':'USD'"));
- assert.ok(store.includes("currency:'TRY'")&&store.includes("storefrontTryPerUsd"));
- assert.ok(store.includes("id=\"sidebarLanguageCode\""));
- assert.ok(store.includes("nexa-store-color-mode"));
- assert.ok(admin.includes("id=\"adminLanguageToggle\"")&&admin.includes("initializeAdminLocale();"));
- assert.ok(admin.includes("id=\"fxTryRate\"")&&admin.includes("tryPerUsd:Number($('fxTryRate').value||0)"));
- assert.ok(admin.includes("nexa-admin-color-mode"));
- assert.ok(server.includes("tryPerUsd:0")&&server.includes("tryFxReady:tryFxRateReady()"));
- assert.ok(server.includes("INVALID_TRY_PER_USD"));
- assert.ok(locale.includes("['ar','en','tr'].includes(next)")&&locale.includes("Türkçe"));
+ assert.ok(store.includes("const storeIntlLocale=()=>storeLocale()==='ar'?'ar-SY':'en-US'"));
+ assert.ok(store.includes("const next=storeLocale()==='ar'?'en':'ar'"));
+ assert.ok(store.includes("currency:'SYP'")&&store.includes("return formatDisplaySyp(value*storefrontFxRate)"));
+ assert.ok(store.includes('<strong id="sidebarCurrencyCode">SYP</strong>')&&!store.includes('sidebarCurrencyToggle'));
+ assert.ok(store.includes("nexa-store-display-currency','SYP'"));
+ assert.ok(!store.includes('TRY')&&!store.includes('storefrontTryPerUsd')&&!store.includes('tr-TR'));
+ assert.ok(admin.includes('id="adminLanguageToggle"')&&admin.includes('initializeAdminLocale();'));
+ assert.ok(admin.includes("window.NexaLocale?.setLanguage(locale==='ar'?'en':'ar')"));
+ assert.ok(!admin.includes('fxTryRate')&&!admin.includes('tryPerUsd'));
+ assert.ok(server.includes("delete storeSettings.tryPerUsd"),'Legacy TRY setting is discarded when settings load');
+ assert.ok(!server.includes('tryFxReady')&&!server.includes('INVALID_TRY_PER_USD'));
+ assert.ok(preferences.includes("if(source.locale==='ar'||source.locale==='en')"));
+ assert.ok(preferences.includes("preferences.displayCurrency='SYP'"));
+ assert.ok(preferences.includes("patch.displayCurrency!=='SYP'"));
+ assert.ok(locale.includes("const selected=next==='en'?'en':'ar'"));
+ assert.ok(!locale.includes('turkishTranslations')&&!locale.includes('turkishReverse')&&!locale.includes('tr-TR'));
  assert.ok(css.includes(":root[data-theme=\"dark\"]")&&css.includes(":root[data-theme=\"light\"]"));
  assert.ok(css.includes(":root[dir=\"ltr\"] #app.shell .side")&&css.includes(":root[dir=\"rtl\"] #app.shell .side"));
  assert.ok(store.includes("nexa-interface-finish.css")&&admin.includes("nexa-interface-finish.css"));
