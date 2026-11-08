@@ -696,14 +696,14 @@ test('storefront drawer matches the fixed dark/light reference palette without c
 });
 
 
-test('storefront uses Syrian pound display and only Arabic English locales', async () => {
+test('storefront supports USD and SYP display with only Arabic and English locales', async () => {
   const store = await fs.readFile(path.join(webRoot, 'index.html'), 'utf8');
   const drawer = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-drawer.css'), 'utf8');
   const locale = await fs.readFile(path.join(webRoot, 'assets/brand/nexa-store-language.js'), 'utf8');
-  assert.ok(store.includes('nexa-store-language.js?v=20261108-ar-en-syp-v1'), 'The Arabic/English locale engine is loaded before storefront initialization');
+  assert.ok(store.includes('nexa-store-language.js?v=20261108-usd-syp-admin-i18n-v1'), 'The Arabic/English locale engine is loaded before storefront initialization');
   assert.ok(store.includes('id="sidebarLanguageToggle"'), 'The drawer has a real language control');
-  assert.ok(!store.includes('sidebarCurrencyToggle'), 'The display currency selector is removed');
-  assert.ok(store.includes('<strong id="sidebarCurrencyCode">SYP</strong>'), 'The drawer shows only Syrian pounds');
+  assert.ok(store.includes('id="sidebarCurrencyToggle"'), 'The drawer has a USD/SYP display-currency selector');
+  assert.ok(store.includes('<strong id="sidebarCurrencyCode">SYP</strong>'), 'Syrian pounds remain the default display currency');
   const first=store.indexOf('class="sidebar-quick-actions"');
   const row=store.slice(first,store.indexOf('</div>',first));
   const order=['id="sidebarLanguageToggle"','data-page="favorites"','data-page="profile"','id="sidebarLogoutButton"'];
@@ -711,10 +711,10 @@ test('storefront uses Syrian pound display and only Arabic English locales', asy
   for (const token of order) {const next=row.indexOf(token);assert.ok(next>cursor,'Arabic quick-action order from left to right must be Language, Favorites, Profile, Logout: '+token);cursor=next;}
   assert.ok(store.includes("const rate=Number(d.fxRate)"), 'USD invoice amounts use the public USD/SYP rate for display');
   assert.ok(store.includes("storefrontFxReady=d.fxReady===true"), 'USD-to-SYP conversion is gated by exchange-rate readiness');
-  assert.ok(store.includes("function formatDisplaySyp(amount)")&&store.includes("currency:'SYP'"), 'Catalogue and wallet amounts always use SYP display');
+  assert.ok(store.includes("function formatDisplaySyp(amount)")&&store.includes("formatCurrencyAmount(value,'SYP')"), 'SYP remains a supported display currency');
   assert.ok(store.includes("return formatDisplaySyp(value*storefrontFxRate)"), 'USD amounts are converted into Syrian pounds for display');
   assert.ok(store.includes("const next=storeLocale()==='ar'?'en':'ar'"), 'The language control switches only Arabic and English');
-  assert.ok(store.includes("localStorage.setItem('nexa-store-display-currency','SYP')"), 'Legacy display preferences are migrated to SYP');
+  assert.ok(store.includes("const STORE_DISPLAY_CURRENCY_KEY='nexa-store-display-currency'"), 'Display currency preference is saved and restored');
   assert.ok(!store.includes('TRY')&&!store.includes('storefrontTryPerUsd')&&!store.includes('tr-TR'), 'The storefront no longer contains Turkish currency or locale support');
   assert.doesNotThrow(() => new vm.Script(locale, { filename: "nexa-store-language.js" }), 'The bilingual translation module parses');
   assert.ok(locale.includes("const selected=next==='en'?'en':'ar'"), 'Unknown locale values fall back to Arabic');
@@ -821,7 +821,7 @@ test('English drawer updates its balance locale while amounts stay in SYP',async
   assert.ok(store.includes('return formatDisplaySyp(value*storefrontFxRate)'),'USD order amounts convert to Syrian pounds for display');
   assert.ok(store.includes("function formatUsdDisplay(value)")&&store.includes("return formatDisplaySyp(value*storefrontFxRate)"),'USD amounts are shown using the SYP exchange rate');
   assert.ok(store.includes('nexa-store-drawer.css?v=20261106-drawer-ltr-v2'),'The updated drawer stylesheet has a fresh cache key');
-  assert.ok(store.includes('nexa-store-language.js?v=20261108-ar-en-syp-v1'),'The updated Arabic/English dictionary has a fresh cache key');
+  assert.ok(store.includes('nexa-store-language.js?v=20261108-usd-syp-admin-i18n-v1'),'The updated Arabic/English dictionary has a fresh cache key');
 });
 
 
