@@ -370,7 +370,7 @@ test('supplier package names, supplier field labels and wallet account strings t
  sandbox.window.NexaLocale.setLanguage('ar');for(const [ar,en] of pairs){const expected=ar.includes('Bep20')?'ادخل عنوان بيب Bep٢٠':(en==='Player ID'?'رقم اللاعب':(en==='Choose city'?'اختر  المدينة':ar));assert.equal(translate(en),expected,'Missing Arabic translation for '+en);}
 });
 
-test('storefront, admin and account preferences expose Arabic English and SYP only',async()=>{
+test('storefront supports USD and SYP display while invoice amounts keep their real currency',async()=>{
  const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
  const admin=await fs.readFile(path.join(webRoot,'admin.html'),'utf8');
  const server=await fs.readFile(path.join(webRoot,'server/src/server.js'),'utf8');
@@ -379,9 +379,14 @@ test('storefront, admin and account preferences expose Arabic English and SYP on
  const locale=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
  assert.ok(store.includes("const storeIntlLocale=()=>storeLocale()==='ar'?'ar-SY':'en-US'"));
  assert.ok(store.includes("const next=storeLocale()==='ar'?'en':'ar'"));
- assert.ok(store.includes("currency:'SYP'")&&store.includes("return formatDisplaySyp(value*storefrontFxRate)"));
- assert.ok(store.includes('<strong id="sidebarCurrencyCode">SYP</strong>')&&!store.includes('sidebarCurrencyToggle'));
- assert.ok(store.includes("nexa-store-display-currency','SYP'"));
+ assert.ok(store.includes("const STORE_DISPLAY_CURRENCY_KEY='nexa-store-display-currency'"));
+ assert.ok(store.includes('id="sidebarCurrencyToggle"')&&store.includes("getStoreDisplayCurrency()==='SYP'?'USD':'SYP'"));
+ assert.ok(store.includes("return formatCurrencyAmount(value/storefrontFxRate,'USD')"));
+ assert.ok(store.includes("return formatCurrencyAmount(amount*storefrontFxRate,'SYP')"));
+ assert.ok(store.includes("const formatMinor=(minor,currency='SYP')")&&store.includes("formatCurrencyAmount(value,currency==='USD'?'USD':'SYP')"));
+ assert.ok(store.includes("preview.textContent=formatCurrencyAmount(totalSyp,'SYP')"),'SYP checkout invoices remain quoted in SYP');
+ assert.ok(store.includes("saveCustomerPreferences({displayCurrency:selected})"));
+ assert.ok(store.includes("preferences.displayCurrency))setStoreDisplayCurrency"));
  assert.ok(!store.includes('TRY')&&!store.includes('storefrontTryPerUsd')&&!store.includes('tr-TR'));
  assert.ok(admin.includes('id="adminLanguageToggle"')&&admin.includes('initializeAdminLocale();'));
  assert.ok(admin.includes("window.NexaLocale?.setLanguage(locale==='ar'?'en':'ar')"));
@@ -389,11 +394,26 @@ test('storefront, admin and account preferences expose Arabic English and SYP on
  assert.ok(server.includes("delete storeSettings.tryPerUsd"),'Legacy TRY setting is discarded when settings load');
  assert.ok(!server.includes('tryFxReady')&&!server.includes('INVALID_TRY_PER_USD'));
  assert.ok(preferences.includes("if(source.locale==='ar'||source.locale==='en')"));
- assert.ok(preferences.includes("preferences.displayCurrency='SYP'"));
- assert.ok(preferences.includes("patch.displayCurrency!=='SYP'"));
+ assert.ok(preferences.includes("source.displayCurrency==='USD'?'USD':'SYP'"));
+ assert.ok(preferences.includes("!['SYP','USD'].includes(patch.displayCurrency)"));
  assert.ok(locale.includes("const selected=next==='en'?'en':'ar'"));
+ assert.ok(locale.includes('adminSupplementaryTranslations'));
  assert.ok(!locale.includes('turkishTranslations')&&!locale.includes('turkishReverse')&&!locale.includes('tr-TR'));
  assert.ok(css.includes(":root[data-theme=\"dark\"]")&&css.includes(":root[data-theme=\"light\"]"));
  assert.ok(css.includes(":root[dir=\"ltr\"] #app.shell .side")&&css.includes(":root[dir=\"rtl\"] #app.shell .side"));
  assert.ok(store.includes("nexa-interface-finish.css")&&admin.includes("nexa-interface-finish.css"));
+});
+
+test('every static Arabic administration text has an English translation',async()=>{
+ const admin=await fs.readFile(path.join(webRoot,'admin.html'),'utf8');
+ const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
+ const mainMap=source.match(/const adminEnglishTranslations = Object\\.freeze\\((\\{[\\s\\S]*?\\})\\);/);
+ const extraMap=source.match(/const adminSupplementaryTranslations = Object\\.freeze\\((\\{[\\s\\S]*?\\})\\);/);
+ assert.ok(mainMap&&extraMap,'Both admin translation dictionaries must be present');
+ const keys=new Set([...Object.keys(JSON.parse(mainMap[1])),...Object.keys(JSON.parse(extraMap[1]))]);
+ const bodyStart=admin.indexOf('<body'),scriptStart=admin.indexOf('<script src="/assets/brand/nexa-catalog.js');
+ const body=admin.slice(bodyStart,scriptStart);
+ const nodes=[...body.matchAll(/>([^<>]+)</g)].map(match=>match[1].replace(/\\s+/g,' ').trim()).filter(value=>/[\\u0600-\\u06FF]/.test(value)&&value.length>1);
+ const missing=[...new Set(nodes)].filter(value=>!keys.has(value));
+ assert.deepEqual(missing,[],'Every static Arabic admin label and help text must have an exact English translation');
 });
