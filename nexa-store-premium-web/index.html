@@ -1139,7 +1139,7 @@ function formatUsdDisplay(value){
  if(!Number.isFinite(amount)||amount<0)return '—';
  if(getStoreDisplayCurrency()==='USD')return formatCurrencyAmount(amount,'USD');
  if(!storefrontFxReady||!(storefrontFxRate>0))return storeLocale()==='ar'?'سعر تحويل الدولار غير متاح حالياً':'USD conversion rate unavailable';
- return formatCurrencyAmount(amount*storefrontFxRate,'SYP');
+ return formatDisplaySyp(value*storefrontFxRate);
 }
 const money=value=>Number(value)>0?formatDisplaySyp(value):(storeLocale()==='ar'?'يحدد لاحقاً':'Set by the store');
 const formatDisplayMinor=(minor,currency='SYP')=>{
