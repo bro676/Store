@@ -382,7 +382,7 @@ test('storefront supports USD and SYP display while invoice amounts keep their r
  assert.ok(store.includes("const STORE_DISPLAY_CURRENCY_KEY='nexa-store-display-currency'"));
  assert.ok(store.includes('id="sidebarCurrencyToggle"')&&store.includes("getStoreDisplayCurrency()==='SYP'?'USD':'SYP'"));
  assert.ok(store.includes("return formatCurrencyAmount(value/storefrontFxRate,'USD')"));
- assert.ok(store.includes("return formatCurrencyAmount(amount*storefrontFxRate,'SYP')"));
+ assert.ok(store.includes("return formatDisplaySyp(value*storefrontFxRate)"));
  assert.ok(store.includes("const formatMinor=(minor,currency='SYP')")&&store.includes("formatCurrencyAmount(value,currency==='USD'?'USD':'SYP')"));
  assert.ok(store.includes("preview.textContent=formatCurrencyAmount(totalSyp,'SYP')"),'SYP checkout invoices remain quoted in SYP');
  assert.ok(store.includes("saveCustomerPreferences({displayCurrency:selected})"));
