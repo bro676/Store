@@ -407,13 +407,15 @@ test('storefront supports USD and SYP display while invoice amounts keep their r
 test('every static Arabic administration text has an English translation',async()=>{
  const admin=await fs.readFile(path.join(webRoot,'admin.html'),'utf8');
  const source=await fs.readFile(path.join(webRoot,'assets/brand/nexa-store-language.js'),'utf8');
- const mainMap=source.match(/const adminEnglishTranslations = Object\\.freeze\\((\\{[\\s\\S]*?\\})\\);/);
- const extraMap=source.match(/const adminSupplementaryTranslations = Object\\.freeze\\((\\{[\\s\\S]*?\\})\\);/);
+ const mainMap=source.match(/const adminEnglishTranslations = Object\.freeze\((\{[\s\S]*?\})\);/);
+ const extraMap=source.match(/const adminSupplementaryTranslations = Object\.freeze\((\{[\s\S]*?\})\);/);
  assert.ok(mainMap&&extraMap,'Both admin translation dictionaries must be present');
  const keys=new Set([...Object.keys(JSON.parse(mainMap[1])),...Object.keys(JSON.parse(extraMap[1]))]);
  const bodyStart=admin.indexOf('<body'),scriptStart=admin.indexOf('<script src="/assets/brand/nexa-catalog.js');
  const body=admin.slice(bodyStart,scriptStart);
- const nodes=[...body.matchAll(/>([^<>]+)</g)].map(match=>match[1].replace(/\\s+/g,' ').trim()).filter(value=>/[\\u0600-\\u06FF]/.test(value)&&value.length>1);
+ const nodes=[...body.matchAll(/>([^<>]+)</g)]
+  .map(match=>match[1].replace(/\s+/g,' ').trim())
+  .filter(value=>/[\u0600-\u06FF]/.test(value)&&value.length>1);
  const missing=[...new Set(nodes)].filter(value=>!keys.has(value));
  assert.deepEqual(missing,[],'Every static Arabic admin label and help text must have an exact English translation');
 });
