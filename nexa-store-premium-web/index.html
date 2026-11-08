@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c0c0c">
 <meta name="description" content="Nexa Store — متجر رقمي للألعاب والبطاقات والاشتراكات والخدمات الرقمية.">
-<script>(function(){try{const theme=localStorage.getItem('nexa-store-color-mode');document.documentElement.dataset.theme=theme==='light'?'light':'dark';const locale=localStorage.getItem('nexa-store-language');if(['ar','en','tr'].includes(locale)){document.documentElement.lang=locale;document.documentElement.dir=locale==='ar'?'rtl':'ltr';document.documentElement.dataset.locale=locale;} }catch{document.documentElement.dataset.theme='dark';}})();</script>
+<script>(function(){try{const theme=localStorage.getItem('nexa-store-color-mode');document.documentElement.dataset.theme=theme==='light'?'light':'dark';const locale=localStorage.getItem('nexa-store-language');if(locale==='ar'||locale==='en'){document.documentElement.lang=locale;document.documentElement.dir=locale==='ar'?'rtl':'ltr';document.documentElement.dataset.locale=locale;}else if(locale){localStorage.setItem('nexa-store-language','ar');document.documentElement.lang='ar';document.documentElement.dir='rtl';document.documentElement.dataset.locale='ar';} }catch{document.documentElement.dataset.theme='dark';}})();</script>
 <title>Nexa Store | متجرك الرقمي</title>
 <style>
 :root{--bg:#f6f7f9;--surface:#fff;--surface-2:#f0f2f5;--ink:#171923;--ink-2:#343847;--muted:#747b8a;--muted-2:#9aa1ad;--line:#e6e8ee;--line-2:#d9dde6;--red:#de172c;--red-2:#f13b4e;--red-dark:#a90f22;--red-soft:#fff0f2;--green:#179565;--blue:#427be4;--purple:#7758d6;--amber:#c8892d;--shadow:0 10px 30px rgba(25,29,43,.055);--shadow-lg:0 22px 60px rgba(17,20,32,.14);--r:18px;--focus:0 0 0 4px rgba(222,23,44,.12)}
@@ -684,11 +684,10 @@ body{
     </div>
   </div>
 
-  <button class="sidebar-currency" id="sidebarCurrencyToggle" type="button" aria-label="تبديل عملة العرض" title="تبديل عملة العرض">
-    <strong id="sidebarCurrencyCode">USD</strong>
-    <span id="sidebarCurrencyLabel">العملة الثانوية</span>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 7 3-3 3 3M10 4v10M17 17l-3 3-3-3M14 20V10"/></svg>
-  </button>
+  <div class="sidebar-currency" aria-label="عملة العرض: الليرة السورية">
+    <strong id="sidebarCurrencyCode">SYP</strong>
+    <span id="sidebarCurrencyLabel">الليرة السورية</span>
+  </div>
 
   <nav class="sidebar-nav" aria-label="قائمة المتجر">
     <a class="side-link active" href="#home" data-page="home"><svg class="side-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V10Z"/></svg><span>الرئيسية</span></a>
@@ -1075,14 +1074,13 @@ body{
 </section>
 <div class="toast" id="toast"></div>
 <script src="/assets/brand/nexa-catalog.js?v=20261106-dashboard-order-v3"></script>
-<script src="/assets/brand/nexa-store-language.js?v=20261108-turkish-i18n-v1"></script>
+<script src="/assets/brand/nexa-store-language.js?v=20261108-ar-en-syp-v1"></script>
 <script>
 let categories=[];
-let storefrontDisplayCurrency='USD',storefrontFxRate=145,storefrontFxReady=false,storefrontTryPerUsd=0,storefrontTryReady=false,storefrontLanguage='ar',walletTransactions=[];
-try{const savedCurrency=localStorage.getItem('nexa-store-display-currency');if(savedCurrency==='USD'||savedCurrency==='TRY')storefrontDisplayCurrency=savedCurrency;else if(savedCurrency==='SYP')storefrontDisplayCurrency='USD';}catch{}
+let storefrontFxRate=145,storefrontFxReady=false,storefrontLanguage='ar',walletTransactions=[];
 const $=id=>document.getElementById(id);
 const storeLocale=()=>window.NexaLocale?.getLanguage?.()||storefrontLanguage||'ar';
-const storeIntlLocale=()=>storeLocale()==='ar'?'ar-SY':storeLocale()==='tr'?'tr-TR':'en-US';
+const storeIntlLocale=()=>storeLocale()==='ar'?'ar-SY':'en-US';
 const storeText=value=>window.NexaLocale?.translate?window.NexaLocale.translate(value):String(value??'');
 function setWalletAccountStatus(value){
  const source=String(value||'غير مسجل الدخول');
@@ -1117,40 +1115,21 @@ function localizeWalletTopupForm(){
  const button=controls?.querySelector('button[type="submit"]');
  if(button&&button.dataset.busy!=='true')button.textContent=storeText('إنشاء فاتورة شحن');
 }
-const storeCurrencyLabel=currency=>currency==='USD'?'USD':currency==='TRY'?'TRY':'SYP';
-function unavailableCurrencyRate(){
- if(storefrontDisplayCurrency==='TRY')return storeLocale()==='tr'?'TRY kuru henüz ayarlanmadı':storeLocale()==='en'?'TRY rate is not configured yet':'لم يتم ضبط سعر الليرة التركية بعد';
- return storeLocale()==='ar'?'سعر الدولار غير متاح':'USD rate unavailable';
-}
 function formatDisplaySyp(amount){
- const value=Number(amount);if(!Number.isFinite(value)||value<0)return '—';
- if(storefrontDisplayCurrency==='TRY'){
-  if(!storefrontFxReady||!(storefrontFxRate>0)||!storefrontTryReady||!(storefrontTryPerUsd>0))return unavailableCurrencyRate();
-  return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'TRY',minimumFractionDigits:2,maximumFractionDigits:2}).format((value/storefrontFxRate)*storefrontTryPerUsd);
- }
- if(!storefrontFxReady||!(storefrontFxRate>0))return storeLocale()==='ar'?'سعر الدولار غير متاح':'USD rate unavailable';
- return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(value/storefrontFxRate);
+ const value=Number(amount);
+ if(!Number.isFinite(value)||value<0)return '—';
+ return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'SYP',minimumFractionDigits:0,maximumFractionDigits:2}).format(value);
 }
 function formatUsdDisplay(value){
- if(storefrontDisplayCurrency==='TRY'){
-  if(!storefrontTryReady||!(storefrontTryPerUsd>0))return unavailableCurrencyRate();
-  return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'TRY',minimumFractionDigits:2,maximumFractionDigits:2}).format(value*storefrontTryPerUsd);
- }
- return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'USD',minimumFractionDigits:2,maximumFractionDigits:2}).format(value);
+ if(!storefrontFxReady||!(storefrontFxRate>0))return storeLocale()==='ar'?'سعر الدولار غير متاح':'USD rate unavailable';
+ return formatDisplaySyp(value*storefrontFxRate);
 }
-const money=v=>Number(v)>0?formatDisplaySyp(v):(storeLocale()==='ar'?'يحدد لاحقاً':storeLocale()==='tr'?'Mağaza tarafından belirlenir':'Set by the store');
+const money=value=>Number(value)>0?formatDisplaySyp(value):(storeLocale()==='ar'?'يحدد لاحقاً':'Set by the store');
 const formatDisplayMinor=(minor,currency='SYP')=>{
  const value=Number(BigInt(minor||0))/100;
- if(currency==='USD')return formatUsdDisplay(value);
- if(currency==='TRY')return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'TRY'}).format(value);
- return formatDisplaySyp(value);
+ return currency==='USD'?formatUsdDisplay(value):formatDisplaySyp(value);
 };
-const formatMinor=(minor,currency='SYP')=>{
- const value=Number(BigInt(minor||0))/100;
- if(currency==='USD')return formatUsdDisplay(value);
- if(currency==='TRY')return new Intl.NumberFormat(storeIntlLocale(),{style:'currency',currency:'TRY'}).format(value);
- return formatDisplaySyp(value);
-};
+const formatMinor=formatDisplayMinor;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let state={view:'home',department:null,category:null,item:null,option:null,selectedPack:null,pendingOrder:null,catalogPage:1,catalogQuery:'',categoryPage:1,categoryQuery:'',productPage:1,productQuery:'',searchResults:[],searchPage:1};let toastTimer;let memoryData={guestOrders:[],favs:[],supportTickets:[]},memoryDataKey='';const deliveryWatchers=new Set();
 function getCategory(id){return categories.find(x=>String(x.id)===String(id))||null}function getItem(id,categoryId=state.category){const scoped=categoryId==null?null:getCategory(categoryId);if(scoped){const match=(scoped.items||[]).find(x=>String(x.id)===String(id));if(match)return match;}for(const c of categories){const it=(c.items||[]).find(x=>String(x.id)===String(id));if(it)return it}return null}function getOption(id){const it=state.item&&getItem(state.item,state.category);return NexaCatalog.getProductOptions(it).find(x=>String(x.id)===String(id))||null}
@@ -1877,21 +1856,14 @@ function renderSidebarAccount(){
 }
 
 function syncSidebarCurrency(){
- const code=$('sidebarCurrencyCode'),label=$('sidebarCurrencyLabel'),button=$('sidebarCurrencyToggle');
+ const code=$('sidebarCurrencyCode'),label=$('sidebarCurrencyLabel');
  const languageButton=$('sidebarLanguageToggle'),languageCode=$('sidebarLanguageCode');
- const locale=storeLocale(),nextCurrency=storefrontDisplayCurrency==='USD'?'TRY':'USD';
- const nextLanguage=({ar:'en',en:'tr',tr:'ar'})[locale]||'en';
- const currencyNames={ar:{USD:'الدولار الأمريكي',TRY:'الليرة التركية'},en:{USD:'US dollar',TRY:'Turkish lira'},tr:{USD:'ABD doları',TRY:'Türk lirası'}};
- const languageNames={ar:{ar:'العربية',en:'الإنجليزية',tr:'التركية'},en:{ar:'Arabic',en:'English',tr:'Turkish'},tr:{ar:'Arapça',en:'İngilizce',tr:'Türkçe'}};
- if(code)code.textContent=storefrontDisplayCurrency;
+ const locale=storeLocale();
+ if(code)code.textContent='SYP';
+ if(label)label.textContent=locale==='en'?'Syrian pound':'الليرة السورية';
  if(languageCode)languageCode.textContent=locale.toUpperCase();
- if(label)label.textContent=locale==='ar'?'عملة العرض':locale==='tr'?'Görüntüleme para birimi':'Display currency';
- if(button){
-  const caption=locale==='ar'?'تبديل عملة العرض إلى '+currencyNames.ar[nextCurrency]:locale==='tr'?'Görüntüleme para birimini '+currencyNames.tr[nextCurrency]+' olarak değiştir':'Switch display currency to '+currencyNames.en[nextCurrency];
-  button.title=caption;button.setAttribute('aria-label',caption);
- }
  if(languageButton){
-  const caption=locale==='ar'?'تغيير اللغة إلى '+languageNames.ar[nextLanguage]:locale==='tr'?'Dili '+languageNames.tr[nextLanguage]+' olarak değiştir':'Change language to '+languageNames.en[nextLanguage];
+  const caption=locale==='ar'?'Change language to English':'تغيير اللغة إلى العربية';
   languageButton.title=caption;languageButton.setAttribute('aria-label',caption);
  }
 }
@@ -1906,7 +1878,7 @@ function renderWalletLedger(){
   return '<li class="wallet-ledger-row"><span class="wallet-ledger-icon">'+(credit?'＋':'−')+'</span><span class="wallet-ledger-copy"><strong>'+esc(label)+'</strong><small>'+esc(storeText(item.note||item.referenceOrderId||''))+' · '+esc(date)+'</small></span><b class="'+(credit?'credit':'debit')+'">'+(credit?'+':'−')+formatDisplayMinor(item.amountMinor,'SYP')+'</b></li>';
  }).join('')+'</ul>':'<p class="wallet-ledger-empty">'+labels.empty+'</p>';
 }
-function refreshDisplayCurrency(){
+function refreshDisplayAmounts(){
  syncSidebarCurrency();
  renderSidebarAccount();
  if(state.view==='home')renderFeatured();
@@ -1916,27 +1888,20 @@ function refreshDisplayCurrency(){
  if(state.view==='wallet')renderWalletLedger();
  if(state.selectedPack&&$('orderModal')?.classList.contains('open'))$('modalPrice').textContent=money(state.selectedPack.price);
 }
-function setStoreDisplayCurrency(currency,{persist=true,notify=false}={}){
- storefrontDisplayCurrency=currency==='TRY'?'TRY':'USD';
- if(persist){try{localStorage.setItem('nexa-store-display-currency',storefrontDisplayCurrency)}catch{}}
- refreshDisplayCurrency();
- if(notify)showToast(storeLocale()==='ar'?'عملة العرض: '+storefrontDisplayCurrency:storeLocale()==='tr'?'Görüntüleme para birimi: '+storefrontDisplayCurrency:'Display currency: '+storefrontDisplayCurrency);
-}
 function initializeStorePreferences(){
  if(window.NexaLocale){storefrontLanguage=window.NexaLocale.initialize();}
- try{const saved=localStorage.getItem('nexa-store-display-currency');if(saved==='USD'||saved==='TRY')storefrontDisplayCurrency=saved;else if(saved==='SYP')storefrontDisplayCurrency='USD';}catch{}
+ try{localStorage.setItem('nexa-store-display-currency','SYP')}catch{}
  syncSidebarCurrency();
  $('sidebarLanguageToggle')?.addEventListener('click',()=>{
-  const order=['ar','en','tr'],next=order[(order.indexOf(storeLocale())+1)%order.length];
+  const next=storeLocale()==='ar'?'en':'ar';
   storefrontLanguage=next;window.NexaLocale?.setLanguage(next);
   if(customerAccount)saveCustomerPreferences({locale:next});
-  showToast(next==='ar'?'تم تغيير اللغة إلى العربية':next==='tr'?'Dil Türkçe olarak değiştirildi':'Language changed to English');
+  showToast(next==='ar'?'تم تغيير اللغة إلى العربية':'Language changed to English');
  });
  $('sidebarLogoutButton')?.addEventListener('click',()=>{
   if(!customerAccount){navigate('profile');showToast('سجّل الدخول أولاً.');return;}
   $('accountLogoutButton')?.click();
  });
- $('sidebarCurrencyToggle')?.addEventListener('click',()=>{const next=storefrontDisplayCurrency==='USD'?'TRY':'USD';setStoreDisplayCurrency(next,{notify:true});if(customerAccount)saveCustomerPreferences({displayCurrency:next});});
  window.addEventListener('nexa:languagechange:before',()=>{
   if(storeDrawerMedia.matches&&document.body.classList.contains('sidebar-open'))
    document.documentElement.classList.add('drawer-direction-switching');
@@ -1957,11 +1922,9 @@ function initializeStorePreferences(){
   }else setStoreMenuState(isStoreMenuOpen(),false);
  });
  window.addEventListener('storage',event=>{
-  if(event.key==='nexa-store-display-currency'&&(event.newValue==='USD'||event.newValue==='TRY'))setStoreDisplayCurrency(event.newValue,{persist:false});
-  if(event.key==='nexa-store-language'&&['ar','en','tr'].includes(event.newValue))window.NexaLocale?.setLanguage(event.newValue,{persist:false});
+  if(event.key==='nexa-store-language'&&(event.newValue==='ar'||event.newValue==='en'))window.NexaLocale?.setLanguage(event.newValue,{persist:false});
  });
 }
-
 function renderSupportState(){const d=storageRead();const tickets=d.supportTickets||[];const result=$('supportTicketResult');if(result&&tickets.length){const t=tickets[0];$('supportTicketText').textContent=`رقم المسودة ${t.id} · ${t.issue}`;result.classList.remove('hidden');const message=`مرحباً، أود التواصل مع الدعم الفني في Nexa Store.\nرقم البلاغ: ${t.id}\nالاسم: ${t.name}\nالتواصل: ${t.contact}\nنوع الطلب: ${t.issue}\nرقم الطلب: ${t.orderId||'غير محدد'}\nالتفاصيل: ${t.message}`;$('supportTicketWA').href=`https://wa.me/963936382101?text=${encodeURIComponent(message)}`;$('supportTicketEmail').href=`mailto:support.nsde@gmail.com?subject=${encodeURIComponent('بلاغ دعم '+t.id)}&body=${encodeURIComponent(message)}`}}
 function submitSupportTicket(e){e.preventDefault();const d=storageRead();d.supportTickets=d.supportTickets||[];const t={id:'NX-S-'+Date.now().toString().slice(-7),name:$('supportName').value.trim(),contact:$('supportContact').value.trim(),issue:$('supportIssue').value,orderId:$('supportOrderId').value.trim(),message:$('supportMessage').value.trim(),date:new Intl.DateTimeFormat(storeIntlLocale(),{dateStyle:'medium'}).format(new Date())};if(!t.name||!t.contact||!t.issue||!t.message)return;d.supportTickets.unshift(t);storageSave(d);renderSupportState();$('supportForm').reset();$('supportTicketResult').scrollIntoView({behavior:'smooth',block:'nearest'});showToast('تم حفظ مسودة البلاغ على هذا الجهاز');}
 function lookupSupportOrder(e){
@@ -2051,7 +2014,7 @@ function applyStorefrontExperience(value={}){
  const featureSelectors={
   notifications:['#sidebarNotificationsButton','[data-page="notifications"]'],
   favorites:['.sidebar-quick-actions [data-page="favorites"]','.favorite'],
-  wallet:['[data-page="wallet"]','#sidebarCurrencyToggle'],
+  wallet:['[data-page="wallet"]'],
   payments:['[data-page="payments"]'],
   orders:['[data-page="orders"]'],
   support:['[data-page="support"]','.support-channel-grid','.support-main-grid'],
@@ -2093,12 +2056,12 @@ async function loadStorefrontConfig(){
   const rate=Number(d.fxRate);
   if(Number.isFinite(rate)&&rate>0)storefrontFxRate=rate;
   storefrontFxReady=d.fxReady===true;
-  storefrontTryPerUsd=Number(d.tryPerUsd)||0;storefrontTryReady=d.tryFxReady===true;
+  refreshDisplayAmounts();
   if(d.storeLogo)storefrontLogoImage=d.storeLogo;
   applyStorefrontExperience(d.storefrontExperience||{});
   syncSidebarCurrency();
   if(d.storeName){
-   document.title=storeLocale()==='en'?'Nexa Store | Your digital store':storeLocale()==='tr'?'Nexa Store | Dijital mağazanız':d.storeName+' | متجرك الرقمي';
+   document.title=storeLocale()==='en'?'Nexa Store | Your digital store':d.storeName+' | متجرك الرقمي';
    const brand=document.querySelector('.sidebar-brand strong'),headerBrand=document.querySelector('.header-brand-copy strong'),footerName=document.querySelector('.footer-brand strong');
    if(brand)brand.textContent=d.storeName;if(headerBrand)headerBrand.textContent=d.storeName;if(footerName)footerName.textContent=d.storeName;
   }
@@ -2237,9 +2200,8 @@ async function refreshCustomerAccount(){
   walletTransactions=Array.isArray(txData.transactions)?txData.transactions:[];
   accountOrders=(orderData.orders||[]).map(item=>({id:item.id,name:item.product_label,date:item.createdAt?new Date(item.createdAt).toLocaleDateString(storeIntlLocale()):'',amountMinor:item.amountMinor,currency:item.currency,status:item.status,paymentMethod:item.paymentMethod,paidAt:item.paidAt||null,supplierStatus:item.supplierStatus||null}));
   const preferences=preferencesData.preferences||{};accountFavorites=Array.isArray(preferences.favorites)?preferences.favorites:[];
-  if(['ar','en','tr'].includes(preferences.locale)&&preferences.locale!==storeLocale())window.NexaLocale?.setLanguage(preferences.locale);
+  if(['ar','en'].includes(preferences.locale)&&preferences.locale!==storeLocale())window.NexaLocale?.setLanguage(preferences.locale);
   if(['dark','light'].includes(preferences.theme))setStoreColorMode(preferences.theme,{persist:false});
-  if(['USD','TRY'].includes(preferences.displayCurrency))setStoreDisplayCurrency(preferences.displayCurrency,{persist:false});else if(preferences.displayCurrency==='SYP')setStoreDisplayCurrency('USD',{persist:false});
   renderWalletLedger();renderOrders();renderPaymentHistory();syncFavorites();if(state.view==='favorites')renderFavorites();if(state.selectedPack)renderCurrencyPreview();
  }catch{if(generation!==accountRefreshGeneration)return;if(!customerAccount)resetCustomerAccountView('تعذر تحميل الحساب');else{setWalletAccountStatus('تعذر تحميل الحساب');renderSidebarAccount();}}
 }
