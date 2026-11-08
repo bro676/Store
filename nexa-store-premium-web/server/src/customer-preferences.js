@@ -16,19 +16,18 @@ function cleanStoredFavorites(value){
 export function normalizeCustomerPreferences(value){
  const source=isRecord(value)?value:{};
  const preferences={favorites:cleanStoredFavorites(source.favorites)};
- if(['ar','en','tr'].includes(source.locale))preferences.locale=source.locale;
+ if(source.locale==='ar'||source.locale==='en')preferences.locale=source.locale;
  if(source.theme==='dark'||source.theme==='light')preferences.theme=source.theme;
- if(source.displayCurrency==='USD'||source.displayCurrency==='TRY')preferences.displayCurrency=source.displayCurrency;
- else if(source.displayCurrency==='SYP')preferences.displayCurrency='USD'; // Migrate the retired display-only currency.
+ preferences.displayCurrency='SYP'; // The storefront now uses Syrian pounds only.
  return preferences;
 }
 function invalidPreferences(){return Object.assign(new Error('INVALID_CUSTOMER_PREFERENCES'),{status:400,code:'INVALID_CUSTOMER_PREFERENCES'})}
 export function mergeCustomerPreferences(current,patch){
  if(!isRecord(patch))throw invalidPreferences();
  const next=normalizeCustomerPreferences(current);
- if(hasOwn(patch,'locale')){if(!['ar','en','tr'].includes(patch.locale))throw invalidPreferences();next.locale=patch.locale;}
+ if(hasOwn(patch,'locale')){if(!['ar','en'].includes(patch.locale))throw invalidPreferences();next.locale=patch.locale;}
  if(hasOwn(patch,'theme')){if(!['dark','light'].includes(patch.theme))throw invalidPreferences();next.theme=patch.theme;}
- if(hasOwn(patch,'displayCurrency')){if(!['USD','TRY'].includes(patch.displayCurrency))throw invalidPreferences();next.displayCurrency=patch.displayCurrency;}
+ if(hasOwn(patch,'displayCurrency')){if(patch.displayCurrency!=='SYP')throw invalidPreferences();next.displayCurrency='SYP';}
  if(hasOwn(patch,'favorites')){
   if(!Array.isArray(patch.favorites)||patch.favorites.length>MAX_FAVORITES)throw invalidPreferences();
   const favorites=[];
