@@ -299,3 +299,31 @@ html[dir="ltr"] .sidebar-language-toggle{direction:ltr}
 :root[data-theme="light"] #app.shell :is(.product-editor,.option-editor,.secret-box,.api-code,.empty,.loading,.theme-preset,.category-choice,.tabs button,.folder-tree-node,.folder-tree-toolbar){
   color:var(--ink)!important;border-color:var(--line)!important;
 }
+
+
+/* FINAL STORE DRAWER SCROLL — one mouse-wheel/touch scroll surface for the entire drawer. */
+.app-shell .sidebar{
+  position:fixed!important;top:0!important;bottom:0!important;
+  height:100vh!important;height:100dvh!important;min-height:0!important;max-height:100dvh!important;
+  display:flex!important;flex-direction:column!important;align-items:stretch!important;
+  overflow-x:hidden!important;overflow-y:auto!important;
+  overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch!important;
+  touch-action:pan-y!important;scrollbar-width:thin!important;
+  scrollbar-color:rgba(148,163,184,.42) transparent!important;
+}
+.app-shell .sidebar-nav{
+  display:flex!important;flex:0 0 auto!important;flex-direction:column!important;
+  width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;
+  overflow:visible!important;overflow-y:visible!important;overflow-x:visible!important;
+  overscroll-behavior:auto!important;-webkit-overflow-scrolling:auto!important;
+}
+.app-shell .sidebar-profile-area,
+.app-shell .sidebar-quick-actions,
+.app-shell .sidebar-currency,
+.app-shell .sidebar-bottom,
+.app-shell .sidebar-social-links,
+.app-shell .sidebar-owner-brand,
+.app-shell .sidebar-footer{
+  flex:0 0 auto!important;min-height:0!important;
+}
+.app-shell .sidebar-nav .side-link{flex:0 0 auto!important}

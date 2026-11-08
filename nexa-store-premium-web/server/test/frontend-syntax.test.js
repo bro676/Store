@@ -963,3 +963,20 @@ test('Add Funds account headings and login labels refresh through the active loc
  assert.ok(store.includes('function setWalletAccountStatus(value)'),'Wallet status retains its source phrase across language changes');
  assert.ok(store.includes('setWalletAccountStatus(statusText);'),'Account refresh preserves the localizable status source');
 });
+
+
+test('store drawer uses one full-height mouse-wheel scroll surface after responsive styles load',async()=>{
+  const store=await fs.readFile(path.join(webRoot,'index.html'),'utf8');
+  const responsive=store.indexOf('nexa-responsive.css?v=20261107-package-order-wallet-final-v11');
+  const finish=store.indexOf('nexa-interface-finish.css?v=20261108-usd-syp-lang-dark-v2');
+  const css=await fs.readFile(path.join(webRoot,'assets/brand/nexa-interface-finish.css'),'utf8');
+  const marker=css.lastIndexOf('FINAL STORE DRAWER SCROLL');
+  assert.ok(responsive>=0&&finish>responsive,'The final drawer scroll fix loads after the responsive stylesheet');
+  assert.ok(marker>=0,'A final scroll override exists after all earlier drawer rules');
+  const fix=css.slice(marker);
+  assert.ok(fix.includes('.app-shell .sidebar{')&&fix.includes('overflow-y:auto!important;'),'The full-height drawer owns vertical scrolling');
+  assert.ok(fix.includes('height:100dvh!important;')&&fix.includes('max-height:100dvh!important;'),'The scroll container is bounded to the viewport');
+  assert.ok(fix.includes('-webkit-overflow-scrolling:touch!important;')&&fix.includes('touch-action:pan-y!important;'),'Touch and trackpad scrolling remain supported');
+  assert.ok(fix.includes('.app-shell .sidebar-nav{')&&fix.includes('overflow-y:visible!important;'),'The menu navigation cannot create a competing nested scrollbar');
+  assert.ok(fix.includes('flex:0 0 auto!important;'),'Drawer content sections keep their natural height and move together');
+});
